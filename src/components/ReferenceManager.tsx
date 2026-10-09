@@ -1,9 +1,11 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useState } from "react";
+import FormModal from "@/components/FormModal";
 import { createReference, deleteReference, updateReference } from "@/lib/reference-actions";
 import { REFERENCE_META, type ReferenceKind, type ReferenceRow } from "@/lib/reference";
 import styles from "@/components/OpsPage.module.css";
+import type { ActionState } from "@/lib/types";
 
 export default function ReferenceManager({
   kind,
@@ -17,14 +19,8 @@ export default function ReferenceManager({
   actionError?: string;
 }) {
   const meta = REFERENCE_META[kind];
-  const formRef = useRef<HTMLFormElement>(null);
-  const [state, action, pending] = useActionState(createReference.bind(null, kind), {});
-  const update = updateReference.bind(null, kind);
   const remove = deleteReference.bind(null, kind);
-
-  useEffect(() => {
-    if (state.message) formRef.current?.reset();
-  }, [state.message]);
+  const [draft, setDraft] = useState<ReferenceRow | "new" | null>(null);
 
   return (
     <section className={styles.stack}>
@@ -37,88 +33,135 @@ export default function ReferenceManager({
           {loadError}
         </p>
       ) : null}
-      {state.error || actionError ? (
+      {actionError ? (
         <p className={styles.alert} role="alert">
-          {state.error ?? actionError}
-        </p>
-      ) : null}
-      {state.message ? (
-        <p className={styles.notice} role="status">
-          {state.message}
+          {actionError}
         </p>
       ) : null}
       <div className={styles.panel}>
         <div className={styles.panelHead}>
-          {meta.title}
-          <span className={styles.panelMeta}>
-            {rows.length} {rows.length === 1 ? meta.singular : meta.title.toLowerCase()}
+          <span>{meta.title}</span>
+          <span className={styles.panelActions}>
+            <span className={styles.panelMeta}>
+              {rows.length} {rows.length === 1 ? meta.singular : meta.title.toLowerCase()}
+            </span>
+            <button className={styles.primary} type="button" onClick={() => setDraft("new")}>
+              Add
+            </button>
           </span>
         </div>
-        <form ref={formRef} className={styles.form} action={action}>
-          <label className={styles.field}>
-            Code
-            <input
-              name="code"
-              required
-              maxLength={20}
-              autoComplete="off"
-              placeholder="1000"
-              style={{ fontFamily: "var(--ops-mono)", textTransform: "uppercase" }}
-            />
-          </label>
-          <label className={styles.field}>
-            Description
-            <input name="description" required maxLength={200} placeholder="Sales income" />
-          </label>
-          <button className={styles.primary} type="submit" disabled={pending}>
-            {pending ? "Adding…" : "Add"}
-          </button>
-        </form>
         {rows.length === 0 ? (
           <p className={styles.empty}>No {meta.title.toLowerCase()} yet for this organisation.</p>
         ) : (
-          <div>
-            <div className={styles.rowHead}>
-              <span>Code</span>
-              <span>Description</span>
-              <span />
-            </div>
-            {rows.map((row) => (
-              <form key={row.id} className={styles.row} action={update}>
-                <input type="hidden" name="id" value={row.id} />
-                <input
-                  name="code"
-                  required
-                  maxLength={20}
-                  defaultValue={row.code}
-                  aria-label={`${meta.singular} code`}
-                  style={{ fontFamily: "var(--ops-mono)", textTransform: "uppercase" }}
-                />
-                <input
-                  name="description"
-                  required
-                  maxLength={200}
-                  defaultValue={row.description}
-                  aria-label={`${meta.singular} description`}
-                />
-                <button className={styles.primary} type="submit">
-                  Save
-                </button>
-                <button
-                  className={styles.quiet}
-                  type="submit"
-                  formAction={remove}
-                  onClick={(event) => {
-                    if (!window.confirm(`Remove ${row.code}?`)) event.preventDefault();
-                  }}
-                >
-                  Remove
-                </button>
-              </form>
-            ))}
-          </div>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Description</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.id}>
+                  <td className={styles.mono}>{row.code}</td>
+                  <td>{row.description}</td>
+                  <td>
+                    <span className={styles.panelActions}>
+                      <button className={styles.quiet} type="button" onClick={() => setDraft(row)}>
+                        Edit
+                      </button>
+                      <form action={remove}>
+                        <input type="hidden" name="id" value={row.id} />
+                        <button
+                          className={styles.quiet}
+                          type="submit"
+                          onClick={(event) => {
+                            if (!window.confirm(`Remove ${row.code}?`)) event.preventDefault();
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </form>
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
+      {draft ? (
+        <ReferenceForm
+          key={draft === "new" ? "new" : draft.id}
+          kind={kind}
+          row={draft === "new" ? null : draft}
+          onClose={() => setDraft(null)}
+        />
+      ) : null}
     </section>
+  );
+}
+
+function ReferenceForm({
+  kind,
+  row,
+  onClose,
+}: {
+  kind: ReferenceKind;
+  row: ReferenceRow | null;
+  onClose: () => void;
+}) {
+  const meta = REFERENCE_META[kind];
+  const save = row ? updateReference.bind(null, kind) : createReference.bind(null, kind);
+  const [state, action, pending] = useActionState(save, {} as ActionState);
+
+  useEffect(() => {
+    if (state.message) onClose();
+  }, [state.message, onClose]);
+
+  return (
+    <FormModal title={row ? `Edit ${meta.singular}` : `Add ${meta.singular}`} onClose={onClose}>
+      <form className={styles.modalForm} action={action}>
+        {row ? <input type="hidden" name="id" value={row.id} /> : null}
+        {state.error ? (
+          <p className={styles.alert} role="alert">
+            {state.error}
+          </p>
+        ) : null}
+        <label className={styles.field}>
+          Code
+          <input
+            name="code"
+            required
+            maxLength={20}
+            autoComplete="off"
+            autoFocus
+            defaultValue={row?.code ?? ""}
+            placeholder="1000"
+            className={styles.mono}
+            style={{ textTransform: "uppercase" }}
+          />
+        </label>
+        <label className={styles.field}>
+          Description
+          <input
+            name="description"
+            required
+            maxLength={200}
+            defaultValue={row?.description ?? ""}
+            placeholder="Sales income"
+          />
+        </label>
+        <div className={styles.modalActions}>
+          <button className={styles.quiet} type="button" onClick={onClose}>
+            Cancel
+          </button>
+          <button className={styles.primary} type="submit" disabled={pending}>
+            {pending ? "Saving…" : "Save"}
+          </button>
+        </div>
+      </form>
+    </FormModal>
   );
 }

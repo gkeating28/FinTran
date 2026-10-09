@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import {
   createOrganisation,
   createTenant,
@@ -8,6 +8,7 @@ import {
   signIn,
   signUp,
 } from "@/lib/actions";
+import FormModal from "@/components/FormModal";
 import type { ActionState, Role } from "@/lib/types";
 import auth from "@/components/auth.module.css";
 import ops from "@/components/OpsPage.module.css";
@@ -92,44 +93,78 @@ export function SignUpForm() {
 }
 
 export function CreateTenantForm() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <span>
+      <button className={ops.primary} type="button" onClick={() => setOpen(true)}>
+        Create tenant
+      </button>
+      {open ? (
+        <FormModal title="Create tenant" onClose={() => setOpen(false)}>
+          <TenantFields />
+        </FormModal>
+      ) : null}
+    </span>
+  );
+}
+
+function TenantFields() {
   const [state, action, pending] = useActionState(createTenant, {});
 
   return (
-    <form className={ops.form} action={action}>
+    <form className={ops.modalForm} action={action}>
+      <Status state={state} />
       <label className={ops.field}>
         Tenant
-        <input name="tenantName" required minLength={2} maxLength={80} placeholder="Northwind Group" />
+        <input name="tenantName" required minLength={2} maxLength={80} autoFocus placeholder="Northwind Group" />
       </label>
       <label className={ops.field}>
         First organisation
         <input name="organisationName" required minLength={2} maxLength={80} placeholder="Northwind Ltd" />
       </label>
-      <button className={ops.primary} type="submit" disabled={pending}>
-        {pending ? "Creating…" : "Create tenant"}
-      </button>
-      <Status state={state} />
+      <div className={ops.modalActions}>
+        <button className={ops.primary} type="submit" disabled={pending}>
+          {pending ? "Creating…" : "Create tenant"}
+        </button>
+      </div>
     </form>
   );
 }
 
 export function CreateOrganisationForm({ tenantId }: { tenantId: string }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <span>
+      <button className={ops.primary} type="button" onClick={() => setOpen(true)}>
+        Add organisation
+      </button>
+      {open ? (
+        <FormModal title="Add organisation" onClose={() => setOpen(false)}>
+          <OrganisationFields tenantId={tenantId} />
+        </FormModal>
+      ) : null}
+    </span>
+  );
+}
+
+function OrganisationFields({ tenantId }: { tenantId: string }) {
   const [state, action, pending] = useActionState(createOrganisation, {});
 
   return (
-    <form className={ops.form} action={action}>
+    <form className={ops.modalForm} action={action}>
       <input type="hidden" name="tenantId" value={tenantId} />
+      <Status state={state} />
       <label className={ops.field}>
-        New organisation
-        <input name="organisationName" required minLength={2} maxLength={80} placeholder="Harbour Trading" />
+        Organisation
+        <input name="organisationName" required minLength={2} maxLength={80} autoFocus placeholder="Harbour Trading" />
       </label>
-      <button className={ops.primary} type="submit" disabled={pending}>
-        {pending ? "Adding…" : "Add organisation"}
-      </button>
-      {state.error ? (
-        <p className={ops.alert} role="alert">
-          {state.error}
-        </p>
-      ) : null}
+      <div className={ops.modalActions}>
+        <button className={ops.primary} type="submit" disabled={pending}>
+          {pending ? "Adding…" : "Add organisation"}
+        </button>
+      </div>
     </form>
   );
 }
@@ -141,14 +176,48 @@ export function GrantAccessForm({
   organisationId: string;
   callerRole: Role;
 }) {
-  const [state, action, pending] = useActionState(grantAccess, {});
+  const [open, setOpen] = useState(false);
 
   return (
-    <form className={ops.form} action={action}>
+    <span>
+      <button className={ops.primary} type="button" onClick={() => setOpen(true)}>
+        Grant access
+      </button>
+      {open ? (
+        <FormModal title="Grant access" onClose={() => setOpen(false)}>
+          <AccessFields
+            organisationId={organisationId}
+            callerRole={callerRole}
+            onSaved={() => setOpen(false)}
+          />
+        </FormModal>
+      ) : null}
+    </span>
+  );
+}
+
+function AccessFields({
+  organisationId,
+  callerRole,
+  onSaved,
+}: {
+  organisationId: string;
+  callerRole: Role;
+  onSaved: () => void;
+}) {
+  const [state, action, pending] = useActionState(grantAccess, {});
+
+  useEffect(() => {
+    if (state.message) onSaved();
+  }, [state.message, onSaved]);
+
+  return (
+    <form className={ops.modalForm} action={action}>
       <input type="hidden" name="organisationId" value={organisationId} />
+      <Status state={state} />
       <label className={ops.field}>
         Email
-        <input name="email" type="email" required placeholder="colleague@company.com" />
+        <input name="email" type="email" required autoFocus placeholder="colleague@company.com" />
       </label>
       <label className={ops.field}>
         Role
@@ -158,10 +227,11 @@ export function GrantAccessForm({
           {callerRole === "owner" ? <option value="owner">Owner</option> : null}
         </select>
       </label>
-      <button className={ops.primary} type="submit" disabled={pending}>
-        {pending ? "Granting…" : "Grant access"}
-      </button>
-      <Status state={state} />
+      <div className={ops.modalActions}>
+        <button className={ops.primary} type="submit" disabled={pending}>
+          {pending ? "Granting…" : "Grant access"}
+        </button>
+      </div>
     </form>
   );
 }

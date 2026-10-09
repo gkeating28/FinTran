@@ -22,8 +22,14 @@ export default async function HomePage() {
           </p>
         </div>
         <div className={styles.panel}>
-          <div className={styles.panelHead}>New tenant</div>
-          <CreateTenantForm />
+          <div className={styles.panelHead}>
+            <span>New tenant</span>
+            <CreateTenantForm />
+          </div>
+          <p className={styles.empty}>
+            The tenant and its first organisation are created together. You can add more organisations
+            after that.
+          </p>
         </div>
       </section>
     );

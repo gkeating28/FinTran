@@ -43,8 +43,13 @@ export default async function AccessPage({
       ) : null}
       <div className={styles.panel}>
         <div className={styles.panelHead}>
-          {current.organisationName}
-          <span className={styles.panelMeta}>{roleLabel(current.role)}</span>
+          <span>{current.organisationName}</span>
+          <span className={styles.panelActions}>
+            <span className={styles.panelMeta}>{roleLabel(current.role)}</span>
+            {canManage(current.role) ? (
+              <GrantAccessForm organisationId={current.organisationId} callerRole={current.role} />
+            ) : null}
+          </span>
         </div>
         {members.length === 0 ? (
           <p className={styles.empty}>No one has access to this organisation yet.</p>
@@ -83,9 +88,6 @@ export default async function AccessPage({
             </tbody>
           </table>
         )}
-        {canManage(current.role) ? (
-          <GrantAccessForm organisationId={current.organisationId} callerRole={current.role} />
-        ) : null}
       </div>
     </section>
   );

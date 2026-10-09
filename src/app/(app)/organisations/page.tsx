@@ -25,9 +25,12 @@ export default async function OrganisationsPage() {
       </div>
       <div className={styles.panel}>
         <div className={styles.panelHead}>
-          {current.tenantName}
-          <span className={styles.panelMeta}>
-            {organisations.length} organisation{organisations.length === 1 ? "" : "s"}
+          <span>{current.tenantName}</span>
+          <span className={styles.panelActions}>
+            <span className={styles.panelMeta}>
+              {organisations.length} organisation{organisations.length === 1 ? "" : "s"}
+            </span>
+            {canManage(current.role) ? <CreateOrganisationForm tenantId={current.tenantId} /> : null}
           </span>
         </div>
         <table className={styles.table}>
@@ -48,7 +51,6 @@ export default async function OrganisationsPage() {
             ))}
           </tbody>
         </table>
-        {canManage(current.role) ? <CreateOrganisationForm tenantId={current.tenantId} /> : null}
       </div>
     </section>
   );

@@ -56,13 +56,16 @@ export async function createReference(
   return { message: "Added." };
 }
 
-export async function updateReference(kind: ReferenceKind, formData: FormData) {
-  const path = REFERENCE_META[kind].path;
+export async function updateReference(
+  kind: ReferenceKind,
+  _state: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
   const id = text(formData, "id").trim();
   const code = parseReferenceCode(text(formData, "code"));
   const description = parseDescription(text(formData, "description"));
   if (!id || !code || !description) {
-    redirect(`${path}?error=${encodeURIComponent("Use 1 to 20 letters or numbers, and a description up to 200 characters.")}`);
+    return { error: "Use 1 to 20 letters or numbers, and a description up to 200 characters." };
   }
 
   const current = await currentOrganisation();
@@ -73,12 +76,10 @@ export async function updateReference(kind: ReferenceKind, formData: FormData) {
     .eq("id", id)
     .eq("organisation_id", current.organisationId);
 
-  if (error) {
-    redirect(`${path}?error=${encodeURIComponent(friendlyError(error, "That code could not be updated."))}`);
-  }
+  if (error) return { error: friendlyError(error, "That code could not be updated.") };
 
-  revalidatePath(path);
-  redirect(path);
+  revalidatePath(REFERENCE_META[kind].path);
+  return { message: "Saved." };
 }
 
 export async function deleteReference(kind: ReferenceKind, formData: FormData) {

@@ -109,12 +109,18 @@
 
 .panelHead {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: 12px 14px;
   border-bottom: 1px solid var(--ops-border-soft);
   font-weight: 700;
+}
+
+.panelActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .panelMeta {
@@ -154,44 +160,76 @@
   color: var(--ops-text-2);
 }
 
-.rowHead,
-.row {
-  display: grid;
-  grid-template-columns: 140px minmax(0, 1fr) auto auto;
-  gap: 8px;
-  align-items: center;
-  padding: 10px 14px;
+.mono {
+  font-family: var(--ops-mono);
 }
 
-.rowHead {
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ops-muted);
-  font-weight: 700;
-  background: var(--ops-panel-muted);
-  border-bottom: 1px solid var(--ops-border-soft);
-}
-
-.rowHead span:last-child {
-  grid-column: 3 / span 2;
-}
-
-.row {
-  border-bottom: 1px solid var(--ops-border-soft);
-}
-
-.row input {
-  height: 34px;
-  width: 100%;
-  min-width: 0;
+.dialog {
+  width: min(440px, calc(100vw - 32px));
+  margin: auto;
+  padding: 0;
   border: 1px solid var(--ops-border);
   border-radius: var(--ops-radius);
-  padding: 0 10px;
-  font: inherit;
-  font-weight: 500;
+  background: var(--ops-panel);
   color: var(--ops-text);
-  background: #fff;
+  font-family: var(--ops-font);
+  font-size: 13px;
+  box-shadow: 0 16px 40px rgba(15, 31, 56, 0.18);
+}
+
+.dialog::backdrop {
+  background: rgba(15, 31, 56, 0.48);
+}
+
+.dialogHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #16294a;
+  color: #f4f7fb;
+}
+
+.dialogHead h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.dialogClose {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: var(--ops-radius);
+  background: transparent;
+  color: #d5deeb;
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dialogClose:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.modalForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+.modalForm .field {
+  min-width: 0;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .form {
@@ -308,15 +346,4 @@
     overflow-x: auto;
   }
 
-  .rowHead {
-    display: none;
-  }
-
-  .row {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .row button {
-    width: 100%;
-  }
 }
