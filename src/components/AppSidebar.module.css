@@ -1,0 +1,153 @@
+.sidebar {
+  --sb-bg: #0f1f38;
+  --sb-accent: #2c4c78;
+  --sb-font: var(--font-public-sans), system-ui, sans-serif;
+
+  width: 232px;
+  flex-shrink: 0;
+  background: var(--sb-bg);
+  color: #c5cedc;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 10px 12px;
+  font-family: var(--sb-font);
+  font-size: 13px;
+  line-height: 1.4;
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
+}
+
+.sidebar *,
+.sidebar *::before,
+.sidebar *::after {
+  box-sizing: border-box;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px 16px;
+}
+
+.brandMark {
+  width: 28px;
+  height: 28px;
+  border-radius: 3px;
+  background: linear-gradient(135deg, #3d6aa8, var(--sb-accent));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.brandName {
+  font-weight: 700;
+  font-size: 15px;
+  color: #f4f7fb;
+  letter-spacing: 0.02em;
+}
+
+.brandSub {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: #7f8ba3;
+  font-weight: 600;
+}
+
+.orgBlock {
+  padding: 0 8px 14px;
+}
+
+.orgLabel,
+.sectionLabel {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #6b7790;
+  margin-bottom: 6px;
+}
+
+.sectionLabel {
+  margin: 14px 8px 6px;
+}
+
+.orgSelect {
+  width: 100%;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  background: #16294a;
+  color: #e8eef8;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 0 8px;
+}
+
+.orgEmpty {
+  font-size: 12px;
+  color: #9aa6bd;
+  padding: 2px 0 4px;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+  flex: 1;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 3px;
+  color: #c5cedc;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.navLink:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.navLinkActive {
+  background: #2c4c78;
+  color: #fff;
+}
+
+.footer {
+  margin-top: 12px;
+  padding: 10px 8px 2px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.footerName {
+  color: #f4f7fb;
+  font-weight: 600;
+}
+
+.footerEmail {
+  color: #7f8ba3;
+  font-size: 11.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 860px) {
+  .sidebar {
+    width: 100%;
+    height: auto;
+  }
+}

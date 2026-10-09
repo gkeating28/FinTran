@@ -1,0 +1,70 @@
+.bar {
+  --tb-bg: #16294a;
+  --tb-accent: #2c4c78;
+  --tb-font: var(--font-public-sans), system-ui, sans-serif;
+  --tb-radius: 3px;
+
+  height: 60px;
+  flex-shrink: 0;
+  background: var(--tb-bg);
+  color: #d5deeb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 21px;
+  gap: 18px;
+  font-family: var(--tb-font);
+  font-size: 13px;
+  line-height: 1.4;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.bar *,
+.bar *::before,
+.bar *::after {
+  box-sizing: border-box;
+}
+
+.breadcrumb {
+  font-size: 12.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.breadcrumb strong {
+  color: #f4f7fb;
+  font-weight: 600;
+}
+
+.sep {
+  margin: 0 9px;
+  color: #7f8ba3;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-shrink: 0;
+}
+
+.exitBtn {
+  height: 42px;
+  padding: 0 15px;
+  border: 1px solid #4a5f82;
+  background: transparent;
+  color: #d5deeb;
+  border-radius: var(--tb-radius);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.exitBtn:hover {
+  border-color: #7d91b3;
+  color: #fff;
+}
