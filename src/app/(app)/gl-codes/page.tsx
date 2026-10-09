@@ -1,0 +1,30 @@
+import { redirect } from "next/navigation";
+import ReferenceManager from "@/components/ReferenceManager";
+import { getWorkspace } from "@/lib/data";
+import { listReference } from "@/lib/reference-data";
+
+export const metadata = { title: "GL codes" };
+
+export default async function GlCodesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const workspace = await getWorkspace();
+  if (workspace.status === "signed-out") redirect("/login");
+  if (workspace.status !== "ready") redirect("/");
+
+  const [{ rows, error }, params] = await Promise.all([
+    listReference("gl_codes"),
+    searchParams,
+  ]);
+
+  return (
+    <ReferenceManager
+      kind="gl_codes"
+      rows={rows}
+      loadError={error}
+      actionError={params.error}
+    />
+  );
+}

@@ -17,6 +17,9 @@ type NavItem = {
 const NAV: NavItem[] = [
   { href: "/", label: "Home", icon: <GridIcon />, section: "workspace" },
   { href: "/transactions", label: "Transactions", icon: <LedgerIcon />, section: "workspace" },
+  { href: "/gl-codes", label: "GL codes", icon: <HashIcon />, section: "admin" },
+  { href: "/departments", label: "Departments", icon: <DeptIcon />, section: "admin" },
+  { href: "/cost-centres", label: "Cost centres", icon: <CentreIcon />, section: "admin" },
   { href: "/organisations", label: "Organisations", icon: <OrgIcon />, section: "admin" },
   { href: "/access", label: "Access", icon: <PeopleIcon />, section: "admin" },
 ];
@@ -66,6 +69,33 @@ function OrgIcon() {
       <path d="M4 20V6a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v14" />
       <path d="M14 10h5a1 1 0 0 1 1 1v9" />
       <path d="M8 9h2M8 13h2M8 17h2M17 14h1M17 17h1" />
+    </Icon>
+  );
+}
+
+function HashIcon() {
+  return (
+    <Icon>
+      <path d="M5 9h14M5 15h14M9 4l-2 16M17 4l-2 16" />
+    </Icon>
+  );
+}
+
+function DeptIcon() {
+  return (
+    <Icon>
+      <path d="M4 20V7l8-3 8 3v13" />
+      <path d="M9 20v-6h6v6" />
+    </Icon>
+  );
+}
+
+function CentreIcon() {
+  return (
+    <Icon>
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2v2M12 20v2M2 12h2M20 12h2" />
     </Icon>
   );
 }
