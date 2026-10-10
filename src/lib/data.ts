@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { readClaims } from "@/lib/supabase/claims";
 import {
   isRole,
   type Membership,
@@ -58,7 +59,7 @@ function toMembership(row: AccessRow): Membership | null {
 
 export const getWorkspace = cache(async (): Promise<Workspace> => {
   const supabase = await createClient();
-  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
+  const { data: claimsData, error: claimsError } = await readClaims(supabase);
   const userId = claimsData?.claims?.sub;
 
   if (claimsError || !userId) return { status: "signed-out" };

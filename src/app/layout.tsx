@@ -1,34 +1,23 @@
 import type { Metadata } from "next";
-import {
-  IBM_Plex_Mono,
-  Manrope,
-  Plus_Jakarta_Sans,
-  Public_Sans,
-} from "next/font/google";
+import { IBM_Plex_Mono, Plus_Jakarta_Sans, Public_Sans } from "next/font/google";
 import "./globals.css";
-
-const manrope = Manrope({
-  subsets: ["latin"],
-  variable: "--font-manrope",
-  weight: ["400", "500", "600", "700", "800"],
-});
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-jakarta",
-  weight: ["600", "700", "800"],
+  weight: ["700"],
 });
 
 const publicSans = Public_Sans({
   subsets: ["latin"],
   variable: "--font-public-sans",
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "600", "700"],
 });
 
 const ibmPlexMono = IBM_Plex_Mono({
   subsets: ["latin"],
   variable: "--font-ibm-plex-mono",
-  weight: ["400", "500", "600"],
+  weight: ["500"],
 });
 
 export const metadata: Metadata = {
@@ -47,7 +36,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${manrope.variable} ${jakarta.variable} ${publicSans.variable} ${ibmPlexMono.variable} h-full antialiased`}
+      className={`${jakarta.variable} ${publicSans.variable} ${ibmPlexMono.variable} h-full antialiased`}
     >
       <body className="h-full">{children}</body>
     </html>

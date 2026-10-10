@@ -10,14 +10,12 @@ export default async function DepartmentsPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
+  const listed = listReference("departments");
   const workspace = await getWorkspace();
   if (workspace.status === "signed-out") redirect("/login");
   if (workspace.status !== "ready") redirect("/");
 
-  const [{ rows, error }, params] = await Promise.all([
-    listReference("departments"),
-    searchParams,
-  ]);
+  const [{ rows, error }, params] = await Promise.all([listed, searchParams]);
 
   return (
     <ReferenceManager

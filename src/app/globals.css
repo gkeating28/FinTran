@@ -14,7 +14,7 @@ body {
   margin: 0;
   background: var(--trax-bg);
   color: #0f172a;
-  font-family: var(--font-manrope), system-ui, sans-serif;
+  font-family: var(--font-public-sans), system-ui, sans-serif;
 }
 
 ::-webkit-scrollbar {
@@ -28,7 +28,7 @@ body {
 }
 
 .font-display {
-  font-family: var(--font-jakarta), var(--font-manrope), system-ui, sans-serif;
+  font-family: var(--font-jakarta), var(--font-public-sans), system-ui, sans-serif;
 }
 
 button:focus-visible,

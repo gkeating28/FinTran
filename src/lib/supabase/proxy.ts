@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { readClaims } from "@/lib/supabase/claims";
 import { supabaseEnv } from "@/lib/supabase/env";
 
 const PUBLIC_PREFIXES = ["/login", "/signup", "/auth"];
@@ -28,7 +29,7 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  const { data } = await supabase.auth.getClaims();
+  const { data } = await readClaims(supabase);
   const user = data?.claims;
   const pathname = request.nextUrl.pathname;
   const isPublic = PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));

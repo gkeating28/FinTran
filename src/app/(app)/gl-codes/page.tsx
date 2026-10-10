@@ -10,14 +10,12 @@ export default async function GlCodesPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
+  const listed = listReference("gl_codes");
   const workspace = await getWorkspace();
   if (workspace.status === "signed-out") redirect("/login");
   if (workspace.status !== "ready") redirect("/");
 
-  const [{ rows, error }, params] = await Promise.all([
-    listReference("gl_codes"),
-    searchParams,
-  ]);
+  const [{ rows, error }, params] = await Promise.all([listed, searchParams]);
 
   return (
     <ReferenceManager

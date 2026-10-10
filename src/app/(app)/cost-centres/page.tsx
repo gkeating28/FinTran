@@ -10,14 +10,12 @@ export default async function CostCentresPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
+  const listed = listReference("cost_centres");
   const workspace = await getWorkspace();
   if (workspace.status === "signed-out") redirect("/login");
   if (workspace.status !== "ready") redirect("/");
 
-  const [{ rows, error }, params] = await Promise.all([
-    listReference("cost_centres"),
-    searchParams,
-  ]);
+  const [{ rows, error }, params] = await Promise.all([listed, searchParams]);
 
   return (
     <ReferenceManager
