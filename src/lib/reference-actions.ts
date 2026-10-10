@@ -5,9 +5,11 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getWorkspace, ORGANISATION_COOKIE } from "@/lib/data";
 import {
+  parseAccountType,
   parseDescription,
   parseReferenceCode,
   REFERENCE_META,
+  type AccountType,
   type ReferenceKind,
 } from "@/lib/reference";
 import { createClient } from "@/lib/supabase/server";
@@ -20,6 +22,9 @@ function text(formData: FormData, name: string) {
 function friendlyError(error: { code?: string; message: string } | null, fallback: string) {
   if (!error) return fallback;
   if (error.code === "23505") return "That code is already used in this organisation.";
+  if (error.code === "23514" && error.message.includes("account_type")) {
+    return "Choose a valid account type.";
+  }
   if (error.code === "23514") return "Use 1 to 20 letters or numbers, and a description up to 200 characters.";
   return error.message || fallback;
 }
@@ -45,6 +50,11 @@ async function currentOrganisation() {
   };
 }
 
+function accountTypeFrom(kind: ReferenceKind, formData: FormData): AccountType | null {
+  if (kind !== "gl_codes") return null;
+  return parseAccountType(text(formData, "account_type"));
+}
+
 export async function createReference(
   kind: ReferenceKind,
   _state: ActionState,
@@ -52,9 +62,11 @@ export async function createReference(
 ): Promise<ActionState> {
   const code = parseReferenceCode(text(formData, "code"));
   const description = parseDescription(text(formData, "description"));
+  const accountType = accountTypeFrom(kind, formData);
   if (!code || !description) {
     return { error: "Use 1 to 20 letters or numbers, and a description up to 200 characters." };
   }
+  if (kind === "gl_codes" && !accountType) return { error: "Choose an account type." };
 
   const current = await currentOrganisation();
   const supabase = await createClient();
@@ -63,6 +75,7 @@ export async function createReference(
     organisation_id: current.organisationId,
     code,
     description,
+    ...(accountType ? { account_type: accountType } : {}),
   });
 
   if (error) return { error: friendlyError(error, "That code could not be saved.") };
@@ -79,15 +92,21 @@ export async function updateReference(
   const id = text(formData, "id").trim();
   const code = parseReferenceCode(text(formData, "code"));
   const description = parseDescription(text(formData, "description"));
+  const accountType = accountTypeFrom(kind, formData);
   if (!id || !code || !description) {
     return { error: "Use 1 to 20 letters or numbers, and a description up to 200 characters." };
   }
+  if (kind === "gl_codes" && !accountType) return { error: "Choose an account type." };
 
   const current = await currentOrganisation();
   const supabase = await createClient();
   const { error } = await supabase
     .from(kind)
-    .update({ code, description })
+    .update({
+      code,
+      description,
+      ...(accountType ? { account_type: accountType } : {}),
+    })
     .eq("id", id)
     .eq("organisation_id", current.organisationId);
 

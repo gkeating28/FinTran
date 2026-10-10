@@ -4,7 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
 import { createReference, deleteReference, updateReference } from "@/lib/reference-actions";
-import { REFERENCE_META, type ReferenceKind, type ReferenceRow } from "@/lib/reference";
+import { ACCOUNT_TYPES, REFERENCE_META, type ReferenceKind, type ReferenceRow } from "@/lib/reference";
 import styles from "@/components/OpsPage.module.css";
 import type { ActionState } from "@/lib/types";
 
@@ -42,7 +42,7 @@ export default function ReferenceManager({
       <DataGrid
         rows={rows}
         searchPlaceholder={`Search ${meta.title.toLowerCase()}`}
-        searchText={(row) => `${row.code} ${row.description}`}
+        searchText={(row) => `${row.code} ${row.description} ${row.accountType ?? ""}`}
         emptyLabel={`No ${meta.title.toLowerCase()} yet for this organisation.`}
         toolbar={
           <button className={styles.primary} type="button" onClick={() => setDraft("new")}>
@@ -63,6 +63,16 @@ export default function ReferenceManager({
             sortValue: (row) => row.description,
             render: (row) => row.description,
           },
+          ...(kind === "gl_codes"
+            ? [
+                {
+                  key: "accountType",
+                  label: "Account type",
+                  sortValue: (row: ReferenceRow) => row.accountType ?? "",
+                  render: (row: ReferenceRow) => row.accountType ?? "",
+                },
+              ]
+            : []),
         ]}
         actions={(row) => (
           <>
@@ -146,6 +156,21 @@ function ReferenceForm({
             placeholder="Sales income"
           />
         </label>
+        {kind === "gl_codes" ? (
+          <label className={styles.field}>
+            Account type
+            <select name="account_type" required defaultValue={row?.accountType ?? ""}>
+              <option value="" disabled>
+                Choose an account type
+              </option>
+              {ACCOUNT_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <div className={styles.modalActions}>
           <button className={styles.quiet} type="button" onClick={onClose}>
             Cancel

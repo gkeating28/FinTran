@@ -2,10 +2,21 @@ export const REFERENCE_KINDS = ["gl_codes", "departments", "cost_centres"] as co
 
 export type ReferenceKind = (typeof REFERENCE_KINDS)[number];
 
+export const ACCOUNT_TYPES = [
+  "Fixed Asset",
+  "Current Liability",
+  "Current Asset",
+  "Income",
+  "Expense",
+] as const;
+
+export type AccountType = (typeof ACCOUNT_TYPES)[number];
+
 export type ReferenceRow = {
   id: string;
   code: string;
   description: string;
+  accountType: AccountType | null;
 };
 
 export const REFERENCE_META: Record<
@@ -16,7 +27,7 @@ export const REFERENCE_META: Record<
     path: "/gl-codes",
     title: "GL codes",
     singular: "GL code",
-    lede: "General ledger codes for this organisation. Each code is letters and numbers, with a short description. Further GL fields can be added later.",
+    lede: "General ledger codes for this organisation. Each code is letters and numbers, with a description and a required account type.",
   },
   departments: {
     path: "/departments",
@@ -46,4 +57,8 @@ export function parseDescription(value: string) {
   const description = value.trim();
   if (description.length < 1 || description.length > 200) return null;
   return description;
+}
+
+export function parseAccountType(value: string): AccountType | null {
+  return ACCOUNT_TYPES.find((type) => type === value) ?? null;
 }
