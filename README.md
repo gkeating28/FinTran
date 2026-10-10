@@ -33,5 +33,6 @@ The schema is in `supabase/migrations` and is applied to the FinTran Supabase pr
 - `organisation_access` — which organisations a user can open, and whether they are an owner, admin, or member
 - `gl_codes` — a code, description, and account type for one organisation. Account type is one of Fixed Asset, Current Liability, Current Asset, Income, or Expense. A code is unique inside that organisation.
 - `departments` and `cost_centres` — a code and description for one organisation. A code is unique inside that organisation.
+- `vat_rates` — a code, description, percentage rate, and type for one organisation. Type is Sales or Expense. A code is unique inside that organisation.
 
 Row level security is enabled. Creating tenants, organisations, and access grants goes through database functions that check the caller's role.

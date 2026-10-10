@@ -4,7 +4,14 @@ import { useActionState, useEffect, useState } from "react";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
 import { createReference, deleteReference, updateReference } from "@/lib/reference-actions";
-import { ACCOUNT_TYPES, REFERENCE_META, type ReferenceKind, type ReferenceRow } from "@/lib/reference";
+import {
+  ACCOUNT_TYPES,
+  formatRate,
+  REFERENCE_META,
+  VAT_TYPES,
+  type ReferenceKind,
+  type ReferenceRow,
+} from "@/lib/reference";
 import styles from "@/components/OpsPage.module.css";
 import type { ActionState } from "@/lib/types";
 
@@ -42,7 +49,9 @@ export default function ReferenceManager({
       <DataGrid
         rows={rows}
         searchPlaceholder={`Search ${meta.title.toLowerCase()}`}
-        searchText={(row) => `${row.code} ${row.description} ${row.accountType ?? ""}`}
+        searchText={(row) =>
+          `${row.code} ${row.description} ${row.accountType ?? ""} ${formatRate(row.rate)} ${row.vatType ?? ""}`
+        }
         emptyLabel={`No ${meta.title.toLowerCase()} yet for this organisation.`}
         toolbar={
           <button className={styles.primary} type="button" onClick={() => setDraft("new")}>
@@ -70,6 +79,22 @@ export default function ReferenceManager({
                   label: "Account type",
                   sortValue: (row: ReferenceRow) => row.accountType ?? "",
                   render: (row: ReferenceRow) => row.accountType ?? "",
+                },
+              ]
+            : []),
+          ...(kind === "vat_rates"
+            ? [
+                {
+                  key: "rate",
+                  label: "Rate",
+                  sortValue: (row: ReferenceRow) => row.rate ?? "",
+                  render: (row: ReferenceRow) => formatRate(row.rate),
+                },
+                {
+                  key: "vatType",
+                  label: "Type",
+                  sortValue: (row: ReferenceRow) => row.vatType ?? "",
+                  render: (row: ReferenceRow) => row.vatType ?? "",
                 },
               ]
             : []),
@@ -153,9 +178,39 @@ function ReferenceForm({
             required
             maxLength={200}
             defaultValue={row?.description ?? ""}
-            placeholder="Sales income"
+            placeholder={kind === "vat_rates" ? "Standard rate" : "Sales income"}
           />
         </label>
+        {kind === "vat_rates" ? (
+          <>
+            <label className={styles.field}>
+              Rate (%)
+              <input
+                name="rate"
+                required
+                inputMode="decimal"
+                min={0}
+                max={100}
+                step="0.01"
+                defaultValue={row?.rate ?? ""}
+                placeholder="23"
+              />
+            </label>
+            <label className={styles.field}>
+              Type
+              <select name="vat_type" required defaultValue={row?.vatType ?? ""}>
+                <option value="" disabled>
+                  Choose a type
+                </option>
+                {VAT_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </>
+        ) : null}
         {kind === "gl_codes" ? (
           <label className={styles.field}>
             Account type

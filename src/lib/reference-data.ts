@@ -1,6 +1,8 @@
 import { getWorkspace } from "@/lib/data";
 import {
   parseAccountType,
+  parseRate,
+  parseVatType,
   REFERENCE_META,
   type ReferenceKind,
   type ReferenceRow,
@@ -32,6 +34,30 @@ export async function listReference(kind: ReferenceKind): Promise<{
         code: row.code,
         description: row.description,
         accountType: parseAccountType(row.account_type),
+        rate: null,
+        vatType: null,
+      })),
+      error: null,
+    };
+  }
+
+  if (kind === "vat_rates") {
+    const { data, error } = await supabase
+      .from("vat_rates")
+      .select("id, code, description, rate, vat_type")
+      .eq("organisation_id", organisationId)
+      .order("code");
+
+    if (error) return { rows: [], error: `${REFERENCE_META.vat_rates.title} could not be loaded.` };
+
+    return {
+      rows: (data ?? []).map((row) => ({
+        id: row.id,
+        code: row.code,
+        description: row.description,
+        accountType: null,
+        rate: parseRate(String(row.rate)),
+        vatType: parseVatType(row.vat_type),
       })),
       error: null,
     };
@@ -53,6 +79,8 @@ export async function listReference(kind: ReferenceKind): Promise<{
       code: row.code,
       description: row.description,
       accountType: null,
+      rate: null,
+      vatType: null,
     })),
     error: null,
   };

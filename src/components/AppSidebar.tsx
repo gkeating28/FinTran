@@ -20,6 +20,7 @@ const NAV: NavItem[] = [
   { href: "/gl-codes", label: "GL codes", icon: <HashIcon />, section: "admin" },
   { href: "/departments", label: "Departments", icon: <DeptIcon />, section: "admin" },
   { href: "/cost-centres", label: "Cost centres", icon: <CentreIcon />, section: "admin" },
+  { href: "/vat-rates", label: "VAT rates", icon: <VatIcon />, section: "admin" },
   { href: "/organisations", label: "Organisations", icon: <OrgIcon />, section: "admin" },
   { href: "/access", label: "Access", icon: <PeopleIcon />, section: "admin" },
 ];
@@ -96,6 +97,16 @@ function CentreIcon() {
       <circle cx="12" cy="12" r="8" />
       <circle cx="12" cy="12" r="3" />
       <path d="M12 2v2M12 20v2M2 12h2M20 12h2" />
+    </Icon>
+  );
+}
+
+function VatIcon() {
+  return (
+    <Icon>
+      <path d="M19 5 5 19" />
+      <circle cx="7.5" cy="7.5" r="2.5" />
+      <circle cx="16.5" cy="16.5" r="2.5" />
     </Icon>
   );
 }

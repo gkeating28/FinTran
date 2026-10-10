@@ -10,6 +10,7 @@ const PAGE_LABELS: Record<string, string> = {
   "/gl-codes": "GL codes",
   "/departments": "Departments",
   "/cost-centres": "Cost centres",
+  "/vat-rates": "VAT rates",
   "/organisations": "Organisations",
   "/access": "Access",
 };

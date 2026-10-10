@@ -7,10 +7,13 @@ import { getWorkspace, ORGANISATION_COOKIE } from "@/lib/data";
 import {
   parseAccountType,
   parseDescription,
+  parseRate,
   parseReferenceCode,
+  parseVatType,
   REFERENCE_META,
   type AccountType,
   type ReferenceKind,
+  type VatType,
 } from "@/lib/reference";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionState } from "@/lib/types";
@@ -24,6 +27,10 @@ function friendlyError(error: { code?: string; message: string } | null, fallbac
   if (error.code === "23505") return "That code is already used in this organisation.";
   if (error.code === "23514" && error.message.includes("account_type")) {
     return "Choose a valid account type.";
+  }
+  if (error.code === "23514" && error.message.includes("vat_type")) return "Choose Sales or Expense.";
+  if (error.code === "23514" && error.message.includes("rate")) {
+    return "Enter a rate from 0 to 100, with up to 2 decimal places.";
   }
   if (error.code === "23514") return "Use 1 to 20 letters or numbers, and a description up to 200 characters.";
   return error.message || fallback;
@@ -55,6 +62,19 @@ function accountTypeFrom(kind: ReferenceKind, formData: FormData): AccountType |
   return parseAccountType(text(formData, "account_type"));
 }
 
+function vatFields(kind: ReferenceKind, formData: FormData): {
+  error: string | null;
+  rate: string | null;
+  vatType: VatType | null;
+} {
+  if (kind !== "vat_rates") return { error: null, rate: null, vatType: null };
+  const rate = parseRate(text(formData, "rate"));
+  const vatType = parseVatType(text(formData, "vat_type"));
+  if (!rate) return { error: "Enter a rate from 0 to 100, with up to 2 decimal places.", rate: null, vatType: null };
+  if (!vatType) return { error: "Choose Sales or Expense.", rate: null, vatType: null };
+  return { error: null, rate, vatType };
+}
+
 export async function createReference(
   kind: ReferenceKind,
   _state: ActionState,
@@ -63,10 +83,12 @@ export async function createReference(
   const code = parseReferenceCode(text(formData, "code"));
   const description = parseDescription(text(formData, "description"));
   const accountType = accountTypeFrom(kind, formData);
+  const vat = vatFields(kind, formData);
   if (!code || !description) {
     return { error: "Use 1 to 20 letters or numbers, and a description up to 200 characters." };
   }
   if (kind === "gl_codes" && !accountType) return { error: "Choose an account type." };
+  if (vat.error) return { error: vat.error };
 
   const current = await currentOrganisation();
   const supabase = await createClient();
@@ -76,6 +98,7 @@ export async function createReference(
     code,
     description,
     ...(accountType ? { account_type: accountType } : {}),
+    ...(vat.rate && vat.vatType ? { rate: vat.rate, vat_type: vat.vatType } : {}),
   });
 
   if (error) return { error: friendlyError(error, "That code could not be saved.") };
@@ -93,10 +116,12 @@ export async function updateReference(
   const code = parseReferenceCode(text(formData, "code"));
   const description = parseDescription(text(formData, "description"));
   const accountType = accountTypeFrom(kind, formData);
+  const vat = vatFields(kind, formData);
   if (!id || !code || !description) {
     return { error: "Use 1 to 20 letters or numbers, and a description up to 200 characters." };
   }
   if (kind === "gl_codes" && !accountType) return { error: "Choose an account type." };
+  if (vat.error) return { error: vat.error };
 
   const current = await currentOrganisation();
   const supabase = await createClient();
@@ -106,6 +131,7 @@ export async function updateReference(
       code,
       description,
       ...(accountType ? { account_type: accountType } : {}),
+      ...(vat.rate && vat.vatType ? { rate: vat.rate, vat_type: vat.vatType } : {}),
     })
     .eq("id", id)
     .eq("organisation_id", current.organisationId);
