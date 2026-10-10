@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
-import { CreateOrganisationForm } from "@/components/Forms";
+import OrganisationGrid from "@/components/OrganisationGrid";
 import styles from "@/components/OpsPage.module.css";
 import { getWorkspace } from "@/lib/data";
-import { canManage, roleLabel } from "@/lib/types";
+import { canManage } from "@/lib/types";
 
 export const metadata = { title: "Organisations" };
 
@@ -23,35 +23,16 @@ export default async function OrganisationsPage() {
           per organisation, not to every organisation in the tenant.
         </p>
       </div>
-      <div className={styles.panel}>
-        <div className={styles.panelHead}>
-          <span>{current.tenantName}</span>
-          <span className={styles.panelActions}>
-            <span className={styles.panelMeta}>
-              {organisations.length} organisation{organisations.length === 1 ? "" : "s"}
-            </span>
-            {canManage(current.role) ? <CreateOrganisationForm tenantId={current.tenantId} /> : null}
-          </span>
-        </div>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Organisation</th>
-              <th>Slug</th>
-              <th>Your role</th>
-            </tr>
-          </thead>
-          <tbody>
-            {organisations.map((organisation) => (
-              <tr key={organisation.organisationId}>
-                <td>{organisation.organisationName}</td>
-                <td>{organisation.organisationSlug}</td>
-                <td>{roleLabel(organisation.role)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <OrganisationGrid
+        tenantId={current.tenantId}
+        canAdd={canManage(current.role)}
+        rows={organisations.map((organisation) => ({
+          id: organisation.organisationId,
+          name: organisation.organisationName,
+          slug: organisation.organisationSlug,
+          role: organisation.role,
+        }))}
+      />
     </section>
   );
 }

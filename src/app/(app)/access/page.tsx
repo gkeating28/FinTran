@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation";
-import { GrantAccessForm } from "@/components/Forms";
-import { revokeAccess } from "@/lib/actions";
+import AccessGrid from "@/components/AccessGrid";
 import styles from "@/components/OpsPage.module.css";
 import { getWorkspace, listOrganisationMembers } from "@/lib/data";
-import { canManage, roleLabel } from "@/lib/types";
+import { canManage } from "@/lib/types";
 
 export const metadata = { title: "Access" };
 
@@ -41,54 +40,18 @@ export default async function AccessPage({
           {params.error}
         </p>
       ) : null}
-      <div className={styles.panel}>
-        <div className={styles.panelHead}>
-          <span>{current.organisationName}</span>
-          <span className={styles.panelActions}>
-            <span className={styles.panelMeta}>{roleLabel(current.role)}</span>
-            {canManage(current.role) ? (
-              <GrantAccessForm organisationId={current.organisationId} callerRole={current.role} />
-            ) : null}
-          </span>
-        </div>
-        {members.length === 0 ? (
-          <p className={styles.empty}>No one has access to this organisation yet.</p>
-        ) : (
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                {canManage(current.role) ? <th>Action</th> : null}
-              </tr>
-            </thead>
-            <tbody>
-              {members.map((member) => (
-                <tr key={member.userId}>
-                  <td>
-                    {member.displayName}
-                    {member.email === profile.email ? " (you)" : ""}
-                  </td>
-                  <td>{member.email}</td>
-                  <td>{roleLabel(member.role)}</td>
-                  {canManage(current.role) ? (
-                    <td>
-                      <form action={revokeAccess}>
-                        <input type="hidden" name="organisationId" value={current.organisationId} />
-                        <input type="hidden" name="userId" value={member.userId} />
-                        <button className={styles.quiet} type="submit">
-                          Remove
-                        </button>
-                      </form>
-                    </td>
-                  ) : null}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <AccessGrid
+        organisationId={current.organisationId}
+        callerRole={current.role}
+        canManage={canManage(current.role)}
+        rows={members.map((member) => ({
+          id: member.userId,
+          name: member.displayName,
+          email: member.email,
+          role: member.role,
+          isYou: member.email === profile.email,
+        }))}
+      />
     </section>
   );
 }

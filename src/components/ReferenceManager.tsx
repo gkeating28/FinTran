@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
 import { createReference, deleteReference, updateReference } from "@/lib/reference-actions";
 import { REFERENCE_META, type ReferenceKind, type ReferenceRow } from "@/lib/reference";
@@ -38,59 +39,51 @@ export default function ReferenceManager({
           {actionError}
         </p>
       ) : null}
-      <div className={styles.panel}>
-        <div className={styles.panelHead}>
-          <span>{meta.title}</span>
-          <span className={styles.panelActions}>
-            <span className={styles.panelMeta}>
-              {rows.length} {rows.length === 1 ? meta.singular : meta.title.toLowerCase()}
-            </span>
-            <button className={styles.primary} type="button" onClick={() => setDraft("new")}>
-              Add
+      <DataGrid
+        rows={rows}
+        searchPlaceholder={`Search ${meta.title.toLowerCase()}`}
+        searchText={(row) => `${row.code} ${row.description}`}
+        emptyLabel={`No ${meta.title.toLowerCase()} yet for this organisation.`}
+        toolbar={
+          <button className={styles.primary} type="button" onClick={() => setDraft("new")}>
+            Add
+          </button>
+        }
+        columns={[
+          {
+            key: "code",
+            label: "Code",
+            mono: true,
+            sortValue: (row) => row.code,
+            render: (row) => row.code,
+          },
+          {
+            key: "description",
+            label: "Description",
+            sortValue: (row) => row.description,
+            render: (row) => row.description,
+          },
+        ]}
+        actions={(row) => (
+          <>
+            <button className={styles.quiet} type="button" onClick={() => setDraft(row)}>
+              Edit
             </button>
-          </span>
-        </div>
-        {rows.length === 0 ? (
-          <p className={styles.empty}>No {meta.title.toLowerCase()} yet for this organisation.</p>
-        ) : (
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Code</th>
-                <th>Description</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.id}>
-                  <td className={styles.mono}>{row.code}</td>
-                  <td>{row.description}</td>
-                  <td>
-                    <span className={styles.panelActions}>
-                      <button className={styles.quiet} type="button" onClick={() => setDraft(row)}>
-                        Edit
-                      </button>
-                      <form action={remove}>
-                        <input type="hidden" name="id" value={row.id} />
-                        <button
-                          className={styles.quiet}
-                          type="submit"
-                          onClick={(event) => {
-                            if (!window.confirm(`Remove ${row.code}?`)) event.preventDefault();
-                          }}
-                        >
-                          Remove
-                        </button>
-                      </form>
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            <form action={remove}>
+              <input type="hidden" name="id" value={row.id} />
+              <button
+                className={styles.quiet}
+                type="submit"
+                onClick={(event) => {
+                  if (!window.confirm(`Remove ${row.code}?`)) event.preventDefault();
+                }}
+              >
+                Remove
+              </button>
+            </form>
+          </>
         )}
-      </div>
+      />
       {draft ? (
         <ReferenceForm
           key={draft === "new" ? "new" : draft.id}
