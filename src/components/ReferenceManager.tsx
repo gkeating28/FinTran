@@ -143,6 +143,11 @@ function ReferenceForm({
   const meta = REFERENCE_META[kind];
   const save = row ? updateReference.bind(null, kind) : createReference.bind(null, kind);
   const [state, action, pending] = useActionState(save, {} as ActionState);
+  const [code, setCode] = useState(row?.code ?? "");
+  const [description, setDescription] = useState(row?.description ?? "");
+  const [accountType, setAccountType] = useState(row?.accountType ?? "");
+  const [rate, setRate] = useState(row?.rate ?? "");
+  const [vatType, setVatType] = useState(row?.vatType ?? "");
 
   useEffect(() => {
     if (state.message) onClose();
@@ -165,7 +170,8 @@ function ReferenceForm({
             maxLength={20}
             autoComplete="off"
             autoFocus
-            defaultValue={row?.code ?? ""}
+            value={code}
+            onChange={(event) => setCode(event.target.value)}
             placeholder="1000"
             className={styles.mono}
             style={{ textTransform: "uppercase" }}
@@ -177,7 +183,8 @@ function ReferenceForm({
             name="description"
             required
             maxLength={200}
-            defaultValue={row?.description ?? ""}
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
             placeholder={kind === "vat_rates" ? "Standard rate" : "Sales income"}
           />
         </label>
@@ -192,13 +199,19 @@ function ReferenceForm({
                 min={0}
                 max={100}
                 step="0.01"
-                defaultValue={row?.rate ?? ""}
+                value={rate}
+                onChange={(event) => setRate(event.target.value)}
                 placeholder="23"
               />
             </label>
             <label className={styles.field}>
               Type
-              <select name="vat_type" required defaultValue={row?.vatType ?? ""}>
+              <select
+                name="vat_type"
+                required
+                value={vatType}
+                onChange={(event) => setVatType(event.target.value)}
+              >
                 <option value="" disabled>
                   Choose a type
                 </option>
@@ -214,7 +227,12 @@ function ReferenceForm({
         {kind === "gl_codes" ? (
           <label className={styles.field}>
             Account type
-            <select name="account_type" required defaultValue={row?.accountType ?? ""}>
+            <select
+              name="account_type"
+              required
+              value={accountType}
+              onChange={(event) => setAccountType(event.target.value)}
+            >
               <option value="" disabled>
                 Choose an account type
               </option>
