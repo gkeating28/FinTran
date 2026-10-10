@@ -3,14 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ORGANISATION_COOKIE } from "@/lib/data";
+import { getWorkspace, ORGANISATION_COOKIE } from "@/lib/data";
 import {
   parseDescription,
   parseReferenceCode,
   REFERENCE_META,
   type ReferenceKind,
 } from "@/lib/reference";
-import { readClaims } from "@/lib/supabase/claims";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionState } from "@/lib/types";
 
@@ -26,21 +25,24 @@ function friendlyError(error: { code?: string; message: string } | null, fallbac
 }
 
 async function currentOrganisation() {
-  const supabase = await createClient();
-  const { data, error } = await readClaims(supabase);
-  if (error || !data?.claims?.sub) redirect("/login");
+  const workspace = await getWorkspace();
+  if (workspace.status === "signed-out") redirect("/login");
+  if (workspace.status !== "ready") redirect("/");
 
-  const organisationId = (await cookies()).get(ORGANISATION_COOKIE)?.value;
-  if (!organisationId) redirect("/");
+  const cookieStore = await cookies();
+  if (cookieStore.get(ORGANISATION_COOKIE)?.value !== workspace.current.organisationId) {
+    cookieStore.set(ORGANISATION_COOKIE, workspace.current.organisationId, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+    });
+  }
 
-  const { data: organisation } = await supabase
-    .from("organisations")
-    .select("id, tenant_id")
-    .eq("id", organisationId)
-    .maybeSingle();
-
-  if (!organisation) redirect("/");
-  return { organisationId: organisation.id, tenantId: organisation.tenant_id };
+  return {
+    organisationId: workspace.current.organisationId,
+    tenantId: workspace.current.tenantId,
+  };
 }
 
 export async function createReference(
