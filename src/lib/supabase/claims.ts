@@ -33,5 +33,9 @@ export async function signingKeys() {
 
 export async function readClaims(supabase: SupabaseClient) {
   const keys = await signingKeys();
-  return supabase.auth.getClaims(undefined, { jwks: { keys: keys as never } });
+  if (keys.length > 0) {
+    const verified = await supabase.auth.getClaims(undefined, { jwks: { keys: keys as never } });
+    if (!verified.error) return verified;
+  }
+  return supabase.auth.getClaims();
 }

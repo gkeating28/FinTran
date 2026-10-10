@@ -1,8 +1,7 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import AccessGrid from "@/components/AccessGrid";
 import styles from "@/components/OpsPage.module.css";
-import { getWorkspace, listOrganisationMembers, ORGANISATION_COOKIE } from "@/lib/data";
+import { getWorkspace, listOrganisationMembers } from "@/lib/data";
 import { canManage } from "@/lib/types";
 
 export const metadata = { title: "Access" };
@@ -12,16 +11,15 @@ export default async function AccessPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const organisationId = (await cookies()).get(ORGANISATION_COOKIE)?.value;
-  const membersPromise = organisationId
-    ? listOrganisationMembers(organisationId)
-    : Promise.resolve({ members: [], error: null as string | null });
   const workspace = await getWorkspace();
   if (workspace.status === "signed-out") redirect("/login");
   if (workspace.status !== "ready") redirect("/");
 
   const { current, profile } = workspace;
-  const [{ members, error }, params] = await Promise.all([membersPromise, searchParams]);
+  const [{ members, error }, params] = await Promise.all([
+    listOrganisationMembers(current.organisationId),
+    searchParams,
+  ]);
 
   return (
     <section className={styles.stack}>

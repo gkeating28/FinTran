@@ -1,17 +1,12 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { CreateTenantForm } from "@/components/Forms";
 import styles from "@/components/OpsPage.module.css";
-import { getWorkspace, listOrganisationMembers, ORGANISATION_COOKIE } from "@/lib/data";
+import { getWorkspace, listOrganisationMembers } from "@/lib/data";
 import { roleLabel } from "@/lib/types";
 
 export const metadata = { title: "Home" };
 
 export default async function HomePage() {
-  const organisationId = (await cookies()).get(ORGANISATION_COOKIE)?.value;
-  const membersPromise = organisationId
-    ? listOrganisationMembers(organisationId)
-    : Promise.resolve({ members: [], error: null as string | null });
   const workspace = await getWorkspace();
   if (workspace.status === "signed-out") redirect("/login");
   if (workspace.status === "error") return null;
@@ -42,7 +37,7 @@ export default async function HomePage() {
 
   const { current, memberships } = workspace;
   const inTenant = memberships.filter((membership) => membership.tenantId === current.tenantId);
-  const { members, error } = await membersPromise;
+  const { members, error } = await listOrganisationMembers(current.organisationId);
 
   return (
     <section className={styles.stack}>
