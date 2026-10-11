@@ -11,6 +11,8 @@ const PAGE_LABELS: Record<string, string> = {
   "/departments": "Departments",
   "/cost-centres": "Cost centres",
   "/vat-rates": "VAT rates",
+  "/currencies": "Currencies",
+  "/defaults": "Defaults",
   "/organisations": "Organisations",
   "/access": "Access",
 };

@@ -21,6 +21,8 @@ const NAV: NavItem[] = [
   { href: "/departments", label: "Departments", icon: <DeptIcon />, section: "admin" },
   { href: "/cost-centres", label: "Cost centres", icon: <CentreIcon />, section: "admin" },
   { href: "/vat-rates", label: "VAT rates", icon: <VatIcon />, section: "admin" },
+  { href: "/currencies", label: "Currencies", icon: <CurrencyIcon />, section: "admin" },
+  { href: "/defaults", label: "Defaults", icon: <DefaultsIcon />, section: "admin" },
   { href: "/organisations", label: "Organisations", icon: <OrgIcon />, section: "admin" },
   { href: "/access", label: "Access", icon: <PeopleIcon />, section: "admin" },
 ];
@@ -107,6 +109,27 @@ function VatIcon() {
       <path d="M19 5 5 19" />
       <circle cx="7.5" cy="7.5" r="2.5" />
       <circle cx="16.5" cy="16.5" r="2.5" />
+    </Icon>
+  );
+}
+
+function CurrencyIcon() {
+  return (
+    <Icon>
+      <circle cx="12" cy="12" r="8" />
+      <path d="M12 7.5v9" />
+      <path d="M9.5 9.2c.4-.8 1.3-1.2 2.5-1.2 1.6 0 2.6.8 2.6 2s-1 1.9-2.6 1.9-2.6.8-2.6 2 1 2 2.6 2c1.2 0 2.1-.4 2.5-1.2" />
+    </Icon>
+  );
+}
+
+function DefaultsIcon() {
+  return (
+    <Icon>
+      <path d="M4 7h16M4 12h16M4 17h16" />
+      <circle cx="8" cy="7" r="2" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="12" r="2" fill="currentColor" stroke="none" />
+      <circle cx="10" cy="17" r="2" fill="currentColor" stroke="none" />
     </Icon>
   );
 }
