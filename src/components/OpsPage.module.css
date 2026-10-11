@@ -245,6 +245,8 @@
 
 .dialog {
   width: min(440px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow: auto;
   margin: auto;
   padding: 0;
   border: 1px solid var(--ops-border);
@@ -340,6 +342,7 @@
 
 .field input,
 .field select,
+.field textarea,
 .orgSelect {
   height: 34px;
   border: 1px solid var(--ops-border);
@@ -349,6 +352,13 @@
   font-weight: 500;
   color: var(--ops-text);
   background: #fff;
+}
+
+.field textarea {
+  height: auto;
+  min-height: 72px;
+  padding: 8px 10px;
+  resize: vertical;
 }
 
 .primary,

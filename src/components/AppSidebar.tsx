@@ -17,6 +17,8 @@ type NavItem = {
 const NAV: NavItem[] = [
   { href: "/", label: "Home", icon: <GridIcon />, section: "workspace" },
   { href: "/transactions", label: "Transactions", icon: <LedgerIcon />, section: "workspace" },
+  { href: "/customers", label: "Customers", icon: <CustomerIcon />, section: "workspace" },
+  { href: "/suppliers", label: "Suppliers", icon: <SupplierIcon />, section: "workspace" },
   { href: "/gl-codes", label: "GL codes", icon: <HashIcon />, section: "admin" },
   { href: "/departments", label: "Departments", icon: <DeptIcon />, section: "admin" },
   { href: "/cost-centres", label: "Cost centres", icon: <CentreIcon />, section: "admin" },
@@ -118,6 +120,26 @@ function CurrencyIcon() {
       <circle cx="12" cy="12" r="8" />
       <path d="M12 7.5v9" />
       <path d="M9.5 9.2c.4-.8 1.3-1.2 2.5-1.2 1.6 0 2.6.8 2.6 2s-1 1.9-2.6 1.9-2.6.8-2.6 2 1 2 2.6 2c1.2 0 2.1-.4 2.5-1.2" />
+    </Icon>
+  );
+}
+
+function CustomerIcon() {
+  return (
+    <Icon>
+      <circle cx="12" cy="8" r="3" />
+      <path d="M5 19v-1a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v1" />
+    </Icon>
+  );
+}
+
+function SupplierIcon() {
+  return (
+    <Icon>
+      <path d="M3 8h11v7H3z" />
+      <path d="M14 11h4l3 3v1h-7" />
+      <circle cx="7" cy="17.5" r="1.5" />
+      <circle cx="17" cy="17.5" r="1.5" />
     </Icon>
   );
 }
