@@ -233,6 +233,7 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
   return (
     <Link
       href={item.href}
+      prefetch
       className={active ? `${styles.navLink} ${styles.navLinkActive}` : styles.navLink}
       aria-current={active ? "page" : undefined}
     >
