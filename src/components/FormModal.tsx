@@ -7,10 +7,12 @@ export default function FormModal({
   title,
   onClose,
   children,
+  className,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  className?: string;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -36,7 +38,7 @@ export default function FormModal({
   return (
     <dialog
       ref={dialogRef}
-      className={styles.dialog}
+      className={className ? `${styles.dialog} ${className}` : styles.dialog}
       aria-labelledby={titleId}
       onMouseDown={(event) => {
         if (event.target === dialogRef.current) onClose();

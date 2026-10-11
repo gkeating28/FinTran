@@ -156,8 +156,12 @@ function PartyForm({
   }, [state.message, onClose]);
 
   return (
-    <FormModal title={row ? `Edit ${meta.singular}` : `Add ${meta.singular}`} onClose={onClose}>
-      <form className={styles.modalForm} action={action}>
+    <FormModal
+      title={row ? `Edit ${meta.singular}` : `Add ${meta.singular}`}
+      onClose={onClose}
+      className={styles.partyDialog}
+    >
+      <form className={`${styles.modalForm} ${styles.partyForm}`} action={action}>
         {row ? <input type="hidden" name="id" value={row.id} /> : null}
         {state.error ? (
           <p className={styles.alert} role="alert">
@@ -174,7 +178,7 @@ function PartyForm({
             autoFocus
             value={code}
             onChange={(event) => setCode(event.target.value)}
-            placeholder={kind === "customers" ? "C001" : "S001"}
+            placeholder="1000"
             className={styles.mono}
             style={{ textTransform: "uppercase" }}
           />
@@ -208,10 +212,10 @@ function PartyForm({
               </option>
             ))}
           </select>
+          {currencies.length === 0 ? (
+            <span className={styles.panelMeta}>Add a currency for this organisation before saving.</span>
+          ) : null}
         </label>
-        {currencies.length === 0 ? (
-          <p className={styles.panelMeta}>Add a currency for this organisation before saving.</p>
-        ) : null}
         <label className={styles.field}>
           Phone
           <input
@@ -246,7 +250,7 @@ function PartyForm({
             placeholder="https://northwind.example"
           />
         </label>
-        <label className={styles.field}>
+        <label className={`${styles.field} ${styles.wide}`}>
           Address
           <textarea
             name="address"
@@ -257,7 +261,7 @@ function PartyForm({
             placeholder="1 Dock Street, Dublin"
           />
         </label>
-        <label className={styles.field}>
+        <label className={`${styles.field} ${styles.wide}`}>
           Contact details
           <textarea
             name="contact_details"
@@ -268,12 +272,12 @@ function PartyForm({
             placeholder="Accounts, Jane Murphy"
           />
         </label>
-        <label className={styles.field}>
+        <label className={`${styles.field} ${styles.wide}`}>
           Notes
           <textarea
             name="notes"
             maxLength={4000}
-            rows={5}
+            rows={3}
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
             placeholder="Delivery notes or anything else to keep with this record."

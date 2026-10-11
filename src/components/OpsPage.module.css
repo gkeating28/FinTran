@@ -303,6 +303,39 @@
   padding: 16px;
 }
 
+.partyDialog {
+  width: min(640px, calc(100vw - 32px));
+}
+
+.partyForm {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+  align-items: start;
+}
+
+.partyForm .wide,
+.partyForm .modalActions,
+.partyForm .alert {
+  grid-column: 1 / -1;
+}
+
+.partyForm .field input,
+.partyForm .field select,
+.partyForm .field textarea {
+  width: 100%;
+}
+
+.partyForm input[type="hidden"] {
+  display: none;
+}
+
+@media (max-width: 560px) {
+  .partyForm {
+    grid-template-columns: 1fr;
+  }
+}
+
 .modalForm .field {
   min-width: 0;
 }
