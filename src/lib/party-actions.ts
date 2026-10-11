@@ -26,6 +26,9 @@ function friendlyError(error: { code?: string; message: string } | null, fallbac
   }
   if (error.code === "23514" && error.message.includes("notes")) return "Notes can be up to 4000 characters.";
   if (error.code === "23514") return "Use 1 to 20 letters or numbers, and a name up to 200 characters.";
+  if (error.code === "P0001" && error.message.includes("Currency")) {
+    return "Choose a currency from this organisation.";
+  }
   return error.message || fallback;
 }
 
@@ -54,6 +57,7 @@ function fieldsFrom(formData: FormData) {
   return parseParty({
     code: text(formData, "code"),
     name: text(formData, "name"),
+    currencyId: text(formData, "currency_id"),
     phone: text(formData, "phone"),
     email: text(formData, "email"),
     website: text(formData, "website"),
@@ -67,6 +71,7 @@ function rowFrom(fields: PartyFields) {
   return {
     code: fields.code,
     name: fields.name,
+    currency_id: fields.currencyId,
     phone: fields.phone,
     email: fields.email,
     website: fields.website,

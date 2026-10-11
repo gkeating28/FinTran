@@ -15,7 +15,16 @@ export default async function CustomersPage({
   if (workspace.status === "signed-out") redirect("/login");
   if (workspace.status !== "ready") redirect("/");
 
-  const [{ rows, error }, params] = await Promise.all([listed, searchParams]);
+  const [{ rows, currencies, homeCurrencyId, error }, params] = await Promise.all([listed, searchParams]);
 
-  return <PartyManager kind="customers" rows={rows} loadError={error} actionError={params.error} />;
+  return (
+    <PartyManager
+      kind="customers"
+      rows={rows}
+      currencies={currencies}
+      homeCurrencyId={homeCurrencyId}
+      loadError={error}
+      actionError={params.error}
+    />
+  );
 }

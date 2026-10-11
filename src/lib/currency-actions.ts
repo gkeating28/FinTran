@@ -15,8 +15,11 @@ function text(formData: FormData, name: string) {
 function friendlyError(error: { code?: string; message: string } | null, fallback: string) {
   if (!error) return fallback;
   if (error.code === "23505") return "That code is already used in this organisation.";
-  if (error.code === "23503") {
+  if (error.code === "23503" && error.message.includes("home_currency")) {
     return "That currency is the home currency. Choose another home currency before removing it.";
+  }
+  if (error.code === "23503") {
+    return "That currency is used by a customer or supplier. Choose another currency for them before removing it.";
   }
   if (error.code === "23514" && error.message.includes("rate")) {
     return "Enter a rate greater than 0, with up to 8 decimal places.";
@@ -65,6 +68,8 @@ function currencyFields(formData: FormData) {
 function refresh() {
   revalidatePath("/currencies");
   revalidatePath("/organisations");
+  revalidatePath("/customers");
+  revalidatePath("/suppliers");
 }
 
 export async function createCurrency(_state: ActionState, formData: FormData): Promise<ActionState> {

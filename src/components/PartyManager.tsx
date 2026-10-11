@@ -4,18 +4,22 @@ import { useActionState, useEffect, useState } from "react";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
 import { createParty, deleteParty, updateParty } from "@/lib/party-actions";
-import { PARTY_META, type PartyKind, type PartyRow } from "@/lib/parties";
+import { PARTY_META, type PartyCurrency, type PartyKind, type PartyRow } from "@/lib/parties";
 import styles from "@/components/OpsPage.module.css";
 import type { ActionState } from "@/lib/types";
 
 export default function PartyManager({
   kind,
   rows,
+  currencies,
+  homeCurrencyId,
   loadError,
   actionError,
 }: {
   kind: PartyKind;
   rows: PartyRow[];
+  currencies: PartyCurrency[];
+  homeCurrencyId: string | null;
   loadError: string | null;
   actionError?: string;
 }) {
@@ -43,7 +47,7 @@ export default function PartyManager({
         rows={rows}
         searchPlaceholder={`Search ${meta.title.toLowerCase()}`}
         searchText={(row) =>
-          `${row.code} ${row.name} ${row.phone} ${row.email} ${row.website} ${row.address} ${row.contactDetails} ${row.notes}`
+          `${row.code} ${row.name} ${row.currencyCode} ${row.phone} ${row.email} ${row.website} ${row.address} ${row.contactDetails} ${row.notes}`
         }
         emptyLabel={`No ${meta.title.toLowerCase()} yet for this organisation.`}
         toolbar={
@@ -64,6 +68,13 @@ export default function PartyManager({
             label: "Name",
             sortValue: (row) => row.name,
             render: (row) => row.name,
+          },
+          {
+            key: "currency",
+            label: "Currency",
+            mono: true,
+            sortValue: (row) => row.currencyCode,
+            render: (row) => row.currencyCode,
           },
           {
             key: "phone",
@@ -103,6 +114,8 @@ export default function PartyManager({
           key={draft === "new" ? "new" : draft.id}
           kind={kind}
           row={draft === "new" ? null : draft}
+          currencies={currencies}
+          homeCurrencyId={homeCurrencyId}
           onClose={() => setDraft(null)}
         />
       ) : null}
@@ -113,10 +126,14 @@ export default function PartyManager({
 function PartyForm({
   kind,
   row,
+  currencies,
+  homeCurrencyId,
   onClose,
 }: {
   kind: PartyKind;
   row: PartyRow | null;
+  currencies: PartyCurrency[];
+  homeCurrencyId: string | null;
   onClose: () => void;
 }) {
   const meta = PARTY_META[kind];
@@ -124,6 +141,9 @@ function PartyForm({
   const [state, action, pending] = useActionState(save, {} as ActionState);
   const [code, setCode] = useState(row?.code ?? "");
   const [name, setName] = useState(row?.name ?? "");
+  const [currencyId, setCurrencyId] = useState(
+    row?.currencyId ?? homeCurrencyId ?? (currencies.length === 1 ? currencies[0].id : ""),
+  );
   const [phone, setPhone] = useState(row?.phone ?? "");
   const [email, setEmail] = useState(row?.email ?? "");
   const [website, setWebsite] = useState(row?.website ?? "");
@@ -170,6 +190,28 @@ function PartyForm({
             placeholder="Northwind Traders"
           />
         </label>
+        <label className={styles.field}>
+          Currency
+          <select
+            name="currency_id"
+            required
+            value={currencyId}
+            onChange={(event) => setCurrencyId(event.target.value)}
+            disabled={currencies.length === 0}
+          >
+            <option value="" disabled>
+              Choose a currency
+            </option>
+            {currencies.map((currency) => (
+              <option key={currency.id} value={currency.id}>
+                {currency.code}
+              </option>
+            ))}
+          </select>
+        </label>
+        {currencies.length === 0 ? (
+          <p className={styles.panelMeta}>Add a currency for this organisation before saving.</p>
+        ) : null}
         <label className={styles.field}>
           Phone
           <input
@@ -241,7 +283,7 @@ function PartyForm({
           <button className={styles.quiet} type="button" onClick={onClose}>
             Cancel
           </button>
-          <button className={styles.primary} type="submit" disabled={pending}>
+          <button className={styles.primary} type="submit" disabled={pending || currencies.length === 0}>
             {pending ? "Saving…" : "Save"}
           </button>
         </div>
