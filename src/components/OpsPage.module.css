@@ -129,19 +129,6 @@
   font-size: 12px;
 }
 
-.defaultRow {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px 24px;
-  flex-wrap: wrap;
-  padding: 14px;
-}
-
-.defaultValue {
-  font-weight: 700;
-}
-
 .table {
   width: 100%;
   border-collapse: collapse;

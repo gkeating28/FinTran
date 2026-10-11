@@ -25,7 +25,7 @@ export default function CurrencyManager({
         <h1 className={styles.heading}>Currencies</h1>
         <p className={styles.lede}>
           Currencies for this organisation. Each has a code, a name, and a rate against the home
-          currency. Choose the home currency on Defaults.
+          currency. The home currency is set when you edit the organisation.
         </p>
       </div>
       {loadError ? (

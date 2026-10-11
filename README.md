@@ -35,6 +35,6 @@ The schema is in `supabase/migrations` and is applied to the FinTran Supabase pr
 - `departments` and `cost_centres` — a code and description for one organisation. A code is unique inside that organisation.
 - `vat_rates` — a code, description, percentage rate, and type for one organisation. Type is Sales or Expense. A code is unique inside that organisation.
 - `currencies` — a code, name, and exchange rate for one organisation. A code is unique inside that organisation.
-- `organisation_defaults` — one row per organisation for settings that are not lists. Home currency is the first of these.
+- `organisation_defaults` — one row per organisation. Home currency is edited from that organisation. Further defaults belong on the same form.
 
 Row level security is enabled. Creating tenants, organisations, and access grants goes through database functions that check the caller's role.

@@ -64,7 +64,7 @@ function currencyFields(formData: FormData) {
 
 function refresh() {
   revalidatePath("/currencies");
-  revalidatePath("/defaults");
+  revalidatePath("/organisations");
 }
 
 export async function createCurrency(_state: ActionState, formData: FormData): Promise<ActionState> {
@@ -128,30 +128,41 @@ export async function deleteCurrency(formData: FormData) {
   redirect("/currencies");
 }
 
+function organisationId(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value) ? value : null;
+}
+
 export async function updateOrganisationDefaults(
   _state: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const homeCurrencyId = text(formData, "home_currency_id").trim();
-  if (!/^[0-9a-f-]{36}$/i.test(homeCurrencyId)) return { error: "Choose a home currency." };
+  const organisation = organisationId(text(formData, "organisation_id").trim());
+  const homeCurrencyId = organisationId(text(formData, "home_currency_id").trim());
+  if (!organisation) return { error: "Choose an organisation." };
+  if (!homeCurrencyId) return { error: "Choose a home currency." };
 
-  const current = await currentOrganisation();
+  const workspace = await getWorkspace();
+  if (workspace.status === "signed-out") redirect("/login");
+  if (workspace.status !== "ready") redirect("/");
+  const membership = workspace.memberships.find((item) => item.organisationId === organisation);
+  if (!membership) return { error: "You do not have access to that organisation." };
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("organisation_defaults")
     .update({ home_currency_id: homeCurrencyId })
-    .eq("organisation_id", current.organisationId)
+    .eq("organisation_id", membership.organisationId)
     .select("organisation_id");
 
-  if (error) return { error: friendlyError(error, "Defaults could not be saved.") };
+  if (error) return { error: friendlyError(error, "That organisation could not be saved.") };
 
   if (!data?.length) {
     const inserted = await supabase.from("organisation_defaults").insert({
-      organisation_id: current.organisationId,
-      tenant_id: current.tenantId,
+      organisation_id: membership.organisationId,
+      tenant_id: membership.tenantId,
       home_currency_id: homeCurrencyId,
     });
-    if (inserted.error) return { error: friendlyError(inserted.error, "Defaults could not be saved.") };
+    if (inserted.error) return { error: friendlyError(inserted.error, "That organisation could not be saved.") };
   }
 
   refresh();

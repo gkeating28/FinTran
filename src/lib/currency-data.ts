@@ -41,36 +41,52 @@ export async function listCurrencies(): Promise<{
   };
 }
 
-export async function listOrganisationDefaults(): Promise<{
-  currencies: CurrencyChoice[];
+export type OrganisationDefaultSet = {
   homeCurrencyId: string | null;
+  currencies: CurrencyChoice[];
+};
+
+export async function listDefaultsByOrganisation(organisationIds: string[]): Promise<{
+  byOrganisation: Record<string, OrganisationDefaultSet>;
   error: string | null;
 }> {
+  const byOrganisation: Record<string, OrganisationDefaultSet> = {};
+  for (const organisationId of organisationIds) {
+    byOrganisation[organisationId] = { homeCurrencyId: null, currencies: [] };
+  }
+  if (organisationIds.length === 0) return { byOrganisation, error: null };
+
   const workspace = await getWorkspace();
-  if (workspace.status !== "ready") return { currencies: [], homeCurrencyId: null, error: null };
+  if (workspace.status !== "ready") return { byOrganisation, error: null };
 
   const supabase = await createClient();
-  const organisationId = workspace.current.organisationId;
   const [currencies, defaults] = await Promise.all([
     supabase
       .from("currencies")
-      .select("id, code, name")
-      .eq("organisation_id", organisationId)
+      .select("id, code, name, organisation_id")
+      .in("organisation_id", organisationIds)
       .order("code"),
     supabase
       .from("organisation_defaults")
-      .select("home_currency_id")
-      .eq("organisation_id", organisationId)
-      .maybeSingle(),
+      .select("organisation_id, home_currency_id")
+      .in("organisation_id", organisationIds),
   ]);
 
   if (currencies.error || defaults.error) {
-    return { currencies: [], homeCurrencyId: null, error: "Defaults could not be loaded." };
+    return { byOrganisation, error: "Organisation defaults could not be loaded." };
   }
 
-  return {
-    currencies: currencies.data ?? [],
-    homeCurrencyId: defaults.data?.home_currency_id ?? null,
-    error: null,
-  };
+  for (const row of currencies.data ?? []) {
+    byOrganisation[row.organisation_id]?.currencies.push({
+      id: row.id,
+      code: row.code,
+      name: row.name,
+    });
+  }
+  for (const row of defaults.data ?? []) {
+    const set = byOrganisation[row.organisation_id];
+    if (set) set.homeCurrencyId = row.home_currency_id;
+  }
+
+  return { byOrganisation, error: null };
 }

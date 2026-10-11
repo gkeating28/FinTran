@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import OrganisationGrid from "@/components/OrganisationGrid";
 import styles from "@/components/OpsPage.module.css";
+import { listDefaultsByOrganisation } from "@/lib/currency-data";
 import { getWorkspace } from "@/lib/data";
 import { canManage } from "@/lib/types";
 
@@ -13,25 +14,38 @@ export default async function OrganisationsPage() {
 
   const { current, memberships } = workspace;
   const organisations = memberships.filter((membership) => membership.tenantId === current.tenantId);
+  const { byOrganisation, error } = await listDefaultsByOrganisation(
+    organisations.map((organisation) => organisation.organisationId),
+  );
 
   return (
     <section className={styles.stack}>
       <div>
         <h1 className={styles.heading}>Organisations</h1>
         <p className={styles.lede}>
-          These are the organisations in {current.tenantName} that you can open. Access is granted
-          per organisation, not to every organisation in the tenant.
+          These are the organisations in {current.tenantName} that you can open. Edit an organisation
+          to set its defaults, including the home currency.
         </p>
       </div>
+      {error ? (
+        <p className={styles.alert} role="alert">
+          {error}
+        </p>
+      ) : null}
       <OrganisationGrid
         tenantId={current.tenantId}
         canAdd={canManage(current.role)}
-        rows={organisations.map((organisation) => ({
-          id: organisation.organisationId,
-          name: organisation.organisationName,
-          slug: organisation.organisationSlug,
-          role: organisation.role,
-        }))}
+        rows={organisations.map((organisation) => {
+          const defaults = byOrganisation[organisation.organisationId];
+          return {
+            id: organisation.organisationId,
+            name: organisation.organisationName,
+            slug: organisation.organisationSlug,
+            role: organisation.role,
+            homeCurrencyId: defaults?.homeCurrencyId ?? null,
+            currencies: defaults?.currencies ?? [],
+          };
+        })}
       />
     </section>
   );
