@@ -120,7 +120,7 @@ function CurrencyForm({ row, onClose }: { row: CurrencyRow | null; onClose: () =
 
   return (
     <FormModal title={row ? "Edit currency" : "Add currency"} onClose={onClose}>
-      <form className={styles.modalForm} action={action}>
+      <form className={styles.modalForm} action={action} autoComplete="off">
         {row ? <input type="hidden" name="id" value={row.id} /> : null}
         {state.error ? (
           <p className={styles.alert} role="alert">
@@ -148,6 +148,8 @@ function CurrencyForm({ row, onClose }: { row: CurrencyRow | null; onClose: () =
             name="name"
             required
             maxLength={80}
+            autoComplete="off"
+            spellCheck={false}
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="Euro"
@@ -158,6 +160,7 @@ function CurrencyForm({ row, onClose }: { row: CurrencyRow | null; onClose: () =
           <input
             name="rate"
             required
+            autoComplete="off"
             inputMode="decimal"
             value={rate}
             onChange={(event) => setRate(event.target.value)}

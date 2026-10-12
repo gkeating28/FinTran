@@ -167,7 +167,7 @@ function PartyForm({
       onClose={onClose}
       className={styles.partyDialog}
     >
-      <form className={`${styles.modalForm} ${styles.partyForm}`} action={action}>
+      <form className={`${styles.modalForm} ${styles.partyForm}`} action={action} autoComplete="off">
         {row ? <input type="hidden" name="id" value={row.id} /> : null}
         {state.error ? (
           <p className={styles.alert} role="alert">
@@ -195,6 +195,8 @@ function PartyForm({
             name="name"
             required
             maxLength={200}
+            autoComplete="off"
+            spellCheck={false}
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="Northwind Traders"
@@ -205,6 +207,7 @@ function PartyForm({
           <select
             name="currency_id"
             required
+            autoComplete="off"
             value={currencyId}
             onChange={(event) => setCurrencyId(event.target.value)}
             disabled={currencies.length === 0}
@@ -227,7 +230,8 @@ function PartyForm({
           <input
             name="phone"
             maxLength={40}
-            autoComplete="tel"
+            autoComplete="off"
+            spellCheck={false}
             value={phone}
             onChange={(event) => setPhone(event.target.value)}
             placeholder="+353 1 555 0100"
@@ -237,9 +241,11 @@ function PartyForm({
           Email
           <input
             name="email"
-            type="email"
+            type="text"
+            inputMode="email"
             maxLength={200}
-            autoComplete="email"
+            autoComplete="off"
+            spellCheck={false}
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             placeholder="accounts@northwind.example"
@@ -250,7 +256,8 @@ function PartyForm({
           <input
             name="website"
             maxLength={200}
-            autoComplete="url"
+            autoComplete="off"
+            spellCheck={false}
             value={website}
             onChange={(event) => setWebsite(event.target.value)}
             placeholder="https://northwind.example"
@@ -262,6 +269,8 @@ function PartyForm({
             name="address"
             maxLength={500}
             rows={3}
+            autoComplete="off"
+            spellCheck={false}
             value={address}
             onChange={(event) => setAddress(event.target.value)}
             placeholder="1 Dock Street, Dublin"
@@ -273,6 +282,8 @@ function PartyForm({
             name="contact_details"
             maxLength={500}
             rows={3}
+            autoComplete="off"
+            spellCheck={false}
             value={contactDetails}
             onChange={(event) => setContactDetails(event.target.value)}
             placeholder="Accounts, Jane Murphy"
@@ -284,6 +295,8 @@ function PartyForm({
             name="notes"
             maxLength={4000}
             rows={3}
+            autoComplete="off"
+            spellCheck={false}
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
             placeholder="Delivery notes or anything else to keep with this record."

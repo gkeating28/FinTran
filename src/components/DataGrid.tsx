@@ -79,6 +79,7 @@ export default function DataGrid<T extends { id: string }>({
           <span className="sr-only">Search</span>
           <input
             type="search"
+            autoComplete="off"
             value={query}
             placeholder={searchPlaceholder}
             onChange={(event) => {

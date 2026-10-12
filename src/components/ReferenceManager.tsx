@@ -155,7 +155,7 @@ function ReferenceForm({
 
   return (
     <FormModal title={row ? `Edit ${meta.singular}` : `Add ${meta.singular}`} onClose={onClose}>
-      <form className={styles.modalForm} action={action}>
+      <form className={styles.modalForm} action={action} autoComplete="off">
         {row ? <input type="hidden" name="id" value={row.id} /> : null}
         {state.error ? (
           <p className={styles.alert} role="alert">
@@ -183,6 +183,8 @@ function ReferenceForm({
             name="description"
             required
             maxLength={200}
+            autoComplete="off"
+            spellCheck={false}
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             placeholder={kind === "vat_rates" ? "Standard rate" : "Sales income"}
@@ -195,6 +197,7 @@ function ReferenceForm({
               <input
                 name="rate"
                 required
+                autoComplete="off"
                 inputMode="decimal"
                 min={0}
                 max={100}
@@ -209,6 +212,7 @@ function ReferenceForm({
               <select
                 name="vat_type"
                 required
+                autoComplete="off"
                 value={vatType}
                 onChange={(event) => setVatType(event.target.value)}
               >
@@ -230,6 +234,7 @@ function ReferenceForm({
             <select
               name="account_type"
               required
+              autoComplete="off"
               value={accountType}
               onChange={(event) => setAccountType(event.target.value)}
             >

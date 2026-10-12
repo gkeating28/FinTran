@@ -113,15 +113,15 @@ function TenantFields() {
   const [state, action, pending] = useActionState(createTenant, {});
 
   return (
-    <form className={ops.modalForm} action={action}>
+    <form className={ops.modalForm} action={action} autoComplete="off">
       <Status state={state} />
       <label className={ops.field}>
         Tenant
-        <input name="tenantName" required minLength={2} maxLength={80} autoFocus placeholder="Northwind Group" />
+        <input name="tenantName" required minLength={2} maxLength={80} autoComplete="off" spellCheck={false} autoFocus placeholder="Northwind Group" />
       </label>
       <label className={ops.field}>
         First organisation
-        <input name="organisationName" required minLength={2} maxLength={80} placeholder="Northwind Ltd" />
+        <input name="organisationName" required minLength={2} maxLength={80} autoComplete="off" spellCheck={false} placeholder="Northwind Ltd" />
       </label>
       <div className={ops.modalActions}>
         <button className={ops.primary} type="submit" disabled={pending}>
@@ -153,12 +153,12 @@ function OrganisationFields({ tenantId }: { tenantId: string }) {
   const [state, action, pending] = useActionState(createOrganisation, {});
 
   return (
-    <form className={ops.modalForm} action={action}>
+    <form className={ops.modalForm} action={action} autoComplete="off">
       <input type="hidden" name="tenantId" value={tenantId} />
       <Status state={state} />
       <label className={ops.field}>
         Organisation
-        <input name="organisationName" required minLength={2} maxLength={80} autoFocus placeholder="Harbour Trading" />
+        <input name="organisationName" required minLength={2} maxLength={80} autoComplete="off" spellCheck={false} autoFocus placeholder="Harbour Trading" />
       </label>
       <div className={ops.modalActions}>
         <button className={ops.primary} type="submit" disabled={pending}>
@@ -212,16 +212,16 @@ function AccessFields({
   }, [state.message, onSaved]);
 
   return (
-    <form className={ops.modalForm} action={action}>
+    <form className={ops.modalForm} action={action} autoComplete="off">
       <input type="hidden" name="organisationId" value={organisationId} />
       <Status state={state} />
       <label className={ops.field}>
         Email
-        <input name="email" type="email" required autoFocus placeholder="colleague@company.com" />
+        <input name="email" type="text" inputMode="email" required autoComplete="off" spellCheck={false} autoFocus placeholder="colleague@company.com" />
       </label>
       <label className={ops.field}>
         Role
-        <select name="role" defaultValue="member">
+        <select name="role" defaultValue="member" autoComplete="off">
           <option value="member">Member</option>
           <option value="admin">Admin</option>
           {callerRole === "owner" ? <option value="owner">Owner</option> : null}

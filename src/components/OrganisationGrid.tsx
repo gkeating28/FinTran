@@ -98,7 +98,7 @@ function OrganisationForm({
 
   return (
     <FormModal title={`Edit ${organisation.name}`} onClose={onClose}>
-      <form className={styles.modalForm} action={action}>
+      <form className={styles.modalForm} action={action} autoComplete="off">
         <input type="hidden" name="organisation_id" value={organisation.id} />
         {state.error ? (
           <p className={styles.alert} role="alert">
@@ -110,6 +110,7 @@ function OrganisationForm({
           <select
             name="home_currency_id"
             required
+            autoComplete="off"
             value={homeCurrency}
             onChange={(event) => setHomeCurrency(event.target.value)}
             disabled={organisation.currencies.length === 0}
