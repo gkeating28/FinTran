@@ -105,7 +105,7 @@ export default function AppSidebar({
   return (
     <aside className={styles.sidebar}>
       <div className={styles.brand}>
-        <img src="/qula-logo.png" alt="" width={32} height={32} className={styles.brandMark} />
+        <img src="/qula-logo.png" alt="" width={48} height={48} className={styles.brandMark} />
         <div>
           <div className={styles.brandName}>Qula</div>
           <div className={styles.brandSub}>TRANSACTIONS</div>
