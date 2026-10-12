@@ -19,13 +19,7 @@ const NAV: NavItem[] = [
   { href: "/transactions", label: "Transactions", icon: <LedgerIcon />, section: "workspace" },
   { href: "/customers", label: "Customers", icon: <CustomerIcon />, section: "workspace" },
   { href: "/suppliers", label: "Suppliers", icon: <SupplierIcon />, section: "workspace" },
-  { href: "/gl-codes", label: "GL codes", icon: <HashIcon />, section: "admin" },
-  { href: "/departments", label: "Departments", icon: <DeptIcon />, section: "admin" },
-  { href: "/cost-centres", label: "Cost centres", icon: <CentreIcon />, section: "admin" },
-  { href: "/vat-rates", label: "VAT rates", icon: <VatIcon />, section: "admin" },
-  { href: "/currencies", label: "Currencies", icon: <CurrencyIcon />, section: "admin" },
-  { href: "/organisations", label: "Organisations", icon: <OrgIcon />, section: "admin" },
-  { href: "/access", label: "Access", icon: <PeopleIcon />, section: "admin" },
+  { href: "/admin", label: "Admin", icon: <AdminIcon />, section: "admin" },
 ];
 
 function Icon({ children }: { children: ReactNode }) {
@@ -67,59 +61,11 @@ function LedgerIcon() {
   );
 }
 
-function OrgIcon() {
+function AdminIcon() {
   return (
     <Icon>
-      <path d="M4 20V6a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v14" />
-      <path d="M14 10h5a1 1 0 0 1 1 1v9" />
-      <path d="M8 9h2M8 13h2M8 17h2M17 14h1M17 17h1" />
-    </Icon>
-  );
-}
-
-function HashIcon() {
-  return (
-    <Icon>
-      <path d="M5 9h14M5 15h14M9 4l-2 16M17 4l-2 16" />
-    </Icon>
-  );
-}
-
-function DeptIcon() {
-  return (
-    <Icon>
-      <path d="M4 20V7l8-3 8 3v13" />
-      <path d="M9 20v-6h6v6" />
-    </Icon>
-  );
-}
-
-function CentreIcon() {
-  return (
-    <Icon>
-      <circle cx="12" cy="12" r="8" />
       <circle cx="12" cy="12" r="3" />
-      <path d="M12 2v2M12 20v2M2 12h2M20 12h2" />
-    </Icon>
-  );
-}
-
-function VatIcon() {
-  return (
-    <Icon>
-      <path d="M19 5 5 19" />
-      <circle cx="7.5" cy="7.5" r="2.5" />
-      <circle cx="16.5" cy="16.5" r="2.5" />
-    </Icon>
-  );
-}
-
-function CurrencyIcon() {
-  return (
-    <Icon>
-      <circle cx="12" cy="12" r="8" />
-      <path d="M12 7.5v9" />
-      <path d="M9.5 9.2c.4-.8 1.3-1.2 2.5-1.2 1.6 0 2.6.8 2.6 2s-1 1.9-2.6 1.9-2.6.8-2.6 2 1 2 2.6 2c1.2 0 2.1-.4 2.5-1.2" />
+      <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" />
     </Icon>
   );
 }
@@ -140,17 +86,6 @@ function SupplierIcon() {
       <path d="M14 11h4l3 3v1h-7" />
       <circle cx="7" cy="17.5" r="1.5" />
       <circle cx="17" cy="17.5" r="1.5" />
-    </Icon>
-  );
-}
-
-function PeopleIcon() {
-  return (
-    <Icon>
-      <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" />
-      <circle cx="9.5" cy="7" r="3" />
-      <path d="M20 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 4.13a3 3 0 0 1 0 5.75" />
     </Icon>
   );
 }
