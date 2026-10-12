@@ -184,6 +184,79 @@ function vatLabel(row: ReferenceRow) {
   return `${row.code} — ${row.description}${rate}`;
 }
 
+function CodeLookup({
+  name,
+  value,
+  onChange,
+  placeholder,
+  options,
+  emptyText,
+}: {
+  name: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  options: { id: string; label: string }[];
+  emptyText: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const selected = options.find((option) => option.id === value);
+  const needle = query.trim().toLowerCase();
+  const shown = needle
+    ? options.filter((option) => option.label.toLowerCase().includes(needle))
+    : options;
+
+  return (
+    <div className={styles.lookup}>
+      <input type="hidden" name={name} value={value} />
+      <button
+        type="button"
+        className={styles.lookupButton}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span>{selected?.label ?? placeholder}</span>
+      </button>
+      {open ? (
+        <div className={styles.lookupMenu} role="listbox" aria-label={placeholder}>
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search"
+            aria-label={`Search ${placeholder}`}
+            autoComplete="one-time-code"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
+          />
+          {shown.length === 0 ? (
+            <p className={styles.lookupEmpty}>{options.length === 0 ? emptyText : "No matches."}</p>
+          ) : (
+            shown.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                role="option"
+                aria-selected={option.id === value}
+                className={styles.lookupOption}
+                onClick={() => {
+                  onChange(option.id);
+                  setQuery("");
+                  setOpen(false);
+                }}
+              >
+                {option.label}
+              </button>
+            ))
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function ProductForm({
   row,
   glCodes,
@@ -223,7 +296,8 @@ function ProductForm({
 
   useEffect(() => {
     let cancelled = false;
-    loadProductChoices().then((result) => {
+    loadProductChoices()
+      .then((result) => {
       if (cancelled) return;
       if (!result.error) {
         setAvailableGlCodes(result.glCodes);
@@ -240,7 +314,10 @@ function ProductForm({
         }
       }
       setChoicesReady(true);
-    });
+    })
+      .catch(() => {
+        if (!cancelled) setChoicesReady(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -324,90 +401,51 @@ function ProductForm({
         </label>
         <label className={styles.field}>
           Purchase GL code
-          <select
+          <CodeLookup
             name="purchase_gl_code_id"
-            required
-            autoComplete="off"
             value={purchaseGlCodeId}
-            onChange={(event) => setPurchaseGlCodeId(event.target.value)}
-            disabled={purchaseGlCodes.length === 0}
-          >
-            <option value="" disabled>
-              Choose an Expense GL code
-            </option>
-            {purchaseGlCodes.map((gl) => (
-              <option key={gl.id} value={gl.id}>
-                {glLabel(gl)}
-              </option>
-            ))}
-          </select>
+            onChange={setPurchaseGlCodeId}
+            placeholder="Choose an Expense GL code"
+            options={purchaseGlCodes.map((gl) => ({ id: gl.id, label: glLabel(gl) }))}
+            emptyText="No Expense GL codes."
+          />
         </label>
         <label className={styles.field}>
           Sales GL code
-          <select
+          <CodeLookup
             name="sales_gl_code_id"
-            required
-            autoComplete="off"
             value={salesGlCodeId}
-            onChange={(event) => setSalesGlCodeId(event.target.value)}
-            disabled={salesGlCodes.length === 0}
-          >
-            <option value="" disabled>
-              Choose an Income GL code
-            </option>
-            {salesGlCodes.map((gl) => (
-              <option key={gl.id} value={gl.id}>
-                {glLabel(gl)}
-              </option>
-            ))}
-          </select>
-          {choicesReady && salesGlCodes.length === 0 ? (
-            <span className={styles.panelMeta}>
-              {availableGlCodes.length === 0
+            onChange={setSalesGlCodeId}
+            placeholder="Choose an Income GL code"
+            options={salesGlCodes.map((gl) => ({ id: gl.id, label: glLabel(gl) }))}
+            emptyText={
+              availableGlCodes.length === 0
                 ? "Add a GL code with account type Income."
-                : `None of these are Income. ${accountSummary(availableGlCodes)}.`}
-            </span>
-          ) : null}
+                : `No Income GL codes. ${accountSummary(availableGlCodes)}.`
+            }
+          />
         </label>
         <label className={styles.field}>
           Purchase VAT code
-          <select
+          <CodeLookup
             name="purchase_vat_code_id"
-            required
-            autoComplete="off"
             value={purchaseVatCodeId}
-            onChange={(event) => setPurchaseVatCodeId(event.target.value)}
-            disabled={purchaseVatRates.length === 0}
-          >
-            <option value="" disabled>
-              Choose an Expense VAT rate
-            </option>
-            {purchaseVatRates.map((rate) => (
-              <option key={rate.id} value={rate.id}>
-                {vatLabel(rate)}
-              </option>
-            ))}
-          </select>
+            onChange={setPurchaseVatCodeId}
+            placeholder="Choose an Expense VAT rate"
+            options={purchaseVatRates.map((rate) => ({ id: rate.id, label: vatLabel(rate) }))}
+            emptyText="No Expense VAT rates."
+          />
         </label>
         <label className={styles.field}>
           Sales VAT code
-          <select
+          <CodeLookup
             name="sales_vat_code_id"
-            required
-            autoComplete="off"
             value={salesVatCodeId}
-            onChange={(event) => setSalesVatCodeId(event.target.value)}
-            disabled={salesVatRates.length === 0}
-          >
-            <option value="" disabled>
-              Choose a Sales VAT rate
-            </option>
-            {salesVatRates.map((rate) => (
-              <option key={rate.id} value={rate.id}>
-                {vatLabel(rate)}
-              </option>
-            ))}
-          </select>
+            onChange={setSalesVatCodeId}
+            placeholder="Choose a Sales VAT rate"
+            options={salesVatRates.map((rate) => ({ id: rate.id, label: vatLabel(rate) }))}
+            emptyText="No Sales VAT rates."
+          />
         </label>
         {blocked ? <p className={`${styles.panelMeta} ${styles.wide}`}>{missing.join(" ")}</p> : null}
         <div className={styles.modalActions}>

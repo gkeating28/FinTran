@@ -407,8 +407,86 @@
 
 .partyForm .field input,
 .partyForm .field select,
-.partyForm .field textarea {
+.partyForm .field textarea,
+.partyForm .lookupButton {
   width: 100%;
+}
+
+.lookup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lookupButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 34px;
+  border: 1px solid var(--ops-border);
+  border-radius: var(--ops-radius);
+  padding: 0 10px;
+  background: #fff;
+  color: var(--ops-text);
+  font: inherit;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lookupButton span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lookupButton::after {
+  content: "";
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+}
+
+.lookupMenu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  overflow: auto;
+  padding: 6px;
+  border: 1px solid var(--ops-border);
+  border-radius: var(--ops-radius);
+  background: #fff;
+}
+
+.lookupOption {
+  min-height: 32px;
+  border: 0;
+  border-radius: var(--ops-radius);
+  background: transparent;
+  color: var(--ops-text);
+  font: inherit;
+  font-weight: 500;
+  text-align: left;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.lookupOption:hover,
+.lookupOption[aria-selected="true"] {
+  background: #eef3f8;
+}
+
+.lookupEmpty {
+  margin: 0;
+  padding: 6px 8px;
+  color: var(--ops-text-2);
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .partyForm input[type="hidden"] {
