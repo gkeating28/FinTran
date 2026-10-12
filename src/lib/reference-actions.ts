@@ -25,6 +25,15 @@ function text(formData: FormData, name: string) {
 function friendlyError(error: { code?: string; message: string } | null, fallback: string) {
   if (!error) return fallback;
   if (error.code === "23505") return "That code is already used in this organisation.";
+  if (error.code === "23503" && error.message.includes("products")) {
+    return "That code is used by a product. Choose another code on the product before removing it.";
+  }
+  if (error.code === "P0001" && error.message.includes("purchase VAT")) {
+    return "That VAT rate is a purchase VAT code on a product and must stay Expense.";
+  }
+  if (error.code === "P0001" && error.message.includes("sales VAT")) {
+    return "That VAT rate is a sales VAT code on a product and must stay Sales.";
+  }
   if (error.code === "23514" && error.message.includes("account_type")) {
     return "Choose a valid account type.";
   }

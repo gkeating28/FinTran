@@ -14,6 +14,7 @@ const TILES = [
   { href: "/vat-rates", label: "VAT rates", count: "vatRates", icon: <VatIcon /> },
   { href: "/currencies", label: "Currencies", count: "currencies", icon: <CurrencyIcon /> },
   { href: "/transaction-types", label: "Transaction types", count: "transactionTypes", icon: <TypeIcon /> },
+  { href: "/products", label: "Products", count: "products", icon: <ProductIcon /> },
   { href: "/organisations", label: "Organisations", count: "organisations", icon: <OrgIcon /> },
   { href: "/access", label: "Access", count: "access", icon: <PeopleIcon /> },
 ] as const;
@@ -129,6 +130,16 @@ function TypeIcon() {
       <path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
       <path d="M14 3v6h6" />
       <path d="M9 13h6M9 17h4" />
+    </TileIcon>
+  );
+}
+
+function ProductIcon() {
+  return (
+    <TileIcon>
+      <path d="M21 8 12 3 3 8v8l9 5 9-5V8z" />
+      <path d="M3.3 8 12 13l8.7-5" />
+      <path d="M12 13v8" />
     </TileIcon>
   );
 }

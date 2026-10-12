@@ -9,6 +9,7 @@ export type GridColumn<T> = {
   sortValue: (row: T) => string;
   render: (row: T) => ReactNode;
   mono?: boolean;
+  align?: "right";
   width?: string;
 };
 
@@ -23,6 +24,7 @@ export default function DataGrid<T extends { id: string }>({
   toolbar,
   actions,
   actionsWidth,
+  minWidth,
 }: {
   rows: T[];
   columns: GridColumn<T>[];
@@ -32,6 +34,7 @@ export default function DataGrid<T extends { id: string }>({
   toolbar?: ReactNode;
   actions?: (row: T) => ReactNode;
   actionsWidth?: string;
+  minWidth?: string;
 }) {
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState(columns[0]?.key ?? "");
@@ -90,7 +93,10 @@ export default function DataGrid<T extends { id: string }>({
         </label>
         {toolbar}
       </div>
-      <table className={actionsWidth ? `${styles.table} ${styles.tableFixed}` : styles.table}>
+      <table
+        className={actionsWidth ? `${styles.table} ${styles.tableFixed}` : styles.table}
+        style={minWidth ? { minWidth } : undefined}
+      >
         {actionsWidth ? (
           <colgroup>
             {columns.map((column) => (
@@ -104,8 +110,12 @@ export default function DataGrid<T extends { id: string }>({
             {columns.map((column) => {
               const active = column.key === sortKey;
               return (
-                <th key={column.key} aria-sort={active ? (sortDirection === "asc" ? "ascending" : "descending") : "none"}>
-                  <button className={styles.sortButton} type="button" onClick={() => sortBy(column.key)}>
+                <th
+                  key={column.key}
+                  className={column.align === "right" ? styles.numeric : undefined}
+                  aria-sort={active ? (sortDirection === "asc" ? "ascending" : "descending") : "none"}
+                >
+                  <button className={styles.sortButton} type="button" title={column.label} onClick={() => sortBy(column.key)}>
                     {column.label}
                     <span className={styles.sortMark} aria-hidden>
                       {active ? (sortDirection === "asc" ? "↑" : "↓") : "↕"}
@@ -128,7 +138,14 @@ export default function DataGrid<T extends { id: string }>({
             visible.map((row) => (
               <tr key={row.id}>
                 {columns.map((column) => (
-                  <td key={column.key} className={column.mono ? styles.mono : undefined}>
+                  <td
+                    key={column.key}
+                    className={
+                      [column.mono ? styles.mono : "", column.align === "right" ? styles.numeric : ""]
+                        .filter(Boolean)
+                        .join(" ") || undefined
+                    }
+                  >
                     {column.render(row)}
                   </td>
                 ))}

@@ -36,6 +36,7 @@ The schema is in `supabase/migrations` and is applied to the FinTran Supabase pr
 - `vat_rates` — a code, description, percentage rate, and type for one organisation. Type is Sales or Expense. A code is unique inside that organisation.
 - `currencies` — a code, name, and exchange rate for one organisation. A code is unique inside that organisation.
 - `transaction_types` — a code, description, type (Sales or Purchases), and a last reference number for one organisation. Each type starts at 0, so its next number is 1. A code is unique inside that organisation.
+- `products` — a code of up to 30 letters or numbers, a description, a purchase price with a purchase GL code and an Expense VAT code, and a sales price with a sales GL code and a Sales VAT code. A code is unique inside that organisation.
 - `customers` and `suppliers` — a code, name, currency, phone, email, website, address, contact details, and a free-text note for one organisation. The currency is one of that organisation's currencies. A code is unique inside that organisation.
 - `organisation_defaults` — one row per organisation. Home currency is edited from that organisation. Further defaults belong on the same form.
 

@@ -135,6 +135,7 @@
   background: var(--ops-panel);
   border: 1px solid var(--ops-border);
   border-radius: var(--ops-radius);
+  overflow-x: auto;
 }
 
 .card {
@@ -204,6 +205,17 @@
   color: var(--ops-muted);
   font-weight: 700;
   background: var(--ops-panel-muted);
+}
+
+.table th.numeric,
+.table td.numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.table th.numeric .sortButton {
+  width: 100%;
+  justify-content: flex-end;
 }
 
 .table tr:last-child td {

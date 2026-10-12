@@ -16,6 +16,7 @@ const PAGE_LABELS: Record<string, string> = {
   "/vat-rates": "VAT rates",
   "/currencies": "Currencies",
   "/transaction-types": "Transaction types",
+  "/products": "Products",
   "/organisations": "Organisations",
   "/access": "Access",
 };
