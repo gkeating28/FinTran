@@ -25,10 +25,16 @@ function friendlyError(error: { code?: string; message: string } | null, fallbac
   if (error.code === "23514") {
     return "Use 1 to 30 letters or numbers, and a description up to 200 characters.";
   }
-  if (error.code === "P0001" && error.message.includes("Purchase VAT")) {
+  if (error.code === "P0001" && error.message.includes("Expense account")) {
+    return "Choose an Expense GL code for purchases.";
+  }
+  if (error.code === "P0001" && error.message.includes("Income account")) {
+    return "Choose an Income GL code for sales.";
+  }
+  if (error.code === "P0001" && error.message.includes("Expense rate")) {
     return "Choose an Expense VAT rate for purchases.";
   }
-  if (error.code === "P0001" && error.message.includes("Sales VAT")) {
+  if (error.code === "P0001" && error.message.includes("Sales rate")) {
     return "Choose a Sales VAT rate for sales.";
   }
   if (error.code === "P0001" && error.message.includes("GL")) {

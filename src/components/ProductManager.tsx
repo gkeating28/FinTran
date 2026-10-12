@@ -6,7 +6,7 @@ import FormModal from "@/components/FormModal";
 import { QuietInput } from "@/components/QuietField";
 import { createProduct, deleteProduct, updateProduct } from "@/lib/product-actions";
 import type { ProductRow } from "@/lib/products";
-import { type ReferenceRow, type VatType } from "@/lib/reference";
+import { type AccountType, type ReferenceRow, type VatType } from "@/lib/reference";
 import styles from "@/components/OpsPage.module.css";
 import type { ActionState } from "@/lib/types";
 
@@ -30,8 +30,9 @@ export default function ProductManager({
       <div>
         <h1 className={styles.heading}>Products</h1>
         <p className={styles.lede}>
-          Products for this organisation. Each has a code, a description, a purchase price with its
-          GL and VAT codes, and a sales price with its GL and VAT codes.
+          Products for this organisation. Purchase GL codes are Expense accounts and purchase VAT
+          codes are Expense rates. Sales GL codes are Income accounts and sales VAT codes are Sales
+          rates.
         </p>
       </div>
       {loadError ? (
@@ -153,6 +154,13 @@ function onlyChoice(rows: ReferenceRow[]) {
   return rows.length === 1 ? rows[0].id : "";
 }
 
+function glChoices(rows: ReferenceRow[], type: AccountType, currentId?: string) {
+  const matched = rows.filter((row) => row.accountType === type);
+  if (!currentId || matched.some((row) => row.id === currentId)) return matched;
+  const current = rows.find((row) => row.id === currentId);
+  return current ? [current, ...matched] : matched;
+}
+
 function vatChoices(rows: ReferenceRow[], type: VatType, currentId?: string) {
   const matched = rows.filter((row) => row.vatType === type);
   if (!currentId || matched.some((row) => row.id === currentId)) return matched;
@@ -181,6 +189,8 @@ function ProductForm({
   vatRates: ReferenceRow[];
   onClose: () => void;
 }) {
+  const purchaseGlCodes = glChoices(glCodes, "Expense", row?.purchaseGlCodeId);
+  const salesGlCodes = glChoices(glCodes, "Income", row?.salesGlCodeId);
   const purchaseVatRates = vatChoices(vatRates, "Expense", row?.purchaseVatCodeId);
   const salesVatRates = vatChoices(vatRates, "Sales", row?.salesVatCodeId);
   const save = row ? updateProduct : createProduct;
@@ -190,9 +200,11 @@ function ProductForm({
   const [purchasePrice, setPurchasePrice] = useState(row?.purchasePrice ?? "");
   const [salesPrice, setSalesPrice] = useState(row?.salesPrice ?? "");
   const [purchaseGlCodeId, setPurchaseGlCodeId] = useState(
-    row?.purchaseGlCodeId ?? onlyChoice(glCodes),
+    row?.purchaseGlCodeId ?? onlyChoice(purchaseGlCodes),
   );
-  const [salesGlCodeId, setSalesGlCodeId] = useState(row?.salesGlCodeId ?? onlyChoice(glCodes));
+  const [salesGlCodeId, setSalesGlCodeId] = useState(
+    row?.salesGlCodeId ?? onlyChoice(salesGlCodes),
+  );
   const [purchaseVatCodeId, setPurchaseVatCodeId] = useState(
     row?.purchaseVatCodeId ?? onlyChoice(purchaseVatRates),
   );
@@ -205,7 +217,8 @@ function ProductForm({
   }, [state.message, onClose]);
 
   const missing: string[] = [];
-  if (glCodes.length === 0) missing.push("Add a GL code before saving a product.");
+  if (purchaseGlCodes.length === 0) missing.push("Add an Expense GL code for purchases.");
+  if (salesGlCodes.length === 0) missing.push("Add an Income GL code for sales.");
   if (purchaseVatRates.length === 0) missing.push("Add an Expense VAT rate for purchases.");
   if (salesVatRates.length === 0) missing.push("Add a Sales VAT rate for sales.");
   const blocked = missing.length > 0;
@@ -276,12 +289,12 @@ function ProductForm({
             autoComplete="off"
             value={purchaseGlCodeId}
             onChange={(event) => setPurchaseGlCodeId(event.target.value)}
-            disabled={glCodes.length === 0}
+            disabled={purchaseGlCodes.length === 0}
           >
             <option value="" disabled>
-              Choose a GL code
+              Choose an Expense GL code
             </option>
-            {glCodes.map((gl) => (
+            {purchaseGlCodes.map((gl) => (
               <option key={gl.id} value={gl.id}>
                 {glLabel(gl)}
               </option>
@@ -296,12 +309,12 @@ function ProductForm({
             autoComplete="off"
             value={salesGlCodeId}
             onChange={(event) => setSalesGlCodeId(event.target.value)}
-            disabled={glCodes.length === 0}
+            disabled={salesGlCodes.length === 0}
           >
             <option value="" disabled>
-              Choose a GL code
+              Choose an Income GL code
             </option>
-            {glCodes.map((gl) => (
+            {salesGlCodes.map((gl) => (
               <option key={gl.id} value={gl.id}>
                 {glLabel(gl)}
               </option>

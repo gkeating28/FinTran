@@ -28,6 +28,12 @@ function friendlyError(error: { code?: string; message: string } | null, fallbac
   if (error.code === "23503" && error.message.includes("products")) {
     return "That code is used by a product. Choose another code on the product before removing it.";
   }
+  if (error.code === "P0001" && error.message.includes("purchase GL")) {
+    return "That GL code is a purchase GL code on a product and must stay Expense.";
+  }
+  if (error.code === "P0001" && error.message.includes("sales GL")) {
+    return "That GL code is a sales GL code on a product and must stay Income.";
+  }
   if (error.code === "P0001" && error.message.includes("purchase VAT")) {
     return "That VAT rate is a purchase VAT code on a product and must stay Expense.";
   }
