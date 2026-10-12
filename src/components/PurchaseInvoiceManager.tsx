@@ -30,6 +30,30 @@ function today() {
   return `${date.getFullYear()}-${month}-${day}`;
 }
 
+function FlexField({
+  index,
+  value,
+  onChange,
+}: {
+  index: number;
+  value: string;
+  onChange: (update: (current: string[]) => string[]) => void;
+}) {
+  return (
+    <label className={styles.field}>
+      {`Flex${index + 1}`}
+      <QuietInput
+        name={`flex${index + 1}`}
+        maxLength={200}
+        value={value}
+        onChange={(event) =>
+          onChange((current) => current.map((item, itemIndex) => (itemIndex === index ? event.target.value : item)))
+        }
+      />
+    </label>
+  );
+}
+
 function codeLabel(row: { code: string; description: string }) {
   return `${row.code} — ${row.description}`;
 }
@@ -329,7 +353,7 @@ function InvoiceForm({
 
   return (
     <FormModal title={header ? "Edit purchase invoice" : "Add purchase invoice"} onClose={onClose} className={styles.invoiceDialog}>
-      <form className={`${styles.modalForm} ${styles.partyForm}`} action={action} autoComplete="off" noValidate>
+      <form className={`${styles.modalForm} ${styles.invoiceForm}`} action={action} autoComplete="off" noValidate>
         {header ? <input type="hidden" name="id" value={header.id} /> : null}
         <input type="hidden" name="lines" value={JSON.stringify(invoiceLines)} />
         {state.error ? (
@@ -370,6 +394,7 @@ function InvoiceForm({
             className={styles.mono}
           />
         </label>
+        <FlexField index={0} value={flex[0]} onChange={setFlex} />
         <label className={styles.field}>
           Transaction date
           <QuietInput name="transaction_date" type="date" required value={transactionDate} onChange={(event) => setTransactionDate(event.target.value)} />
@@ -378,6 +403,7 @@ function InvoiceForm({
           Due date
           <QuietInput name="due_date" type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
         </label>
+        <FlexField index={1} value={flex[1]} onChange={setFlex} />
         <label className={styles.field}>
           Supplier code
           <select name="supplier_id" required autoComplete="off" value={supplierId} onChange={(event) => chooseSupplier(event.target.value)}>
@@ -393,6 +419,7 @@ function InvoiceForm({
           Supplier name
           <QuietInput name="supplier_name" required maxLength={200} value={supplierName} onChange={(event) => setSupplierName(event.target.value)} />
         </label>
+        <FlexField index={2} value={flex[2]} onChange={setFlex} />
         <label className={styles.field}>
           Currency
           <select name="currency_id" required autoComplete="off" value={currencyId} onChange={(event) => chooseCurrency(event.target.value)}>
@@ -415,6 +442,7 @@ function InvoiceForm({
             className={styles.mono}
           />
         </label>
+        <FlexField index={3} value={flex[3]} onChange={setFlex} />
         <label className={styles.field}>
           Order number
           <QuietInput name="order_number" maxLength={40} value={orderNumber} onChange={(event) => setOrderNumber(event.target.value)} />
@@ -430,6 +458,7 @@ function InvoiceForm({
             className={styles.mono}
           />
         </label>
+        <FlexField index={4} value={flex[4]} onChange={setFlex} />
         <label className={`${styles.field} ${styles.wide}`}>
           Contact details
           <QuietTextarea name="contact_details" maxLength={500} rows={2} value={contactDetails} onChange={(event) => setContactDetails(event.target.value)} />
@@ -464,19 +493,6 @@ function InvoiceForm({
             <strong className={styles.mono}>{formatMoney(totals.homeTotal)}</strong>
           </div>
         </div>
-        {flex.map((value, index) => (
-          <label className={styles.field} key={index}>
-            {`Flex${index + 1}`}
-            <QuietInput
-              name={`flex${index + 1}`}
-              maxLength={200}
-              value={value}
-              onChange={(event) =>
-                setFlex((current) => current.map((item, itemIndex) => (itemIndex === index ? event.target.value : item)))
-              }
-            />
-          </label>
-        ))}
         <div className={styles.wide}>
           <div className={styles.panelHead}>
             Lines

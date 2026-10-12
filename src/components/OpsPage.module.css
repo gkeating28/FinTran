@@ -396,6 +396,39 @@
   width: min(980px, calc(100vw - 32px));
 }
 
+.invoiceForm {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 16px;
+  align-items: start;
+}
+
+.invoiceForm .wide,
+.invoiceForm .modalActions,
+.invoiceForm .alert {
+  grid-column: 1 / -1;
+}
+
+.invoiceForm .field {
+  min-width: 0;
+}
+
+.invoiceForm .field input,
+.invoiceForm .field select,
+.invoiceForm .field textarea {
+  width: 100%;
+}
+
+.invoiceForm input[type="hidden"] {
+  display: none;
+}
+
+@media (max-width: 800px) {
+  .invoiceForm {
+    grid-template-columns: 1fr;
+  }
+}
+
 .lineTable {
   width: 100%;
   border-collapse: collapse;
