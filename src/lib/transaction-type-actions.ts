@@ -16,6 +16,9 @@ function text(formData: FormData, name: string) {
 function friendlyError(error: { code?: string; message: string } | null, fallback: string) {
   if (!error) return fallback;
   if (error.code === "23505") return "That code is already used in this organisation.";
+  if (error.code === "23503" && error.message.includes("transaction_")) {
+    return "That transaction type is used on an invoice. Remove the invoice before removing the type.";
+  }
   if (error.code === "23514" && error.message.includes("type")) return "Choose Sales or Purchases.";
   if (error.code === "23514") return "Use 1 to 20 letters or numbers, and a description up to 200 characters.";
   return error.message || fallback;

@@ -392,6 +392,38 @@
   width: min(640px, calc(100vw - 32px));
 }
 
+.invoiceDialog {
+  width: min(980px, calc(100vw - 32px));
+}
+
+.lineTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.lineTable th,
+.lineTable td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--ops-border-soft);
+  text-align: left;
+  font-size: 12.5px;
+}
+
+.amountRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 16px;
+}
+
+.amountRow span {
+  display: block;
+  color: var(--ops-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .partyForm {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -18,6 +18,9 @@ function friendlyError(error: { code?: string; message: string } | null, fallbac
   if (error.code === "23503" && error.message.includes("home_currency")) {
     return "That currency is the home currency. Choose another home currency before removing it.";
   }
+  if (error.code === "23503" && error.message.includes("transaction_headers")) {
+    return "That currency is used on an invoice. Choose another currency on the invoice before removing it.";
+  }
   if (error.code === "23503") {
     return "That currency is used by a customer or supplier. Choose another currency for them before removing it.";
   }

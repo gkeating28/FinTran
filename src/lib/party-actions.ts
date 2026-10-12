@@ -15,6 +15,9 @@ function text(formData: FormData, name: string) {
 function friendlyError(error: { code?: string; message: string } | null, fallback: string) {
   if (!error) return fallback;
   if (error.code === "23505") return "That code is already used in this organisation.";
+  if (error.code === "23503" && error.message.includes("transaction_headers")) {
+    return "That supplier is used on an invoice. Choose another supplier on the invoice before removing it.";
+  }
   if (error.code === "23514" && error.message.includes("phone")) return "Use a phone number up to 40 characters.";
   if (error.code === "23514" && error.message.includes("email")) return "Use an email address, or leave it blank.";
   if (error.code === "23514" && error.message.includes("website")) {

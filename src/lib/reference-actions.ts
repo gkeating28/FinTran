@@ -25,6 +25,9 @@ function text(formData: FormData, name: string) {
 function friendlyError(error: { code?: string; message: string } | null, fallback: string) {
   if (!error) return fallback;
   if (error.code === "23505") return "That code is already used in this organisation.";
+  if (error.code === "23503" && error.message.includes("transaction_lines")) {
+    return "That code is used on an invoice line. Choose another code on the invoice before removing it.";
+  }
   if (error.code === "23503" && error.message.includes("products")) {
     return "That code is used by a product. Choose another code on the product before removing it.";
   }
