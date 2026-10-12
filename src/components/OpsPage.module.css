@@ -264,6 +264,24 @@
   white-space: nowrap;
 }
 
+.tableFixed {
+  table-layout: fixed;
+}
+
+.tableFixed th,
+.tableFixed td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tableFixed th.actionsHead,
+.tableFixed td.actionsCell {
+  overflow: visible;
+  text-overflow: clip;
+  width: auto;
+}
+
 .actions {
   display: flex;
   justify-content: flex-end;

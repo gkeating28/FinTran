@@ -55,17 +55,20 @@ export default function PartyManager({
             Add
           </button>
         }
+        actionsWidth="16%"
         columns={[
           {
             key: "code",
             label: "Code",
             mono: true,
+            width: "12%",
             sortValue: (row) => row.code,
             render: (row) => row.code,
           },
           {
             key: "name",
             label: "Name",
+            width: "20%",
             sortValue: (row) => row.name,
             render: (row) => row.name,
           },
@@ -73,18 +76,21 @@ export default function PartyManager({
             key: "currency",
             label: "Currency",
             mono: true,
+            width: "12%",
             sortValue: (row) => row.currencyCode,
             render: (row) => row.currencyCode,
           },
           {
             key: "phone",
             label: "Phone",
+            width: "18%",
             sortValue: (row) => row.phone,
             render: (row) => row.phone,
           },
           {
             key: "email",
             label: "Email",
+            width: "22%",
             sortValue: (row) => row.email,
             render: (row) => row.email,
           },

@@ -9,6 +9,7 @@ export type GridColumn<T> = {
   sortValue: (row: T) => string;
   render: (row: T) => ReactNode;
   mono?: boolean;
+  width?: string;
 };
 
 const PAGE_SIZE = 10;
@@ -21,6 +22,7 @@ export default function DataGrid<T extends { id: string }>({
   emptyLabel,
   toolbar,
   actions,
+  actionsWidth,
 }: {
   rows: T[];
   columns: GridColumn<T>[];
@@ -29,6 +31,7 @@ export default function DataGrid<T extends { id: string }>({
   emptyLabel: string;
   toolbar?: ReactNode;
   actions?: (row: T) => ReactNode;
+  actionsWidth?: string;
 }) {
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState(columns[0]?.key ?? "");
@@ -86,7 +89,15 @@ export default function DataGrid<T extends { id: string }>({
         </label>
         {toolbar}
       </div>
-      <table className={styles.table}>
+      <table className={actionsWidth ? `${styles.table} ${styles.tableFixed}` : styles.table}>
+        {actionsWidth ? (
+          <colgroup>
+            {columns.map((column) => (
+              <col key={column.key} style={{ width: column.width }} />
+            ))}
+            <col style={{ width: actionsWidth }} />
+          </colgroup>
+        ) : null}
         <thead>
           <tr>
             {columns.map((column) => {
