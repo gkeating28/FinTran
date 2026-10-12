@@ -13,6 +13,7 @@ const TILES = [
   { href: "/cost-centres", label: "Cost centres", count: "costCentres", icon: <CentreIcon /> },
   { href: "/vat-rates", label: "VAT rates", count: "vatRates", icon: <VatIcon /> },
   { href: "/currencies", label: "Currencies", count: "currencies", icon: <CurrencyIcon /> },
+  { href: "/transaction-types", label: "Transaction types", count: "transactionTypes", icon: <TypeIcon /> },
   { href: "/organisations", label: "Organisations", count: "organisations", icon: <OrgIcon /> },
   { href: "/access", label: "Access", count: "access", icon: <PeopleIcon /> },
 ] as const;
@@ -118,6 +119,16 @@ function CurrencyIcon() {
       <circle cx="12" cy="12" r="8" />
       <path d="M12 7.5v9" />
       <path d="M9.5 9.2c.4-.8 1.3-1.2 2.5-1.2 1.6 0 2.6.8 2.6 2s-1 1.9-2.6 1.9-2.6.8-2.6 2 1 2 2.6 2c1.2 0 2.1-.4 2.5-1.2" />
+    </TileIcon>
+  );
+}
+
+function TypeIcon() {
+  return (
+    <TileIcon>
+      <path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+      <path d="M14 3v6h6" />
+      <path d="M9 13h6M9 17h4" />
     </TileIcon>
   );
 }
