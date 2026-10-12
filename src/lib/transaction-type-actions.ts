@@ -73,7 +73,7 @@ export async function createTransactionType(
     code: fields.code,
     description: fields.description,
     type: fields.type,
-    last_reference: 1,
+    last_reference: 0,
   });
 
   if (error) return { error: friendlyError(error, "That transaction type could not be saved.") };

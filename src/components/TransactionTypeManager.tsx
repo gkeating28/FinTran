@@ -33,8 +33,7 @@ export default function TransactionTypeManager({
         <h1 className={styles.heading}>Transaction types</h1>
         <p className={styles.lede}>
           Transaction types for this organisation. Each has a code, a description, and a type of
-          Sales or Purchases. Last reference is assigned automatically and increases with each new
-          type.
+          Sales or Purchases. Last reference starts at 0 for every type, so the next number is 1.
         </p>
       </div>
       {loadError ? (
@@ -181,7 +180,7 @@ function TransactionTypeForm({
           </select>
         </label>
         <p className={styles.panelMeta}>
-          Last reference: {row ? row.lastReference : "assigned automatically when you save"}
+          Last reference: {row ? row.lastReference : 0}. Next number: {(row?.lastReference ?? 0) + 1}.
         </p>
         <div className={styles.modalActions}>
           <button className={styles.quiet} type="button" onClick={onClose}>
