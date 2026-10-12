@@ -270,6 +270,7 @@ function InvoiceForm({
   const [invoiceLines, setInvoiceLines] = useState<PurchaseInvoiceLine[]>(lines ?? []);
   const [lineDraft, setLineDraft] = useState<PurchaseInvoiceLine | null>(null);
   const [lineMessage, setLineMessage] = useState<string | null>(null);
+  const [tab, setTab] = useState<"header" | "lines">("header");
 
   useEffect(() => {
     if (lines) setInvoiceLines(lines);
@@ -338,11 +339,12 @@ function InvoiceForm({
       vatAmount: formatMoney(amounts.vat),
     };
     setInvoiceLines((current) => {
-      const without = current.filter((line) => line.lineNumber !== lineDraft.lineNumber);
-      return [...without, { ...next, lineNumber: lineDraft.lineNumber || without.length + 1 }].map((line, index) => ({
-        ...line,
-        lineNumber: index + 1,
-      }));
+      if (!lineDraft.lineNumber) {
+        return [...current, { ...next, lineNumber: current.length + 1 }];
+      }
+      return current.map((line) =>
+        line.lineNumber === lineDraft.lineNumber ? { ...next, lineNumber: line.lineNumber } : line,
+      );
     });
     setLineDraft(null);
     setLineMessage(null);
@@ -352,8 +354,9 @@ function InvoiceForm({
     choices.types.length === 0 || choices.suppliers.length === 0 || choices.currencies.length === 0 || lines === null;
 
   return (
+    <>
     <FormModal title={header ? "Edit purchase invoice" : "Add purchase invoice"} onClose={onClose} className={styles.invoiceDialog}>
-      <form className={`${styles.modalForm} ${styles.invoiceForm}`} action={action} autoComplete="off" noValidate>
+      <form className={styles.modalForm} action={action} autoComplete="off" noValidate>
         {header ? <input type="hidden" name="id" value={header.id} /> : null}
         <input type="hidden" name="lines" value={JSON.stringify(invoiceLines)} />
         {state.error ? (
@@ -366,6 +369,16 @@ function InvoiceForm({
             {lineError}
           </p>
         ) : null}
+        <div className={styles.tabs} role="tablist">
+          <button className={tab === "header" ? styles.tabActive : styles.tab} type="button" role="tab" aria-selected={tab === "header"} onClick={() => setTab("header")}>
+            Header
+          </button>
+          <button className={tab === "lines" ? styles.tabActive : styles.tab} type="button" role="tab" aria-selected={tab === "lines"} onClick={() => setTab("lines")}>
+            Lines{lines === null ? "" : ` (${invoiceLines.length})`}
+          </button>
+        </div>
+        <div className={styles.tabPane} hidden={tab !== "header"}>
+        <div className={styles.invoiceForm}>
         <label className={styles.field}>
           Transaction type
           {header ? <input type="hidden" name="transaction_type_id" value={typeId} /> : null}
@@ -493,9 +506,10 @@ function InvoiceForm({
             <strong className={styles.mono}>{formatMoney(totals.homeTotal)}</strong>
           </div>
         </div>
-        <div className={styles.wide}>
-          <div className={styles.panelHead}>
-            Lines
+        </div>
+        </div>
+        <div className={styles.tabPane} hidden={tab !== "lines"}>
+          <div className={styles.gridToolbar}>
             <button
               className={styles.primary}
               type="button"
@@ -510,73 +524,62 @@ function InvoiceForm({
           {lines === null ? (
             <p className={styles.empty}>Loading lines…</p>
           ) : (
-            <table className={styles.lineTable}>
-              <thead>
-                <tr>
-                  <th>Line</th>
-                  <th>Product</th>
-                  <th>Description</th>
-                  <th>Qty</th>
-                  <th>Nett</th>
-                  <th>VAT</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {invoiceLines.length === 0 ? (
+            <div className={styles.lineScroll}>
+              <table className={styles.lineTable}>
+                <thead>
                   <tr>
-                    <td colSpan={7}>No lines yet.</td>
+                    <th>Line</th>
+                    <th>Product</th>
+                    <th>Description</th>
+                    <th>GL</th>
+                    <th>VAT</th>
+                    <th className={styles.num}>Qty</th>
+                    <th className={styles.num}>Nett</th>
+                    <th className={styles.num}>VAT amount</th>
+                    <th className={styles.actions} />
                   </tr>
-                ) : (
-                  invoiceLines.map((line) => (
-                    <tr key={line.lineNumber}>
-                      <td className={styles.mono}>{line.lineNumber}</td>
-                      <td className={styles.mono}>{line.productCode}</td>
-                      <td>{line.description}</td>
-                      <td className={styles.mono}>{line.quantity}</td>
-                      <td className={styles.mono}>{line.nettAmount}</td>
-                      <td className={styles.mono}>{line.vatAmount}</td>
-                      <td>
-                        <button className={styles.quiet} type="button" onClick={() => setLineDraft(line)}>
-                          Edit
-                        </button>
-                        <button
-                          className={styles.quiet}
-                          type="button"
-                          onClick={() =>
-                            setInvoiceLines((current) =>
-                              current
-                                .filter((item) => item.lineNumber !== line.lineNumber)
-                                .map((item, index) => ({ ...item, lineNumber: index + 1 })),
-                            )
-                          }
-                        >
-                          Remove
-                        </button>
-                      </td>
+                </thead>
+                <tbody>
+                  {invoiceLines.length === 0 ? (
+                    <tr>
+                      <td colSpan={9}>No lines yet.</td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    invoiceLines.map((line) => (
+                      <tr key={line.lineNumber}>
+                        <td className={styles.mono}>{line.lineNumber}</td>
+                        <td className={styles.mono}>{line.productCode}</td>
+                        <td>{line.description}</td>
+                        <td className={styles.mono}>{choices.glCodes.find((code) => code.id === line.glCodeId)?.code ?? ""}</td>
+                        <td className={styles.mono}>{choices.vatRates.find((rate) => rate.id === line.vatRateId)?.code ?? ""}</td>
+                        <td className={`${styles.mono} ${styles.num}`}>{line.quantity}</td>
+                        <td className={`${styles.mono} ${styles.num}`}>{line.nettAmount}</td>
+                        <td className={`${styles.mono} ${styles.num}`}>{line.vatAmount}</td>
+                        <td className={styles.actions}>
+                          <button className={styles.quiet} type="button" onClick={() => { setLineMessage(null); setLineDraft(line); }}>
+                            Edit
+                          </button>
+                          <button
+                            className={styles.quiet}
+                            type="button"
+                            onClick={() =>
+                              setInvoiceLines((current) =>
+                                current
+                                  .filter((item) => item.lineNumber !== line.lineNumber)
+                                  .map((item, index) => ({ ...item, lineNumber: index + 1 })),
+                              )
+                            }
+                          >
+                            Remove
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           )}
-          {lineDraft ? (
-            <LineEditor
-              draft={lineDraft}
-              products={choices.products}
-              glCodes={choices.glCodes}
-              departments={choices.departments}
-              costCentres={choices.costCentres}
-              vatRates={expenseVat}
-              message={lineMessage}
-              onChange={setLineDraft}
-              onSave={saveLine}
-              onCancel={() => {
-                setLineDraft(null);
-                setLineMessage(null);
-              }}
-            />
-          ) : null}
         </div>
         {choices.types.length === 0 ? (
           <p className={`${styles.panelMeta} ${styles.wide}`}>Add a Purchases transaction type before saving an invoice.</p>
@@ -594,6 +597,24 @@ function InvoiceForm({
         </div>
       </form>
     </FormModal>
+    {lineDraft ? (
+      <LineEditor
+        draft={lineDraft}
+        products={choices.products}
+        glCodes={choices.glCodes}
+        departments={choices.departments}
+        costCentres={choices.costCentres}
+        vatRates={expenseVat}
+        message={lineMessage}
+        onChange={setLineDraft}
+        onSave={saveLine}
+        onCancel={() => {
+          setLineDraft(null);
+          setLineMessage(null);
+        }}
+      />
+    ) : null}
+    </>
   );
 }
 
@@ -632,8 +653,21 @@ function LineEditor({
     });
   }
 
+  const vat = vatRates.find((rate) => rate.id === draft.vatRateId);
+  const amounts = lineAmounts(draft.quantity, draft.price, draft.discountAmount || "0", vat?.rate ?? null);
+  const preview = amounts && !("error" in amounts) ? amounts : null;
+
   return (
-    <div className={styles.partyForm}>
+    <FormModal title={draft.lineNumber ? `Edit line ${draft.lineNumber}` : "Add line"} onClose={onCancel} className={styles.lineDialog}>
+    <form
+      className={`${styles.modalForm} ${styles.partyForm}`}
+      autoComplete="off"
+      noValidate
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSave();
+      }}
+    >
       {message ? (
         <p className={styles.alert} role="alert">
           {message}
@@ -710,14 +744,18 @@ function LineEditor({
         Discount amount
         <QuietInput className={styles.mono} inputMode="decimal" value={draft.discountAmount} onChange={(event) => onChange({ ...draft, discountAmount: event.target.value })} />
       </label>
+      <p className={`${styles.panelMeta} ${styles.wide}`}>
+        Nett {preview ? formatMoney(preview.nett) : "—"} · VAT {preview ? formatMoney(preview.vat) : "—"}
+      </p>
       <div className={styles.modalActions}>
         <button className={styles.quiet} type="button" onClick={onCancel}>
-          Cancel line
+          Cancel
         </button>
-        <button className={styles.primary} type="button" onClick={onSave}>
+        <button className={styles.primary} type="submit">
           Save line
         </button>
       </div>
-    </div>
+    </form>
+    </FormModal>
   );
 }

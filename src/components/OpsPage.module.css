@@ -429,6 +429,44 @@
   }
 }
 
+.tabPane[hidden] {
+  display: none !important;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--ops-border);
+}
+
+.tab,
+.tabActive {
+  height: 36px;
+  margin-bottom: -1px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--ops-text-2);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+.tabActive {
+  color: var(--ops-accent);
+  border-bottom-color: var(--ops-accent);
+}
+
+.lineDialog {
+  width: min(720px, calc(100vw - 32px));
+}
+
+.lineScroll {
+  overflow-x: auto;
+}
+
 .lineTable {
   width: 100%;
   border-collapse: collapse;
@@ -436,10 +474,24 @@
 
 .lineTable th,
 .lineTable td {
-  padding: 6px 8px;
+  padding: 8px 8px;
   border-bottom: 1px solid var(--ops-border-soft);
   text-align: left;
   font-size: 12.5px;
+}
+
+.lineTable th {
+  color: var(--ops-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.lineTable .num,
+.lineTable .actions {
+  text-align: right;
+  white-space: nowrap;
 }
 
 .amountRow {
