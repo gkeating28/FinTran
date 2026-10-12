@@ -98,7 +98,7 @@ function OrganisationForm({
 
   return (
     <FormModal title={`Edit ${organisation.name}`} onClose={onClose}>
-      <form className={styles.modalForm} action={action} autoComplete="off">
+      <form className={styles.modalForm} action={action} autoComplete="off" noValidate>
         <input type="hidden" name="organisation_id" value={organisation.id} />
         {state.error ? (
           <p className={styles.alert} role="alert">

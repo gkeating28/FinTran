@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
+import { QuietInput } from "@/components/QuietField";
 import { createReference, deleteReference, updateReference } from "@/lib/reference-actions";
 import {
   ACCOUNT_TYPES,
@@ -155,7 +156,7 @@ function ReferenceForm({
 
   return (
     <FormModal title={row ? `Edit ${meta.singular}` : `Add ${meta.singular}`} onClose={onClose}>
-      <form className={styles.modalForm} action={action} autoComplete="off">
+      <form className={styles.modalForm} action={action} autoComplete="off" noValidate>
         {row ? <input type="hidden" name="id" value={row.id} /> : null}
         {state.error ? (
           <p className={styles.alert} role="alert">
@@ -164,7 +165,7 @@ function ReferenceForm({
         ) : null}
         <label className={styles.field}>
           Code
-          <input
+          <QuietInput
             name="code"
             required
             maxLength={20}
@@ -179,7 +180,7 @@ function ReferenceForm({
         </label>
         <label className={styles.field}>
           Description
-          <input
+          <QuietInput
             name="description"
             required
             maxLength={200}
@@ -194,7 +195,7 @@ function ReferenceForm({
           <>
             <label className={styles.field}>
               Rate (%)
-              <input
+              <QuietInput
                 name="rate"
                 required
                 autoComplete="off"

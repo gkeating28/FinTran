@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
+import { QuietInput } from "@/components/QuietField";
 import { createCurrency, deleteCurrency, updateCurrency } from "@/lib/currency-actions";
 import type { CurrencyRow } from "@/lib/currencies";
 import styles from "@/components/OpsPage.module.css";
@@ -120,7 +121,7 @@ function CurrencyForm({ row, onClose }: { row: CurrencyRow | null; onClose: () =
 
   return (
     <FormModal title={row ? "Edit currency" : "Add currency"} onClose={onClose}>
-      <form className={styles.modalForm} action={action} autoComplete="off">
+      <form className={styles.modalForm} action={action} autoComplete="off" noValidate>
         {row ? <input type="hidden" name="id" value={row.id} /> : null}
         {state.error ? (
           <p className={styles.alert} role="alert">
@@ -129,7 +130,7 @@ function CurrencyForm({ row, onClose }: { row: CurrencyRow | null; onClose: () =
         ) : null}
         <label className={styles.field}>
           Code
-          <input
+          <QuietInput
             name="code"
             required
             maxLength={20}
@@ -144,7 +145,7 @@ function CurrencyForm({ row, onClose }: { row: CurrencyRow | null; onClose: () =
         </label>
         <label className={styles.field}>
           Name
-          <input
+          <QuietInput
             name="name"
             required
             maxLength={80}
@@ -157,7 +158,7 @@ function CurrencyForm({ row, onClose }: { row: CurrencyRow | null; onClose: () =
         </label>
         <label className={styles.field}>
           Rate
-          <input
+          <QuietInput
             name="rate"
             required
             autoComplete="off"

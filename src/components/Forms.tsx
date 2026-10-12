@@ -9,6 +9,7 @@ import {
   signUp,
 } from "@/lib/actions";
 import FormModal from "@/components/FormModal";
+import { QuietInput } from "@/components/QuietField";
 import type { ActionState, Role } from "@/lib/types";
 import auth from "@/components/auth.module.css";
 import ops from "@/components/OpsPage.module.css";
@@ -113,15 +114,15 @@ function TenantFields() {
   const [state, action, pending] = useActionState(createTenant, {});
 
   return (
-    <form className={ops.modalForm} action={action} autoComplete="off">
+    <form className={ops.modalForm} action={action} autoComplete="off" noValidate>
       <Status state={state} />
       <label className={ops.field}>
         Tenant
-        <input name="tenantName" required minLength={2} maxLength={80} autoComplete="off" spellCheck={false} autoFocus placeholder="Northwind Group" />
+        <QuietInput name="tenantName" required minLength={2} maxLength={80} autoFocus placeholder="Northwind Group" />
       </label>
       <label className={ops.field}>
         First organisation
-        <input name="organisationName" required minLength={2} maxLength={80} autoComplete="off" spellCheck={false} placeholder="Northwind Ltd" />
+        <QuietInput name="organisationName" required minLength={2} maxLength={80} placeholder="Northwind Ltd" />
       </label>
       <div className={ops.modalActions}>
         <button className={ops.primary} type="submit" disabled={pending}>
@@ -153,12 +154,12 @@ function OrganisationFields({ tenantId }: { tenantId: string }) {
   const [state, action, pending] = useActionState(createOrganisation, {});
 
   return (
-    <form className={ops.modalForm} action={action} autoComplete="off">
+    <form className={ops.modalForm} action={action} autoComplete="off" noValidate>
       <input type="hidden" name="tenantId" value={tenantId} />
       <Status state={state} />
       <label className={ops.field}>
         Organisation
-        <input name="organisationName" required minLength={2} maxLength={80} autoComplete="off" spellCheck={false} autoFocus placeholder="Harbour Trading" />
+        <QuietInput name="organisationName" required minLength={2} maxLength={80} autoFocus placeholder="Harbour Trading" />
       </label>
       <div className={ops.modalActions}>
         <button className={ops.primary} type="submit" disabled={pending}>
@@ -212,12 +213,12 @@ function AccessFields({
   }, [state.message, onSaved]);
 
   return (
-    <form className={ops.modalForm} action={action} autoComplete="off">
+    <form className={ops.modalForm} action={action} autoComplete="off" noValidate>
       <input type="hidden" name="organisationId" value={organisationId} />
       <Status state={state} />
       <label className={ops.field}>
         Email
-        <input name="email" type="text" inputMode="email" required autoComplete="off" spellCheck={false} autoFocus placeholder="colleague@company.com" />
+        <QuietInput name="email" type="text" inputMode="email" required autoFocus placeholder="colleague@company.com" />
       </label>
       <label className={ops.field}>
         Role

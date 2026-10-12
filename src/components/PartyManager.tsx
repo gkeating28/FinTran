@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
+import { QuietInput, QuietTextarea } from "@/components/QuietField";
 import { createParty, deleteParty, updateParty } from "@/lib/party-actions";
 import { PARTY_META, type PartyCurrency, type PartyKind, type PartyRow } from "@/lib/parties";
 import styles from "@/components/OpsPage.module.css";
@@ -167,7 +168,7 @@ function PartyForm({
       onClose={onClose}
       className={styles.partyDialog}
     >
-      <form className={`${styles.modalForm} ${styles.partyForm}`} action={action} autoComplete="off">
+      <form className={`${styles.modalForm} ${styles.partyForm}`} action={action} autoComplete="off" noValidate>
         {row ? <input type="hidden" name="id" value={row.id} /> : null}
         {state.error ? (
           <p className={styles.alert} role="alert">
@@ -176,7 +177,7 @@ function PartyForm({
         ) : null}
         <label className={styles.field}>
           Code
-          <input
+          <QuietInput
             name="code"
             required
             maxLength={20}
@@ -191,7 +192,7 @@ function PartyForm({
         </label>
         <label className={styles.field}>
           Name
-          <input
+          <QuietInput
             name="name"
             required
             maxLength={200}
@@ -227,7 +228,7 @@ function PartyForm({
         </label>
         <label className={styles.field}>
           Phone
-          <input
+          <QuietInput
             name="phone"
             maxLength={40}
             autoComplete="off"
@@ -239,7 +240,7 @@ function PartyForm({
         </label>
         <label className={styles.field}>
           Email
-          <input
+          <QuietInput
             name="email"
             type="text"
             inputMode="email"
@@ -253,7 +254,7 @@ function PartyForm({
         </label>
         <label className={styles.field}>
           Website
-          <input
+          <QuietInput
             name="website"
             maxLength={200}
             autoComplete="off"
@@ -265,7 +266,7 @@ function PartyForm({
         </label>
         <label className={`${styles.field} ${styles.wide}`}>
           Address
-          <textarea
+          <QuietTextarea
             name="address"
             maxLength={500}
             rows={3}
@@ -278,7 +279,7 @@ function PartyForm({
         </label>
         <label className={`${styles.field} ${styles.wide}`}>
           Contact details
-          <textarea
+          <QuietTextarea
             name="contact_details"
             maxLength={500}
             rows={3}
@@ -291,7 +292,7 @@ function PartyForm({
         </label>
         <label className={`${styles.field} ${styles.wide}`}>
           Notes
-          <textarea
+          <QuietTextarea
             name="notes"
             maxLength={4000}
             rows={3}
