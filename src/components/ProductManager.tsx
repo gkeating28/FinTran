@@ -4,7 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
 import { QuietInput } from "@/components/QuietField";
-import { createProduct, deleteProduct, updateProduct } from "@/lib/product-actions";
+import { createProduct, deleteProduct, loadProductChoices, updateProduct } from "@/lib/product-actions";
 import type { ProductRow } from "@/lib/products";
 import { type AccountType, type ReferenceRow, type VatType } from "@/lib/reference";
 import styles from "@/components/OpsPage.module.css";
@@ -173,6 +173,12 @@ function glLabel(row: ReferenceRow) {
   return `${row.code} — ${row.description}${type}`;
 }
 
+function accountSummary(rows: ReferenceRow[]) {
+  return rows
+    .map((row) => `${row.code} ${row.description} is ${row.accountType ?? "not set"}`)
+    .join(". ");
+}
+
 function vatLabel(row: ReferenceRow) {
   const rate = row.rate ? ` (${row.rate}%)` : "";
   return `${row.code} — ${row.description}${rate}`;
@@ -189,10 +195,13 @@ function ProductForm({
   vatRates: ReferenceRow[];
   onClose: () => void;
 }) {
-  const purchaseGlCodes = glChoices(glCodes, "Expense", row?.purchaseGlCodeId);
-  const salesGlCodes = glChoices(glCodes, "Income", row?.salesGlCodeId);
-  const purchaseVatRates = vatChoices(vatRates, "Expense", row?.purchaseVatCodeId);
-  const salesVatRates = vatChoices(vatRates, "Sales", row?.salesVatCodeId);
+  const [availableGlCodes, setAvailableGlCodes] = useState(glCodes);
+  const [availableVatRates, setAvailableVatRates] = useState(vatRates);
+  const [choicesReady, setChoicesReady] = useState(false);
+  const purchaseGlCodes = glChoices(availableGlCodes, "Expense", row?.purchaseGlCodeId);
+  const salesGlCodes = glChoices(availableGlCodes, "Income", row?.salesGlCodeId);
+  const purchaseVatRates = vatChoices(availableVatRates, "Expense", row?.purchaseVatCodeId);
+  const salesVatRates = vatChoices(availableVatRates, "Sales", row?.salesVatCodeId);
   const save = row ? updateProduct : createProduct;
   const [state, action, pending] = useActionState(save, {} as ActionState);
   const [code, setCode] = useState(row?.code ?? "");
@@ -213,15 +222,47 @@ function ProductForm({
   );
 
   useEffect(() => {
+    let cancelled = false;
+    loadProductChoices().then((result) => {
+      if (cancelled) return;
+      if (!result.error) {
+        setAvailableGlCodes(result.glCodes);
+        setAvailableVatRates(result.vatRates);
+        if (!row) {
+          const expenseGl = result.glCodes.filter((gl) => gl.accountType === "Expense");
+          const incomeGl = result.glCodes.filter((gl) => gl.accountType === "Income");
+          const expenseVat = result.vatRates.filter((rate) => rate.vatType === "Expense");
+          const salesVat = result.vatRates.filter((rate) => rate.vatType === "Sales");
+          setPurchaseGlCodeId((current) => current || onlyChoice(expenseGl));
+          setSalesGlCodeId((current) => current || onlyChoice(incomeGl));
+          setPurchaseVatCodeId((current) => current || onlyChoice(expenseVat));
+          setSalesVatCodeId((current) => current || onlyChoice(salesVat));
+        }
+      }
+      setChoicesReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [row]);
+
+  useEffect(() => {
     if (state.message) onClose();
   }, [state.message, onClose]);
 
   const missing: string[] = [];
-  if (purchaseGlCodes.length === 0) missing.push("Add an Expense GL code for purchases.");
-  if (salesGlCodes.length === 0) missing.push("Add an Income GL code for sales.");
-  if (purchaseVatRates.length === 0) missing.push("Add an Expense VAT rate for purchases.");
-  if (salesVatRates.length === 0) missing.push("Add a Sales VAT rate for sales.");
-  const blocked = missing.length > 0;
+  if (choicesReady && purchaseGlCodes.length === 0) missing.push("Add an Expense GL code for purchases.");
+  if (choicesReady && salesGlCodes.length === 0) {
+    const summary = accountSummary(availableGlCodes);
+    missing.push(
+      summary
+        ? `Add an Income GL code for sales. ${summary}.`
+        : "Add an Income GL code for sales.",
+    );
+  }
+  if (choicesReady && purchaseVatRates.length === 0) missing.push("Add an Expense VAT rate for purchases.");
+  if (choicesReady && salesVatRates.length === 0) missing.push("Add a Sales VAT rate for sales.");
+  const blocked = !choicesReady || missing.length > 0;
 
   return (
     <FormModal title={row ? "Edit product" : "Add product"} onClose={onClose} className={styles.partyDialog}>
@@ -320,6 +361,13 @@ function ProductForm({
               </option>
             ))}
           </select>
+          {choicesReady && salesGlCodes.length === 0 ? (
+            <span className={styles.panelMeta}>
+              {availableGlCodes.length === 0
+                ? "Add a GL code with account type Income."
+                : `None of these are Income. ${accountSummary(availableGlCodes)}.`}
+            </span>
+          ) : null}
         </label>
         <label className={styles.field}>
           Purchase VAT code

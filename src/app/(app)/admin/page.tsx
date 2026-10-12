@@ -46,7 +46,7 @@ export default async function AdminPage() {
         {TILES.map((tile) => {
           const count = counts[tile.count];
           return (
-            <Link key={tile.href} href={tile.href} prefetch className={styles.adminTile}>
+            <Link key={tile.href} href={tile.href} className={styles.adminTile}>
               <span className={styles.adminTileIcon}>{tile.icon}</span>
               <span className={styles.adminTileLabel}>{tile.label}</span>
               <span className={styles.adminTileCount}>{count === null ? "—" : count}</span>

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getWorkspace, ORGANISATION_COOKIE } from "@/lib/data";
+import { listReference } from "@/lib/reference-data";
 import { parseDescription } from "@/lib/reference";
 import { parseProductCode, parseProductPrice } from "@/lib/products";
 import { createClient } from "@/lib/supabase/server";
@@ -116,6 +117,18 @@ function fieldsFrom(formData: FormData) {
 function refresh() {
   revalidatePath("/products");
   revalidatePath("/admin");
+}
+
+export async function loadProductChoices() {
+  const [glCodes, vatRates] = await Promise.all([
+    listReference("gl_codes"),
+    listReference("vat_rates"),
+  ]);
+  return {
+    glCodes: glCodes.rows,
+    vatRates: vatRates.rows,
+    error: [glCodes.error, vatRates.error].filter(Boolean).join(" ") || null,
+  };
 }
 
 export async function createProduct(_state: ActionState, formData: FormData): Promise<ActionState> {

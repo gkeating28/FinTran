@@ -118,7 +118,7 @@ export async function createReference(
 
   if (error) return { error: friendlyError(error, "That code could not be saved.") };
 
-  revalidatePath(REFERENCE_META[kind].path);
+  refreshReference(kind);
   return { message: "Added." };
 }
 
@@ -153,7 +153,7 @@ export async function updateReference(
 
   if (error) return { error: friendlyError(error, "That code could not be updated.") };
 
-  revalidatePath(REFERENCE_META[kind].path);
+  refreshReference(kind);
   return { message: "Saved." };
 }
 
@@ -174,6 +174,12 @@ export async function deleteReference(kind: ReferenceKind, formData: FormData) {
     redirect(`${path}?error=${encodeURIComponent(friendlyError(error, "That code could not be removed."))}`);
   }
 
-  revalidatePath(path);
+  refreshReference(kind);
   redirect(path);
+}
+
+function refreshReference(kind: ReferenceKind) {
+  revalidatePath(REFERENCE_META[kind].path);
+  revalidatePath("/admin");
+  if (kind === "gl_codes" || kind === "vat_rates") revalidatePath("/products");
 }
