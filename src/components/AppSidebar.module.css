@@ -32,16 +32,10 @@
 }
 
 .brandMark {
-  width: 28px;
-  height: 28px;
-  border-radius: 3px;
-  background: linear-gradient(135deg, #3d6aa8, var(--sb-accent));
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 13px;
+  width: 32px;
+  height: 32px;
+  display: block;
+  object-fit: contain;
   flex-shrink: 0;
 }
 

@@ -105,9 +105,9 @@ export default function AppSidebar({
   return (
     <aside className={styles.sidebar}>
       <div className={styles.brand}>
-        <div className={styles.brandMark}>F</div>
+        <img src="/qula-logo.png" alt="" width={32} height={32} className={styles.brandMark} />
         <div>
-          <div className={styles.brandName}>FinTran</div>
+          <div className={styles.brandName}>Qula</div>
           <div className={styles.brandSub}>TRANSACTIONS</div>
         </div>
       </div>
@@ -141,7 +141,7 @@ export default function AppSidebar({
       </div>
 
       {current ? (
-        <nav className={styles.nav} aria-label="FinTran">
+        <nav className={styles.nav} aria-label="Qula">
           <div className={styles.sectionLabel}>WORKSPACE</div>
           {NAV.filter((item) => item.section === "workspace").map((item) => (
             <NavLink key={item.href} item={item} pathname={pathname} />
