@@ -429,7 +429,27 @@
   }
 }
 
-.tabPane[hidden] {
+.tabStage {
+  position: relative;
+}
+
+.headerPane {
+  min-width: 0;
+}
+
+.paneInactive {
+  visibility: hidden;
+}
+
+.linesPane {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--ops-panel);
+}
+
+.linesPane[hidden] {
   display: none !important;
 }
 
@@ -464,7 +484,9 @@
 }
 
 .lineScroll {
-  overflow-x: auto;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
 }
 
 .lineTable {

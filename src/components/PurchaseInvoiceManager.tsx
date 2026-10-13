@@ -377,7 +377,8 @@ function InvoiceForm({
             Lines{lines === null ? "" : ` (${invoiceLines.length})`}
           </button>
         </div>
-        <div className={styles.tabPane} hidden={tab !== "header"}>
+        <div className={styles.tabStage}>
+        <div className={tab === "header" ? styles.headerPane : `${styles.headerPane} ${styles.paneInactive}`} inert={tab !== "header"}>
         <div className={styles.invoiceForm}>
         <label className={styles.field}>
           Transaction type
@@ -508,7 +509,7 @@ function InvoiceForm({
         </div>
         </div>
         </div>
-        <div className={styles.tabPane} hidden={tab !== "lines"}>
+        <div className={styles.linesPane} hidden={tab !== "lines"}>
           <div className={styles.gridToolbar}>
             <button
               className={styles.primary}
@@ -580,6 +581,7 @@ function InvoiceForm({
               </table>
             </div>
           )}
+        </div>
         </div>
         {choices.types.length === 0 ? (
           <p className={`${styles.panelMeta} ${styles.wide}`}>Add a Purchases transaction type before saving an invoice.</p>
