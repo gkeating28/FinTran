@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
+import { formatInteger } from "@/lib/numbers";
 import styles from "@/components/OpsPage.module.css";
 
 export type GridColumn<T> = {
@@ -157,7 +158,7 @@ export default function DataGrid<T extends { id: string }>({
       </table>
       <div className={styles.gridFooter}>
         <span>
-          {from}–{to} of {filtered.length}
+          {formatInteger(from)}–{formatInteger(to)} of {formatInteger(filtered.length)}
         </span>
         <div className={styles.pager}>
           <button
@@ -169,7 +170,7 @@ export default function DataGrid<T extends { id: string }>({
             Previous
           </button>
           <span>
-            Page {page + 1} of {pageCount}
+            Page {formatInteger(page + 1)} of {formatInteger(pageCount)}
           </span>
           <button
             className={styles.quiet}

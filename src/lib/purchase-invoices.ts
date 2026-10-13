@@ -1,3 +1,4 @@
+import { numberValue } from "@/lib/numbers";
 import { formatProductPrice, parseProductPrice } from "@/lib/products";
 import { parseCurrencyRate } from "@/lib/currencies";
 
@@ -125,9 +126,9 @@ export function lineAmounts(
   discount: string,
   vatPercent: string | null,
 ) {
-  const qty = Number(quantity);
-  const unit = Number(price);
-  const disc = Number(discount || 0);
+  const qty = numberValue(quantity);
+  const unit = numberValue(price);
+  const disc = numberValue(discount || 0);
   if (!(qty > 0) || !(unit >= 0) || !(disc >= 0)) return null;
   const gross = roundMoney(qty * unit);
   if (disc > gross) return { error: "Discount cannot be more than quantity times price." } as const;
@@ -137,7 +138,7 @@ export function lineAmounts(
 }
 
 export function toHome(foreign: number, rate: string) {
-  const exchange = Number(rate);
+  const exchange = numberValue(rate);
   if (!(exchange > 0)) return 0;
   return roundMoney(foreign / exchange);
 }

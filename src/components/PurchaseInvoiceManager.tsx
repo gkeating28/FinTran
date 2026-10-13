@@ -10,9 +10,12 @@ import {
   savePurchaseInvoice,
 } from "@/lib/purchase-invoice-actions";
 import type { PurchaseInvoiceChoices } from "@/lib/purchase-invoice-data";
+import { formatInteger, groupThousands, numberValue } from "@/lib/numbers";
+import { formatCurrencyRate, parseCurrencyRate } from "@/lib/currencies";
 import {
   formatMoney,
   lineAmounts,
+  parseMoney,
   toHome,
   type InvoiceCode,
   type InvoiceProduct,
@@ -124,7 +127,7 @@ export default function PurchaseInvoiceManager({
         rows={rows}
         searchPlaceholder="Search purchase invoices"
         searchText={(row) =>
-          `${row.transactionTypeCode} ${row.reference} ${row.supplierCode} ${row.supplierName} ${row.orderNumber} ${row.notes}`
+          `${row.transactionTypeCode} ${row.reference} ${formatInteger(row.reference)} ${row.supplierCode} ${row.supplierName} ${row.orderNumber} ${row.notes}`
         }
         emptyLabel="No purchase invoices yet for this organisation."
         minWidth="980px"
@@ -154,7 +157,7 @@ export default function PurchaseInvoiceManager({
             label: "Reference",
             mono: true,
             sortValue: (row) => String(row.reference),
-            render: (row) => row.reference,
+            render: (row) => formatInteger(row.reference),
           },
           {
             key: "date",
@@ -181,7 +184,7 @@ export default function PurchaseInvoiceManager({
             label: "Foreign total",
             mono: true,
             align: "right",
-            sortValue: (row) => row.foreignTotalAmount,
+            sortValue: (row) => row.foreignTotalAmount.replace(/,/g, ""),
             render: (row) => row.foreignTotalAmount,
           },
           {
@@ -189,7 +192,7 @@ export default function PurchaseInvoiceManager({
             label: "Home total",
             mono: true,
             align: "right",
-            sortValue: (row) => row.homeTotalAmount,
+            sortValue: (row) => row.homeTotalAmount.replace(/,/g, ""),
             render: (row) => row.homeTotalAmount,
           },
           {
@@ -197,7 +200,7 @@ export default function PurchaseInvoiceManager({
             label: "Paid",
             mono: true,
             align: "right",
-            sortValue: (row) => row.paidAmount,
+            sortValue: (row) => row.paidAmount.replace(/,/g, ""),
             render: (row) => row.paidAmount,
           },
         ]}
@@ -283,8 +286,8 @@ function InvoiceForm({
   const selectedType = choices.types.find((type) => type.id === typeId);
   const expenseVat = choices.vatRates.filter((rate) => rate.vatType === "Expense");
   const totals = useMemo(() => {
-    const foreignNett = invoiceLines.reduce((sum, line) => sum + Number(line.nettAmount || 0), 0);
-    const foreignVat = invoiceLines.reduce((sum, line) => sum + Number(line.vatAmount || 0), 0);
+    const foreignNett = invoiceLines.reduce((sum, line) => sum + numberValue(line.nettAmount), 0);
+    const foreignVat = invoiceLines.reduce((sum, line) => sum + numberValue(line.vatAmount), 0);
     const foreignTotal = foreignNett + foreignVat;
     return {
       foreignNett,
@@ -335,6 +338,9 @@ function InvoiceForm({
       ...lineDraft,
       description,
       productCode: choices.products.find((product) => product.id === lineDraft.productId)?.code ?? "",
+      quantity: formatMoney(lineDraft.quantity),
+      price: formatMoney(lineDraft.price),
+      discountAmount: formatMoney(lineDraft.discountAmount || "0"),
       nettAmount: formatMoney(amounts.nett),
       vatAmount: formatMoney(amounts.vat),
     };
@@ -403,7 +409,7 @@ function InvoiceForm({
           Reference
           <input
             readOnly
-            value={header ? String(header.reference) : selectedType ? String(selectedType.nextReference) : ""}
+            value={header ? formatInteger(header.reference) : selectedType ? formatInteger(selectedType.nextReference) : ""}
             placeholder="Assigned on save"
             className={styles.mono}
           />
@@ -453,6 +459,9 @@ function InvoiceForm({
             inputMode="decimal"
             value={exchangeRate}
             onChange={(event) => setExchangeRate(event.target.value)}
+            onBlur={(event) => {
+              if (parseCurrencyRate(event.target.value)) setExchangeRate(formatCurrencyRate(event.target.value));
+            }}
             className={styles.mono}
           />
         </label>
@@ -469,6 +478,9 @@ function InvoiceForm({
             inputMode="decimal"
             value={paidAmount}
             onChange={(event) => setPaidAmount(event.target.value)}
+            onBlur={(event) => {
+              if (parseMoney(event.target.value)) setPaidAmount(formatMoney(event.target.value));
+            }}
             className={styles.mono}
           />
         </label>
@@ -578,6 +590,14 @@ function InvoiceForm({
                     ))
                   )}
                 </tbody>
+                <tfoot>
+                  <tr>
+                    <th colSpan={6}>Total</th>
+                    <td className={`${styles.mono} ${styles.num}`}>{formatMoney(totals.foreignNett)}</td>
+                    <td className={`${styles.mono} ${styles.num}`}>{formatMoney(totals.foreignVat)}</td>
+                    <td />
+                  </tr>
+                </tfoot>
               </table>
             </div>
           )}
@@ -729,22 +749,46 @@ function LineEditor({
           <option value="">No VAT</option>
           {vatRates.map((rate) => (
             <option key={rate.id} value={rate.id}>
-              {rate.code} — {rate.description} ({rate.rate}%)
+              {rate.code} — {rate.description} ({groupThousands(rate.rate)}%)
             </option>
           ))}
         </select>
       </label>
       <label className={styles.field}>
         Quantity
-        <QuietInput className={styles.mono} inputMode="decimal" value={draft.quantity} onChange={(event) => onChange({ ...draft, quantity: event.target.value })} />
+        <QuietInput
+          className={styles.mono}
+          inputMode="decimal"
+          value={draft.quantity}
+          onChange={(event) => onChange({ ...draft, quantity: event.target.value })}
+          onBlur={(event) => {
+            if (parseMoney(event.target.value)) onChange({ ...draft, quantity: formatMoney(event.target.value) });
+          }}
+        />
       </label>
       <label className={styles.field}>
         Price
-        <QuietInput className={styles.mono} inputMode="decimal" value={draft.price} onChange={(event) => onChange({ ...draft, price: event.target.value })} />
+        <QuietInput
+          className={styles.mono}
+          inputMode="decimal"
+          value={draft.price}
+          onChange={(event) => onChange({ ...draft, price: event.target.value })}
+          onBlur={(event) => {
+            if (parseMoney(event.target.value)) onChange({ ...draft, price: formatMoney(event.target.value) });
+          }}
+        />
       </label>
       <label className={styles.field}>
         Discount amount
-        <QuietInput className={styles.mono} inputMode="decimal" value={draft.discountAmount} onChange={(event) => onChange({ ...draft, discountAmount: event.target.value })} />
+        <QuietInput
+          className={styles.mono}
+          inputMode="decimal"
+          value={draft.discountAmount}
+          onChange={(event) => onChange({ ...draft, discountAmount: event.target.value })}
+          onBlur={(event) => {
+            if (parseMoney(event.target.value || "0")) onChange({ ...draft, discountAmount: formatMoney(event.target.value || "0") });
+          }}
+        />
       </label>
       <p className={`${styles.panelMeta} ${styles.wide}`}>
         Nett {preview ? formatMoney(preview.nett) : "—"} · VAT {preview ? formatMoney(preview.vat) : "—"}

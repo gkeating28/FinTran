@@ -1,3 +1,5 @@
+import { groupThousands, plainDecimal } from "@/lib/numbers";
+
 export type CurrencyRow = {
   id: string;
   code: string;
@@ -25,7 +27,7 @@ export function parseCurrencyName(value: string) {
 }
 
 export function parseCurrencyRate(value: string) {
-  const trimmed = value.trim();
+  const trimmed = plainDecimal(value);
   if (!/^\d{1,8}(?:\.\d{1,8})?$/.test(trimmed)) return null;
   if (!(Number(trimmed) > 0)) return null;
   return trimmed;
@@ -33,9 +35,10 @@ export function parseCurrencyRate(value: string) {
 
 export function formatCurrencyRate(value: string | number | null) {
   if (value == null || value === "") return "";
-  const text = String(value);
-  if (!/^\d+(?:\.\d+)?$/.test(text)) return text;
-  return text.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
+  const text = plainDecimal(value);
+  if (!/^\d+(?:\.\d+)?$/.test(text)) return String(value);
+  const plain = text.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
+  return groupThousands(plain);
 }
 
 export function currencyLabel(currency: { code: string; name: string }) {

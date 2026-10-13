@@ -8,6 +8,7 @@ import { createReference, deleteReference, updateReference } from "@/lib/referen
 import {
   ACCOUNT_TYPES,
   formatRate,
+  parseRate,
   REFERENCE_META,
   VAT_TYPES,
   type ReferenceKind,
@@ -205,6 +206,10 @@ function ReferenceForm({
                 step="0.01"
                 value={rate}
                 onChange={(event) => setRate(event.target.value)}
+                onBlur={(event) => {
+                  const parsed = parseRate(event.target.value);
+                  if (parsed) setRate(formatRate(parsed).replace(/%$/, ""));
+                }}
                 placeholder="23"
               />
             </label>

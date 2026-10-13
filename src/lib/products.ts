@@ -1,3 +1,5 @@
+import { groupThousands, plainDecimal } from "@/lib/numbers";
+
 export type ProductRow = {
   id: string;
   code: string;
@@ -21,17 +23,17 @@ export function parseProductCode(value: string) {
 }
 
 export function parseProductPrice(value: string) {
-  const trimmed = value.trim();
+  const trimmed = plainDecimal(value);
   if (!/^\d{1,12}(?:\.\d{1,4})?$/.test(trimmed)) return null;
   return trimmed;
 }
 
 export function formatProductPrice(value: string | number | null) {
   if (value == null || value === "") return "";
-  const text = String(value);
-  if (!/^\d+(?:\.\d+)?$/.test(text)) return text;
+  const text = plainDecimal(value);
+  if (!/^\d+(?:\.\d+)?$/.test(text)) return String(value);
   const [whole, fraction = ""] = text.split(".");
   const trimmed = fraction.replace(/0+$/, "");
   const shown = trimmed.length <= 2 ? trimmed.padEnd(2, "0") : trimmed;
-  return `${whole}.${shown}`;
+  return groupThousands(`${whole}.${shown}`);
 }

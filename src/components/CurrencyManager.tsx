@@ -5,7 +5,7 @@ import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
 import { QuietInput } from "@/components/QuietField";
 import { createCurrency, deleteCurrency, updateCurrency } from "@/lib/currency-actions";
-import type { CurrencyRow } from "@/lib/currencies";
+import { formatCurrencyRate, parseCurrencyRate, type CurrencyRow } from "@/lib/currencies";
 import styles from "@/components/OpsPage.module.css";
 import type { ActionState } from "@/lib/types";
 
@@ -67,7 +67,7 @@ export default function CurrencyManager({
             key: "rate",
             label: "Rate",
             mono: true,
-            sortValue: (row) => row.rate,
+            sortValue: (row) => row.rate.replace(/,/g, ""),
             render: (row) => row.rate,
           },
           {
@@ -165,6 +165,9 @@ function CurrencyForm({ row, onClose }: { row: CurrencyRow | null; onClose: () =
             inputMode="decimal"
             value={rate}
             onChange={(event) => setRate(event.target.value)}
+            onBlur={(event) => {
+              if (parseCurrencyRate(event.target.value)) setRate(formatCurrencyRate(event.target.value));
+            }}
             placeholder="1"
           />
         </label>

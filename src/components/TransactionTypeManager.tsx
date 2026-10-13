@@ -9,6 +9,7 @@ import {
   deleteTransactionType,
   updateTransactionType,
 } from "@/lib/transaction-type-actions";
+import { formatInteger } from "@/lib/numbers";
 import {
   TRANSACTION_TYPE_KINDS,
   type TransactionTypeRow,
@@ -81,7 +82,7 @@ export default function TransactionTypeManager({
             label: "Last reference",
             mono: true,
             sortValue: (row) => String(row.lastReference),
-            render: (row) => row.lastReference,
+            render: (row) => formatInteger(row.lastReference),
           },
         ]}
         actions={(row) => (
@@ -180,7 +181,7 @@ function TransactionTypeForm({
           </select>
         </label>
         <p className={styles.panelMeta}>
-          Last reference: {row ? row.lastReference : 0}. Next number: {(row?.lastReference ?? 0) + 1}.
+          Last reference: {formatInteger(row ? row.lastReference : 0)}. Next number: {formatInteger((row?.lastReference ?? 0) + 1)}.
         </p>
         <div className={styles.modalActions}>
           <button className={styles.quiet} type="button" onClick={onClose}>

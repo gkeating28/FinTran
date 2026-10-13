@@ -1,3 +1,5 @@
+import { groupThousands, plainDecimal } from "@/lib/numbers";
+
 export const REFERENCE_KINDS = ["gl_codes", "departments", "cost_centres", "vat_rates"] as const;
 
 export type ReferenceKind = (typeof REFERENCE_KINDS)[number];
@@ -80,7 +82,7 @@ export function parseVatType(value: string): VatType | null {
 }
 
 export function parseRate(value: string): string | null {
-  const trimmed = value.trim();
+  const trimmed = plainDecimal(value);
   if (!/^\d{1,3}(?:\.\d{1,2})?$/.test(trimmed)) return null;
   const rate = Number(trimmed);
   if (rate < 0 || rate > 100) return null;
@@ -89,5 +91,5 @@ export function parseRate(value: string): string | null {
 
 export function formatRate(value: string | null) {
   if (!value) return "";
-  return `${value}%`;
+  return `${groupThousands(value)}%`;
 }

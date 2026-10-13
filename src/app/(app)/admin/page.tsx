@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import styles from "@/components/OpsPage.module.css";
 import { adminCounts } from "@/lib/admin";
+import { formatInteger } from "@/lib/numbers";
 import { getWorkspace } from "@/lib/data";
 
 export const metadata = { title: "Admin" };
@@ -49,7 +50,7 @@ export default async function AdminPage() {
             <Link key={tile.href} href={tile.href} className={styles.adminTile}>
               <span className={styles.adminTileIcon}>{tile.icon}</span>
               <span className={styles.adminTileLabel}>{tile.label}</span>
-              <span className={styles.adminTileCount}>{count === null ? "—" : count}</span>
+              <span className={styles.adminTileCount}>{count === null ? "—" : formatInteger(count)}</span>
               <span className={styles.adminTileMeta}>{count === 1 ? "record" : count === null ? "Unavailable" : "records"}</span>
             </Link>
           );

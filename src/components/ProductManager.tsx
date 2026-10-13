@@ -5,8 +5,8 @@ import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
 import { QuietInput } from "@/components/QuietField";
 import { createProduct, deleteProduct, loadProductChoices, updateProduct } from "@/lib/product-actions";
-import type { ProductRow } from "@/lib/products";
-import { type AccountType, type ReferenceRow, type VatType } from "@/lib/reference";
+import { formatProductPrice, parseProductPrice, type ProductRow } from "@/lib/products";
+import { formatRate, type AccountType, type ReferenceRow, type VatType } from "@/lib/reference";
 import styles from "@/components/OpsPage.module.css";
 import type { ActionState } from "@/lib/types";
 
@@ -77,7 +77,7 @@ export default function ProductManager({
             label: "Purchase price",
             mono: true,
             align: "right",
-            sortValue: (row) => row.purchasePrice,
+            sortValue: (row) => row.purchasePrice.replace(/,/g, ""),
             render: (row) => row.purchasePrice,
           },
           {
@@ -99,7 +99,7 @@ export default function ProductManager({
             label: "Sales price",
             mono: true,
             align: "right",
-            sortValue: (row) => row.salesPrice,
+            sortValue: (row) => row.salesPrice.replace(/,/g, ""),
             render: (row) => row.salesPrice,
           },
           {
@@ -180,7 +180,7 @@ function accountSummary(rows: ReferenceRow[]) {
 }
 
 function vatLabel(row: ReferenceRow) {
-  const rate = row.rate ? ` (${row.rate}%)` : "";
+  const rate = row.rate ? ` (${formatRate(row.rate)})` : "";
   return `${row.code} — ${row.description}${rate}`;
 }
 
@@ -383,6 +383,9 @@ function ProductForm({
             inputMode="decimal"
             value={purchasePrice}
             onChange={(event) => setPurchasePrice(event.target.value)}
+            onBlur={(event) => {
+              if (parseProductPrice(event.target.value)) setPurchasePrice(formatProductPrice(event.target.value));
+            }}
             placeholder="0.00"
             className={styles.mono}
           />
@@ -395,6 +398,9 @@ function ProductForm({
             inputMode="decimal"
             value={salesPrice}
             onChange={(event) => setSalesPrice(event.target.value)}
+            onBlur={(event) => {
+              if (parseProductPrice(event.target.value)) setSalesPrice(formatProductPrice(event.target.value));
+            }}
             placeholder="0.00"
             className={styles.mono}
           />

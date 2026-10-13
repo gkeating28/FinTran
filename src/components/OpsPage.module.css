@@ -510,6 +510,25 @@
   text-transform: uppercase;
 }
 
+.lineTable thead th {
+  position: sticky;
+  top: 0;
+  background: var(--ops-panel);
+  z-index: 1;
+}
+
+.lineTable tfoot th,
+.lineTable tfoot td {
+  position: sticky;
+  bottom: 0;
+  background: var(--ops-panel-muted);
+  color: var(--ops-text);
+  font-weight: 700;
+  border-top: 1px solid var(--ops-border);
+  border-bottom: 0;
+  z-index: 1;
+}
+
 .lineTable .num,
 .lineTable .actions {
   text-align: right;
