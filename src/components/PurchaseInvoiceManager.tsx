@@ -35,16 +35,19 @@ function today() {
 
 function FlexField({
   index,
+  label,
   value,
   onChange,
 }: {
   index: number;
+  label: string;
   value: string;
   onChange: (update: (current: string[]) => string[]) => void;
 }) {
+  if (!label.trim()) return <div />;
   return (
     <label className={styles.field}>
-      {`Flex${index + 1}`}
+      {label}
       <QuietInput
         name={`flex${index + 1}`}
         maxLength={200}
@@ -285,6 +288,8 @@ function InvoiceForm({
   const selectedType = choices.types.find((type) => type.id === typeId);
   const supplierCurrency = choices.currencies.find((currency) => currency.id === currencyId)?.code ?? "";
   const homeCurrency = choices.homeCurrencyCode;
+  const flexLabels = selectedType?.flexLabels ?? ["", "", "", "", ""];
+  const showFlex = flexLabels.some((label) => label.trim());
   const expenseVat = choices.vatRates.filter((rate) => rate.vatType === "Expense");
   const totals = useMemo(() => {
     const foreignNett = invoiceLines.reduce((sum, line) => sum + numberValue(line.nettAmount), 0);
@@ -379,7 +384,7 @@ function InvoiceForm({
         <div className={styles.invoiceSplit}>
         <div className={styles.headerPane}>
         <div className={styles.paneLabel}>Header</div>
-        <div className={styles.invoiceForm}>
+        <div className={showFlex ? styles.invoiceForm : `${styles.invoiceForm} ${styles.invoiceFormPair}`}>
         <label className={styles.field}>
           Transaction type
           {header ? <input type="hidden" name="transaction_type_id" value={typeId} /> : null}
@@ -408,7 +413,7 @@ function InvoiceForm({
             className={styles.mono}
           />
         </label>
-        <FlexField index={0} value={flex[0]} onChange={setFlex} />
+        {showFlex ? <FlexField index={0} label={flexLabels[0]} value={flex[0]} onChange={setFlex} /> : null}
         <label className={styles.field}>
           Transaction date
           <QuietInput name="transaction_date" type="date" required value={transactionDate} onChange={(event) => setTransactionDate(event.target.value)} />
@@ -417,7 +422,7 @@ function InvoiceForm({
           Due date
           <QuietInput name="due_date" type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
         </label>
-        <FlexField index={1} value={flex[1]} onChange={setFlex} />
+        {showFlex ? <FlexField index={1} label={flexLabels[1]} value={flex[1]} onChange={setFlex} /> : null}
         <label className={styles.field}>
           Supplier code
           <select name="supplier_id" required autoComplete="off" value={supplierId} onChange={(event) => chooseSupplier(event.target.value)}>
@@ -433,7 +438,7 @@ function InvoiceForm({
           Supplier name
           <QuietInput name="supplier_name" required maxLength={200} value={supplierName} onChange={(event) => setSupplierName(event.target.value)} />
         </label>
-        <FlexField index={2} value={flex[2]} onChange={setFlex} />
+        {showFlex ? <FlexField index={2} label={flexLabels[2]} value={flex[2]} onChange={setFlex} /> : null}
         <label className={styles.field}>
           Currency
           <select name="currency_id" required autoComplete="off" value={currencyId} onChange={(event) => chooseCurrency(event.target.value)}>
@@ -459,7 +464,7 @@ function InvoiceForm({
             className={styles.mono}
           />
         </label>
-        <FlexField index={3} value={flex[3]} onChange={setFlex} />
+        {showFlex ? <FlexField index={3} label={flexLabels[3]} value={flex[3]} onChange={setFlex} /> : null}
         <label className={styles.field}>
           Order number
           <QuietInput name="order_number" maxLength={40} value={orderNumber} onChange={(event) => setOrderNumber(event.target.value)} />
@@ -478,7 +483,7 @@ function InvoiceForm({
             className={styles.mono}
           />
         </label>
-        <FlexField index={4} value={flex[4]} onChange={setFlex} />
+        {showFlex ? <FlexField index={4} label={flexLabels[4]} value={flex[4]} onChange={setFlex} /> : null}
         <label className={`${styles.field} ${styles.wide}`}>
           Contact details
           <QuietTextarea name="contact_details" maxLength={500} rows={2} value={contactDetails} onChange={(event) => setContactDetails(event.target.value)} />

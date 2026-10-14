@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getWorkspace, ORGANISATION_COOKIE } from "@/lib/data";
 import { parseDescription, parseReferenceCode } from "@/lib/reference";
-import { parseTransactionTypeKind } from "@/lib/transaction-types";
+import { parseFlexLabel, parseTransactionTypeKind } from "@/lib/transaction-types";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionState } from "@/lib/types";
 
@@ -20,6 +20,7 @@ function friendlyError(error: { code?: string; message: string } | null, fallbac
     return "That transaction type is used on an invoice. Remove the invoice before removing the type.";
   }
   if (error.code === "23514" && error.message.includes("type")) return "Choose Sales or Purchases.";
+  if (error.code === "23514" && error.message.includes("flex")) return "Each flex label can be up to 80 characters.";
   if (error.code === "23514") return "Use 1 to 20 letters or numbers, and a description up to 200 characters.";
   return error.message || fallback;
 }
@@ -53,12 +54,27 @@ function fieldsFrom(formData: FormData) {
     return { error: "Use 1 to 20 letters or numbers, and a description up to 200 characters." } as const;
   }
   if (!type) return { error: "Choose Sales or Purchases." } as const;
-  return { code, description, type } as const;
+  const flexLabels = [1, 2, 3, 4, 5].map((number) => parseFlexLabel(text(formData, `flex${number}_label`)));
+  if (flexLabels.some((label) => label === undefined)) {
+    return { error: "Each flex label can be up to 80 characters." } as const;
+  }
+  return { code, description, type, flexLabels: flexLabels as [string | null, string | null, string | null, string | null, string | null] } as const;
 }
 
 function refresh() {
   revalidatePath("/transaction-types");
+  revalidatePath("/transactions");
   revalidatePath("/admin");
+}
+
+function labelColumns(labels: readonly (string | null)[]) {
+  return {
+    flex1_label: labels[0],
+    flex2_label: labels[1],
+    flex3_label: labels[2],
+    flex4_label: labels[3],
+    flex5_label: labels[4],
+  };
 }
 
 export async function createTransactionType(
@@ -77,6 +93,7 @@ export async function createTransactionType(
     description: fields.description,
     type: fields.type,
     last_reference: 0,
+    ...labelColumns(fields.flexLabels),
   });
 
   if (error) return { error: friendlyError(error, "That transaction type could not be saved.") };
@@ -103,6 +120,7 @@ export async function updateTransactionType(
       code: fields.code,
       description: fields.description,
       type: fields.type,
+      ...labelColumns(fields.flexLabels),
     })
     .eq("id", id)
     .eq("organisation_id", current.organisationId);

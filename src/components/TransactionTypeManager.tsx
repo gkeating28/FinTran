@@ -35,6 +35,7 @@ export default function TransactionTypeManager({
         <p className={styles.lede}>
           Transaction types for this organisation. Each has a code, a description, and a type of
           Sales or Purchases. Last reference starts at 0 for every type, so the next number is 1.
+          Name up to five flex fields. A blank label hides that field on the transaction.
         </p>
       </div>
       {loadError ? (
@@ -50,8 +51,9 @@ export default function TransactionTypeManager({
       <DataGrid
         rows={rows}
         searchPlaceholder="Search transaction types"
-        searchText={(row) => `${row.code} ${row.description} ${row.type} ${row.lastReference}`}
+        searchText={(row) => `${row.code} ${row.description} ${row.type} ${row.lastReference} ${row.flexLabels.join(" ")}`}
         emptyLabel="No transaction types yet for this organisation."
+        minWidth="1180px"
         toolbar={
           <button className={styles.primary} type="button" onClick={() => setDraft("new")}>
             Add
@@ -84,6 +86,12 @@ export default function TransactionTypeManager({
             sortValue: (row) => String(row.lastReference),
             render: (row) => formatInteger(row.lastReference),
           },
+          ...([1, 2, 3, 4, 5] as const).map((number) => ({
+            key: `flex${number}`,
+            label: `Flex ${number}`,
+            sortValue: (row: TransactionTypeRow) => row.flexLabels[number - 1],
+            render: (row: TransactionTypeRow) => row.flexLabels[number - 1],
+          })),
         ]}
         actions={(row) => (
           <>
@@ -128,13 +136,14 @@ function TransactionTypeForm({
   const [code, setCode] = useState(row?.code ?? "");
   const [description, setDescription] = useState(row?.description ?? "");
   const [type, setType] = useState(row?.type ?? "");
+  const [flexLabels, setFlexLabels] = useState(row?.flexLabels ?? ["", "", "", "", ""]);
 
   useEffect(() => {
     if (state.message) onClose();
   }, [state.message, onClose]);
 
   return (
-    <FormModal title={row ? "Edit transaction type" : "Add transaction type"} onClose={onClose}>
+    <FormModal title={row ? "Edit transaction type" : "Add transaction type"} onClose={onClose} className={styles.partyDialog}>
       <form className={styles.modalForm} action={action} autoComplete="off" noValidate>
         {row ? <input type="hidden" name="id" value={row.id} /> : null}
         {state.error ? (
@@ -180,8 +189,23 @@ function TransactionTypeForm({
             ))}
           </select>
         </label>
+        {flexLabels.map((label, index) => (
+          <label className={styles.field} key={index}>
+            {`Flex ${index + 1} label`}
+            <QuietInput
+              name={`flex${index + 1}_label`}
+              maxLength={80}
+              value={label}
+              onChange={(event) =>
+                setFlexLabels((current) => current.map((item, itemIndex) => (itemIndex === index ? event.target.value : item)))
+              }
+              placeholder="Leave blank to hide"
+            />
+          </label>
+        ))}
         <p className={styles.panelMeta}>
           Last reference: {formatInteger(row ? row.lastReference : 0)}. Next number: {formatInteger((row?.lastReference ?? 0) + 1)}.
+          A blank flex label is not shown on the transaction.
         </p>
         <div className={styles.modalActions}>
           <button className={styles.quiet} type="button" onClick={onClose}>

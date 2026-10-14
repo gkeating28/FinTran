@@ -71,7 +71,7 @@ export async function listPurchaseInvoices(): Promise<{
         .order("reference", { ascending: false }),
       supabase
         .from("transaction_types")
-        .select("id, code, description, last_reference, type")
+        .select("id, code, description, last_reference, type, flex1_label, flex2_label, flex3_label, flex4_label, flex5_label")
         .eq("organisation_id", organisationId)
         .eq("type", "Purchases")
         .order("code"),
@@ -156,6 +156,13 @@ export async function listPurchaseInvoices(): Promise<{
         code: row.code,
         description: row.description,
         nextReference: row.last_reference + 1,
+        flexLabels: [
+          row.flex1_label ?? "",
+          row.flex2_label ?? "",
+          row.flex3_label ?? "",
+          row.flex4_label ?? "",
+          row.flex5_label ?? "",
+        ],
       })),
       suppliers: (suppliers.data ?? []).map((row) => ({
         id: row.id,

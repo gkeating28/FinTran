@@ -53,6 +53,7 @@ export type PurchaseTypeChoice = {
   code: string;
   description: string;
   nextReference: number;
+  flexLabels: [string, string, string, string, string];
 };
 
 export type SupplierChoice = {
