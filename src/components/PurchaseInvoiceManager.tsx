@@ -485,32 +485,33 @@ function InvoiceForm({
           Notes
           <QuietTextarea name="notes" maxLength={4000} rows={2} value={notes} onChange={(event) => setNotes(event.target.value)} />
         </label>
-        <div className={`${styles.wide} ${styles.amountRow}`}>
-          <div>
-            <span>Foreign nett</span>
-            <strong className={styles.mono}>{formatMoney(totals.foreignNett)}</strong>
-          </div>
-          <div>
-            <span>Foreign VAT</span>
-            <strong className={styles.mono}>{formatMoney(totals.foreignVat)}</strong>
-          </div>
-          <div>
-            <span>Foreign total</span>
-            <strong className={styles.mono}>{formatMoney(totals.foreignTotal)}</strong>
-          </div>
-          <div>
-            <span>Home nett</span>
-            <strong className={styles.mono}>{formatMoney(totals.homeNett)}</strong>
-          </div>
-          <div>
-            <span>Home VAT</span>
-            <strong className={styles.mono}>{formatMoney(totals.homeVat)}</strong>
-          </div>
-          <div>
-            <span>Home total</span>
-            <strong className={styles.mono}>{formatMoney(totals.homeTotal)}</strong>
-          </div>
-        </div>
+        <fieldset className={`${styles.wide} ${styles.amountBox}`}>
+          <legend>Amounts</legend>
+          <table>
+            <thead>
+              <tr>
+                <th />
+                <th>Nett</th>
+                <th>VAT</th>
+                <th>Gross</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>{choices.currencies.find((currency) => currency.id === currencyId)?.code || "—"}</th>
+                <td className={styles.mono}>{formatMoney(totals.foreignNett)}</td>
+                <td className={styles.mono}>{formatMoney(totals.foreignVat)}</td>
+                <td className={styles.mono}>{formatMoney(totals.foreignTotal)}</td>
+              </tr>
+              <tr>
+                <th>{choices.homeCurrencyCode || "—"}</th>
+                <td className={styles.mono}>{formatMoney(totals.homeNett)}</td>
+                <td className={styles.mono}>{formatMoney(totals.homeVat)}</td>
+                <td className={styles.mono}>{formatMoney(totals.homeTotal)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </fieldset>
         </div>
         </div>
         <div className={styles.linesPane}>

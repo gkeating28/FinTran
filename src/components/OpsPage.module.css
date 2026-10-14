@@ -544,19 +544,53 @@
   white-space: nowrap;
 }
 
-.amountRow {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px 16px;
+.amountBox {
+  min-width: 0;
+  margin: 0;
+  border: 1px solid var(--ops-border);
+  border-radius: var(--ops-radius);
+  padding: 8px 12px 12px;
 }
 
-.amountRow span {
-  display: block;
+.amountBox legend {
+  padding: 0 6px;
+  color: var(--ops-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.amountBox table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.amountBox th,
+.amountBox td {
+  padding: 4px 8px;
+  text-align: right;
+  font-size: 12.5px;
+}
+
+.amountBox thead th {
   color: var(--ops-muted);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.amountBox tbody th,
+.amountBox thead th:first-child {
+  text-align: left;
+  width: 1%;
+  white-space: nowrap;
+}
+
+.amountBox tbody th {
+  font-family: var(--ops-mono);
+  font-weight: 700;
 }
 
 .partyForm {

@@ -24,6 +24,7 @@ export type PurchaseInvoiceChoices = {
   types: PurchaseTypeChoice[];
   suppliers: SupplierChoice[];
   currencies: InvoiceCurrency[];
+  homeCurrencyCode: string;
   products: InvoiceProduct[];
   glCodes: InvoiceCode[];
   departments: InvoiceCode[];
@@ -35,6 +36,7 @@ const emptyChoices: PurchaseInvoiceChoices = {
   types: [],
   suppliers: [],
   currencies: [],
+  homeCurrencyCode: "",
   products: [],
   glCodes: [],
   departments: [],
@@ -52,7 +54,7 @@ export async function listPurchaseInvoices(): Promise<{
 
   const supabase = await createClient();
   const organisationId = workspace.current.organisationId;
-  const [headers, types, suppliers, currencies, products, glCodes, departments, costCentres, vatRates] =
+  const [headers, types, suppliers, currencies, defaults, products, glCodes, departments, costCentres, vatRates] =
     await Promise.all([
       supabase
         .from("transaction_headers")
@@ -80,6 +82,11 @@ export async function listPurchaseInvoices(): Promise<{
         .order("code"),
       supabase.from("currencies").select("id, code, rate").eq("organisation_id", organisationId).order("code"),
       supabase
+        .from("organisation_defaults")
+        .select("currencies(code)")
+        .eq("organisation_id", organisationId)
+        .maybeSingle(),
+      supabase
         .from("products")
         .select("id, code, description, purchase_price, purchase_gl_code_id, purchase_vat_code_id")
         .eq("organisation_id", organisationId)
@@ -103,6 +110,7 @@ export async function listPurchaseInvoices(): Promise<{
     types.error ||
     suppliers.error ||
     currencies.error ||
+    defaults.error ||
     products.error ||
     glCodes.error ||
     departments.error ||
@@ -161,6 +169,7 @@ export async function listPurchaseInvoices(): Promise<{
         code: row.code,
         rate: formatCurrencyRate(row.rate),
       })),
+      homeCurrencyCode: embeddedCode(defaults.data?.currencies ?? null),
       products: (products.data ?? []).map((row) => ({
         id: row.id,
         code: row.code,
