@@ -393,7 +393,22 @@
 }
 
 .invoiceDialog {
-  width: min(980px, calc(100vw - 32px));
+  width: min(1960px, calc(100vw - 32px));
+}
+
+.invoiceSplit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+.paneLabel {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  margin-right: auto;
+  font-weight: 700;
 }
 
 .invoiceForm {
@@ -429,54 +444,42 @@
   }
 }
 
-.tabStage {
-  position: relative;
-}
-
 .headerPane {
   min-width: 0;
 }
 
-.paneInactive {
-  visibility: hidden;
+.headerPane > .paneLabel {
+  height: 54px;
+  box-sizing: border-box;
 }
 
 .linesPane {
-  position: absolute;
-  inset: 0;
   display: flex;
   flex-direction: column;
-  background: var(--ops-panel);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-left: 1px solid var(--ops-border);
+  padding-left: 20px;
 }
 
-.linesPane[hidden] {
-  display: none !important;
+.linesPane .gridToolbar {
+  padding-left: 0;
+  padding-right: 0;
 }
 
-.tabs {
-  display: flex;
-  gap: 4px;
-  border-bottom: 1px solid var(--ops-border);
-}
+@media (max-width: 1100px) {
+  .invoiceSplit {
+    grid-template-columns: 1fr;
+  }
 
-.tab,
-.tabActive {
-  height: 36px;
-  margin-bottom: -1px;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  background: transparent;
-  color: var(--ops-text-2);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  padding: 0 14px;
-  cursor: pointer;
-}
-
-.tabActive {
-  color: var(--ops-accent);
-  border-bottom-color: var(--ops-accent);
+  .linesPane {
+    border-left: 0;
+    border-top: 1px solid var(--ops-border);
+    padding-left: 0;
+    padding-top: 12px;
+    max-height: 480px;
+  }
 }
 
 .lineDialog {

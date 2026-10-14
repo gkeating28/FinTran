@@ -273,7 +273,6 @@ function InvoiceForm({
   const [invoiceLines, setInvoiceLines] = useState<PurchaseInvoiceLine[]>(lines ?? []);
   const [lineDraft, setLineDraft] = useState<PurchaseInvoiceLine | null>(null);
   const [lineMessage, setLineMessage] = useState<string | null>(null);
-  const [tab, setTab] = useState<"header" | "lines">("header");
 
   useEffect(() => {
     if (lines) setInvoiceLines(lines);
@@ -375,16 +374,9 @@ function InvoiceForm({
             {lineError}
           </p>
         ) : null}
-        <div className={styles.tabs} role="tablist">
-          <button className={tab === "header" ? styles.tabActive : styles.tab} type="button" role="tab" aria-selected={tab === "header"} onClick={() => setTab("header")}>
-            Header
-          </button>
-          <button className={tab === "lines" ? styles.tabActive : styles.tab} type="button" role="tab" aria-selected={tab === "lines"} onClick={() => setTab("lines")}>
-            Lines{lines === null ? "" : ` (${invoiceLines.length})`}
-          </button>
-        </div>
-        <div className={styles.tabStage}>
-        <div className={tab === "header" ? styles.headerPane : `${styles.headerPane} ${styles.paneInactive}`} inert={tab !== "header"}>
+        <div className={styles.invoiceSplit}>
+        <div className={styles.headerPane}>
+        <div className={styles.paneLabel}>Header</div>
         <div className={styles.invoiceForm}>
         <label className={styles.field}>
           Transaction type
@@ -521,8 +513,9 @@ function InvoiceForm({
         </div>
         </div>
         </div>
-        <div className={styles.linesPane} hidden={tab !== "lines"}>
+        <div className={styles.linesPane}>
           <div className={styles.gridToolbar}>
+            <span className={styles.paneLabel}>Lines{lines === null ? "" : ` (${invoiceLines.length})`}</span>
             <button
               className={styles.primary}
               type="button"
