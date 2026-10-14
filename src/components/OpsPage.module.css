@@ -17,6 +17,7 @@
 }
 
 .shell {
+  --app-sidebar: 232px;
   display: flex;
   flex: 1;
   min-width: 0;
@@ -393,7 +394,12 @@
 }
 
 .invoiceDialog {
-  width: min(1960px, calc(100vw - 32px));
+  width: min(1960px, calc(100vw - var(--app-sidebar) - 32px));
+  max-width: min(1960px, calc(100vw - var(--app-sidebar) - 32px));
+  margin-left: calc(
+    var(--app-sidebar) + (100vw - var(--app-sidebar) - min(1960px, 100vw - var(--app-sidebar) - 32px)) / 2
+  );
+  margin-right: auto;
 }
 
 .invoiceSplit {
@@ -781,6 +787,7 @@
 
 @media (max-width: 860px) {
   .shell {
+    --app-sidebar: 0px;
     flex-direction: column;
     height: auto;
     min-height: 100%;
