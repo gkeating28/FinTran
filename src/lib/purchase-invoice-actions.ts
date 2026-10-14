@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getWorkspace, ORGANISATION_COOKIE } from "@/lib/data";
-import { listPurchaseInvoiceLines } from "@/lib/purchase-invoice-data";
 import {
   optionalText,
   parseExchangeRate,
@@ -165,11 +164,6 @@ function documentFrom(formData: FormData) {
       discountAmount: parseMoney(line.discountAmount || "0"),
     })),
   } as const;
-}
-
-export async function loadInvoiceLines(headerId: string) {
-  await currentOrganisation();
-  return listPurchaseInvoiceLines(headerId);
 }
 
 export async function savePurchaseInvoice(_state: ActionState, formData: FormData): Promise<ActionState> {

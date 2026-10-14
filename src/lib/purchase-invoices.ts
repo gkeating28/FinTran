@@ -46,6 +46,7 @@ export type PurchaseInvoiceRow = {
   flex3: string;
   flex4: string;
   flex5: string;
+  lines: PurchaseInvoiceLine[];
 };
 
 export type PurchaseTypeChoice = {

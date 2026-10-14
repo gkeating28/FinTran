@@ -20,6 +20,38 @@ function embeddedCode(value: { code: string } | { code: string }[] | null) {
   return value?.code ?? "";
 }
 
+function toPurchaseInvoiceLine(row: {
+  line_number: number;
+  product_id: string | null;
+  description: string;
+  gl_code_id: string | null;
+  department_id: string | null;
+  cost_centre_id: string | null;
+  vat_rate_id: string | null;
+  quantity: number | string;
+  price: number | string;
+  discount_amount: number | string;
+  nett_amount: number | string;
+  vat_amount: number | string;
+  products: { code: string } | { code: string }[] | null;
+}): PurchaseInvoiceLine {
+  return {
+    lineNumber: row.line_number,
+    productId: row.product_id ?? "",
+    productCode: embeddedCode(row.products),
+    description: row.description,
+    glCodeId: row.gl_code_id ?? "",
+    departmentId: row.department_id ?? "",
+    costCentreId: row.cost_centre_id ?? "",
+    vatRateId: row.vat_rate_id ?? "",
+    quantity: formatMoney(row.quantity),
+    price: formatMoney(row.price),
+    discountAmount: formatMoney(row.discount_amount),
+    nettAmount: formatMoney(row.nett_amount),
+    vatAmount: formatMoney(row.vat_amount),
+  };
+}
+
 export type PurchaseInvoiceChoices = {
   types: PurchaseTypeChoice[];
   suppliers: SupplierChoice[];
@@ -54,7 +86,7 @@ export async function listPurchaseInvoices(): Promise<{
 
   const supabase = await createClient();
   const organisationId = workspace.current.organisationId;
-  const [headers, types, suppliers, currencies, defaults, products, glCodes, departments, costCentres, vatRates] =
+  const [headers, lineRows, types, suppliers, currencies, defaults, products, glCodes, departments, costCentres, vatRates] =
     await Promise.all([
       supabase
         .from("transaction_headers")
@@ -69,6 +101,14 @@ export async function listPurchaseInvoices(): Promise<{
         .eq("organisation_id", organisationId)
         .order("transaction_date", { ascending: false })
         .order("reference", { ascending: false }),
+      supabase
+        .from("transaction_lines")
+        .select(
+          `header_id, line_number, product_id, description, gl_code_id, department_id, cost_centre_id, vat_rate_id,
+           quantity, price, discount_amount, nett_amount, vat_amount, products(code)`,
+        )
+        .eq("organisation_id", organisationId)
+        .order("line_number"),
       supabase
         .from("transaction_types")
         .select("id, code, description, last_reference, type, flex1_label, flex2_label, flex3_label, flex4_label, flex5_label")
@@ -107,6 +147,7 @@ export async function listPurchaseInvoices(): Promise<{
 
   if (
     headers.error ||
+    lineRows.error ||
     types.error ||
     suppliers.error ||
     currencies.error ||
@@ -118,6 +159,13 @@ export async function listPurchaseInvoices(): Promise<{
     vatRates.error
   ) {
     return { rows: [], choices: emptyChoices, error: "Purchase invoices could not be loaded." };
+  }
+
+  const linesByHeader = new Map<string, PurchaseInvoiceLine[]>();
+  for (const line of lineRows.data ?? []) {
+    const list = linesByHeader.get(line.header_id) ?? [];
+    list.push(toPurchaseInvoiceLine(line));
+    linesByHeader.set(line.header_id, list);
   }
 
   return {
@@ -149,6 +197,7 @@ export async function listPurchaseInvoices(): Promise<{
       flex3: row.flex3 ?? "",
       flex4: row.flex4 ?? "",
       flex5: row.flex5 ?? "",
+      lines: linesByHeader.get(row.id) ?? [],
     })),
     choices: {
       types: (types.data ?? []).map((row) => ({
@@ -231,21 +280,7 @@ export async function listPurchaseInvoiceLines(headerId: string): Promise<{
   if (error) return { lines: [], error: "Invoice lines could not be loaded." };
 
   return {
-    lines: (data ?? []).map((row) => ({
-      lineNumber: row.line_number,
-      productId: row.product_id ?? "",
-      productCode: embeddedCode(row.products),
-      description: row.description,
-      glCodeId: row.gl_code_id ?? "",
-      departmentId: row.department_id ?? "",
-      costCentreId: row.cost_centre_id ?? "",
-      vatRateId: row.vat_rate_id ?? "",
-      quantity: formatMoney(row.quantity),
-      price: formatMoney(row.price),
-      discountAmount: formatMoney(row.discount_amount),
-      nettAmount: formatMoney(row.nett_amount),
-      vatAmount: formatMoney(row.vat_amount),
-    })),
+    lines: (data ?? []).map((row) => toPurchaseInvoiceLine(row)),
     error: null,
   };
 }

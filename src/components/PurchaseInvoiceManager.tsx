@@ -4,11 +4,7 @@ import { useActionState, useEffect, useMemo, useState } from "react";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
 import { QuietInput, QuietTextarea } from "@/components/QuietField";
-import {
-  deletePurchaseInvoice,
-  loadInvoiceLines,
-  savePurchaseInvoice,
-} from "@/lib/purchase-invoice-actions";
+import { deletePurchaseInvoice, savePurchaseInvoice } from "@/lib/purchase-invoice-actions";
 import type { PurchaseInvoiceChoices } from "@/lib/purchase-invoice-data";
 import { formatInteger, groupThousands, numberValue } from "@/lib/numbers";
 import { formatCurrencyRate, parseCurrencyRate } from "@/lib/currencies";
@@ -97,13 +93,10 @@ export default function PurchaseInvoiceManager({
   const [lines, setLines] = useState<PurchaseInvoiceLine[] | null>(null);
   const [lineError, setLineError] = useState<string | null>(null);
 
-  async function edit(row: PurchaseInvoiceRow) {
+  function edit(row: PurchaseInvoiceRow) {
     setLineError(null);
-    setLines(null);
+    setLines(row.lines);
     setDraft(row);
-    const result = await loadInvoiceLines(row.id);
-    setLines(result.lines);
-    setLineError(result.error);
   }
 
   return (
