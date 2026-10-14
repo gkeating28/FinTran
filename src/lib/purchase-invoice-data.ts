@@ -76,7 +76,7 @@ const emptyChoices: PurchaseInvoiceChoices = {
   vatRates: [],
 };
 
-export async function listPurchaseInvoices(): Promise<{
+export async function listPurchaseInvoices(typeCode?: string): Promise<{
   rows: PurchaseInvoiceRow[];
   choices: PurchaseInvoiceChoices;
   error: string | null;
@@ -161,6 +161,8 @@ export async function listPurchaseInvoices(): Promise<{
     return { rows: [], choices: emptyChoices, error: "Purchase invoices could not be loaded." };
   }
 
+  const typeIds = new Set((types.data ?? []).flatMap((row) => (typeCode && row.code !== typeCode.trim().toUpperCase() ? [] : [row.id])));
+
   const linesByHeader = new Map<string, PurchaseInvoiceLine[]>();
   for (const line of lineRows.data ?? []) {
     const list = linesByHeader.get(line.header_id) ?? [];
@@ -169,7 +171,9 @@ export async function listPurchaseInvoices(): Promise<{
   }
 
   return {
-    rows: (headers.data ?? []).map((row) => ({
+    rows: (headers.data ?? []).flatMap((row) => {
+      if (typeCode && !typeIds.has(row.transaction_type_id)) return [];
+      return [{
       id: row.id,
       transactionTypeId: row.transaction_type_id,
       transactionTypeCode: embeddedCode(row.transaction_types),
@@ -198,21 +202,27 @@ export async function listPurchaseInvoices(): Promise<{
       flex4: row.flex4 ?? "",
       flex5: row.flex5 ?? "",
       lines: linesByHeader.get(row.id) ?? [],
-    })),
+    }];
+    }),
     choices: {
-      types: (types.data ?? []).map((row) => ({
-        id: row.id,
-        code: row.code,
-        description: row.description,
-        nextReference: row.last_reference + 1,
-        flexLabels: [
-          row.flex1_label ?? "",
-          row.flex2_label ?? "",
-          row.flex3_label ?? "",
-          row.flex4_label ?? "",
-          row.flex5_label ?? "",
-        ],
-      })),
+      types: (types.data ?? []).flatMap((row) => {
+        if (typeCode && row.code !== typeCode.trim().toUpperCase()) return [];
+        return [
+          {
+            id: row.id,
+            code: row.code,
+            description: row.description,
+            nextReference: row.last_reference + 1,
+            flexLabels: [
+              row.flex1_label ?? "",
+              row.flex2_label ?? "",
+              row.flex3_label ?? "",
+              row.flex4_label ?? "",
+              row.flex5_label ?? "",
+            ],
+          },
+        ];
+      }),
       suppliers: (suppliers.data ?? []).map((row) => ({
         id: row.id,
         code: row.code,

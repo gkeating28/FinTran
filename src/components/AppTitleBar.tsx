@@ -29,9 +29,8 @@ export default function AppTitleBar({
   setup?: boolean;
 }) {
   const pathname = usePathname();
-  const pageLabel = setup
-    ? "Set up"
-    : (PAGE_LABELS[pathname] ?? "Home");
+  const typeCode = pathname.match(/^\/transactions\/([A-Za-z0-9]+)$/)?.[1];
+  const pageLabel = setup ? "Set up" : typeCode ? typeCode.toUpperCase() : (PAGE_LABELS[pathname] ?? "Home");
 
   return (
     <div className={styles.bar}>

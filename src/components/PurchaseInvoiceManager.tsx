@@ -83,11 +83,17 @@ export default function PurchaseInvoiceManager({
   choices,
   loadError,
   actionError,
+  title = "Purchase Invoices",
+  summary,
+  typeCode,
 }: {
   rows: PurchaseInvoiceRow[];
   choices: PurchaseInvoiceChoices;
   loadError: string | null;
   actionError?: string;
+  title?: string;
+  summary?: string;
+  typeCode?: string;
 }) {
   const [draft, setDraft] = useState<PurchaseInvoiceRow | "new" | null>(null);
   const [lines, setLines] = useState<PurchaseInvoiceLine[] | null>(null);
@@ -102,11 +108,10 @@ export default function PurchaseInvoiceManager({
   return (
     <section className={styles.stack}>
       <div>
-        <h1 className={styles.heading}>Transactions</h1>
+        <h1 className={styles.heading}>{title}</h1>
         <p className={styles.lede}>
-          Purchase invoices for this organisation. The reference comes from the transaction type, and
-          the next number is one more than its last reference. Amounts in the home currency are the
-          foreign amounts divided by the exchange rate.
+          {summary ??
+            `${title} for this organisation. The reference comes from the transaction type, and the next number is one more than its last reference. Amounts in the home currency are the foreign amounts divided by the exchange rate.`}
         </p>
       </div>
       {loadError ? (
@@ -121,11 +126,11 @@ export default function PurchaseInvoiceManager({
       ) : null}
       <DataGrid
         rows={rows}
-        searchPlaceholder="Search purchase invoices"
+        searchPlaceholder={`Search ${title.toLowerCase()}`}
         searchText={(row) =>
           `${row.transactionTypeCode} ${row.reference} ${formatInteger(row.reference)} ${row.supplierCode} ${row.supplierName} ${row.orderNumber} ${row.notes}`
         }
-        emptyLabel="No purchase invoices yet for this organisation."
+        emptyLabel={`No ${title.toLowerCase()} yet for this organisation.`}
         minWidth="980px"
         toolbar={
           <button
@@ -207,6 +212,7 @@ export default function PurchaseInvoiceManager({
             </button>
             <form action={deletePurchaseInvoice}>
               <input type="hidden" name="id" value={row.id} />
+              {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
               <button
                 className={styles.quiet}
                 type="submit"
@@ -279,6 +285,7 @@ function InvoiceForm({
   }, [state.message, onClose]);
 
   const selectedType = choices.types.find((type) => type.id === typeId);
+  const typeLocked = Boolean(header) || choices.types.length === 1;
   const supplierCurrency = choices.currencies.find((currency) => currency.id === currencyId)?.code ?? "";
   const homeCurrency = choices.homeCurrencyCode;
   const flexLabels = selectedType?.flexLabels ?? ["", "", "", "", ""];
@@ -380,13 +387,13 @@ function InvoiceForm({
         <div className={showFlex ? styles.invoiceForm : `${styles.invoiceForm} ${styles.invoiceFormPair}`}>
         <label className={styles.field}>
           Transaction type
-          {header ? <input type="hidden" name="transaction_type_id" value={typeId} /> : null}
+          {typeLocked ? <input type="hidden" name="transaction_type_id" value={typeId} /> : null}
           <select
-            name={header ? undefined : "transaction_type_id"}
+            name={typeLocked ? undefined : "transaction_type_id"}
             required
             autoComplete="off"
             value={typeId}
-            disabled={Boolean(header)}
+            disabled={typeLocked}
             onChange={(event) => setTypeId(event.target.value)}
           >
             <option value="">Choose a type</option>

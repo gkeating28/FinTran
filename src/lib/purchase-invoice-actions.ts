@@ -198,23 +198,29 @@ export async function savePurchaseInvoice(_state: ActionState, formData: FormDat
   if (error) return { error: friendlyError(error, "That invoice could not be saved.") };
 
   revalidatePath("/transactions");
+  revalidatePath("/transactions/[code]", "page");
   return { message: document.id ? "Saved." : "Added." };
+}
+
+function returnPath(formData: FormData) {
+  const next = text(formData, "return_to").trim();
+  return /^\/transactions\/[A-Za-z0-9]+$/.test(next) ? next : "/transactions";
 }
 
 export async function deletePurchaseInvoice(formData: FormData) {
   const id = text(formData, "id").trim();
-  if (!id) redirect("/transactions");
+  const next = returnPath(formData);
+  if (!id) redirect(next);
 
   await currentOrganisation();
   const supabase = await createClient();
   const { error } = await supabase.from("transaction_headers").delete().eq("id", id);
 
   if (error) {
-    redirect(
-      `/transactions?error=${encodeURIComponent(friendlyError(error, "That invoice could not be removed."))}`,
-    );
+    redirect(`${next}?error=${encodeURIComponent(friendlyError(error, "That invoice could not be removed."))}`);
   }
 
   revalidatePath("/transactions");
-  redirect("/transactions");
+  revalidatePath("/transactions/[code]", "page");
+  redirect(next);
 }
