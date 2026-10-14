@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import styles from "@/components/OpsPage.module.css";
 import { getWorkspace } from "@/lib/data";
 import { formatInteger } from "@/lib/numbers";
-import { listTransactionMenu } from "@/lib/transaction-type-data";
+import { listTransactionMenu, type TransactionMenuTile } from "@/lib/transaction-type-data";
 
 export const metadata = { title: "Transactions" };
 
@@ -33,21 +33,33 @@ export default async function TransactionsPage() {
           No transaction types yet. Add them under Admin, then they will appear here.
         </p>
       ) : (
+        <div className={styles.menuGroups}>
+          <TransactionGroup title="Purchase transactions" tiles={tiles.filter((tile) => tile.type === "Purchases")} />
+          <hr className={styles.menuDivider} />
+          <TransactionGroup title="Sales transactions" tiles={tiles.filter((tile) => tile.type === "Sales")} />
+        </div>
+      )}
+    </section>
+  );
+}
+
+function TransactionGroup({ title, tiles }: { title: string; tiles: TransactionMenuTile[] }) {
+  return (
+    <section className={styles.menuSection}>
+      <h2 className={styles.menuHeading}>{title}</h2>
+      {tiles.length === 0 ? (
+        <p className={styles.panelMeta}>No {title.toLowerCase()} yet.</p>
+      ) : (
         <div className={styles.adminGrid}>
           {tiles.map((tile) => (
-            <Link
-              key={tile.id}
-              href={`/transactions/${tile.code}`}
-              prefetch={false}
-              className={styles.adminTile}
-            >
+            <Link key={tile.id} href={`/transactions/${tile.code}`} prefetch={false} className={styles.adminTile}>
               <span className={styles.adminTileIcon}>
                 <DocumentIcon />
               </span>
               <span className={styles.adminTileLabel}>{tile.description}</span>
               <span className={styles.adminTileCount}>{formatInteger(tile.count)}</span>
               <span className={styles.adminTileMeta}>
-                {tile.code} · {tile.type} · {tile.count === 1 ? "invoice" : "invoices"}
+                {tile.code} · {tile.count === 1 ? "invoice" : "invoices"}
               </span>
             </Link>
           ))}

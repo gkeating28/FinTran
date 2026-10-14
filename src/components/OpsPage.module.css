@@ -82,6 +82,34 @@
   gap: 12px;
 }
 
+.menuGroups {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.menuSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.menuHeading {
+  margin: 0;
+  color: var(--ops-text-2);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.menuDivider {
+  height: 1px;
+  margin: 0;
+  border: 0;
+  background: var(--ops-border);
+}
+
 .adminTile {
   display: flex;
   flex-direction: column;
