@@ -248,7 +248,7 @@ function InvoiceForm({
   onClose: () => void;
 }) {
   const [state, action, pending] = useActionState(savePurchaseInvoice, {} as ActionState);
-  const [typeId, setTypeId] = useState(header?.transactionTypeId ?? (choices.types.length === 1 ? choices.types[0].id : ""));
+  const [typeId, setTypeId] = useState(header?.transactionTypeId ?? choices.types[0]?.id ?? "");
   const [transactionDate, setTransactionDate] = useState(header?.transactionDate ?? today());
   const [dueDate, setDueDate] = useState(header?.dueDate ?? "");
   const [supplierId, setSupplierId] = useState(header?.supplierId ?? "");
