@@ -283,6 +283,8 @@ function InvoiceForm({
   }, [state.message, onClose]);
 
   const selectedType = choices.types.find((type) => type.id === typeId);
+  const supplierCurrency = choices.currencies.find((currency) => currency.id === currencyId)?.code ?? "";
+  const homeCurrency = choices.homeCurrencyCode;
   const expenseVat = choices.vatRates.filter((rate) => rate.vatType === "Expense");
   const totals = useMemo(() => {
     const foreignNett = invoiceLines.reduce((sum, line) => sum + numberValue(line.nettAmount), 0);
@@ -486,7 +488,7 @@ function InvoiceForm({
           <QuietTextarea name="notes" maxLength={4000} rows={2} value={notes} onChange={(event) => setNotes(event.target.value)} />
         </label>
         <fieldset className={`${styles.wide} ${styles.amountBox}`}>
-          <legend>Amounts</legend>
+          <legend>Totals</legend>
           <table>
             <thead>
               <tr>
@@ -498,17 +500,19 @@ function InvoiceForm({
             </thead>
             <tbody>
               <tr>
-                <th>{choices.currencies.find((currency) => currency.id === currencyId)?.code || "—"}</th>
+                <th>{supplierCurrency || "—"}</th>
                 <td className={styles.mono}>{formatMoney(totals.foreignNett)}</td>
                 <td className={styles.mono}>{formatMoney(totals.foreignVat)}</td>
                 <td className={styles.mono}>{formatMoney(totals.foreignTotal)}</td>
               </tr>
-              <tr>
-                <th>{choices.homeCurrencyCode || "—"}</th>
-                <td className={styles.mono}>{formatMoney(totals.homeNett)}</td>
-                <td className={styles.mono}>{formatMoney(totals.homeVat)}</td>
-                <td className={styles.mono}>{formatMoney(totals.homeTotal)}</td>
-              </tr>
+              {supplierCurrency.toUpperCase() === homeCurrency.toUpperCase() ? null : (
+                <tr>
+                  <th>{homeCurrency || "—"}</th>
+                  <td className={styles.mono}>{formatMoney(totals.homeNett)}</td>
+                  <td className={styles.mono}>{formatMoney(totals.homeVat)}</td>
+                  <td className={styles.mono}>{formatMoney(totals.homeTotal)}</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </fieldset>
@@ -532,6 +536,7 @@ function InvoiceForm({
             <p className={styles.empty}>Loading lines…</p>
           ) : (
             <div className={styles.lineScroll}>
+              <div className={styles.lineTitleOffset} />
               <table className={styles.lineTable}>
                 <thead>
                   <tr>
@@ -543,7 +548,7 @@ function InvoiceForm({
                     <th className={styles.num}>Qty</th>
                     <th className={styles.num}>Nett</th>
                     <th className={styles.num}>VAT amount</th>
-                    <th className={styles.actions} />
+                    <th className={styles.actions}>&nbsp;</th>
                   </tr>
                 </thead>
                 <tbody>
