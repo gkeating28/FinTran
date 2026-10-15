@@ -1,5 +1,5 @@
 import { getWorkspace } from "@/lib/data";
-import { formatCurrencyRate } from "@/lib/currencies";
+import { formatCurrencyRate, formatExchangeRate } from "@/lib/currencies";
 import { formatProductPrice } from "@/lib/products";
 import { parseAccountType, parseVatType } from "@/lib/reference";
 import {
@@ -187,7 +187,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
       notes: row.notes ?? "",
       currencyId: row.currency_id,
       currencyCode: embeddedCode(row.currencies),
-      exchangeRate: formatCurrencyRate(row.exchange_rate),
+      exchangeRate: formatExchangeRate(row.exchange_rate),
       orderNumber: row.order_number ?? "",
       foreignNettAmount: formatMoney(row.foreign_nett_amount),
       foreignVatAmount: formatMoney(row.foreign_vat_amount),

@@ -7,7 +7,7 @@ import { QuietInput, QuietTextarea } from "@/components/QuietField";
 import { deletePurchaseInvoice, savePurchaseInvoice } from "@/lib/purchase-invoice-actions";
 import type { PurchaseInvoiceChoices } from "@/lib/purchase-invoice-data";
 import { formatInteger, groupThousands, numberValue } from "@/lib/numbers";
-import { formatCurrencyRate, parseCurrencyRate } from "@/lib/currencies";
+import { formatExchangeRate, parseCurrencyRate } from "@/lib/currencies";
 import {
   formatMoney,
   lineAmounts,
@@ -308,19 +308,23 @@ function InvoiceForm({
   function chooseSupplier(id: string) {
     setSupplierId(id);
     const supplier = choices.suppliers.find((item) => item.id === id);
-    if (!supplier) return;
+    if (!supplier) {
+      setSupplierName("");
+      setContactDetails("");
+      setCurrencyId("");
+      setExchangeRate("");
+      return;
+    }
     setSupplierName(supplier.name);
     setContactDetails(supplier.contactDetails);
     const currency = choices.currencies.find((item) => item.id === supplier.currencyId);
-    if (!currency) return;
+    if (!currency) {
+      setCurrencyId("");
+      setExchangeRate("");
+      return;
+    }
     setCurrencyId(currency.id);
-    setExchangeRate(currency.rate);
-  }
-
-  function chooseCurrency(id: string) {
-    setCurrencyId(id);
-    const currency = choices.currencies.find((item) => item.id === id);
-    if (currency) setExchangeRate(currency.rate);
+    setExchangeRate(formatExchangeRate(currency.rate));
   }
 
   function saveLine() {
@@ -441,14 +445,13 @@ function InvoiceForm({
         {showFlex ? <FlexField index={2} label={flexLabels[2]} value={flex[2]} onChange={setFlex} /> : null}
         <label className={styles.field}>
           Currency
-          <select name="currency_id" required autoComplete="off" value={currencyId} onChange={(event) => chooseCurrency(event.target.value)}>
-            <option value="">Choose a currency</option>
-            {choices.currencies.map((currency) => (
-              <option key={currency.id} value={currency.id}>
-                {currency.code}
-              </option>
-            ))}
-          </select>
+          <input type="hidden" name="currency_id" value={currencyId} />
+          <input
+            readOnly
+            value={choices.currencies.find((currency) => currency.id === currencyId)?.code ?? ""}
+            placeholder="From the supplier"
+            className={styles.mono}
+          />
         </label>
         <label className={styles.field}>
           Exchange rate
@@ -459,7 +462,7 @@ function InvoiceForm({
             value={exchangeRate}
             onChange={(event) => setExchangeRate(event.target.value)}
             onBlur={(event) => {
-              if (parseCurrencyRate(event.target.value)) setExchangeRate(formatCurrencyRate(event.target.value));
+              if (parseCurrencyRate(event.target.value)) setExchangeRate(formatExchangeRate(event.target.value));
             }}
             className={styles.mono}
           />
@@ -617,7 +620,7 @@ function InvoiceForm({
           <button className={styles.quiet} type="button" onClick={onClose}>
             Cancel
           </button>
-          <button className={styles.primary} type="submit" disabled={pending || blocked}>
+          <button className={styles.primary} type="submit" disabled={pending || blocked || !supplierId}>
             {pending ? "Saving…" : "Save"}
           </button>
         </div>
