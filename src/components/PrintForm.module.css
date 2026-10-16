@@ -34,10 +34,16 @@
   color: #3a4356;
 }
 
-.print {
+.print,
+.pdf {
   border: 0;
   background: #16294a;
   color: #fff;
+}
+
+.pdf:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .designer {
@@ -263,6 +269,11 @@
   border-collapse: collapse;
 }
 
+.lines th,
+.lines td {
+  text-align: left;
+}
+
 .lines th {
   padding: 7px 8px;
   background: #ccd8f0;
@@ -278,13 +289,14 @@
   vertical-align: top;
 }
 
+.lines .numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .lines tbody tr:last-child td {
   padding-bottom: 12px;
   border-bottom: 1px dotted #c5cad3;
-}
-
-.right {
-  text-align: right;
 }
 
 .totals {
@@ -336,19 +348,27 @@
   border-collapse: collapse;
 }
 
-.vat th {
+.vat th,
+.vat td {
   padding: 6px 8px;
+  text-align: left;
+}
+
+.vat th {
   background: #dfe6f5;
   font-size: 11px;
   font-weight: 700;
-  text-align: right;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .vat td {
   padding: 8px;
+}
+
+.vat .numeric {
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .bank {

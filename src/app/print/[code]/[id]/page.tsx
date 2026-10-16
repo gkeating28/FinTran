@@ -4,7 +4,13 @@ import PrintedForm from "@/components/PrintedForm";
 import styles from "@/components/PrintForm.module.css";
 import { loadPrintedDocument } from "@/lib/form-data";
 import { getWorkspace } from "@/lib/data";
+import PdfButton from "./PdfButton";
 import PrintButton from "./PrintButton";
+
+function pdfFileName(title: string, reference: string) {
+  const name = `${title} ${reference}`.replace(/[\\/:*?"<>|]+/g, "").replace(/\s+/g, " ").trim();
+  return `${name || "Document"}.pdf`;
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ code: string; id: string }> }) {
   const { code, id } = await params;
@@ -35,6 +41,10 @@ export default async function PrintDocumentPage({ params }: { params: Promise<{ 
           Back
         </Link>
         <PrintButton />
+        <PdfButton
+          pageSize={loaded.view.pageSize}
+          fileName={pdfFileName(loaded.view.title, loaded.view.reference)}
+        />
       </div>
       <PrintedForm view={loaded.view} />
     </main>

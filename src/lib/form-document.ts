@@ -85,6 +85,7 @@ export type PrintHeader = {
 
 export type PrintView = {
   title: string;
+  reference: string;
   pageSize: FormLayout["pageSize"];
   showLogo: boolean;
   logoUrl: string | null;
@@ -239,6 +240,7 @@ export function buildPrintView(layout: FormLayout, source: FormSource): PrintVie
 
   return {
     title: layout.title,
+    reference: source.header.reference,
     pageSize: layout.pageSize,
     showLogo: layout.showLogo,
     logoUrl: layout.showLogo ? organisation.logoUrl : null,

@@ -64,7 +64,7 @@ export default function PrintedForm({ view }: { view: PrintView }) {
         <thead>
           <tr>
             {view.lineHeaders.map((header) => (
-              <th key={header.key} className={header.align === "right" ? styles.right : undefined}>
+              <th key={header.key} className={header.align === "right" ? styles.numeric : undefined}>
                 {header.label}
               </th>
             ))}
@@ -79,7 +79,7 @@ export default function PrintedForm({ view }: { view: PrintView }) {
             view.lineRows.map((row, index) => (
               <tr key={index}>
                 {row.map((cell, cellIndex) => (
-                  <td key={cellIndex} className={cell.align === "right" ? styles.right : undefined}>
+                  <td key={cellIndex} className={cell.align === "right" ? styles.numeric : undefined}>
                     {cell.text || "\u00a0"}
                   </td>
                 ))}
@@ -123,16 +123,16 @@ export default function PrintedForm({ view }: { view: PrintView }) {
               <thead>
                 <tr>
                   <th>Rate</th>
-                  <th>VAT</th>
-                  <th>Net</th>
+                  <th className={styles.numeric}>VAT</th>
+                  <th className={styles.numeric}>Net</th>
                 </tr>
               </thead>
               <tbody>
                 {(view.vatRows.length ? view.vatRows : [{ rate: "VAT", vat: "\u00a0", nett: "\u00a0" }]).map((row) => (
                   <tr key={row.rate}>
                     <td>{row.rate}</td>
-                    <td>{row.vat}</td>
-                    <td>{row.nett}</td>
+                    <td className={styles.numeric}>{row.vat}</td>
+                    <td className={styles.numeric}>{row.nett}</td>
                   </tr>
                 ))}
               </tbody>
