@@ -10,6 +10,8 @@ import { buildPrintView, type FormSource } from "@/lib/form-document";
 import {
   defaultLayout,
   HEADER_FIELDS,
+  PAGE_SIZES,
+  PAGE_SIZE_OPTIONS,
   headerFieldLabel,
   LINE_COLUMNS,
   lineColumnLabel,
@@ -65,6 +67,21 @@ export default function FormDesigner({
             value={layout.title}
             onChange={(event) => setLayout({ ...layout, title: event.target.value })}
           />
+        </label>
+        <label className={styles.field}>
+          Page size
+          <select
+            value={layout.pageSize}
+            onChange={(event) =>
+              setLayout({ ...layout, pageSize: PAGE_SIZES.find((size) => size === event.target.value) ?? "A4" })
+            }
+          >
+            {PAGE_SIZES.map((size) => (
+              <option key={size} value={size}>
+                {PAGE_SIZE_OPTIONS[size].label}
+              </option>
+            ))}
+          </select>
         </label>
         <div className={printStyles.checks}>
           <label className={printStyles.check}>

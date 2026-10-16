@@ -57,9 +57,20 @@ export type PartyField = (typeof PARTY_FIELDS)[number];
 export type HeaderField = (typeof HEADER_FIELDS)[number];
 export type LineColumn = (typeof LINE_COLUMNS)[number];
 
+export const PAGE_SIZES = ["A4", "A5", "Letter", "Legal"] as const;
+export type PageSize = (typeof PAGE_SIZES)[number];
+
+export const PAGE_SIZE_OPTIONS: Record<PageSize, { label: string; width: string; height: string; css: string }> = {
+  A4: { label: "A4", width: "210mm", height: "297mm", css: "A4" },
+  A5: { label: "A5", width: "148mm", height: "210mm", css: "A5" },
+  Letter: { label: "US Letter", width: "8.5in", height: "11in", css: "letter" },
+  Legal: { label: "US Legal", width: "8.5in", height: "14in", css: "legal" },
+};
+
 export type FormLayout = {
   version: 1;
   title: string;
+  pageSize: PageSize;
   showLogo: boolean;
   showVatSummary: boolean;
   showBanking: boolean;
@@ -160,6 +171,7 @@ export function defaultLayout(kind: TransactionTypeKind, description: string): F
   return {
     version: 1,
     title: defaultTitle(kind, description),
+    pageSize: "A4",
     showLogo: true,
     showVatSummary: true,
     showBanking: true,
@@ -185,6 +197,10 @@ function flag(value: unknown, fallback: boolean) {
   return typeof value === "boolean" ? value : fallback;
 }
 
+function pageSize(value: unknown): PageSize {
+  return PAGE_SIZES.includes(value as PageSize) ? (value as PageSize) : "A4";
+}
+
 export function parseLayout(value: unknown, kind: TransactionTypeKind, description: string): FormLayout {
   const base = defaultLayout(kind, description);
   if (!value || typeof value !== "object") return base;
@@ -193,6 +209,7 @@ export function parseLayout(value: unknown, kind: TransactionTypeKind, descripti
   return {
     version: 1,
     title: title && title.length <= 80 ? title : base.title,
+    pageSize: pageSize(record.pageSize),
     showLogo: flag(record.showLogo, base.showLogo),
     showVatSummary: flag(record.showVatSummary, base.showVatSummary),
     showBanking: flag(record.showBanking, base.showBanking),

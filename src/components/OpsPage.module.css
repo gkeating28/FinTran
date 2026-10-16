@@ -69,6 +69,22 @@
   color: var(--ops-text-2);
 }
 
+.trail {
+  margin: 0 0 8px;
+  color: var(--ops-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.trail a {
+  color: var(--ops-accent);
+  text-decoration: none;
+}
+
+.trail a:hover {
+  text-decoration: underline;
+}
+
 .cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

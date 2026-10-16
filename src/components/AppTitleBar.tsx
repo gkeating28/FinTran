@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/lib/actions";
 import styles from "./AppTitleBar.module.css";
@@ -32,8 +33,9 @@ export default function AppTitleBar({
   setup?: boolean;
 }) {
   const pathname = usePathname();
-  const typeCode = pathname.match(/^\/(?:transactions|forms)\/([A-Za-z0-9]+)$/)?.[1];
-  const pageLabel = setup ? "Set up" : typeCode ? typeCode.toUpperCase() : (PAGE_LABELS[pathname] ?? "Home");
+  const transactionCode = pathname.match(/^\/transactions\/([A-Za-z0-9]+)$/)?.[1];
+  const formCode = pathname.match(/^\/forms\/([A-Za-z0-9]+)$/)?.[1];
+  const pageLabel = setup ? "Set up" : transactionCode ? transactionCode.toUpperCase() : (PAGE_LABELS[pathname] ?? "Home");
 
   return (
     <div className={styles.bar}>
@@ -42,7 +44,17 @@ export default function AppTitleBar({
         <span className={styles.crumbText}>
           Managing: <strong>{organisationName}</strong>
           <span className={styles.sep}>/</span>
-          <strong>{pageLabel}</strong>
+          {formCode ? (
+            <>
+              <Link href="/forms" className={styles.crumbLink}>
+                Forms
+              </Link>
+              <span className={styles.sep}>/</span>
+              <strong>{formCode.toUpperCase()}</strong>
+            </>
+          ) : (
+            <strong>{pageLabel}</strong>
+          )}
         </span>
       </div>
       <div className={styles.actions}>

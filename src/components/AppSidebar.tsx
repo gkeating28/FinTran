@@ -164,7 +164,12 @@ export default function AppSidebar({
 }
 
 function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
-  const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+  const active =
+    item.href === "/"
+      ? pathname === "/"
+      : item.href === "/admin"
+        ? pathname === "/admin" || pathname.startsWith("/forms")
+        : pathname.startsWith(item.href);
   return (
     <Link
       href={item.href}

@@ -1,9 +1,15 @@
 import type { PrintView } from "@/lib/form-document";
+import { PAGE_SIZE_OPTIONS } from "@/lib/form-layout";
 import styles from "@/components/PrintForm.module.css";
 
 export default function PrintedForm({ view }: { view: PrintView }) {
+  const page = PAGE_SIZE_OPTIONS[view.pageSize];
   return (
-    <article className={styles.paper}>
+    <article
+      className={styles.paper}
+      style={{ ["--page-width" as string]: page.width, ["--page-height" as string]: page.height }}
+    >
+      <style>{`@page { size: ${page.css}; margin: 14mm; }`}</style>
       <header className={styles.top}>
         <div>
           {view.organisationName ? <h1 className={styles.orgName}>{view.organisationName}</h1> : null}

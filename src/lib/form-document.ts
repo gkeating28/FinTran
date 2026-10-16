@@ -83,6 +83,7 @@ export type PrintHeader = {
 
 export type PrintView = {
   title: string;
+  pageSize: FormLayout["pageSize"];
   logoUrl: string | null;
   organisationName: string;
   organisationLines: string[];
@@ -257,6 +258,7 @@ export function buildPrintView(layout: FormLayout, source: FormSource): PrintVie
 
   return {
     title: layout.title,
+    pageSize: layout.pageSize,
     logoUrl: layout.showLogo ? organisation.logoUrl : null,
     organisationName: layout.organisationFields.includes("name") ? organisation.name : "",
     organisationLines,

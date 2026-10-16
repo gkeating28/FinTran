@@ -40,6 +40,6 @@ The schema is in `supabase/migrations` and is applied to the FinTran Supabase pr
 - `products` — a code of up to 30 letters or numbers, a description, a purchase price with an Expense GL code and an Expense VAT code, and a sales price with an Income GL code and a Sales VAT code. A code is unique inside that organisation.
 - `customers` and `suppliers` — a code, name, currency, phone, email, website, address, contact details, and a free-text note for one organisation. The currency is one of that organisation's currencies. A code is unique inside that organisation.
 - `organisation_defaults` — one row per organisation. It stores the home currency, logo, address, contact name, email, website, phone, VAT number, company number, and banking details. The logo is a PNG, JPEG, WebP, or GIF up to 2 MB, kept in a private storage bucket. These are edited from that organisation.
-- `transaction_forms` — one printable layout for each transaction type in an organisation. It chooses the organisation, supplier or customer, header, and line details shown on the page.
+- `transaction_forms` — one printable layout for each transaction type in an organisation. It chooses the page size (A4 by default), and the organisation, supplier or customer, header, and line details shown on the page.
 
 Row level security is enabled. Creating tenants, organisations, and access grants goes through database functions that check the caller's role.

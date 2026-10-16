@@ -50,6 +50,16 @@
   text-overflow: ellipsis;
 }
 
+.crumbLink {
+  color: #f4f7fb;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.crumbLink:hover {
+  text-decoration: underline;
+}
+
 .breadcrumb strong {
   color: #f4f7fb;
   font-weight: 600;

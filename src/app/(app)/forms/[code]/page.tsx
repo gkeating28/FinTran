@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import FormDesigner from "@/components/FormDesigner";
 import styles from "@/components/OpsPage.module.css";
@@ -32,6 +33,11 @@ export default async function FormDesignerPage({ params }: { params: Promise<{ c
   return (
     <section className={styles.stack}>
       <div>
+        <p className={styles.trail}>
+          <Link href="/forms">Forms</Link>
+          <span> / </span>
+          <Link href={`/transactions/${loaded.type.code}`}>{loaded.type.description}</Link>
+        </p>
         <h1 className={styles.heading}>{loaded.type.description} form</h1>
         <p className={styles.lede}>
           The printed page for {loaded.type.description} in {workspace.current.organisationName}. Choose the
