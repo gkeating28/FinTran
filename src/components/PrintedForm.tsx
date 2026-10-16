@@ -10,6 +10,7 @@ export default function PrintedForm({ view }: { view: PrintView }) {
       style={{ ["--page-width" as string]: page.width, ["--page-height" as string]: page.height }}
     >
       <style>{`@page { size: ${page.css}; margin: 14mm; }`}</style>
+      <div className={styles.sheetBody}>
       <header className={styles.top}>
         <div>
           {view.organisationName ? <h1 className={styles.orgName}>{view.organisationName}</h1> : null}
@@ -24,7 +25,9 @@ export default function PrintedForm({ view }: { view: PrintView }) {
             </p>
           ) : null}
         </div>
-        {view.logoUrl ? <img src={view.logoUrl} alt="" className={styles.logo} /> : null}
+        {view.showLogo ? (
+          view.logoUrl ? <img src={view.logoUrl} alt="" className={styles.logo} /> : <div className={styles.logoSlot}>Logo</div>
+        ) : null}
       </header>
 
       <h2 className={styles.title}>{view.title}</h2>
@@ -110,39 +113,42 @@ export default function PrintedForm({ view }: { view: PrintView }) {
           <span>{view.balance}</span>
         </div>
       </div>
+      </div>
 
-      {view.showVatSummary ? (
-        <>
-          <h3 className={styles.vatTitle}>VAT summary</h3>
-          <table className={styles.vat}>
-            <thead>
-              <tr>
-                <th>Rate</th>
-                <th>VAT</th>
-                <th>Net</th>
-              </tr>
-            </thead>
-            <tbody>
-              {view.vatRows.map((row) => (
-                <tr key={row.rate}>
-                  <td>{row.rate}</td>
-                  <td>{row.vat}</td>
-                  <td>{row.nett}</td>
+      <div className={styles.sheetFooter}>
+        {view.showVatSummary ? (
+          <section>
+            <h3 className={styles.vatTitle}>VAT summary</h3>
+            <table className={styles.vat}>
+              <thead>
+                <tr>
+                  <th>Rate</th>
+                  <th>VAT</th>
+                  <th>Net</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
-      ) : null}
+              </thead>
+              <tbody>
+                {(view.vatRows.length ? view.vatRows : [{ rate: "VAT", vat: "\u00a0", nett: "\u00a0" }]).map((row) => (
+                  <tr key={row.rate}>
+                    <td>{row.rate}</td>
+                    <td>{row.vat}</td>
+                    <td>{row.nett}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        ) : null}
 
-      {view.showFooter ? (
-        <footer className={styles.bank}>
-          {view.footerTitle ? <strong>{view.footerTitle}</strong> : null}
-          {view.footerBody ? <p>{view.footerBody}</p> : null}
-        </footer>
-      ) : null}
+        {view.showFooter ? (
+          <footer className={styles.bank}>
+            <strong>{view.footerTitle}</strong>
+            <p>{view.footerBody}</p>
+          </footer>
+        ) : null}
 
-      <p className={styles.pageMark}>Page 1 of 1</p>
+        <p className={styles.pageMark}>Page 1 of 1</p>
+      </div>
     </article>
   );
 }

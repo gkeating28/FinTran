@@ -144,6 +144,9 @@
 }
 
 .paper {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
   width: min(var(--page-width, 210mm), 100%);
   min-height: var(--page-height, 297mm);
   margin: 0 auto;
@@ -177,11 +180,29 @@
   line-height: 1.45;
 }
 
-.logo {
+.logo,
+.logoSlot {
   width: 148px;
   height: 78px;
+  flex: 0 0 auto;
+}
+
+.logo {
   object-fit: contain;
   object-position: right center;
+}
+
+.logoSlot {
+  display: grid;
+  place-items: center;
+  border: 1px dashed #c5cad3;
+  color: #8d8d96;
+  font-size: 11px;
+}
+
+.sheetFooter {
+  margin-top: auto;
+  padding-top: 28px;
 }
 
 .title {
@@ -341,7 +362,7 @@
 }
 
 .pageMark {
-  margin-top: 28px;
+  margin: 16px 0 0;
   color: #8d8d96;
   font-size: 11px;
   text-align: center;
@@ -369,7 +390,7 @@
   .paper {
     width: auto;
     max-width: none;
-    min-height: 0;
+    min-height: calc(var(--page-height, 297mm) - 28mm);
     margin: 0;
     padding: 0;
     box-shadow: none;

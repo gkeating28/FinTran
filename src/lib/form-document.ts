@@ -1,6 +1,7 @@
 import { formatExchangeRate } from "@/lib/currencies";
 import {
   headerFieldLabel,
+  partyFieldLabel,
   type FormLayout,
   type HeaderField,
   type LineColumn,
@@ -84,6 +85,7 @@ export type PrintHeader = {
 export type PrintView = {
   title: string;
   pageSize: FormLayout["pageSize"];
+  showLogo: boolean;
   logoUrl: string | null;
   organisationName: string;
   organisationLines: string[];
@@ -145,7 +147,7 @@ function headerValue(field: HeaderField, source: FormSource) {
   if (field === "orderNumber") return header.orderNumber;
   if (field === "currency") return header.currencyCode;
   if (field === "exchangeRate") return header.exchangeRate ? formatExchangeRate(header.exchangeRate) : "";
-  if (field === "paidAmount") return header.paidAmount > 0 ? formatMoney(header.paidAmount) : "";
+  if (field === "paidAmount") return formatMoney(header.paidAmount);
   const index = Number(field.slice(4)) - 1;
   return header.flex[index] ?? "";
 }
@@ -209,29 +211,33 @@ export function buildPrintView(layout: FormLayout, source: FormSource): PrintVie
   const organisationLines: string[] = [];
   for (const field of layout.organisationFields) {
     if (field === "name") continue;
-    if (field === "address") organisationLines.push(...linesOf(organisation.address));
-    if (field === "phone" && organisation.phone) organisationLines.push(organisation.phone);
-    if (field === "contactEmail" && organisation.contactEmail) organisationLines.push(organisation.contactEmail);
-    if (field === "website" && organisation.website) organisationLines.push(organisation.website);
-    if (field === "contactName" && organisation.contactName) organisationLines.push(organisation.contactName);
-    if (field === "vatNumber" && organisation.vatNumber) organisationLines.push(`VAT ID: ${organisation.vatNumber}`);
-    if (field === "companyNumber" && organisation.companyNumber) {
-      organisationLines.push(`Company no. ${organisation.companyNumber}`);
+    if (field === "address") {
+      const lines = linesOf(organisation.address);
+      organisationLines.push(...(lines.length ? lines : ["Address"]));
+    }
+    if (field === "phone") organisationLines.push(organisation.phone || "Phone");
+    if (field === "contactEmail") organisationLines.push(organisation.contactEmail || "Email");
+    if (field === "website") organisationLines.push(organisation.website || "Web");
+    if (field === "contactName") organisationLines.push(organisation.contactName || "Contact name");
+    if (field === "vatNumber") organisationLines.push(organisation.vatNumber ? `VAT ID: ${organisation.vatNumber}` : "VAT ID");
+    if (field === "companyNumber") {
+      organisationLines.push(organisation.companyNumber ? `Company no. ${organisation.companyNumber}` : "Company no.");
     }
   }
 
-  const partyLines: string[] = [];
-  for (const field of layout.partyFields) {
+  const partyLines = layout.partyFields.flatMap((field) => {
     const value = source.party[field];
-    if (field === "address") partyLines.push(...linesOf(value));
-    else if (value.trim()) partyLines.push(value.trim());
-  }
-
-  const headerLines = layout.headerFields.flatMap((field) => {
-    const value = headerValue(field, source);
-    if (!value) return [];
-    return [{ label: headerFieldLabel(field, source.flexLabels, source.numberLabel), value }];
+    if (field === "address") {
+      const lines = linesOf(value);
+      return lines.length ? lines : ["Address"];
+    }
+    return [value.trim() || partyFieldLabel(field)];
   });
+
+  const headerLines = layout.headerFields.map((field) => ({
+    label: headerFieldLabel(field, source.flexLabels, source.numberLabel),
+    value: headerValue(field, source) || "\u00a0",
+  }));
 
   const columns = layout.lineColumns;
   const date = formatInvoiceDate(source.header.transactionDate);
@@ -254,13 +260,13 @@ export function buildPrintView(layout: FormLayout, source: FormSource): PrintVie
   const balance = Math.max(0, source.header.foreignTotal - paid);
   const currency = source.header.currencyCode;
   const footerBody = organisation.bankingDetails.trim();
-  const showFooter = layout.showBanking && Boolean(organisation.name || footerBody);
 
   return {
     title: layout.title,
     pageSize: layout.pageSize,
+    showLogo: layout.showLogo,
     logoUrl: layout.showLogo ? organisation.logoUrl : null,
-    organisationName: layout.organisationFields.includes("name") ? organisation.name : "",
+    organisationName: layout.organisationFields.includes("name") ? organisation.name || "Name" : "",
     organisationLines,
     partyLines,
     headerLines,
@@ -276,10 +282,10 @@ export function buildPrintView(layout: FormLayout, source: FormSource): PrintVie
       vat: formatMoney(group.vat),
       nett: formatMoney(group.nett),
     })),
-    showVatSummary: layout.showVatSummary && source.lines.length > 0,
-    footerTitle: organisation.name,
-    footerBody,
-    showFooter,
+    showVatSummary: layout.showVatSummary,
+    footerTitle: organisation.name || "Organisation",
+    footerBody: footerBody || "Bank details",
+    showFooter: layout.showBanking,
   };
 }
 

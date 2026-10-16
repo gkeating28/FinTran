@@ -79,6 +79,8 @@
 
 .exitBtn {
   height: 42px;
+  display: inline-flex;
+  align-items: center;
   padding: 0 15px;
   border: 1px solid #4a5f82;
   background: transparent;
@@ -87,6 +89,7 @@
   font: inherit;
   font-size: 12px;
   font-weight: 600;
+  text-decoration: none;
   cursor: pointer;
 }
 

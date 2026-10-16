@@ -58,11 +58,17 @@ export default function AppTitleBar({
         </span>
       </div>
       <div className={styles.actions}>
-        <form action={signOut}>
-          <button className={styles.exitBtn} type="submit">
+        {formCode ? (
+          <Link href="/forms" className={styles.exitBtn}>
             Exit
-          </button>
-        </form>
+          </Link>
+        ) : (
+          <form id="fintran-sign-out" action={signOut}>
+            <button className={styles.exitBtn} type="submit" form="fintran-sign-out">
+              Exit
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );
