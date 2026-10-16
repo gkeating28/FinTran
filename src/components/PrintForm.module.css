@@ -73,6 +73,13 @@
   font-weight: 700;
 }
 
+.hiddenLabel {
+  margin: 8px 0 0;
+  color: var(--ops-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .choice {
   display: grid;
   grid-template-columns: 16px minmax(0, 1fr) auto;

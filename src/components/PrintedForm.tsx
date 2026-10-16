@@ -64,7 +64,7 @@ export default function PrintedForm({ view }: { view: PrintView }) {
         <thead>
           <tr>
             {view.lineHeaders.map((header) => (
-              <th key={`${header.label}-${header.span}`} colSpan={header.span} className={header.align === "right" ? styles.right : undefined}>
+              <th key={header.key} className={header.align === "right" ? styles.right : undefined}>
                 {header.label}
               </th>
             ))}
@@ -73,7 +73,7 @@ export default function PrintedForm({ view }: { view: PrintView }) {
         <tbody>
           {view.lineRows.length === 0 ? (
             <tr>
-              <td colSpan={Math.max(1, view.lineHeaders.reduce((sum, header) => sum + header.span, 0))}>&nbsp;</td>
+              <td colSpan={Math.max(1, view.lineHeaders.length)}>&nbsp;</td>
             </tr>
           ) : (
             view.lineRows.map((row, index) => (

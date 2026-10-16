@@ -114,28 +114,28 @@ export default function FormDesigner({
           fields={ORGANISATION_FIELDS}
           selected={layout.organisationFields}
           label={organisationFieldLabel}
-          onChange={(organisationFields) => setLayout({ ...layout, organisationFields })}
+          onChange={(organisationFields) => setLayout((current) => ({ ...current, organisationFields }))}
         />
         <FieldList
           legend="Bill to"
           fields={PARTY_FIELDS}
           selected={layout.partyFields}
           label={partyFieldLabel}
-          onChange={(partyFields) => setLayout({ ...layout, partyFields })}
+          onChange={(partyFields) => setLayout((current) => ({ ...current, partyFields }))}
         />
         <FieldList
           legend="Document"
           fields={headerFields}
           selected={layout.headerFields}
           label={(field) => headerFieldLabel(field, type.flexLabels, source.numberLabel)}
-          onChange={(headerFields) => setLayout({ ...layout, headerFields })}
+          onChange={(headerFields) => setLayout((current) => ({ ...current, headerFields }))}
         />
         <FieldList
           legend="Lines"
           fields={LINE_COLUMNS}
           selected={layout.lineColumns}
           label={lineColumnLabel}
-          onChange={(lineColumns) => setLayout({ ...layout, lineColumns })}
+          onChange={(lineColumns) => setLayout((current) => ({ ...current, lineColumns }))}
         />
         <div className={styles.modalActions}>
           <button
@@ -175,49 +175,68 @@ function FieldList<T extends OrganisationField | PartyField | HeaderField | Line
   label: (field: T) => string;
   onChange: (fields: T[]) => void;
 }) {
-  const ordered = [...selected.filter((field) => fields.includes(field)), ...fields.filter((field) => !selected.includes(field))];
+  const shown = selected.filter((field) => fields.includes(field));
+  const hidden = fields.filter((field) => !shown.includes(field));
 
   function toggle(field: T) {
-    onChange(selected.includes(field) ? selected.filter((item) => item !== field) : [...selected, field]);
+    onChange(shown.includes(field) ? shown.filter((item) => item !== field) : [...shown, field]);
   }
 
   function move(field: T, direction: -1 | 1) {
-    const index = selected.indexOf(field);
+    const index = shown.indexOf(field);
     const next = index + direction;
-    if (index < 0 || next < 0 || next >= selected.length) return;
-    const copy = [...selected];
+    if (index < 0 || next < 0 || next >= shown.length) return;
+    const copy = [...shown];
     const [item] = copy.splice(index, 1);
     copy.splice(next, 0, item);
     onChange(copy);
   }
 
+  function row(field: T, index: number | null) {
+    const id = `${legend}-${field}`;
+    const on = index !== null;
+    return (
+      <div key={field} className={printStyles.choice}>
+        <input id={id} type="checkbox" checked={on} onChange={() => toggle(field)} />
+        <label htmlFor={id}>{label(field)}</label>
+        <span className={printStyles.moves}>
+          <button
+            type="button"
+            aria-label={`Move ${label(field)} up`}
+            disabled={!on || index === 0}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              if (index !== null) move(field, -1);
+            }}
+          >
+            ↑
+          </button>
+          <button
+            type="button"
+            aria-label={`Move ${label(field)} down`}
+            disabled={!on || index === shown.length - 1}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              if (index !== null) move(field, 1);
+            }}
+          >
+            ↓
+          </button>
+        </span>
+      </div>
+    );
+  }
+
   return (
     <fieldset className={printStyles.section}>
       <legend>{legend}</legend>
-      {ordered.map((field) => {
-        const index = selected.indexOf(field);
-        const on = index >= 0;
-        const id = `${legend}-${field}`;
-        return (
-          <div key={field} className={printStyles.choice}>
-            <input id={id} type="checkbox" checked={on} onChange={() => toggle(field)} />
-            <label htmlFor={id}>{label(field)}</label>
-            <span className={printStyles.moves}>
-              <button type="button" aria-label={`Move ${label(field)} up`} disabled={!on || index === 0} onClick={() => move(field, -1)}>
-                ↑
-              </button>
-              <button
-                type="button"
-                aria-label={`Move ${label(field)} down`}
-                disabled={!on || index === selected.length - 1}
-                onClick={() => move(field, 1)}
-              >
-                ↓
-              </button>
-            </span>
-          </div>
-        );
-      })}
+      {shown.map((field, index) => row(field, index))}
+      {hidden.length > 0 ? <p className={printStyles.hiddenLabel}>Not on the form</p> : null}
+      {hidden.map((field) => row(field, null))}
     </fieldset>
   );
 }

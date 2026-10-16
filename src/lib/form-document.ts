@@ -1,6 +1,7 @@
 import { formatExchangeRate } from "@/lib/currencies";
 import {
   headerFieldLabel,
+  lineColumnLabel,
   partyFieldLabel,
   type FormLayout,
   type HeaderField,
@@ -77,9 +78,9 @@ export type PrintCell = {
 };
 
 export type PrintHeader = {
+  key: string;
   label: string;
   align: "left" | "right";
-  span: number;
 };
 
 export type PrintView = {
@@ -171,39 +172,14 @@ function lineValue(column: LineColumn, line: FormLine, date: string): PrintCell 
   return { text, align: right ? "right" : "left" };
 }
 
+const RIGHT_ALIGNED = new Set<LineColumn>(["quantity", "price", "amount", "discount"]);
+
 function lineHeaders(columns: LineColumn[]): PrintHeader[] {
-  const headers: PrintHeader[] = [];
-  for (let index = 0; index < columns.length; ) {
-    const column = columns[index];
-    if (column === "item" || column === "description") {
-      let span = 1;
-      while (columns[index + span] === "item" || columns[index + span] === "description") span += 1;
-      headers.push({ label: "Description", align: "left", span });
-      index += span;
-      continue;
-    }
-    const align = ["quantity", "price", "amount", "discount"].includes(column) ? "right" : "left";
-    const label =
-      column === "price" ? "Rate" : column === "amount" ? "Amount" : column === "tax" ? "Tax" : column === "quantity" ? "Qty" : column === "date" ? "Date" : column;
-    headers.push({
-      label:
-        column === "glCode"
-          ? "GL"
-          : column === "vatCode"
-            ? "VAT code"
-            : column === "costCentre"
-              ? "Cost centre"
-              : column === "department"
-                ? "Department"
-                : column === "discount"
-                  ? "Discount"
-                  : label,
-      align,
-      span: 1,
-    });
-    index += 1;
-  }
-  return headers;
+  return columns.map((column) => ({
+    key: column,
+    label: lineColumnLabel(column),
+    align: RIGHT_ALIGNED.has(column) ? "right" : "left",
+  }));
 }
 
 export function buildPrintView(layout: FormLayout, source: FormSource): PrintView {
