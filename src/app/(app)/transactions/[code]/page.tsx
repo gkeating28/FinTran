@@ -8,7 +8,7 @@ import { getTransactionTypeByCode } from "@/lib/transaction-type-data";
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const { tile } = await getTransactionTypeByCode(code);
-  return { title: tile?.type === "Purchases" ? "Purchase Invoices" : (tile?.description ?? "Transaction") };
+  return { title: tile?.description ?? "Transaction" };
 }
 
 export default async function TransactionTypePage({
@@ -53,8 +53,8 @@ export default async function TransactionTypePage({
 
   return (
     <PurchaseInvoiceManager
-      title="Purchase Invoices"
-      summary={`${tile.code} — ${tile.description}. The reference comes from this type, and the next number is one more than its last reference. Amounts in the home currency are the foreign amounts divided by the exchange rate.`}
+      title={tile.description}
+      summary={`The reference for ${tile.code} comes from this type, and the next number is one more than its last reference. Amounts in the home currency are the foreign amounts divided by the exchange rate.`}
       typeCode={tile.code}
       rows={listed.rows}
       choices={listed.choices}
