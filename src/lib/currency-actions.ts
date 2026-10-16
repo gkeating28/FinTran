@@ -27,6 +27,22 @@ function friendlyError(error: { code?: string; message: string } | null, fallbac
   if (error.code === "23514" && error.message.includes("rate")) {
     return "Enter a rate greater than 0, with up to 8 decimal places.";
   }
+  if (error.code === "23514" && error.message.includes("phone")) return "Use a phone number up to 40 characters.";
+  if (error.code === "23514" && error.message.includes("contact_email")) return "Use a contact email, or leave it blank.";
+  if (error.code === "23514" && error.message.includes("website")) {
+    return "Use a website up to 200 characters, without spaces.";
+  }
+  if (error.code === "23514" && error.message.includes("address")) return "Address can be up to 500 characters.";
+  if (error.code === "23514" && error.message.includes("contact_name")) return "Contact name can be up to 200 characters.";
+  if (error.code === "23514" && error.message.includes("vat_number")) {
+    return "VAT number can be up to 40 letters or numbers.";
+  }
+  if (error.code === "23514" && error.message.includes("company_number")) {
+    return "Company number can be up to 40 letters or numbers.";
+  }
+  if (error.code === "23514" && error.message.includes("banking_details")) {
+    return "Banking details can be up to 1000 characters.";
+  }
   if (error.code === "23514") return "Use 1 to 20 letters or numbers, and a name up to 80 characters.";
   if (error.code === "P0001" && error.message.includes("Home currency")) {
     return "Choose a currency from this organisation.";
@@ -140,14 +156,56 @@ function organisationId(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value) ? value : null;
 }
 
+function optionalField(value: string, max: number, pattern?: RegExp) {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (trimmed.length > max || (pattern && !pattern.test(trimmed))) return undefined;
+  return trimmed;
+}
+
+function profileFrom(formData: FormData) {
+  const address = optionalField(text(formData, "address"), 500);
+  const contactName = optionalField(text(formData, "contact_name"), 200);
+  const contactEmail = optionalField(
+    text(formData, "contact_email"),
+    200,
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+  );
+  const website = optionalField(text(formData, "website"), 200, /^\S+$/);
+  const phone = optionalField(text(formData, "phone"), 40, /^[0-9+(). -]+$/);
+  const vatNumber = optionalField(text(formData, "vat_number"), 40, /^[A-Za-z0-9][A-Za-z0-9 ./-]*$/);
+  const companyNumber = optionalField(text(formData, "company_number"), 40, /^[A-Za-z0-9][A-Za-z0-9 ./-]*$/);
+  const bankingDetails = optionalField(text(formData, "banking_details"), 1000);
+  if (address === undefined) return { error: "Address can be up to 500 characters." } as const;
+  if (contactName === undefined) return { error: "Contact name can be up to 200 characters." } as const;
+  if (contactEmail === undefined) return { error: "Use a contact email, or leave it blank." } as const;
+  if (website === undefined) return { error: "Use a website up to 200 characters, without spaces." } as const;
+  if (phone === undefined) return { error: "Use a phone number up to 40 characters." } as const;
+  if (vatNumber === undefined) return { error: "VAT number can be up to 40 letters or numbers." } as const;
+  if (companyNumber === undefined) return { error: "Company number can be up to 40 letters or numbers." } as const;
+  if (bankingDetails === undefined) return { error: "Banking details can be up to 1000 characters." } as const;
+  return {
+    address,
+    contact_name: contactName,
+    contact_email: contactEmail,
+    website,
+    phone,
+    vat_number: vatNumber,
+    company_number: companyNumber,
+    banking_details: bankingDetails,
+  } as const;
+}
+
 export async function updateOrganisationDefaults(
   _state: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
   const organisation = organisationId(text(formData, "organisation_id").trim());
   const homeCurrencyId = organisationId(text(formData, "home_currency_id").trim());
+  const profile = profileFrom(formData);
   if (!organisation) return { error: "Choose an organisation." };
   if (!homeCurrencyId) return { error: "Choose a home currency." };
+  if ("error" in profile) return { error: profile.error };
 
   const workspace = await getWorkspace();
   if (workspace.status === "signed-out") redirect("/login");
@@ -156,9 +214,10 @@ export async function updateOrganisationDefaults(
   if (!membership) return { error: "You do not have access to that organisation." };
 
   const supabase = await createClient();
+  const details = { home_currency_id: homeCurrencyId, ...profile };
   const { data, error } = await supabase
     .from("organisation_defaults")
-    .update({ home_currency_id: homeCurrencyId })
+    .update(details)
     .eq("organisation_id", membership.organisationId)
     .select("organisation_id");
 
@@ -168,7 +227,7 @@ export async function updateOrganisationDefaults(
     const inserted = await supabase.from("organisation_defaults").insert({
       organisation_id: membership.organisationId,
       tenant_id: membership.tenantId,
-      home_currency_id: homeCurrencyId,
+      ...details,
     });
     if (inserted.error) return { error: friendlyError(inserted.error, "That organisation could not be saved.") };
   }

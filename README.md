@@ -39,6 +39,6 @@ The schema is in `supabase/migrations` and is applied to the FinTran Supabase pr
 - `transaction_headers` and `transaction_lines` — purchase invoices. The header stores the Purchases transaction type, the next reference for that type, dates, supplier, currency, exchange rate, order number, foreign and home totals, paid amount, and five flex fields. Each line stores a product, description, GL code, department, cost centre, Expense VAT code, quantity, price, discount, nett, and VAT. Home amounts are the foreign amounts divided by the exchange rate.
 - `products` — a code of up to 30 letters or numbers, a description, a purchase price with an Expense GL code and an Expense VAT code, and a sales price with an Income GL code and a Sales VAT code. A code is unique inside that organisation.
 - `customers` and `suppliers` — a code, name, currency, phone, email, website, address, contact details, and a free-text note for one organisation. The currency is one of that organisation's currencies. A code is unique inside that organisation.
-- `organisation_defaults` — one row per organisation. Home currency is edited from that organisation. Further defaults belong on the same form.
+- `organisation_defaults` — one row per organisation. It stores the home currency, address, contact name, email, website, phone, VAT number, company number, and banking details. These are edited from that organisation.
 
 Row level security is enabled. Creating tenants, organisations, and access grants goes through database functions that check the caller's role.

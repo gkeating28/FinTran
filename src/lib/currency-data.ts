@@ -41,9 +41,32 @@ export async function listCurrencies(): Promise<{
   };
 }
 
+export type OrganisationProfile = {
+  address: string;
+  contactName: string;
+  contactEmail: string;
+  website: string;
+  phone: string;
+  vatNumber: string;
+  companyNumber: string;
+  bankingDetails: string;
+};
+
+export const emptyOrganisationProfile: OrganisationProfile = {
+  address: "",
+  contactName: "",
+  contactEmail: "",
+  website: "",
+  phone: "",
+  vatNumber: "",
+  companyNumber: "",
+  bankingDetails: "",
+};
+
 export type OrganisationDefaultSet = {
   homeCurrencyId: string | null;
   currencies: CurrencyChoice[];
+  profile: OrganisationProfile;
 };
 
 export async function listDefaultsByOrganisation(organisationIds: string[]): Promise<{
@@ -52,7 +75,11 @@ export async function listDefaultsByOrganisation(organisationIds: string[]): Pro
 }> {
   const byOrganisation: Record<string, OrganisationDefaultSet> = {};
   for (const organisationId of organisationIds) {
-    byOrganisation[organisationId] = { homeCurrencyId: null, currencies: [] };
+    byOrganisation[organisationId] = {
+      homeCurrencyId: null,
+      currencies: [],
+      profile: { ...emptyOrganisationProfile },
+    };
   }
   if (organisationIds.length === 0) return { byOrganisation, error: null };
 
@@ -68,7 +95,9 @@ export async function listDefaultsByOrganisation(organisationIds: string[]): Pro
       .order("code"),
     supabase
       .from("organisation_defaults")
-      .select("organisation_id, home_currency_id")
+      .select(
+        "organisation_id, home_currency_id, address, contact_name, contact_email, website, phone, vat_number, company_number, banking_details",
+      )
       .in("organisation_id", organisationIds),
   ]);
 
@@ -85,7 +114,18 @@ export async function listDefaultsByOrganisation(organisationIds: string[]): Pro
   }
   for (const row of defaults.data ?? []) {
     const set = byOrganisation[row.organisation_id];
-    if (set) set.homeCurrencyId = row.home_currency_id;
+    if (!set) continue;
+    set.homeCurrencyId = row.home_currency_id;
+    set.profile = {
+      address: row.address ?? "",
+      contactName: row.contact_name ?? "",
+      contactEmail: row.contact_email ?? "",
+      website: row.website ?? "",
+      phone: row.phone ?? "",
+      vatNumber: row.vat_number ?? "",
+      companyNumber: row.company_number ?? "",
+      bankingDetails: row.banking_details ?? "",
+    };
   }
 
   return { byOrganisation, error: null };

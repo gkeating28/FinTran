@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import OrganisationGrid from "@/components/OrganisationGrid";
 import styles from "@/components/OpsPage.module.css";
-import { listDefaultsByOrganisation } from "@/lib/currency-data";
+import { emptyOrganisationProfile, listDefaultsByOrganisation } from "@/lib/currency-data";
 import { getWorkspace } from "@/lib/data";
 import { canManage } from "@/lib/types";
 
@@ -24,7 +24,7 @@ export default async function OrganisationsPage() {
         <h1 className={styles.heading}>Organisations</h1>
         <p className={styles.lede}>
           These are the organisations in {current.tenantName} that you can open. Edit an organisation
-          to set its defaults, including the home currency.
+          to set its home currency, address, contact, registration, and banking details.
         </p>
       </div>
       {error ? (
@@ -44,6 +44,7 @@ export default async function OrganisationsPage() {
             role: organisation.role,
             homeCurrencyId: defaults?.homeCurrencyId ?? null,
             currencies: defaults?.currencies ?? [],
+            profile: defaults?.profile ?? emptyOrganisationProfile,
           };
         })}
       />
