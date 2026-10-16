@@ -5,6 +5,12 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { parseCurrencyCode, parseCurrencyName, parseCurrencyRate } from "@/lib/currencies";
 import { getWorkspace, ORGANISATION_COOKIE } from "@/lib/data";
+import {
+  logoContentType,
+  ORGANISATION_LOGO_BUCKET,
+  ORGANISATION_LOGO_ERROR,
+  organisationLogoPath,
+} from "@/lib/organisation-logo";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionState } from "@/lib/types";
 
@@ -43,6 +49,7 @@ function friendlyError(error: { code?: string; message: string } | null, fallbac
   if (error.code === "23514" && error.message.includes("banking_details")) {
     return "Banking details can be up to 1000 characters.";
   }
+  if (error.code === "23514" && error.message.includes("logo_path")) return ORGANISATION_LOGO_ERROR;
   if (error.code === "23514") return "Use 1 to 20 letters or numbers, and a name up to 80 characters.";
   if (error.code === "P0001" && error.message.includes("Home currency")) {
     return "Choose a currency from this organisation.";
@@ -89,6 +96,7 @@ function refresh() {
   revalidatePath("/organisations");
   revalidatePath("/customers");
   revalidatePath("/suppliers");
+  revalidatePath("/", "layout");
 }
 
 export async function createCurrency(_state: ActionState, formData: FormData): Promise<ActionState> {
@@ -196,6 +204,41 @@ function profileFrom(formData: FormData) {
   } as const;
 }
 
+async function logoChange(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  organisationId: string,
+  formData: FormData,
+) {
+  const file = formData.get("logo");
+  const path = organisationLogoPath(organisationId);
+  if (file instanceof File && file.size > 0) {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const contentType = logoContentType(bytes);
+    if (!contentType) return { error: ORGANISATION_LOGO_ERROR } as const;
+    const uploaded = await supabase.storage.from(ORGANISATION_LOGO_BUCKET).upload(path, new Blob([bytes], { type: contentType }), {
+      upsert: true,
+      contentType,
+      cacheControl: "3600",
+    });
+    if (uploaded.error) {
+      const message = uploaded.error.message.toLowerCase();
+      if (message.includes("mime") || message.includes("size") || message.includes("exceeded")) {
+        return { error: ORGANISATION_LOGO_ERROR } as const;
+      }
+      return { error: "The logo could not be saved." } as const;
+    }
+    return { path } as const;
+  }
+
+  if (text(formData, "remove_logo") === "1") {
+    const removed = await supabase.storage.from(ORGANISATION_LOGO_BUCKET).remove([path]);
+    if (removed.error) return { error: "The logo could not be removed." } as const;
+    return { path: null } as const;
+  }
+
+  return null;
+}
+
 export async function updateOrganisationDefaults(
   _state: ActionState,
   formData: FormData,
@@ -214,7 +257,13 @@ export async function updateOrganisationDefaults(
   if (!membership) return { error: "You do not have access to that organisation." };
 
   const supabase = await createClient();
-  const details = { home_currency_id: homeCurrencyId, ...profile };
+  const logo = await logoChange(supabase, membership.organisationId, formData);
+  if (logo && "error" in logo) return { error: logo.error };
+  const details = {
+    home_currency_id: homeCurrencyId,
+    ...profile,
+    ...(logo ? { logo_path: logo.path } : {}),
+  };
   const { data, error } = await supabase
     .from("organisation_defaults")
     .update(details)

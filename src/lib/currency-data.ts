@@ -1,5 +1,6 @@
 import { formatCurrencyRate, type CurrencyChoice, type CurrencyRow } from "@/lib/currencies";
 import { getWorkspace } from "@/lib/data";
+import { organisationLogoUrl } from "@/lib/organisation-logo";
 import { createClient } from "@/lib/supabase/server";
 
 export async function listCurrencies(): Promise<{
@@ -67,6 +68,7 @@ export type OrganisationDefaultSet = {
   homeCurrencyId: string | null;
   currencies: CurrencyChoice[];
   profile: OrganisationProfile;
+  logoUrl: string | null;
 };
 
 export async function listDefaultsByOrganisation(organisationIds: string[]): Promise<{
@@ -79,6 +81,7 @@ export async function listDefaultsByOrganisation(organisationIds: string[]): Pro
       homeCurrencyId: null,
       currencies: [],
       profile: { ...emptyOrganisationProfile },
+      logoUrl: null,
     };
   }
   if (organisationIds.length === 0) return { byOrganisation, error: null };
@@ -96,7 +99,7 @@ export async function listDefaultsByOrganisation(organisationIds: string[]): Pro
     supabase
       .from("organisation_defaults")
       .select(
-        "organisation_id, home_currency_id, address, contact_name, contact_email, website, phone, vat_number, company_number, banking_details",
+        "organisation_id, home_currency_id, address, contact_name, contact_email, website, phone, vat_number, company_number, banking_details, logo_path, updated_at",
       )
       .in("organisation_id", organisationIds),
   ]);
@@ -126,6 +129,7 @@ export async function listDefaultsByOrganisation(organisationIds: string[]): Pro
       companyNumber: row.company_number ?? "",
       bankingDetails: row.banking_details ?? "",
     };
+    set.logoUrl = row.logo_path ? organisationLogoUrl(row.organisation_id, row.updated_at) : null;
   }
 
   return { byOrganisation, error: null };

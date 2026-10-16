@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { cookies } from "next/headers";
+import { organisationLogoUrl } from "@/lib/organisation-logo";
 import { createClient } from "@/lib/supabase/server";
 import { readClaims } from "@/lib/supabase/claims";
 import {
@@ -54,6 +55,7 @@ function toMembership(row: AccessRow): Membership | null {
     tenantId: row.tenant_id,
     tenantName: tenant.name,
     role: row.role,
+    logoUrl: null,
   };
 }
 
@@ -98,8 +100,17 @@ export const getWorkspace = cache(async (): Promise<Workspace> => {
   const cookieStore = await cookies();
   const selected = cookieStore.get(ORGANISATION_COOKIE)?.value;
   const current = memberships.find((membership) => membership.organisationId === selected) ?? memberships[0];
+  const logoResult = await supabase
+    .from("organisation_defaults")
+    .select("logo_path, updated_at")
+    .eq("organisation_id", current.organisationId)
+    .maybeSingle();
+  const logoUrl =
+    !logoResult.error && logoResult.data?.logo_path
+      ? organisationLogoUrl(current.organisationId, logoResult.data.updated_at)
+      : null;
 
-  return { status: "ready", profile, memberships, current };
+  return { status: "ready", profile, memberships, current: { ...current, logoUrl } };
 });
 
 export async function listOrganisationMembers(

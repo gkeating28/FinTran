@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useId, useState, type ChangeEvent } from "react";
 import DataGrid from "@/components/DataGrid";
 import { CreateOrganisationForm } from "@/components/Forms";
 import FormModal from "@/components/FormModal";
@@ -8,6 +8,11 @@ import { QuietInput, QuietTextarea } from "@/components/QuietField";
 import { updateOrganisationDefaults } from "@/lib/currency-actions";
 import type { OrganisationProfile } from "@/lib/currency-data";
 import { currencyLabel, type CurrencyChoice } from "@/lib/currencies";
+import {
+  ORGANISATION_LOGO_ACCEPT,
+  ORGANISATION_LOGO_ERROR,
+  ORGANISATION_LOGO_LIMIT,
+} from "@/lib/organisation-logo";
 import { roleLabel, type ActionState, type Role } from "@/lib/types";
 import styles from "@/components/OpsPage.module.css";
 
@@ -19,6 +24,7 @@ export type OrganisationGridRow = {
   homeCurrencyId: string | null;
   currencies: CurrencyChoice[];
   profile: OrganisationProfile;
+  logoUrl: string | null;
 };
 
 export default function OrganisationGrid({
@@ -46,6 +52,13 @@ export default function OrganisationGrid({
             label: "Organisation",
             sortValue: (row) => row.name,
             render: (row) => row.name,
+          },
+          {
+            key: "logo",
+            label: "Logo",
+            sortValue: (row) => (row.logoUrl ? "1" : "0"),
+            render: (row) =>
+              row.logoUrl ? <img src={row.logoUrl} alt="" className={styles.logoMark} /> : "—",
           },
           {
             key: "slug",
@@ -102,6 +115,34 @@ function OrganisationForm({
   const [companyNumber, setCompanyNumber] = useState(organisation.profile.companyNumber);
   const [address, setAddress] = useState(organisation.profile.address);
   const [bankingDetails, setBankingDetails] = useState(organisation.profile.bankingDetails);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [removeLogo, setRemoveLogo] = useState(false);
+  const [logoError, setLogoError] = useState<string | null>(null);
+  const logoInputId = useId();
+  const preview = filePreview ?? (removeLogo ? null : organisation.logoUrl);
+
+  useEffect(() => {
+    return () => {
+      if (filePreview) URL.revokeObjectURL(filePreview);
+    };
+  }, [filePreview]);
+
+  function onLogoFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    setFilePreview((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return null;
+    });
+    if (!file) return;
+    if (file.size > ORGANISATION_LOGO_LIMIT) {
+      event.target.value = "";
+      setLogoError(ORGANISATION_LOGO_ERROR);
+      return;
+    }
+    setLogoError(null);
+    setRemoveLogo(false);
+    setFilePreview(URL.createObjectURL(file));
+  }
 
   useEffect(() => {
     if (state.message) onClose();
@@ -111,6 +152,55 @@ function OrganisationForm({
     <FormModal title={`Edit ${organisation.name}`} onClose={onClose} className={styles.partyDialog}>
       <form className={`${styles.modalForm} ${styles.partyForm}`} action={action} autoComplete="off" noValidate>
         <input type="hidden" name="organisation_id" value={organisation.id} />
+        <div className={`${styles.field} ${styles.wide}`}>
+          <label htmlFor={logoInputId}>Logo</label>
+          <div className={styles.logoControl}>
+            {preview ? (
+              <img src={preview} alt="" className={styles.logoPreview} />
+            ) : (
+              <span className={styles.logoEmpty}>No logo</span>
+            )}
+            <div className={styles.logoChoices}>
+              <input
+                id={logoInputId}
+                className={styles.logoInput}
+                type="file"
+                name="logo"
+                accept={ORGANISATION_LOGO_ACCEPT}
+                onChange={onLogoFile}
+              />
+              <p className={styles.panelMeta}>PNG, JPEG, WebP, or GIF. Up to 2 MB.</p>
+              {logoError ? (
+                <p className={styles.alert} role="alert">
+                  {logoError}
+                </p>
+              ) : null}
+              {organisation.logoUrl ? (
+                <label className={styles.logoRemove}>
+                  <input
+                    type="checkbox"
+                    name="remove_logo"
+                    value="1"
+                    checked={removeLogo}
+                    onChange={(event) => {
+                      setRemoveLogo(event.target.checked);
+                      if (event.target.checked) {
+                        const input = document.getElementById(logoInputId);
+                        if (input instanceof HTMLInputElement) input.value = "";
+                        setFilePreview((current) => {
+                          if (current) URL.revokeObjectURL(current);
+                          return null;
+                        });
+                        setLogoError(null);
+                      }
+                    }}
+                  />
+                  Remove logo
+                </label>
+              ) : null}
+            </div>
+          </div>
+        </div>
         {state.error ? (
           <p className={styles.alert} role="alert">
             {state.error}

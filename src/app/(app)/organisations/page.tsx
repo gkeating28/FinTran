@@ -24,7 +24,7 @@ export default async function OrganisationsPage() {
         <h1 className={styles.heading}>Organisations</h1>
         <p className={styles.lede}>
           These are the organisations in {current.tenantName} that you can open. Edit an organisation
-          to set its home currency, address, contact, registration, and banking details.
+          to set its logo, home currency, address, contact, registration, and banking details.
         </p>
       </div>
       {error ? (
@@ -45,6 +45,7 @@ export default async function OrganisationsPage() {
             homeCurrencyId: defaults?.homeCurrencyId ?? null,
             currencies: defaults?.currencies ?? [],
             profile: defaults?.profile ?? emptyOrganisationProfile,
+            logoUrl: defaults?.logoUrl ?? null,
           };
         })}
       />

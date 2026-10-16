@@ -740,6 +740,77 @@
   display: none;
 }
 
+.logoControl {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.logoChoices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.logoPreview,
+.logoEmpty {
+  width: 72px;
+  height: 72px;
+  flex: 0 0 auto;
+  border: 1px solid var(--ops-border);
+  border-radius: var(--ops-radius);
+  background: #fff;
+}
+
+.logoPreview {
+  object-fit: contain;
+}
+
+.logoEmpty {
+  display: grid;
+  place-items: center;
+  color: var(--ops-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.field input.logoInput {
+  height: auto;
+  min-height: 34px;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+}
+
+.logoRemove {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.logoRemove input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.logoMark {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  display: block;
+  background: #fff;
+  border: 1px solid var(--ops-border);
+  border-radius: var(--ops-radius);
+}
+
 @media (max-width: 560px) {
   .partyForm {
     grid-template-columns: 1fr;

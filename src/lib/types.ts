@@ -14,6 +14,7 @@ export type Membership = {
   tenantId: string;
   tenantName: string;
   role: Role;
+  logoUrl: string | null;
 };
 
 export type OrganisationMember = {
