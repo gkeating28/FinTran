@@ -33,16 +33,6 @@
   font-size: 12.5px;
 }
 
-.orgLogo {
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
-  margin-right: 10px;
-  object-fit: contain;
-  background: #fff;
-  border-radius: var(--tb-radius);
-}
-
 .crumbText {
   min-width: 0;
   white-space: nowrap;

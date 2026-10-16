@@ -21,7 +21,6 @@ export default function AppShell({
       <div className={styles.main}>
         <AppTitleBar
           organisationName={current?.organisationName ?? "FinTran"}
-          logoUrl={current?.logoUrl ?? null}
           setup={!current}
         />
         <div className={styles.page}>{children}</div>

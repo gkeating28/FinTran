@@ -25,11 +25,9 @@ const PAGE_LABELS: Record<string, string> = {
 
 export default function AppTitleBar({
   organisationName,
-  logoUrl = null,
   setup = false,
 }: {
   organisationName: string;
-  logoUrl?: string | null;
   setup?: boolean;
 }) {
   const pathname = usePathname();
@@ -40,7 +38,6 @@ export default function AppTitleBar({
   return (
     <div className={styles.bar}>
       <div className={styles.breadcrumb}>
-        {logoUrl ? <img src={logoUrl} alt="" className={styles.orgLogo} /> : null}
         <span className={styles.crumbText}>
           Managing: <strong>{organisationName}</strong>
           <span className={styles.sep}>/</span>
