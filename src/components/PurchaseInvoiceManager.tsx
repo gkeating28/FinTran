@@ -229,6 +229,7 @@ export default function PurchaseInvoiceManager({
       {draft ? (
         <InvoiceForm
           key={draft === "new" ? "new" : draft.id}
+          title={title}
           header={draft === "new" ? null : draft}
           lines={lines}
           lineError={lineError}
@@ -241,12 +242,14 @@ export default function PurchaseInvoiceManager({
 }
 
 function InvoiceForm({
+  title,
   header,
   lines,
   lineError,
   choices,
   onClose,
 }: {
+  title: string;
   header: PurchaseInvoiceRow | null;
   lines: PurchaseInvoiceLine[] | null;
   lineError: string | null;
@@ -371,7 +374,7 @@ function InvoiceForm({
 
   return (
     <>
-    <FormModal title={header ? "Edit purchase invoice" : "Add purchase invoice"} onClose={onClose} className={styles.invoiceDialog}>
+    <FormModal title={header ? `Edit ${title}` : `Add ${title}`} onClose={onClose} className={styles.invoiceDialog}>
       <form className={styles.modalForm} action={action} autoComplete="off" noValidate>
         {header ? <input type="hidden" name="id" value={header.id} /> : null}
         <input type="hidden" name="lines" value={JSON.stringify(invoiceLines)} />
