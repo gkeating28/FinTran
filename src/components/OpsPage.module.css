@@ -909,6 +909,12 @@
   cursor: default;
 }
 
+a.quiet {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
 .notice,
 .alert {
   margin: 0 0 12px;

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useEffect, useMemo, useState } from "react";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
@@ -111,7 +112,8 @@ export default function PurchaseInvoiceManager({
         <h1 className={styles.heading}>{title}</h1>
         <p className={styles.lede}>
           {summary ??
-            `${title} for this organisation. The reference comes from the transaction type, and the next number is one more than its last reference. Amounts in the home currency are the foreign amounts divided by the exchange rate.`}
+            `${title} for this organisation. The reference comes from the transaction type, and the next number is one more than its last reference. Amounts in the home currency are the foreign amounts divided by the exchange rate.`}{" "}
+          {typeCode ? <Link href={`/forms/${typeCode}`}>Design the printed form.</Link> : null}
         </p>
       </div>
       {loadError ? (
@@ -207,6 +209,9 @@ export default function PurchaseInvoiceManager({
         ]}
         actions={(row) => (
           <>
+            <Link className={styles.quiet} href={`/print/${row.transactionTypeCode}/${row.id}`}>
+              Print
+            </Link>
             <button className={styles.quiet} type="button" onClick={() => edit(row)}>
               Edit
             </button>

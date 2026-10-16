@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import PurchaseInvoiceManager from "@/components/PurchaseInvoiceManager";
 import styles from "@/components/OpsPage.module.css";
@@ -42,7 +43,8 @@ export default async function TransactionTypePage({
         <div>
           <h1 className={styles.heading}>{tile.description}</h1>
           <p className={styles.lede}>
-            {tile.code} is a {tile.type} transaction type. Sales documents are not entered on this page yet.
+            {tile.code} is a {tile.type} transaction type. Sales documents are not entered on this page yet.{" "}
+            <Link href={`/forms/${tile.code}`}>Design the printed form.</Link>
           </p>
         </div>
       </section>

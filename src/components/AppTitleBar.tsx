@@ -19,6 +19,7 @@ const PAGE_LABELS: Record<string, string> = {
   "/products": "Products",
   "/organisations": "Organisations",
   "/access": "Access",
+  "/forms": "Forms",
 };
 
 export default function AppTitleBar({
@@ -31,7 +32,7 @@ export default function AppTitleBar({
   setup?: boolean;
 }) {
   const pathname = usePathname();
-  const typeCode = pathname.match(/^\/transactions\/([A-Za-z0-9]+)$/)?.[1];
+  const typeCode = pathname.match(/^\/(?:transactions|forms)\/([A-Za-z0-9]+)$/)?.[1];
   const pageLabel = setup ? "Set up" : typeCode ? typeCode.toUpperCase() : (PAGE_LABELS[pathname] ?? "Home");
 
   return (

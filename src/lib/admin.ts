@@ -9,6 +9,7 @@ const ORGANISATION_TABLES = [
   "transaction_types",
   "products",
   "organisation_access",
+  "transaction_forms",
 ] as const;
 
 type OrganisationTable = (typeof ORGANISATION_TABLES)[number];
@@ -22,6 +23,7 @@ export type AdminCounts = {
   transactionTypes: number | null;
   products: number | null;
   access: number | null;
+  forms: number | null;
   error: string | null;
 };
 
@@ -41,7 +43,7 @@ async function countRows(
 
 export async function adminCounts(organisationId: string): Promise<AdminCounts> {
   const supabase = await createClient();
-  const [glCodes, departments, costCentres, vatRates, currencies, transactionTypes, products, access] =
+  const [glCodes, departments, costCentres, vatRates, currencies, transactionTypes, products, access, forms] =
     await Promise.all([
       countRows(supabase, "gl_codes", organisationId),
       countRows(supabase, "departments", organisationId),
@@ -51,6 +53,7 @@ export async function adminCounts(organisationId: string): Promise<AdminCounts> 
       countRows(supabase, "transaction_types", organisationId),
       countRows(supabase, "products", organisationId),
       countRows(supabase, "organisation_access", organisationId),
+      countRows(supabase, "transaction_forms", organisationId),
     ]);
 
   const counts = {
@@ -62,6 +65,7 @@ export async function adminCounts(organisationId: string): Promise<AdminCounts> 
     transactionTypes,
     products,
     access,
+    forms,
   };
   const error = Object.values(counts).some((count) => count === null)
     ? "Some totals could not be loaded."
