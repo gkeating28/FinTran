@@ -1,0 +1,253 @@
+# FinTran core
+
+FinTran keeps financial setup and purchase documents separate for each organisation. A tenant owns one or more organisations. A person signs in once and is granted access to particular organisations inside a tenant, as an owner, admin, or member.
+
+The live database is the FinTran Supabase project. The schema is the SQL in `supabase/migrations`, applied in filename order. Postgres holds the rules: uniqueness, which codes may be used together, reference numbers, and totals. The Next.js app reads and writes through the Supabase API as the signed-in user. It does not use a service-role key.
+
+Sales transaction types can be defined, and a printable form can be designed for them. Sales documents are not stored yet. Purchase documents are.
+
+## How the pieces fit
+
+```text
+tenant
+  └── organisation
+        ├── organisation_access        who may open it, and as which role
+        ├── organisation_defaults      home currency, address, logo, banking
+        ├── currencies
+        ├── gl_codes
+        ├── departments
+        ├── cost_centres
+        ├── vat_rates
+        ├── products
+        ├── customers
+        ├── suppliers
+        ├── transaction_types
+        │     └── transaction_forms    one printable layout
+        └── transaction_headers        purchase documents only
+              └── transaction_lines
+```
+
+Almost every business table carries both `tenant_id` and `organisation_id`. A trigger checks that the organisation belongs to that tenant, and blocks a row from being moved to another organisation. Codes are uppercased and trimmed in those triggers. A code is unique inside one organisation, not across the whole database.
+
+Where a code is used by another row, the foreign key is `ON DELETE RESTRICT`. You cannot remove a currency, GL code, VAT rate, product, supplier, or transaction type that is still referenced. Deleting an organisation deletes the rows that belong only to it (`ON DELETE CASCADE`).
+
+## People, tenants, and organisations
+
+Sign-in is Supabase Auth. `public.profiles` is one row per user. Its `id` is the Auth user id. A trigger on `auth.users` creates the profile and, if no display name was given, uses the part of the email before `@`. Email is unique ignoring case.
+
+| Table | Purpose | Important columns |
+| --- | --- | --- |
+| `tenants` | The owning account | `name` (2–80), `slug` unique |
+| `organisations` | A company inside a tenant | `tenant_id`, `name`, `slug` unique inside the tenant |
+| `profiles` | The signed-in person | `id`, `email`, `display_name` |
+| `organisation_access` | Which organisations that person may open | `user_id`, `organisation_id`, `role` |
+
+`role` is `owner`, `admin`, or `member`. One user has at most one role on one organisation.
+
+These four tables are not written with ordinary inserts from the app. Owners and admins call security-definer functions:
+
+- `create_tenant(tenant_name, organisation_name)` creates the tenant, its first organisation, the defaults row, and owner access for the caller.
+- `create_organisation(tenant_id, organisation_name)` adds another organisation in a tenant the caller manages.
+- `grant_organisation_access(organisation_id, email, role)` grants access to someone who already has a profile.
+- `revoke_organisation_access(organisation_id, user_id)` removes that grant.
+
+The functions check the caller's role. A member cannot create organisations or change access.
+
+## Who can see a row
+
+Row level security is enabled on the public tables. The usual rule is `private.is_org_member(organisation_id)`: the signed-in user has a row in `organisation_access` for that organisation. Members can select, insert, update, and delete the organisation's own setup and documents.
+
+Exceptions:
+
+- `tenants`, `organisations`, `profiles`, and `organisation_access` can be read by a member. They are changed through the functions above, not by open insert and update policies.
+- `organisation_defaults` can be selected, inserted, and updated by a member. Delete is not granted. The row is created with the organisation and removed when the organisation is deleted.
+- `save_purchase_invoice` is security invoker. It runs as the caller, so the header and line policies still apply. It does not call into the `private` schema.
+
+`private` is not on the API. Authenticated users can execute a few helpers such as `is_org_member` only because policies and triggers need them. They cannot list or change that schema.
+
+## Organisation defaults and currencies
+
+Creating an organisation inserts one `organisation_defaults` row.
+
+| Column | Meaning |
+| --- | --- |
+| `organisation_id` | Primary key, and the organisation |
+| `tenant_id` | Must match that organisation |
+| `home_currency_id` | The organisation's home currency. Must be one of its `currencies` |
+| `address` | Up to 500 characters |
+| `contact_name` | Up to 200 |
+| `contact_email` | An email address, up to 200 |
+| `website` | Up to 200, no spaces |
+| `phone` | Up to 40, digits and `+(). -` |
+| `vat_number`, `company_number` | Up to 40, starting with a letter or digit |
+| `banking_details` | Up to 1000 |
+| `logo_path` | Null, or `{organisation_id}/logo` |
+| `updated_at` | Set on every change |
+
+Blank text is stored as null.
+
+`currencies.rate` is how many units of that currency equal one unit of the home currency. The home currency's own rate is 1. A rate is greater than 0 and has up to 8 decimal places. On a document, the same convention is stored as `exchange_rate`: home amount = foreign amount ÷ rate.
+
+The logo file is not in the table. It is an object in the private Storage bucket `organisation-logos`, at `{organisation_id}/logo`. The bucket allows PNG, JPEG, WebP, and GIF up to 2 MB. Storage policies use `private.organisation_logo_allowed`, so only a member of that organisation can read or replace the file. The app serves it through `/organisation-logo/{organisation_id}` after checking membership.
+
+## Account structure
+
+These tables are the lists under Admin. Each has `tenant_id`, `organisation_id`, `code`, and `description` (description 1–200). `code` matches `^[A-Z0-9]{1,20}$`, except products, which allow 30 characters. `(organisation_id, code)` is unique.
+
+### `gl_codes`
+
+`account_type` is required and is one of:
+
+- Fixed Asset
+- Current Liability
+- Current Asset
+- Income
+- Expense
+
+A product's purchase GL code must be Expense. Its sales GL code must be Income. A trigger stops an account type from being changed while a product still uses that code in the matching role.
+
+### `departments` and `cost_centres`
+
+Code and description only. Both can be left empty on a purchase line.
+
+### `vat_rates`
+
+| Column | Meaning |
+| --- | --- |
+| `rate` | Percentage from 0 to 100, two decimal places |
+| `vat_type` | `Sales` or `Expense` |
+
+Purchase VAT on a product, and VAT on a purchase line, must be an Expense rate. Sales VAT on a product must be a Sales rate.
+
+### `products`
+
+| Column | Meaning |
+| --- | --- |
+| `purchase_price`, `sales_price` | Zero or greater, four decimal places |
+| `purchase_gl_code_id` | An Expense GL code in this organisation |
+| `sales_gl_code_id` | An Income GL code in this organisation |
+| `purchase_vat_code_id` | An Expense VAT rate |
+| `sales_vat_code_id` | A Sales VAT rate |
+
+Choosing a product on a purchase line copies its purchase price, Expense GL code, and Expense VAT rate. Those can then be changed on the line.
+
+### `customers` and `suppliers`
+
+Both have the same shape.
+
+| Column | Meaning |
+| --- | --- |
+| `code`, `name` | Code as above. Name 1–200 |
+| `currency_id` | Required. One of this organisation's currencies |
+| `phone`, `email`, `website`, `address` | Optional, with the same checks as the organisation profile |
+| `contact_details` | Optional, up to 500 |
+| `notes` | Optional, up to 4000 |
+
+A supplier's currency becomes the currency of a purchase document and cannot be edited on the document. Customers are stored for sales documents, which are not entered yet.
+
+## Transaction types
+
+`transaction_types.type` is `Sales` or `Purchases`.
+
+| Column | Meaning |
+| --- | --- |
+| `code`, `description` | The short code shown in menus, and the name used as the page title |
+| `last_reference` | The last number issued for this type. New types are forced to 0 |
+| `flex1_label` … `flex5_label` | Optional labels, up to 80 characters. A blank label hides that flex field on the document |
+
+`last_reference` only moves forward. An update may set it to the previous value plus one. Any other change is put back. Deleting a document does not give the number back.
+
+The header insert trigger is what advances it: it adds one and stores that number as the document reference. The first document of a type is reference 1.
+
+## Purchase documents
+
+`transaction_headers` is one document. `transaction_lines` are its lines. The header trigger rejects any type whose `type` is not `Purchases`, so a sales type cannot be saved here.
+
+The app writes both tables through `save_purchase_invoice(jsonb)`. That function checks the organisation, supplier, currency, product, and codes, replaces the lines, and lets the triggers calculate amounts.
+
+### Header
+
+| Column | Meaning |
+| --- | --- |
+| `transaction_type_id` | A Purchases type. Cannot be changed after insert |
+| `reference` | Issued from `last_reference`. Unique per organisation and type. Cannot be renumbered |
+| `transaction_date` | Required |
+| `due_date` | Optional |
+| `supplier_id`, `supplier_name` | The supplier, and the name stored on the document |
+| `contact_details` | Optional, up to 500 |
+| `notes` | Optional, up to 4000 |
+| `currency_id`, `exchange_rate` | The supplier's currency, and the rate used for this document |
+| `order_number` | Optional, up to 40 |
+| `foreign_nett_amount`, `foreign_vat_amount`, `foreign_total_amount` | Sum of the lines, in the document currency. Maintained by trigger |
+| `home_nett_amount`, `home_vat_amount`, `home_total_amount` | Those sums divided by `exchange_rate` |
+| `paid_amount` | Zero or greater. Not recalculated from lines |
+| `flex1` … `flex5` | Optional text, up to 200. Shown only when that type has a label |
+
+On every header insert or update the trigger replaces the six amount columns from the lines. A new header therefore starts at zero until its lines exist. Saving a line updates the header, which runs the trigger again.
+
+### Lines
+
+| Column | Meaning |
+| --- | --- |
+| `header_id` | The document. Deleting the header deletes its lines |
+| `line_number` | Starts at 1. Unique on the header |
+| `reference`, `transaction_type_id`, `organisation_id`, `tenant_id` | Copied from the header |
+| `product_id` | Optional. Must belong to the same organisation |
+| `description` | Required, 1–200 |
+| `gl_code_id` | Optional GL code |
+| `department_id`, `cost_centre_id` | Optional |
+| `vat_rate_id` | Optional. If set, it must be an Expense rate. If null, VAT is 0 |
+| `quantity` | Greater than 0 |
+| `price` | Zero or greater |
+| `discount_amount` | Zero or greater, and not more than quantity × price |
+| `nett_amount` | quantity × price − discount. Set by trigger |
+| `vat_amount` | Nett × VAT percentage. Set by trigger |
+
+The screen may show a calculated nett and VAT before save. The stored figures are the ones the trigger writes.
+
+## Printable forms
+
+`transaction_forms` has one row per organisation and transaction type. The `layout` column is JSON, at most 8000 characters. The page shape is fixed. The JSON chooses the title, page size, and which fields appear, in order, inside each band.
+
+```json
+{
+  "version": 1,
+  "title": "Tax Invoice",
+  "pageSize": "A4",
+  "showLogo": true,
+  "showVatSummary": true,
+  "showBanking": true,
+  "organisationFields": ["name", "address", "phone", "contactEmail", "vatNumber"],
+  "partyFields": ["contactDetails", "name", "address"],
+  "headerFields": ["reference", "transactionDate", "terms", "dueDate"],
+  "lineColumns": ["date", "item", "description", "tax", "quantity", "price", "amount"]
+}
+```
+
+`pageSize` is `A4`, `A5`, `Letter`, or `Legal`. A4 is the default when the value is missing.
+
+Allowed organisation fields: `name`, `address`, `phone`, `contactEmail`, `website`, `contactName`, `vatNumber`, `companyNumber`.
+
+Allowed bill-to fields: `contactDetails`, `name`, `address`, `phone`, `email`, `website`, `code`. For a purchase document the party is the supplier. For a sales layout it is the customer.
+
+Allowed document fields: `reference`, `transactionDate`, `terms`, `dueDate`, `orderNumber`, `currency`, `exchangeRate`, `paidAmount`, and `flex1` through `flex5`. Terms are the number of days from the document date to the due date. Flex fields appear only when that transaction type has a label.
+
+Allowed line columns: `date`, `item`, `description`, `tax`, `quantity`, `price`, `amount`, `discount`, `glCode`, `vatCode`, `department`, `costCentre`. Quantity, price, amount, and discount are the numeric columns.
+
+If no row has been saved, printing uses this standard layout. The VAT summary and bank details are drawn at the bottom of the page. Print opens the browser print dialog. PDF downloads the same page at the layout's page size.
+
+## What the screens do
+
+| Screen | Tables |
+| --- | --- |
+| Sign in, and the organisation switcher | `profiles`, `organisation_access`, `organisations`, `tenants` |
+| Admin lists for GL codes, departments, cost centres, VAT, currencies, products, transaction types | The matching table |
+| Organisations | `organisations`, `organisation_defaults`, `currencies`, and the logo bucket |
+| Access | `organisation_access`, `profiles` |
+| Customers and suppliers | `customers`, `suppliers`, `currencies` |
+| Transactions menu | `transaction_types`, with a count from `transaction_headers` |
+| Purchase invoice, order, and return pages | `transaction_headers`, `transaction_lines`, plus the lookups above |
+| Forms | `transaction_forms` and `transaction_types` |
+| Print and PDF | The saved form, or the standard layout, filled from the organisation, the supplier, and one header with its lines |
+
+Purchase pages share one entry form. The transaction type is fixed on that page, so each type keeps its own reference sequence and flex labels. The supplier is required. Currency is taken from the supplier and shown read-only.
