@@ -171,6 +171,13 @@ function optionalField(value: string, max: number, pattern?: RegExp) {
   return trimmed;
 }
 
+function lockDateFrom(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return undefined;
+  return trimmed;
+}
+
 function profileFrom(formData: FormData) {
   const address = optionalField(text(formData, "address"), 500);
   const contactName = optionalField(text(formData, "contact_name"), 200);
@@ -184,6 +191,7 @@ function profileFrom(formData: FormData) {
   const vatNumber = optionalField(text(formData, "vat_number"), 40, /^[A-Za-z0-9][A-Za-z0-9 ./-]*$/);
   const companyNumber = optionalField(text(formData, "company_number"), 40, /^[A-Za-z0-9][A-Za-z0-9 ./-]*$/);
   const bankingDetails = optionalField(text(formData, "banking_details"), 1000);
+  const lockDate = lockDateFrom(text(formData, "lock_date"));
   if (address === undefined) return { error: "Address can be up to 500 characters." } as const;
   if (contactName === undefined) return { error: "Contact name can be up to 200 characters." } as const;
   if (contactEmail === undefined) return { error: "Use a contact email, or leave it blank." } as const;
@@ -192,6 +200,7 @@ function profileFrom(formData: FormData) {
   if (vatNumber === undefined) return { error: "VAT number can be up to 40 letters or numbers." } as const;
   if (companyNumber === undefined) return { error: "Company number can be up to 40 letters or numbers." } as const;
   if (bankingDetails === undefined) return { error: "Banking details can be up to 1000 characters." } as const;
+  if (lockDate === undefined) return { error: "Use a lock date, or leave it blank." } as const;
   return {
     address,
     contact_name: contactName,
@@ -201,6 +210,7 @@ function profileFrom(formData: FormData) {
     vat_number: vatNumber,
     company_number: companyNumber,
     banking_details: bankingDetails,
+    lock_date: lockDateFrom(text(formData, "lock_date")),
   } as const;
 }
 

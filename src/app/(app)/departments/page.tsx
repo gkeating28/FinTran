@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import ReferenceManager from "@/components/ReferenceManager";
 import { getWorkspace } from "@/lib/data";
 import { listReference } from "@/lib/reference-data";
+import { canManage } from "@/lib/types";
 
 export const metadata = { title: "Departments" };
 
@@ -23,6 +24,7 @@ export default async function DepartmentsPage({
       rows={rows}
       loadError={error}
       actionError={params.error}
+      canEdit={canManage(workspace.current.role)}
     />
   );
 }

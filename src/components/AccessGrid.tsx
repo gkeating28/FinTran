@@ -56,21 +56,22 @@ export default function AccessGrid({
       ]}
       actions={
         canManage
-          ? (row) => (
-              <form action={revokeAccess}>
-                <input type="hidden" name="organisationId" value={organisationId} />
-                <input type="hidden" name="userId" value={row.id} />
-                <button
-                  className={styles.quiet}
-                  type="submit"
-                  onClick={(event) => {
-                    if (!window.confirm(`Remove ${row.name}?`)) event.preventDefault();
-                  }}
-                >
-                  Remove
-                </button>
-              </form>
-            )
+          ? (row) =>
+              callerRole === "owner" || row.role === "member" ? (
+                <form action={revokeAccess}>
+                  <input type="hidden" name="organisationId" value={organisationId} />
+                  <input type="hidden" name="userId" value={row.id} />
+                  <button
+                    className={styles.quiet}
+                    type="submit"
+                    onClick={(event) => {
+                      if (!window.confirm(`Remove ${row.name}?`)) event.preventDefault();
+                    }}
+                  >
+                    Remove
+                  </button>
+                </form>
+              ) : null
           : undefined
       }
     />

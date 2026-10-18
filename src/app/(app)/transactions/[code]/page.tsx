@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import PurchaseInvoiceManager from "@/components/PurchaseInvoiceManager";
 import styles from "@/components/OpsPage.module.css";
 import { getWorkspace } from "@/lib/data";
+import { canManage } from "@/lib/types";
 import { listPurchaseInvoices } from "@/lib/purchase-invoice-data";
 import { getTransactionTypeByCode } from "@/lib/transaction-type-data";
 
@@ -62,6 +63,7 @@ export default async function TransactionTypePage({
       choices={listed.choices}
       loadError={listed.error}
       actionError={query.error}
+      canVoid={canManage(workspace.current.role)}
     />
   );
 }

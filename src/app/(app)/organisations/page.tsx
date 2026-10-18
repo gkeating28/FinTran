@@ -3,7 +3,6 @@ import OrganisationGrid from "@/components/OrganisationGrid";
 import styles from "@/components/OpsPage.module.css";
 import { emptyOrganisationProfile, listDefaultsByOrganisation } from "@/lib/currency-data";
 import { getWorkspace } from "@/lib/data";
-import { canManage } from "@/lib/types";
 
 export const metadata = { title: "Organisations" };
 
@@ -34,7 +33,7 @@ export default async function OrganisationsPage() {
       ) : null}
       <OrganisationGrid
         tenantId={current.tenantId}
-        canAdd={canManage(current.role)}
+        canAdd={organisations.some((organisation) => organisation.role === "owner")}
         rows={organisations.map((organisation) => {
           const defaults = byOrganisation[organisation.organisationId];
           return {

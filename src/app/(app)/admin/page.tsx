@@ -5,6 +5,7 @@ import styles from "@/components/OpsPage.module.css";
 import { adminCounts } from "@/lib/admin";
 import { formatInteger } from "@/lib/numbers";
 import { getWorkspace } from "@/lib/data";
+import { canManage } from "@/lib/types";
 
 export const metadata = { title: "Admin" };
 
@@ -19,6 +20,7 @@ const TILES = [
   { href: "/products", label: "Products", count: "products", icon: <ProductIcon /> },
   { href: "/organisations", label: "Organisations", count: "organisations", icon: <OrgIcon /> },
   { href: "/access", label: "Access", count: "access", icon: <PeopleIcon /> },
+  { href: "/history", label: "Change history", count: "history", icon: <HistoryIcon /> },
 ] as const;
 
 export default async function AdminPage() {
@@ -45,7 +47,7 @@ export default async function AdminPage() {
         </p>
       ) : null}
       <div className={styles.adminGrid}>
-        {TILES.map((tile) => {
+        {TILES.filter((tile) => tile.href !== "/history" || canManage(current.role)).map((tile) => {
           const count = counts[tile.count];
           return (
             <Link key={tile.href} href={tile.href} className={styles.adminTile}>
@@ -162,6 +164,16 @@ function FormIcon() {
       <path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
       <path d="M14 3v6h6" />
       <path d="M8 13h8M8 17h5" />
+    </TileIcon>
+  );
+}
+
+function HistoryIcon() {
+  return (
+    <TileIcon>
+      <path d="M3 12a9 9 0 1 0 3-6.7" />
+      <path d="M3 4v5h5" />
+      <path d="M12 7v6l4 2" />
     </TileIcon>
   );
 }

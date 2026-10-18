@@ -41,6 +41,8 @@ export type PurchaseInvoiceRow = {
   homeVatAmount: string;
   homeTotalAmount: string;
   paidAmount: string;
+  status: "draft" | "posted" | "void";
+  voidReason: string;
   flex1: string;
   flex2: string;
   flex3: string;

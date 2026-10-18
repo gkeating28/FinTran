@@ -4,6 +4,7 @@ import FormDesigner from "@/components/FormDesigner";
 import styles from "@/components/OpsPage.module.css";
 import { loadFormDesigner } from "@/lib/form-data";
 import { getWorkspace } from "@/lib/data";
+import { canManage } from "@/lib/types";
 
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
@@ -44,7 +45,13 @@ export default async function FormDesignerPage({ params }: { params: Promise<{ c
           organisation, bill-to, document, and line details, then save.
         </p>
       </div>
-      <FormDesigner type={loaded.type} initialLayout={loaded.layout} source={loaded.source} sample={loaded.sample} />
+      <FormDesigner
+        type={loaded.type}
+        initialLayout={loaded.layout}
+        source={loaded.source}
+        sample={loaded.sample}
+        canEdit={canManage(workspace.current.role)}
+      />
     </section>
   );
 }

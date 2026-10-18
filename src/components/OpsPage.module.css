@@ -339,6 +339,12 @@
   width: auto;
 }
 
+.inlineForm {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
 .actions {
   display: flex;
   justify-content: flex-end;

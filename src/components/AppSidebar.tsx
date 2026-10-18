@@ -168,7 +168,7 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
     item.href === "/"
       ? pathname === "/"
       : item.href === "/admin"
-        ? pathname === "/admin" || pathname.startsWith("/forms")
+        ? pathname === "/admin" || pathname.startsWith("/forms") || pathname.startsWith("/history")
         : pathname.startsWith(item.href);
   return (
     <Link

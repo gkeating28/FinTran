@@ -207,6 +207,65 @@ function returnPath(formData: FormData) {
   return /^\/transactions\/[A-Za-z0-9]+$/.test(next) ? next : "/transactions";
 }
 
+export async function postPurchaseInvoice(formData: FormData) {
+  const id = text(formData, "id").trim();
+  const next = returnPath(formData);
+  if (!id) redirect(next);
+
+  await currentOrganisation();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("post_document", { p_header_id: id });
+  if (error) {
+    redirect(`${next}?error=${encodeURIComponent(friendlyError(error, "That document could not be posted."))}`);
+  }
+
+  revalidatePath("/transactions");
+  revalidatePath("/transactions/[code]", "page");
+  redirect(next);
+}
+
+export async function voidPurchaseInvoice(formData: FormData) {
+  const id = text(formData, "id").trim();
+  const reason = text(formData, "reason").trim();
+  const next = returnPath(formData);
+  if (!id) redirect(next);
+
+  await currentOrganisation();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("void_document", { p_header_id: id, p_reason: reason });
+  if (error) {
+    redirect(`${next}?error=${encodeURIComponent(friendlyError(error, "That document could not be voided."))}`);
+  }
+
+  revalidatePath("/transactions");
+  revalidatePath("/transactions/[code]", "page");
+  redirect(next);
+}
+
+export async function updatePaidAmount(_state: ActionState, formData: FormData): Promise<ActionState> {
+  const id = parseUuid(text(formData, "id"));
+  const paidAmount = parseMoney(text(formData, "paid_amount"));
+  if (!id) return { error: "Choose a document." };
+  if (paidAmount === null) return { error: "Enter a paid amount of zero or more." };
+
+  const workspace = await getWorkspace();
+  if (workspace.status === "signed-out") redirect("/login");
+  if (workspace.status !== "ready") redirect("/");
+  await currentOrganisation();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("transaction_headers")
+    .update({ paid_amount: paidAmount })
+    .eq("id", id)
+    .eq("organisation_id", workspace.current.organisationId)
+    .eq("status", "posted");
+
+  if (error) return { error: friendlyError(error, "The paid amount could not be saved.") };
+  revalidatePath("/transactions");
+  revalidatePath("/transactions/[code]", "page");
+  return { message: "Paid amount saved." };
+}
+
 export async function deletePurchaseInvoice(formData: FormData) {
   const id = text(formData, "id").trim();
   const next = returnPath(formData);

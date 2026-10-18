@@ -33,11 +33,13 @@ export default function FormDesigner({
   initialLayout,
   source,
   sample,
+  canEdit = true,
 }: {
   type: FormType;
   initialLayout: FormLayout;
   source: FormSource;
   sample: boolean;
+  canEdit?: boolean;
 }) {
   const [state, action, pending] = useActionState(saveTransactionForm, {} as ActionState);
   const [layout, setLayout] = useState(initialLayout);
@@ -50,7 +52,8 @@ export default function FormDesigner({
 
   return (
     <div className={printStyles.designer}>
-      <form className={printStyles.controls} action={action} autoComplete="off" noValidate>
+      <form action={action} autoComplete="off" noValidate style={{ display: "contents" }}>
+        <fieldset disabled={!canEdit} className={printStyles.controls}>
         <input type="hidden" name="code" value={type.code} />
         <input type="hidden" name="layout" value={JSON.stringify(layout)} />
         {state.error ? (
@@ -137,18 +140,23 @@ export default function FormDesigner({
           label={lineColumnLabel}
           onChange={(lineColumns) => setLayout((current) => ({ ...current, lineColumns }))}
         />
-        <div className={styles.modalActions}>
-          <button
-            className={styles.quiet}
-            type="button"
-            onClick={() => setLayout(defaultLayout(type.kind, type.description))}
-          >
-            Standard
-          </button>
-          <button className={styles.primary} type="submit" disabled={pending || layout.lineColumns.length === 0}>
-            {pending ? "Saving…" : "Save"}
-          </button>
-        </div>
+        {canEdit ? (
+          <div className={styles.modalActions}>
+            <button
+              className={styles.quiet}
+              type="button"
+              onClick={() => setLayout(defaultLayout(type.kind, type.description))}
+            >
+              Standard
+            </button>
+            <button className={styles.primary} type="submit" disabled={pending || layout.lineColumns.length === 0}>
+              {pending ? "Saving…" : "Save"}
+            </button>
+          </div>
+        ) : (
+          <p className={styles.lede}>An owner or admin can change this form.</p>
+        )}
+        </fieldset>
       </form>
       <div className={printStyles.preview}>
         <p className={printStyles.previewNote}>

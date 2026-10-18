@@ -51,11 +51,15 @@ These four tables are not written with ordinary inserts from the app. Owners and
 - `grant_organisation_access(organisation_id, email, role)` grants access to someone who already has a profile.
 - `revoke_organisation_access(organisation_id, user_id)` removes that grant.
 
-The functions check the caller's role. A member cannot create organisations or change access.
+The functions check the caller's role. Only an owner of an organisation in the tenant can create another organisation. An owner can grant any role. An admin can grant and remove members only. A member cannot create organisations or change access. An organisation must keep at least one owner.
 
 ## Who can see a row
 
-Row level security is enabled on the public tables. The usual rule is `private.is_org_member(organisation_id)`: the signed-in user has a row in `organisation_access` for that organisation. Members can select, insert, update, and delete the organisation's own setup and documents.
+Row level security is enabled on the public tables. The usual select rule is `private.is_org_member(organisation_id)`: the signed-in user has a row in `organisation_access` for that organisation.
+
+Owners and admins can change setup: currencies, GL codes, departments, cost centres, VAT rates, products, transaction types, forms, organisation defaults, and the logo. Members can read that setup. Members can create, edit, and delete customers, suppliers, and draft documents.
+
+Every business table records `created_at`, `created_by`, `updated_at`, and `updated_by`. `created_at` and `created_by` stay as they were on update. Changes to organisation defaults, access, suppliers, customers, VAT rates, GL codes, currencies, transaction types, and document headers are written to `audit_log`. An update stores only the columns that changed. Recalculated document totals are not logged. Owners and admins can read the log for their organisation. Nobody can change it directly.
 
 Exceptions:
 
@@ -180,7 +184,14 @@ The app writes both tables through `save_purchase_invoice(jsonb)`. That function
 | `order_number` | Optional, up to 40 |
 | `foreign_nett_amount`, `foreign_vat_amount`, `foreign_total_amount` | Sum of the lines, in the document currency. Maintained by trigger |
 | `home_nett_amount`, `home_vat_amount`, `home_total_amount` | Those sums divided by `exchange_rate` |
-| `paid_amount` | Zero or greater. Not recalculated from lines |
+| `paid_amount` | Zero or greater. Not recalculated from lines. On a posted document this is the only amount that can still be edited |
+| `status` | `draft`, `posted`, or `void`. Existing documents were marked posted when this column was added |
+| `posted_at`, `posted_by` | Set when the document is posted |
+| `voided_at`, `voided_by`, `void_reason` | Set when an owner or admin voids a posted document. The reason is required |
+
+A draft can be edited and deleted. Posting needs at least one line and is allowed for any member. A posted document is read-only apart from the paid amount, until an owner or admin voids it. A void document cannot be changed or deleted. Status changes only through `post_document` and `void_document`.
+
+`organisation_defaults.lock_date` blocks creating, editing, posting, voiding, or deleting a document whose date is on or before that day. Owners and admins set the lock date.
 | `flex1` … `flex5` | Optional text, up to 200. Shown only when that type has a label |
 
 On every header insert or update the trigger replaces the six amount columns from the lines. A new header therefore starts at zero until its lines exist. Saving a line updates the header, which runs the trigger again.
@@ -246,7 +257,8 @@ If no row has been saved, printing uses this standard layout. The VAT summary an
 | Access | `organisation_access`, `profiles` |
 | Customers and suppliers | `customers`, `suppliers`, `currencies` |
 | Transactions menu | `transaction_types`, with a count from `transaction_headers` |
-| Purchase invoice, order, and return pages | `transaction_headers`, `transaction_lines`, plus the lookups above |
+| Purchase invoice, order, and return pages | `transaction_headers`, `transaction_lines`, plus the lookups above. Drafts can be posted. Owners and admins can void a posted document |
+| Change history | `audit_log`, for owners and admins |
 | Forms | `transaction_forms` and `transaction_types` |
 | Print and PDF | The saved form, or the standard layout, filled from the organisation, the supplier, and one header with its lines |
 

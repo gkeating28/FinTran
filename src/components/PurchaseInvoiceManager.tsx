@@ -5,7 +5,13 @@ import { useActionState, useEffect, useMemo, useState } from "react";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
 import { QuietInput, QuietTextarea } from "@/components/QuietField";
-import { deletePurchaseInvoice, savePurchaseInvoice } from "@/lib/purchase-invoice-actions";
+import {
+  deletePurchaseInvoice,
+  postPurchaseInvoice,
+  savePurchaseInvoice,
+  updatePaidAmount,
+  voidPurchaseInvoice,
+} from "@/lib/purchase-invoice-actions";
 import type { PurchaseInvoiceChoices } from "@/lib/purchase-invoice-data";
 import { formatInteger, groupThousands, numberValue } from "@/lib/numbers";
 import { formatExchangeRate, parseCurrencyRate } from "@/lib/currencies";
@@ -87,6 +93,7 @@ export default function PurchaseInvoiceManager({
   title = "Purchase Invoices",
   summary,
   typeCode,
+  canVoid = false,
 }: {
   rows: PurchaseInvoiceRow[];
   choices: PurchaseInvoiceChoices;
@@ -95,8 +102,10 @@ export default function PurchaseInvoiceManager({
   title?: string;
   summary?: string;
   typeCode?: string;
+  canVoid?: boolean;
 }) {
   const [draft, setDraft] = useState<PurchaseInvoiceRow | "new" | null>(null);
+  const [paidRow, setPaidRow] = useState<PurchaseInvoiceRow | null>(null);
   const [lines, setLines] = useState<PurchaseInvoiceLine[] | null>(null);
   const [lineError, setLineError] = useState<string | null>(null);
 
@@ -130,7 +139,7 @@ export default function PurchaseInvoiceManager({
         rows={rows}
         searchPlaceholder={`Search ${title.toLowerCase()}`}
         searchText={(row) =>
-          `${row.transactionTypeCode} ${row.reference} ${formatInteger(row.reference)} ${row.supplierCode} ${row.supplierName} ${row.orderNumber} ${row.notes}`
+          `${row.transactionTypeCode} ${row.reference} ${formatInteger(row.reference)} ${row.supplierCode} ${row.supplierName} ${row.orderNumber} ${row.notes} ${statusLabel(row.status)} ${row.voidReason}`
         }
         emptyLabel={`No ${title.toLowerCase()} yet for this organisation.`}
         minWidth="980px"
@@ -161,6 +170,12 @@ export default function PurchaseInvoiceManager({
             mono: true,
             sortValue: (row) => String(row.reference),
             render: (row) => formatInteger(row.reference),
+          },
+          {
+            key: "status",
+            label: "Status",
+            sortValue: (row) => row.status,
+            render: (row) => (row.status === "void" && row.voidReason ? `${statusLabel(row.status)} — ${row.voidReason}` : statusLabel(row.status)),
           },
           {
             key: "date",
@@ -212,25 +227,56 @@ export default function PurchaseInvoiceManager({
             <Link className={styles.quiet} href={`/print/${row.transactionTypeCode}/${row.id}`}>
               Print
             </Link>
-            <button className={styles.quiet} type="button" onClick={() => edit(row)}>
-              Edit
-            </button>
-            <form action={deletePurchaseInvoice}>
-              <input type="hidden" name="id" value={row.id} />
-              {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
-              <button
-                className={styles.quiet}
-                type="submit"
-                onClick={(event) => {
-                  if (!window.confirm(`Remove ${row.transactionTypeCode} ${row.reference}?`)) event.preventDefault();
-                }}
-              >
-                Remove
-              </button>
-            </form>
+            {row.status === "draft" ? (
+              <>
+                <button className={styles.quiet} type="button" onClick={() => edit(row)}>
+                  Edit
+                </button>
+                <form action={postPurchaseInvoice}>
+                  <input type="hidden" name="id" value={row.id} />
+                  {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
+                  <button className={styles.quiet} type="submit">
+                    Post
+                  </button>
+                </form>
+                <form action={deletePurchaseInvoice}>
+                  <input type="hidden" name="id" value={row.id} />
+                  {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
+                  <button
+                    className={styles.quiet}
+                    type="submit"
+                    onClick={(event) => {
+                      if (!window.confirm(`Remove ${row.transactionTypeCode} ${row.reference}?`)) event.preventDefault();
+                    }}
+                  >
+                    Remove
+                  </button>
+                </form>
+              </>
+            ) : null}
+            {row.status === "posted" ? (
+              <>
+                <button className={styles.quiet} type="button" onClick={() => setPaidRow(row)}>
+                  Paid amount
+                </button>
+                {canVoid ? (
+                  <form action={voidPurchaseInvoice} className={styles.inlineForm}>
+                    <input type="hidden" name="id" value={row.id} />
+                    {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
+                    <QuietInput name="reason" required maxLength={500} placeholder="Void reason" aria-label="Void reason" />
+                    <button className={styles.quiet} type="submit">
+                      Void
+                    </button>
+                  </form>
+                ) : null}
+              </>
+            ) : null}
           </>
         )}
       />
+      {paidRow ? (
+        <PaidAmountForm key={paidRow.id} row={paidRow} onClose={() => setPaidRow(null)} />
+      ) : null}
       {draft ? (
         <InvoiceForm
           key={draft === "new" ? "new" : draft.id}
@@ -243,6 +289,52 @@ export default function PurchaseInvoiceManager({
         />
       ) : null}
     </section>
+  );
+}
+
+function statusLabel(status: PurchaseInvoiceRow["status"]) {
+  if (status === "posted") return "Posted";
+  if (status === "void") return "Void";
+  return "Draft";
+}
+
+function PaidAmountForm({ row, onClose }: { row: PurchaseInvoiceRow; onClose: () => void }) {
+  const [state, action, pending] = useActionState(updatePaidAmount, {} as ActionState);
+  const [paidAmount, setPaidAmount] = useState(row.paidAmount);
+
+  useEffect(() => {
+    if (state.message) onClose();
+  }, [state.message, onClose]);
+
+  return (
+    <FormModal title={`Paid amount for ${row.transactionTypeCode} ${formatInteger(row.reference)}`} onClose={onClose}>
+      <form className={styles.modalForm} action={action} autoComplete="off" noValidate>
+        <input type="hidden" name="id" value={row.id} />
+        {state.error ? (
+          <p className={styles.alert} role="alert">
+            {state.error}
+          </p>
+        ) : null}
+        <label className={styles.field}>
+          Paid amount
+          <QuietInput
+            name="paid_amount"
+            inputMode="decimal"
+            value={paidAmount}
+            onChange={(event) => setPaidAmount(event.target.value)}
+            className={styles.mono}
+          />
+        </label>
+        <div className={styles.modalActions}>
+          <button className={styles.quiet} type="button" onClick={onClose}>
+            Cancel
+          </button>
+          <button className={styles.primary} type="submit" disabled={pending}>
+            {pending ? "Saving…" : "Save"}
+          </button>
+        </div>
+      </form>
+    </FormModal>
   );
 }
 

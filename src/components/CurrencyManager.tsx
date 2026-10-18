@@ -13,10 +13,12 @@ export default function CurrencyManager({
   rows,
   loadError,
   actionError,
+  canEdit = true,
 }: {
   rows: CurrencyRow[];
   loadError: string | null;
   actionError?: string;
+  canEdit?: boolean;
 }) {
   const [draft, setDraft] = useState<CurrencyRow | "new" | null>(null);
 
@@ -45,9 +47,11 @@ export default function CurrencyManager({
         searchText={(row) => `${row.code} ${row.name} ${row.rate} ${row.home ? "home" : ""}`}
         emptyLabel="No currencies yet for this organisation."
         toolbar={
-          <button className={styles.primary} type="button" onClick={() => setDraft("new")}>
-            Add
-          </button>
+          canEdit ? (
+            <button className={styles.primary} type="button" onClick={() => setDraft("new")}>
+              Add
+            </button>
+          ) : null
         }
         columns={[
           {
@@ -77,25 +81,29 @@ export default function CurrencyManager({
             render: (row) => (row.home ? "Home" : ""),
           },
         ]}
-        actions={(row) => (
-          <>
-            <button className={styles.quiet} type="button" onClick={() => setDraft(row)}>
-              Edit
-            </button>
-            <form action={deleteCurrency}>
-              <input type="hidden" name="id" value={row.id} />
-              <button
-                className={styles.quiet}
-                type="submit"
-                onClick={(event) => {
-                  if (!window.confirm(`Remove ${row.code}?`)) event.preventDefault();
-                }}
-              >
-                Remove
-              </button>
-            </form>
-          </>
-        )}
+        actions={
+          canEdit
+            ? (row) => (
+                <>
+                  <button className={styles.quiet} type="button" onClick={() => setDraft(row)}>
+                    Edit
+                  </button>
+                  <form action={deleteCurrency}>
+                    <input type="hidden" name="id" value={row.id} />
+                    <button
+                      className={styles.quiet}
+                      type="submit"
+                      onClick={(event) => {
+                        if (!window.confirm(`Remove ${row.code}?`)) event.preventDefault();
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </form>
+                </>
+              )
+            : undefined
+        }
       />
       {draft ? (
         <CurrencyForm

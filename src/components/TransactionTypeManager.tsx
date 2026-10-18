@@ -21,10 +21,12 @@ export default function TransactionTypeManager({
   rows,
   loadError,
   actionError,
+  canEdit = true,
 }: {
   rows: TransactionTypeRow[];
   loadError: string | null;
   actionError?: string;
+  canEdit?: boolean;
 }) {
   const [draft, setDraft] = useState<TransactionTypeRow | "new" | null>(null);
 
@@ -55,9 +57,11 @@ export default function TransactionTypeManager({
         emptyLabel="No transaction types yet for this organisation."
         minWidth="1180px"
         toolbar={
-          <button className={styles.primary} type="button" onClick={() => setDraft("new")}>
-            Add
-          </button>
+          canEdit ? (
+            <button className={styles.primary} type="button" onClick={() => setDraft("new")}>
+              Add
+            </button>
+          ) : null
         }
         columns={[
           {
@@ -93,25 +97,29 @@ export default function TransactionTypeManager({
             render: (row: TransactionTypeRow) => row.flexLabels[number - 1],
           })),
         ]}
-        actions={(row) => (
-          <>
-            <button className={styles.quiet} type="button" onClick={() => setDraft(row)}>
-              Edit
-            </button>
-            <form action={deleteTransactionType}>
-              <input type="hidden" name="id" value={row.id} />
-              <button
-                className={styles.quiet}
-                type="submit"
-                onClick={(event) => {
-                  if (!window.confirm(`Remove ${row.code}?`)) event.preventDefault();
-                }}
-              >
-                Remove
-              </button>
-            </form>
-          </>
-        )}
+        actions={
+          canEdit
+            ? (row) => (
+                <>
+                  <button className={styles.quiet} type="button" onClick={() => setDraft(row)}>
+                    Edit
+                  </button>
+                  <form action={deleteTransactionType}>
+                    <input type="hidden" name="id" value={row.id} />
+                    <button
+                      className={styles.quiet}
+                      type="submit"
+                      onClick={(event) => {
+                        if (!window.confirm(`Remove ${row.code}?`)) event.preventDefault();
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </form>
+                </>
+              )
+            : undefined
+        }
       />
       {draft ? (
         <TransactionTypeForm

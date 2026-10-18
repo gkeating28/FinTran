@@ -224,7 +224,7 @@ function AccessFields({
         Role
         <select name="role" defaultValue="member" autoComplete="off">
           <option value="member">Member</option>
-          <option value="admin">Admin</option>
+          {callerRole === "owner" ? <option value="admin">Admin</option> : null}
           {callerRole === "owner" ? <option value="owner">Owner</option> : null}
         </select>
       </label>

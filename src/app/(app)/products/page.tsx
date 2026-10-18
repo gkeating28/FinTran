@@ -3,6 +3,7 @@ import ProductManager from "@/components/ProductManager";
 import { getWorkspace } from "@/lib/data";
 import { listProducts } from "@/lib/product-data";
 import { listReference } from "@/lib/reference-data";
+import { canManage } from "@/lib/types";
 
 export const metadata = { title: "Products" };
 
@@ -28,6 +29,7 @@ export default async function ProductsPage({
       vatRates={vat.rows}
       loadError={loadError || null}
       actionError={params.error}
+      canEdit={canManage(workspace.current.role)}
     />
   );
 }

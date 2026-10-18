@@ -51,6 +51,7 @@ export type OrganisationProfile = {
   vatNumber: string;
   companyNumber: string;
   bankingDetails: string;
+  lockDate: string;
 };
 
 export const emptyOrganisationProfile: OrganisationProfile = {
@@ -62,6 +63,7 @@ export const emptyOrganisationProfile: OrganisationProfile = {
   vatNumber: "",
   companyNumber: "",
   bankingDetails: "",
+  lockDate: "",
 };
 
 export type OrganisationDefaultSet = {
@@ -99,7 +101,7 @@ export async function listDefaultsByOrganisation(organisationIds: string[]): Pro
     supabase
       .from("organisation_defaults")
       .select(
-        "organisation_id, home_currency_id, address, contact_name, contact_email, website, phone, vat_number, company_number, banking_details, logo_path, updated_at",
+        "organisation_id, home_currency_id, address, contact_name, contact_email, website, phone, vat_number, company_number, banking_details, lock_date, logo_path, updated_at",
       )
       .in("organisation_id", organisationIds),
   ]);
@@ -128,6 +130,7 @@ export async function listDefaultsByOrganisation(organisationIds: string[]): Pro
       vatNumber: row.vat_number ?? "",
       companyNumber: row.company_number ?? "",
       bankingDetails: row.banking_details ?? "",
+      lockDate: row.lock_date ?? "",
     };
     set.logoUrl = row.logo_path ? organisationLogoUrl(row.organisation_id, row.updated_at) : null;
   }

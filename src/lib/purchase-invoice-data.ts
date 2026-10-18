@@ -95,6 +95,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
            contact_details, notes, currency_id, exchange_rate, order_number,
            foreign_nett_amount, foreign_vat_amount, foreign_total_amount,
            home_nett_amount, home_vat_amount, home_total_amount, paid_amount,
+           status, void_reason,
            flex1, flex2, flex3, flex4, flex5,
            transaction_types(code), suppliers(code), currencies(code)`,
         )
@@ -196,6 +197,8 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
       homeVatAmount: formatMoney(row.home_vat_amount),
       homeTotalAmount: formatMoney(row.home_total_amount),
       paidAmount: formatMoney(row.paid_amount),
+      status: row.status,
+      voidReason: row.void_reason ?? "",
       flex1: row.flex1 ?? "",
       flex2: row.flex2 ?? "",
       flex3: row.flex3 ?? "",

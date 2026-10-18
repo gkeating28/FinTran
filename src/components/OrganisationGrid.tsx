@@ -13,7 +13,7 @@ import {
   ORGANISATION_LOGO_ERROR,
   ORGANISATION_LOGO_LIMIT,
 } from "@/lib/organisation-logo";
-import { roleLabel, type ActionState, type Role } from "@/lib/types";
+import { canManage, roleLabel, type ActionState, type Role } from "@/lib/types";
 import styles from "@/components/OpsPage.module.css";
 
 export type OrganisationGridRow = {
@@ -80,11 +80,13 @@ export default function OrganisationGrid({
             render: (row) => homeLabel(row),
           },
         ]}
-        actions={(row) => (
-          <button className={styles.quiet} type="button" onClick={() => setEditing(row)}>
-            Edit
-          </button>
-        )}
+        actions={(row) =>
+          canManage(row.role) ? (
+            <button className={styles.quiet} type="button" onClick={() => setEditing(row)}>
+              Edit
+            </button>
+          ) : null
+        }
       />
       {editing ? (
         <OrganisationForm key={editing.id} organisation={editing} onClose={() => setEditing(null)} />
@@ -115,6 +117,7 @@ function OrganisationForm({
   const [companyNumber, setCompanyNumber] = useState(organisation.profile.companyNumber);
   const [address, setAddress] = useState(organisation.profile.address);
   const [bankingDetails, setBankingDetails] = useState(organisation.profile.bankingDetails);
+  const [lockDate, setLockDate] = useState(organisation.profile.lockDate);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [removeLogo, setRemoveLogo] = useState(false);
   const [logoError, setLogoError] = useState<string | null>(null);
@@ -267,6 +270,11 @@ function OrganisationForm({
         <label className={`${styles.field} ${styles.wide}`}>
           Banking details
           <QuietTextarea name="banking_details" maxLength={1000} rows={4} value={bankingDetails} onChange={(event) => setBankingDetails(event.target.value)} />
+        </label>
+        <label className={styles.field}>
+          Lock date
+          <QuietInput name="lock_date" type="date" value={lockDate} onChange={(event) => setLockDate(event.target.value)} />
+          <span className={styles.panelMeta}>Documents on or before this date cannot be entered, posted, voided, or removed.</span>
         </label>
         <div className={`${styles.modalActions} ${styles.wide}`}>
           <button className={styles.quiet} type="button" onClick={onClose}>

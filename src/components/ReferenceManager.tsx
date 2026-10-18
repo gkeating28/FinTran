@@ -22,11 +22,13 @@ export default function ReferenceManager({
   rows,
   loadError,
   actionError,
+  canEdit = true,
 }: {
   kind: ReferenceKind;
   rows: ReferenceRow[];
   loadError: string | null;
   actionError?: string;
+  canEdit?: boolean;
 }) {
   const meta = REFERENCE_META[kind];
   const remove = deleteReference.bind(null, kind);
@@ -56,9 +58,11 @@ export default function ReferenceManager({
         }
         emptyLabel={`No ${meta.title.toLowerCase()} yet for this organisation.`}
         toolbar={
-          <button className={styles.primary} type="button" onClick={() => setDraft("new")}>
-            Add
-          </button>
+          canEdit ? (
+            <button className={styles.primary} type="button" onClick={() => setDraft("new")}>
+              Add
+            </button>
+          ) : null
         }
         columns={[
           {
@@ -101,25 +105,29 @@ export default function ReferenceManager({
               ]
             : []),
         ]}
-        actions={(row) => (
-          <>
-            <button className={styles.quiet} type="button" onClick={() => setDraft(row)}>
-              Edit
-            </button>
-            <form action={remove}>
-              <input type="hidden" name="id" value={row.id} />
-              <button
-                className={styles.quiet}
-                type="submit"
-                onClick={(event) => {
-                  if (!window.confirm(`Remove ${row.code}?`)) event.preventDefault();
-                }}
-              >
-                Remove
-              </button>
-            </form>
-          </>
-        )}
+        actions={
+          canEdit
+            ? (row) => (
+                <>
+                  <button className={styles.quiet} type="button" onClick={() => setDraft(row)}>
+                    Edit
+                  </button>
+                  <form action={remove}>
+                    <input type="hidden" name="id" value={row.id} />
+                    <button
+                      className={styles.quiet}
+                      type="submit"
+                      onClick={(event) => {
+                        if (!window.confirm(`Remove ${row.code}?`)) event.preventDefault();
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </form>
+                </>
+              )
+            : undefined
+        }
       />
       {draft ? (
         <ReferenceForm
