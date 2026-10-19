@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
 import { QuietInput, QuietTextarea } from "@/components/QuietField";
@@ -140,6 +140,122 @@ export default function PartyManager({
         />
       ) : null}
     </section>
+  );
+}
+
+const SCHEME_RESULTS = 8;
+
+function SchemeLookup({
+  schemes,
+  value,
+  onChange,
+}: {
+  schemes: CodeName[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [active, setActive] = useState(0);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const needle = query.trim().toLowerCase();
+  const matches = needle
+    ? schemes.filter((scheme) => `${scheme.code} ${scheme.name}`.toLowerCase().includes(needle))
+    : schemes;
+  const selected = schemes.find((scheme) => scheme.code === value);
+  const ordered = !needle && selected ? [selected, ...matches.filter((scheme) => scheme.code !== selected.code)] : matches;
+  const showNone = !needle || "none".startsWith(needle);
+  const schemeSlots = showNone ? SCHEME_RESULTS - 1 : SCHEME_RESULTS;
+  const shown = ordered.slice(0, schemeSlots);
+  const options = [...(showNone ? [{ code: "", name: "None" }] : []), ...shown];
+
+  useEffect(() => {
+    if (!open) return;
+    searchRef.current?.focus();
+    const onPointer = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onPointer);
+    return () => document.removeEventListener("mousedown", onPointer);
+  }, [open]);
+
+  useEffect(() => {
+    setActive(0);
+  }, [query, open]);
+
+  function choose(code: string) {
+    onChange(code);
+    setQuery("");
+    setOpen(false);
+  }
+
+  const buttonLabel = selected ? `${selected.code} — ${selected.name}` : value || "None";
+
+  return (
+    <div className={styles.lookup} ref={rootRef}>
+      <input type="hidden" name="peppol_scheme" value={value} />
+      <button
+        type="button"
+        className={styles.lookupButton}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span>{buttonLabel}</span>
+      </button>
+      {open ? (
+        <div className={`${styles.lookupMenu} ${styles.lookupMenuCapped}`} role="listbox" aria-label="Peppol scheme">
+          <input
+            ref={searchRef}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "ArrowDown") {
+                event.preventDefault();
+                setActive((current) => Math.min(current + 1, Math.max(options.length - 1, 0)));
+              } else if (event.key === "ArrowUp") {
+                event.preventDefault();
+                setActive((current) => Math.max(current - 1, 0));
+              } else if (event.key === "Enter") {
+                event.preventDefault();
+                const option = options[active];
+                if (option) choose(option.code);
+              } else if (event.key === "Escape") {
+                event.preventDefault();
+                setOpen(false);
+              }
+            }}
+            placeholder="Search schemes"
+            aria-label="Search Peppol schemes"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
+          />
+          {options.length === 0 ? <p className={styles.lookupEmpty}>No schemes match.</p> : null}
+          {options.map((option, index) => (
+            <button
+              key={option.code || "none"}
+              type="button"
+              role="option"
+              aria-selected={option.code === value}
+              data-active={index === active ? "true" : "false"}
+              className={styles.lookupOption}
+              onMouseEnter={() => setActive(index)}
+              onClick={() => choose(option.code)}
+            >
+              {option.code ? `${option.code} — ${option.name}` : "None"}
+            </button>
+          ))}
+          {matches.length > shown.length ? (
+            <p className={styles.lookupNote}>
+              Showing {shown.length} of {matches.length}. Type to narrow the list.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -357,14 +473,7 @@ function PartyForm({
         </label>
         <label className={styles.field}>
           Peppol scheme
-          <select name="peppol_scheme" autoComplete="off" value={peppolScheme} onChange={(event) => setPeppolScheme(event.target.value)}>
-            <option value="">None</option>
-            {schemes.map((scheme) => (
-              <option key={scheme.code} value={scheme.code}>
-                {scheme.code} — {scheme.name}
-              </option>
-            ))}
-          </select>
+          <SchemeLookup schemes={schemes} value={peppolScheme} onChange={setPeppolScheme} />
         </label>
         <label className={styles.field}>
           Peppol ID

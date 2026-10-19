@@ -773,7 +773,10 @@ function InvoiceForm({
         </div>
         <div className={styles.linesPane}>
           <div className={styles.gridToolbar}>
-            <span className={styles.paneLabel}>Lines{lines === null ? "" : ` (${invoiceLines.length})`}</span>
+            <span className={styles.paneLabel}>
+              Lines{lines === null ? "" : ` (${invoiceLines.length})`}
+              {locked && invoiceLines.length > 0 ? <span className={styles.lineHint}>Select a line to see its details.</span> : null}
+            </span>
             {locked ? null : (
               <button
                 className={styles.primary}
@@ -814,7 +817,31 @@ function InvoiceForm({
                     </tr>
                   ) : (
                     invoiceLines.map((line) => (
-                      <tr key={line.lineNumber}>
+                      <tr
+                        key={line.lineNumber}
+                        className={locked ? styles.lineClick : undefined}
+                        tabIndex={locked ? 0 : undefined}
+                        role={locked ? "button" : undefined}
+                        aria-label={locked ? `View line ${line.lineNumber}` : undefined}
+                        onClick={
+                          locked
+                            ? () => {
+                                setLineMessage(null);
+                                setLineDraft(line);
+                              }
+                            : undefined
+                        }
+                        onKeyDown={
+                          locked
+                            ? (event) => {
+                                if (event.key !== "Enter" && event.key !== " ") return;
+                                event.preventDefault();
+                                setLineMessage(null);
+                                setLineDraft(line);
+                              }
+                            : undefined
+                        }
+                      >
                         <td className={styles.mono}>{line.lineNumber}</td>
                         <td className={styles.mono}>{line.productCode}</td>
                         <td>{line.description}</td>
@@ -902,6 +929,7 @@ function InvoiceForm({
         departments={choices.departments}
         costCentres={choices.costCentres}
         vatRates={expenseVat}
+        readOnly={locked}
         message={lineMessage}
         onChange={setLineDraft}
         onSave={saveLine}
@@ -915,6 +943,27 @@ function InvoiceForm({
   );
 }
 
+function choicesWithCurrent(products: InvoiceProduct[], id: string, code: string, description: string) {
+  if (!id || products.some((product) => product.id === id)) return products;
+  return [
+    {
+      id,
+      code: code || id,
+      description,
+      purchasePrice: "",
+      purchaseGlCodeId: "",
+      purchaseVatCodeId: "",
+      unitCode: "",
+    },
+    ...products,
+  ];
+}
+
+function withCurrent<T extends { id: string }>(rows: T[], id: string, extra: T) {
+  if (!id || rows.some((row) => row.id === id)) return rows;
+  return [extra, ...rows];
+}
+
 function LineEditor({
   draft,
   products,
@@ -923,6 +972,7 @@ function LineEditor({
   departments,
   costCentres,
   vatRates,
+  readOnly = false,
   message,
   onChange,
   onSave,
@@ -935,6 +985,7 @@ function LineEditor({
   departments: InvoiceCode[];
   costCentres: InvoiceCode[];
   vatRates: InvoiceVat[];
+  readOnly?: boolean;
   message: string | null;
   onChange: (line: PurchaseInvoiceLine) => void;
   onSave: () => void;
@@ -956,9 +1007,15 @@ function LineEditor({
   const vat = vatRates.find((rate) => rate.id === draft.vatRateId);
   const amounts = lineAmounts(draft.quantity, draft.price, draft.discountAmount || "0", vat?.rate ?? null);
   const preview = amounts && !("error" in amounts) ? amounts : null;
+  const productChoices = choicesWithCurrent(products, draft.productId, draft.productCode, draft.description);
+  const unitChoices =
+    !draft.unitCode || units.some((unit) => unit.code === draft.unitCode)
+      ? units
+      : [{ code: draft.unitCode, name: draft.unitCode, common: true }, ...units];
+  const title = readOnly ? `Line ${draft.lineNumber}` : draft.lineNumber ? `Edit line ${draft.lineNumber}` : "Add line";
 
   return (
-    <FormModal title={draft.lineNumber ? `Edit line ${draft.lineNumber}` : "Add line"} onClose={onCancel} className={styles.lineDialog}>
+    <FormModal title={title} onClose={onCancel} className={styles.lineDialog}>
     <form
       className={`${styles.modalForm} ${styles.partyForm}`}
       autoComplete="off"
@@ -975,9 +1032,9 @@ function LineEditor({
       ) : null}
       <label className={styles.field}>
         Product code
-        <select autoComplete="off" value={draft.productId} onChange={(event) => chooseProduct(event.target.value)}>
+        <select autoComplete="off" value={draft.productId} disabled={readOnly} onChange={(event) => chooseProduct(event.target.value)}>
           <option value="">No product</option>
-          {products.map((product) => (
+          {productChoices.map((product) => (
             <option key={product.id} value={product.id}>
               {product.code} — {product.description}
             </option>
@@ -986,17 +1043,18 @@ function LineEditor({
       </label>
       <label className={styles.field}>
         Description
-        <QuietInput value={draft.description} maxLength={200} onChange={(event) => onChange({ ...draft, description: event.target.value })} />
+        <QuietInput value={draft.description} maxLength={200} disabled={readOnly} onChange={(event) => onChange({ ...draft, description: event.target.value })} />
       </label>
       <label className={styles.field}>
         Unit
-        <UnitSelect units={units} value={draft.unitCode || "C62"} onChange={(unitCode) => onChange({ ...draft, unitCode })} />
+        <UnitSelect units={unitChoices} value={draft.unitCode || "C62"} disabled={readOnly} onChange={(unitCode) => onChange({ ...draft, unitCode })} />
       </label>
       <label className={styles.field}>
         Seller item
         <QuietInput
           value={draft.sellerItemId}
           maxLength={60}
+          disabled={readOnly}
           onChange={(event) => onChange({ ...draft, sellerItemId: event.target.value })}
           placeholder="Supplier's item code"
         />
@@ -1007,14 +1065,15 @@ function LineEditor({
           value={draft.lineNote}
           maxLength={400}
           rows={2}
+          disabled={readOnly}
           onChange={(event) => onChange({ ...draft, lineNote: event.target.value })}
         />
       </label>
       <label className={styles.field}>
         GL code
-        <select autoComplete="off" value={draft.glCodeId} onChange={(event) => onChange({ ...draft, glCodeId: event.target.value })}>
+        <select autoComplete="off" value={draft.glCodeId} disabled={readOnly} onChange={(event) => onChange({ ...draft, glCodeId: event.target.value })}>
           <option value="">No GL code</option>
-          {glCodes.map((code) => (
+          {withCurrent(glCodes, draft.glCodeId, { id: draft.glCodeId, code: "Unavailable", description: "" }).map((code) => (
             <option key={code.id} value={code.id}>
               {codeLabel(code)}
             </option>
@@ -1023,9 +1082,9 @@ function LineEditor({
       </label>
       <label className={styles.field}>
         Department code
-        <select autoComplete="off" value={draft.departmentId} onChange={(event) => onChange({ ...draft, departmentId: event.target.value })}>
+        <select autoComplete="off" value={draft.departmentId} disabled={readOnly} onChange={(event) => onChange({ ...draft, departmentId: event.target.value })}>
           <option value="">No department</option>
-          {departments.map((code) => (
+          {withCurrent(departments, draft.departmentId, { id: draft.departmentId, code: "Unavailable", description: "" }).map((code) => (
             <option key={code.id} value={code.id}>
               {codeLabel(code)}
             </option>
@@ -1034,9 +1093,9 @@ function LineEditor({
       </label>
       <label className={styles.field}>
         Cost centre code
-        <select autoComplete="off" value={draft.costCentreId} onChange={(event) => onChange({ ...draft, costCentreId: event.target.value })}>
+        <select autoComplete="off" value={draft.costCentreId} disabled={readOnly} onChange={(event) => onChange({ ...draft, costCentreId: event.target.value })}>
           <option value="">No cost centre</option>
-          {costCentres.map((code) => (
+          {withCurrent(costCentres, draft.costCentreId, { id: draft.costCentreId, code: "Unavailable", description: "" }).map((code) => (
             <option key={code.id} value={code.id}>
               {codeLabel(code)}
             </option>
@@ -1045,9 +1104,17 @@ function LineEditor({
       </label>
       <label className={styles.field}>
         VAT code
-        <select autoComplete="off" value={draft.vatRateId} onChange={(event) => onChange({ ...draft, vatRateId: event.target.value })}>
+        <select autoComplete="off" value={draft.vatRateId} disabled={readOnly} onChange={(event) => onChange({ ...draft, vatRateId: event.target.value })}>
           <option value="">No VAT</option>
-          {vatRates.map((rate) => (
+          {withCurrent(vatRates, draft.vatRateId, {
+            id: draft.vatRateId,
+            code: "Unavailable",
+            description: "",
+            rate: "0",
+            vatType: "Expense",
+            vatCategory: "",
+            exemptionReason: "",
+          }).map((rate) => (
             <option key={rate.id} value={rate.id}>
               {rate.code} — {rate.description} ({groupThousands(rate.rate)}%)
             </option>
@@ -1060,6 +1127,7 @@ function LineEditor({
           className={styles.mono}
           inputMode="decimal"
           value={draft.quantity}
+          disabled={readOnly}
           onChange={(event) => onChange({ ...draft, quantity: event.target.value })}
           onBlur={(event) => {
             if (parseMoney(event.target.value)) onChange({ ...draft, quantity: formatMoney(event.target.value) });
@@ -1072,6 +1140,7 @@ function LineEditor({
           className={styles.mono}
           inputMode="decimal"
           value={draft.price}
+          disabled={readOnly}
           onChange={(event) => onChange({ ...draft, price: event.target.value })}
           onBlur={(event) => {
             if (parseMoney(event.target.value)) onChange({ ...draft, price: formatMoney(event.target.value) });
@@ -1084,6 +1153,7 @@ function LineEditor({
           className={styles.mono}
           inputMode="decimal"
           value={draft.discountAmount}
+          disabled={readOnly}
           onChange={(event) => onChange({ ...draft, discountAmount: event.target.value })}
           onBlur={(event) => {
             if (parseMoney(event.target.value || "0")) onChange({ ...draft, discountAmount: formatMoney(event.target.value || "0") });
@@ -1091,15 +1161,18 @@ function LineEditor({
         />
       </label>
       <p className={`${styles.panelMeta} ${styles.wide}`}>
-        Nett {preview ? formatMoney(preview.nett) : "—"} · VAT {preview ? formatMoney(preview.vat) : "—"}
+        Nett {readOnly ? draft.nettAmount : preview ? formatMoney(preview.nett) : "—"} · VAT{" "}
+        {readOnly ? draft.vatAmount : preview ? formatMoney(preview.vat) : "—"}
       </p>
       <div className={styles.modalActions}>
         <button className={styles.quiet} type="button" onClick={onCancel}>
-          Cancel
+          {readOnly ? "Close" : "Cancel"}
         </button>
-        <button className={styles.primary} type="submit">
-          Save line
-        </button>
+        {readOnly ? null : (
+          <button className={styles.primary} type="submit">
+            Save line
+          </button>
+        )}
       </div>
     </form>
     </FormModal>

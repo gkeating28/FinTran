@@ -588,6 +588,29 @@
   flex: none;
 }
 
+.lineHint {
+  margin-left: 10px;
+  color: var(--ops-text-2);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.lineClick {
+  cursor: pointer;
+}
+
+.lineClick:hover td,
+.lineClick:focus-visible td {
+  background: #eef3f8;
+}
+
+.lineClick:focus-visible {
+  outline: 2px solid var(--ops-accent);
+  outline-offset: -2px;
+}
+
 .lineTable {
   width: 100%;
   border-collapse: collapse;
@@ -771,12 +794,24 @@
   cursor: pointer;
 }
 
+.lookupMenuCapped {
+  max-height: none;
+  overflow: visible;
+}
+
+.lookupMenu input {
+  width: 100%;
+  margin-bottom: 2px;
+}
+
 .lookupOption:hover,
-.lookupOption[aria-selected="true"] {
+.lookupOption[aria-selected="true"],
+.lookupOption[data-active="true"] {
   background: #eef3f8;
 }
 
-.lookupEmpty {
+.lookupEmpty,
+.lookupNote {
   margin: 0;
   padding: 6px 8px;
   color: var(--ops-text-2);
