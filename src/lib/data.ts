@@ -108,7 +108,7 @@ export async function listOrganisationMembers(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("organisation_access")
-    .select("role, user_id, profiles(email, display_name)")
+    .select("role, user_id, profiles!organisation_access_user_id_fkey(email, display_name)")
     .eq("organisation_id", organisationId);
 
   if (error) {
