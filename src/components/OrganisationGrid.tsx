@@ -5,6 +5,7 @@ import DataGrid from "@/components/DataGrid";
 import { CreateOrganisationForm } from "@/components/Forms";
 import FormModal from "@/components/FormModal";
 import { QuietInput, QuietTextarea } from "@/components/QuietField";
+import SchemeLookup from "@/components/SchemeLookup";
 import { deleteOrganisation } from "@/lib/actions";
 import { updateOrganisationDefaults } from "@/lib/currency-actions";
 import type { OrganisationProfile } from "@/lib/currency-data";
@@ -179,7 +180,7 @@ function OrganisationForm({
   }, [state.message, onClose]);
 
   return (
-    <FormModal title={`Edit ${organisation.name}`} onClose={onClose} className={styles.partyDialog}>
+    <FormModal title={`Edit ${organisation.name}`} onClose={onClose} className={`${styles.partyDialog} ${styles.wideDialog}`}>
       <form className={`${styles.modalForm} ${styles.partyForm}`} action={action} autoComplete="off" noValidate>
         <input type="hidden" name="organisation_id" value={organisation.id} />
         <div className={`${styles.field} ${styles.wide}`}>
@@ -330,14 +331,7 @@ function OrganisationForm({
         </label>
         <label className={styles.field}>
           Peppol scheme
-          <select name="peppol_scheme" autoComplete="off" value={peppolScheme} onChange={(event) => setPeppolScheme(event.target.value)}>
-            <option value="">None</option>
-            {schemes.map((scheme) => (
-              <option key={scheme.code} value={scheme.code}>
-                {scheme.code} — {scheme.name}
-              </option>
-            ))}
-          </select>
+          <SchemeLookup schemes={schemes} value={peppolScheme} onChange={setPeppolScheme} />
         </label>
         <label className={styles.field}>
           Peppol ID
