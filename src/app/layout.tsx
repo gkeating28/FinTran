@@ -1,24 +1,8 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Plus_Jakarta_Sans, Public_Sans } from "next/font/google";
+import { ibmPlexMono } from "./fonts/ibm-plex-mono";
+import { jakarta } from "./fonts/jakarta";
+import { publicSans } from "./fonts/public-sans";
 import "./globals.css";
-
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  variable: "--font-jakarta",
-  weight: ["700"],
-});
-
-const publicSans = Public_Sans({
-  subsets: ["latin"],
-  variable: "--font-public-sans",
-  weight: ["400", "600", "700"],
-});
-
-const ibmPlexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  variable: "--font-ibm-plex-mono",
-  weight: ["500"],
-});
 
 export const metadata: Metadata = {
   title: {
