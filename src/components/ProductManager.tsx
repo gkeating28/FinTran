@@ -5,6 +5,8 @@ import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
 import { QuietInput } from "@/components/QuietField";
 import { createProduct, deleteProduct, loadProductChoices, updateProduct } from "@/lib/product-actions";
+import UnitSelect from "@/components/UnitSelect";
+import type { UnitChoice } from "@/lib/code-lists";
 import { formatProductPrice, parseProductPrice, type ProductRow } from "@/lib/products";
 import { formatRate, type AccountType, type ReferenceRow, type VatType } from "@/lib/reference";
 import styles from "@/components/OpsPage.module.css";
@@ -14,6 +16,7 @@ export default function ProductManager({
   rows,
   glCodes,
   vatRates,
+  units,
   loadError,
   actionError,
   canEdit = true,
@@ -21,6 +24,7 @@ export default function ProductManager({
   rows: ProductRow[];
   glCodes: ReferenceRow[];
   vatRates: ReferenceRow[];
+  units: UnitChoice[];
   loadError: string | null;
   actionError?: string;
   canEdit?: boolean;
@@ -32,9 +36,9 @@ export default function ProductManager({
       <div>
         <h1 className={styles.heading}>Products</h1>
         <p className={styles.lede}>
-          Products for this organisation. Purchase GL codes are Expense accounts and purchase VAT
-          codes are Expense rates. Sales GL codes are Income accounts and sales VAT codes are Sales
-          rates.
+          Products for this organisation. Each product has a unit, starting from C62, one. Purchase
+          GL codes are Expense accounts and purchase VAT codes are Expense rates. Sales GL codes
+          are Income accounts and sales VAT codes are Sales rates.
         </p>
       </div>
       {loadError ? (
@@ -51,7 +55,7 @@ export default function ProductManager({
         rows={rows}
         searchPlaceholder="Search products"
         searchText={(row) =>
-          `${row.code} ${row.description} ${row.purchasePrice} ${row.purchaseGlCode} ${row.purchaseVatCode} ${row.salesPrice} ${row.salesGlCode} ${row.salesVatCode}`
+          `${row.code} ${row.description} ${row.unitCode} ${row.purchasePrice} ${row.purchaseGlCode} ${row.purchaseVatCode} ${row.salesPrice} ${row.salesGlCode} ${row.salesVatCode}`
         }
         emptyLabel="No products yet for this organisation."
         minWidth="1080px"
@@ -75,6 +79,13 @@ export default function ProductManager({
             label: "Description",
             sortValue: (row) => row.description,
             render: (row) => row.description,
+          },
+          {
+            key: "unit",
+            label: "Unit",
+            mono: true,
+            sortValue: (row) => row.unitCode,
+            render: (row) => row.unitCode,
           },
           {
             key: "purchasePrice",
@@ -151,6 +162,7 @@ export default function ProductManager({
           row={draft === "new" ? null : draft}
           glCodes={glCodes}
           vatRates={vatRates}
+          units={units}
           onClose={() => setDraft(null)}
         />
       ) : null}
@@ -269,11 +281,13 @@ function ProductForm({
   row,
   glCodes,
   vatRates,
+  units,
   onClose,
 }: {
   row: ProductRow | null;
   glCodes: ReferenceRow[];
   vatRates: ReferenceRow[];
+  units: UnitChoice[];
   onClose: () => void;
 }) {
   const [availableGlCodes, setAvailableGlCodes] = useState(glCodes);
@@ -287,6 +301,7 @@ function ProductForm({
   const [state, action, pending] = useActionState(save, {} as ActionState);
   const [code, setCode] = useState(row?.code ?? "");
   const [description, setDescription] = useState(row?.description ?? "");
+  const [unitCode, setUnitCode] = useState(row?.unitCode || "C62");
   const [purchasePrice, setPurchasePrice] = useState(row?.purchasePrice ?? "");
   const [salesPrice, setSalesPrice] = useState(row?.salesPrice ?? "");
   const [purchaseGlCodeId, setPurchaseGlCodeId] = useState(
@@ -382,6 +397,10 @@ function ProductForm({
             onChange={(event) => setDescription(event.target.value)}
             placeholder="Blue notebook"
           />
+        </label>
+        <label className={styles.field}>
+          Unit
+          <UnitSelect name="unit_code" units={units} value={unitCode} onChange={setUnitCode} />
         </label>
         <label className={styles.field}>
           Purchase price

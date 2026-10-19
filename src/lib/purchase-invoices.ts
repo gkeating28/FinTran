@@ -1,6 +1,8 @@
+import type { UnitChoice } from "@/lib/code-lists";
+import { parseCurrencyRate } from "@/lib/currencies";
 import { numberValue } from "@/lib/numbers";
 import { formatProductPrice, parseProductPrice } from "@/lib/products";
-import { parseCurrencyRate } from "@/lib/currencies";
+import type { DocumentKind } from "@/lib/transaction-types";
 
 export type PurchaseInvoiceLine = {
   lineNumber: number;
@@ -16,6 +18,9 @@ export type PurchaseInvoiceLine = {
   discountAmount: string;
   nettAmount: string;
   vatAmount: string;
+  unitCode: string;
+  lineNote: string;
+  sellerItemId: string;
 };
 
 export type PurchaseInvoiceRow = {
@@ -45,6 +50,9 @@ export type PurchaseInvoiceRow = {
   paidAmount: string;
   roundingAmount: string;
   amountDue: string;
+  precedingHeaderId: string;
+  precedingReference: string;
+  precedingDate: string;
   breakdown: VatBreakdownRow[];
   status: "draft" | "posted" | "void";
   voidReason: string;
@@ -60,8 +68,17 @@ export type PurchaseTypeChoice = {
   id: string;
   code: string;
   description: string;
+  documentKind: DocumentKind;
   nextReference: number;
   flexLabels: [string, string, string, string, string];
+};
+
+export type CreditInvoice = {
+  id: string;
+  reference: number | null;
+  transactionDate: string;
+  supplierId: string;
+  typeCode: string;
 };
 
 export type SupplierChoice = {
@@ -85,6 +102,7 @@ export type InvoiceProduct = {
   purchasePrice: string;
   purchaseGlCodeId: string;
   purchaseVatCodeId: string;
+  unitCode: string;
 };
 
 export type InvoiceCode = {

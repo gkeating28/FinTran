@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getWorkspace, ORGANISATION_COOKIE } from "@/lib/data";
 import { parseDescription, parseReferenceCode } from "@/lib/reference";
-import { parseFlexLabel, parseTransactionTypeKind } from "@/lib/transaction-types";
+import { parseDocumentKind, parseFlexLabel, parseTransactionTypeKind } from "@/lib/transaction-types";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionState } from "@/lib/types";
 
@@ -50,15 +50,17 @@ function fieldsFrom(formData: FormData) {
   const code = parseReferenceCode(text(formData, "code"));
   const description = parseDescription(text(formData, "description"));
   const type = parseTransactionTypeKind(text(formData, "type"));
+  const documentKind = parseDocumentKind(text(formData, "document_kind"));
   if (!code || !description) {
     return { error: "Start the code with a letter or number. Then use letters, numbers, dots, or hyphens, up to 20 characters, and a description up to 200 characters." } as const;
   }
   if (!type) return { error: "Choose Sales or Purchases." } as const;
+  if (!documentKind) return { error: "Choose an invoice, credit note, or order." } as const;
   const flexLabels = [1, 2, 3, 4, 5].map((number) => parseFlexLabel(text(formData, `flex${number}_label`)));
   if (flexLabels.some((label) => label === undefined)) {
     return { error: "Each flex label can be up to 80 characters." } as const;
   }
-  return { code, description, type, flexLabels: flexLabels as [string | null, string | null, string | null, string | null, string | null] } as const;
+  return { code, description, type, documentKind, flexLabels: flexLabels as [string | null, string | null, string | null, string | null, string | null] } as const;
 }
 
 function refresh() {
@@ -92,6 +94,7 @@ export async function createTransactionType(
     code: fields.code,
     description: fields.description,
     type: fields.type,
+    document_kind: fields.documentKind,
     last_reference: 0,
     ...labelColumns(fields.flexLabels),
   });
@@ -120,6 +123,7 @@ export async function updateTransactionType(
       code: fields.code,
       description: fields.description,
       type: fields.type,
+      document_kind: fields.documentKind,
       ...labelColumns(fields.flexLabels),
     })
     .eq("id", id)

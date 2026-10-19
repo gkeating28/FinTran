@@ -5,6 +5,7 @@ import { useActionState, useEffect, useMemo, useState } from "react";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
 import { QuietInput, QuietTextarea } from "@/components/QuietField";
+import UnitSelect from "@/components/UnitSelect";
 import {
   deletePurchaseInvoice,
   postPurchaseInvoice,
@@ -22,6 +23,7 @@ import {
   parseMoney,
   roundCents,
   toHome,
+  type CreditInvoice,
   type InvoiceCode,
   type InvoiceProduct,
   type InvoiceVat,
@@ -87,7 +89,15 @@ function blankLine(): PurchaseInvoiceLine {
     discountAmount: "0.00",
     nettAmount: "0.00",
     vatAmount: "0.00",
+    unitCode: "C62",
+    lineNote: "",
+    sellerItemId: "",
   };
+}
+
+function creditLabel(invoice: CreditInvoice) {
+  const reference = invoice.reference == null ? "—" : formatInteger(invoice.reference);
+  return `${invoice.typeCode} ${reference} · ${invoice.transactionDate}`;
 }
 
 export default function PurchaseInvoiceManager({
@@ -329,6 +339,9 @@ function InvoiceForm({
   const [supplyDate, setSupplyDate] = useState(header?.supplyDate ?? "");
   const [paidAmount, setPaidAmount] = useState(header?.paidAmount || "0.00");
   const [roundingAmount, setRoundingAmount] = useState(header?.roundingAmount || "0.00");
+  const [precedingHeaderId, setPrecedingHeaderId] = useState(header?.precedingHeaderId ?? "");
+  const [precedingReference, setPrecedingReference] = useState(header?.precedingReference ?? "");
+  const [precedingDate, setPrecedingDate] = useState(header?.precedingDate ?? "");
   const [flex, setFlex] = useState([
     header?.flex1 ?? "",
     header?.flex2 ?? "",
@@ -396,6 +409,11 @@ function InvoiceForm({
 
   function chooseSupplier(id: string) {
     setSupplierId(id);
+    setPrecedingHeaderId((current) => {
+      const invoice = choices.creditInvoices.find((item) => item.id === current);
+      if (invoice && invoice.supplierId !== id) return "";
+      return current;
+    });
     const supplier = choices.suppliers.find((item) => item.id === id);
     if (!supplier) {
       setSupplierName("");
@@ -416,13 +434,36 @@ function InvoiceForm({
     setExchangeRate(formatExchangeRate(currency.rate));
   }
 
+  function chooseCredit(id: string) {
+    setPrecedingHeaderId(id);
+    const invoice = choices.creditInvoices.find((item) => item.id === id);
+    if (!invoice) return;
+    setPrecedingReference(invoice.reference == null ? "" : String(invoice.reference));
+    setPrecedingDate(invoice.transactionDate);
+  }
+
   function saveLine() {
     if (!lineDraft) return;
     const description = lineDraft.description.trim();
     const vat = expenseVat.find((rate) => rate.id === lineDraft.vatRateId);
     const amounts = lineAmounts(lineDraft.quantity, lineDraft.price, lineDraft.discountAmount || "0", vat?.rate ?? null);
+    const lineNote = lineDraft.lineNote.trim();
+    const sellerItemId = lineDraft.sellerItemId.trim();
+    const unitCode = lineDraft.unitCode.trim().toUpperCase() || "C62";
     if (!description) {
       setLineMessage("Enter a description.");
+      return;
+    }
+    if (lineNote.length > 400) {
+      setLineMessage("A line note can be up to 400 characters.");
+      return;
+    }
+    if (sellerItemId.length > 60) {
+      setLineMessage("A seller item identifier can be up to 60 characters.");
+      return;
+    }
+    if (!/^[A-Z0-9]{2,3}$/.test(unitCode)) {
+      setLineMessage("Choose a unit.");
       return;
     }
     if (!amounts) {
@@ -436,6 +477,9 @@ function InvoiceForm({
     const next = {
       ...lineDraft,
       description,
+      unitCode,
+      lineNote,
+      sellerItemId,
       productCode: choices.products.find((product) => product.id === lineDraft.productId)?.code ?? "",
       quantity: formatMoney(lineDraft.quantity),
       price: formatMoney(lineDraft.price),
@@ -457,6 +501,10 @@ function InvoiceForm({
 
   const blocked =
     choices.types.length === 0 || choices.suppliers.length === 0 || choices.currencies.length === 0 || lines === null;
+  const creditNote = selectedType?.documentKind === "credit_note";
+  const creditChoices = choices.creditInvoices.filter(
+    (invoice) => invoice.supplierId === supplierId && invoice.id !== header?.id,
+  );
 
   return (
     <>
@@ -583,6 +631,51 @@ function InvoiceForm({
           Order number
           <QuietInput name="order_number" maxLength={40} disabled={locked} value={orderNumber} onChange={(event) => setOrderNumber(event.target.value)} />
         </label>
+        {creditNote ? (
+          <>
+            <label className={`${styles.field} ${styles.wide}`}>
+              Credits invoice
+              <select
+                name="preceding_header_id"
+                autoComplete="off"
+                value={precedingHeaderId}
+                disabled={locked}
+                onChange={(event) => chooseCredit(event.target.value)}
+              >
+                <option value="">Type a reference below</option>
+                {creditChoices.map((invoice) => (
+                  <option key={invoice.id} value={invoice.id}>
+                    {creditLabel(invoice)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={styles.field}>
+              Preceding invoice
+              <QuietInput
+                name="preceding_reference"
+                maxLength={60}
+                disabled={locked}
+                value={precedingReference}
+                onChange={(event) => setPrecedingReference(event.target.value)}
+                placeholder="Invoice reference"
+              />
+            </label>
+            <label className={styles.field}>
+              Preceding date
+              <QuietInput
+                name="preceding_date"
+                type="date"
+                disabled={locked}
+                value={precedingDate}
+                onChange={(event) => setPrecedingDate(event.target.value)}
+              />
+            </label>
+            <p className={`${styles.panelMeta} ${styles.wide}`}>
+              A credit note needs the invoice it applies to before it can be posted. Choose a posted invoice for this supplier, or type the reference and date.
+            </p>
+          </>
+        ) : null}
         <label className={styles.field}>
           Rounding
           <QuietInput
@@ -705,6 +798,7 @@ function InvoiceForm({
                     <th>Line</th>
                     <th>Product</th>
                     <th>Description</th>
+                    <th>Unit</th>
                     <th>GL</th>
                     <th>VAT</th>
                     <th className={styles.num}>Qty</th>
@@ -716,7 +810,7 @@ function InvoiceForm({
                 <tbody>
                   {invoiceLines.length === 0 ? (
                     <tr>
-                      <td colSpan={locked ? 8 : 9}>No lines yet.</td>
+                      <td colSpan={locked ? 9 : 10}>No lines yet.</td>
                     </tr>
                   ) : (
                     invoiceLines.map((line) => (
@@ -724,6 +818,7 @@ function InvoiceForm({
                         <td className={styles.mono}>{line.lineNumber}</td>
                         <td className={styles.mono}>{line.productCode}</td>
                         <td>{line.description}</td>
+                        <td className={styles.mono}>{line.unitCode || "C62"}</td>
                         <td className={styles.mono}>{choices.glCodes.find((code) => code.id === line.glCodeId)?.code ?? ""}</td>
                         <td className={styles.mono}>{choices.vatRates.find((rate) => rate.id === line.vatRateId)?.code ?? ""}</td>
                         <td className={`${styles.mono} ${styles.num}`}>{line.quantity}</td>
@@ -755,7 +850,7 @@ function InvoiceForm({
                 </tbody>
                 <tfoot>
                   <tr>
-                    <th colSpan={6}>Total</th>
+                    <th colSpan={7}>Total</th>
                     <td className={`${styles.mono} ${styles.num}`}>{formatMoney(totals.foreignNett)}</td>
                     <td className={`${styles.mono} ${styles.num}`}>{formatMoney(totals.foreignVat)}</td>
                     {locked ? null : <td />}
@@ -802,6 +897,7 @@ function InvoiceForm({
       <LineEditor
         draft={lineDraft}
         products={choices.products}
+        units={choices.units}
         glCodes={choices.glCodes}
         departments={choices.departments}
         costCentres={choices.costCentres}
@@ -822,6 +918,7 @@ function InvoiceForm({
 function LineEditor({
   draft,
   products,
+  units,
   glCodes,
   departments,
   costCentres,
@@ -833,6 +930,7 @@ function LineEditor({
 }: {
   draft: PurchaseInvoiceLine;
   products: InvoiceProduct[];
+  units: PurchaseInvoiceChoices["units"];
   glCodes: InvoiceCode[];
   departments: InvoiceCode[];
   costCentres: InvoiceCode[];
@@ -849,6 +947,7 @@ function LineEditor({
       productId: id,
       description: product?.description ?? draft.description,
       price: product?.purchasePrice ?? draft.price,
+      unitCode: product?.unitCode || draft.unitCode || "C62",
       glCodeId: product?.purchaseGlCodeId ?? draft.glCodeId,
       vatRateId: product?.purchaseVatCodeId ?? draft.vatRateId,
     });
@@ -888,6 +987,28 @@ function LineEditor({
       <label className={styles.field}>
         Description
         <QuietInput value={draft.description} maxLength={200} onChange={(event) => onChange({ ...draft, description: event.target.value })} />
+      </label>
+      <label className={styles.field}>
+        Unit
+        <UnitSelect units={units} value={draft.unitCode || "C62"} onChange={(unitCode) => onChange({ ...draft, unitCode })} />
+      </label>
+      <label className={styles.field}>
+        Seller item
+        <QuietInput
+          value={draft.sellerItemId}
+          maxLength={60}
+          onChange={(event) => onChange({ ...draft, sellerItemId: event.target.value })}
+          placeholder="Supplier's item code"
+        />
+      </label>
+      <label className={`${styles.field} ${styles.wide}`}>
+        Line note
+        <QuietTextarea
+          value={draft.lineNote}
+          maxLength={400}
+          rows={2}
+          onChange={(event) => onChange({ ...draft, lineNote: event.target.value })}
+        />
       </label>
       <label className={styles.field}>
         GL code

@@ -9,10 +9,10 @@ import {
   type VatCategoryChoice,
   type VatexChoice,
 } from "@/lib/reference";
-import { type CodeName } from "@/lib/code-lists";
+import { type CodeName, type UnitChoice } from "@/lib/code-lists";
 import { createClient } from "@/lib/supabase/server";
 
-export type { CodeName } from "@/lib/code-lists";
+export type { CodeName, UnitChoice } from "@/lib/code-lists";
 
 export async function listReference(kind: ReferenceKind): Promise<{
   rows: ReferenceRow[];
@@ -152,6 +152,27 @@ export async function listCodeLists(): Promise<CodeLists> {
     countries: countries.data ?? [],
     schemes: schemes.data ?? [],
     currencies: currencies.data ?? [],
+    error: null,
+  };
+}
+
+export async function listUnits(): Promise<{ units: UnitChoice[]; error: string | null }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("ref_units")
+    .select("code, name, common")
+    .eq("active", true)
+    .order("common", { ascending: false })
+    .order("code");
+
+  if (error) return { units: [], error: "Units could not be loaded." };
+
+  return {
+    units: (data ?? []).map((row) => ({
+      code: row.code,
+      name: row.name,
+      common: row.common,
+    })),
     error: null,
   };
 }

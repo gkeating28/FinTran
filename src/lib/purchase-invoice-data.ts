@@ -1,3 +1,4 @@
+import type { UnitChoice } from "@/lib/code-lists";
 import { getWorkspace } from "@/lib/data";
 import { formatCurrencyRate, formatExchangeRate } from "@/lib/currencies";
 import { formatProductPrice } from "@/lib/products";
@@ -10,10 +11,23 @@ import {
   type InvoiceVat,
   type PurchaseInvoiceLine,
   type PurchaseInvoiceRow,
+  type CreditInvoice,
   type PurchaseTypeChoice,
   type SupplierChoice,
 } from "@/lib/purchase-invoices";
+import { listUnits } from "@/lib/reference-data";
+import { parseDocumentKind } from "@/lib/transaction-types";
 import { createClient } from "@/lib/supabase/server";
+
+function embeddedType(
+  value:
+    | { code: string; type: string; document_kind: string }
+    | { code: string; type: string; document_kind: string }[]
+    | null,
+) {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value;
+}
 
 function embeddedCode(value: { code: string } | { code: string }[] | null) {
   if (Array.isArray(value)) return value[0]?.code ?? "";
@@ -33,6 +47,9 @@ function toPurchaseInvoiceLine(row: {
   discount_amount: number | string;
   nett_amount: number | string;
   vat_amount: number | string;
+  unit_code: string;
+  line_note: string | null;
+  seller_item_id: string | null;
   products: { code: string } | { code: string }[] | null;
 }): PurchaseInvoiceLine {
   return {
@@ -49,6 +66,9 @@ function toPurchaseInvoiceLine(row: {
     discountAmount: formatMoney(row.discount_amount),
     nettAmount: formatMoney(row.nett_amount),
     vatAmount: formatMoney(row.vat_amount),
+    unitCode: row.unit_code || "C62",
+    lineNote: row.line_note ?? "",
+    sellerItemId: row.seller_item_id ?? "",
   };
 }
 
@@ -62,6 +82,8 @@ export type PurchaseInvoiceChoices = {
   departments: InvoiceCode[];
   costCentres: InvoiceCode[];
   vatRates: InvoiceVat[];
+  creditInvoices: CreditInvoice[];
+  units: UnitChoice[];
 };
 
 const emptyChoices: PurchaseInvoiceChoices = {
@@ -74,6 +96,8 @@ const emptyChoices: PurchaseInvoiceChoices = {
   departments: [],
   costCentres: [],
   vatRates: [],
+  creditInvoices: [],
+  units: [],
 };
 
 export async function listPurchaseInvoices(typeCode?: string): Promise<{
@@ -86,7 +110,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
 
   const supabase = await createClient();
   const organisationId = workspace.current.organisationId;
-  const [headers, lineRows, types, suppliers, currencies, defaults, products, glCodes, departments, costCentres, vatRates] =
+  const [headers, lineRows, types, suppliers, currencies, defaults, products, glCodes, departments, costCentres, vatRates, units] =
     await Promise.all([
       supabase
         .from("transaction_headers")
@@ -95,9 +119,10 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
            contact_details, notes, currency_id, exchange_rate, order_number, supplier_reference, supply_date,
            foreign_nett_amount, foreign_vat_amount, foreign_total_amount,
            home_nett_amount, home_vat_amount, home_total_amount, paid_amount,
-           rounding_amount, amount_due, status, void_reason,
+           rounding_amount, amount_due, preceding_header_id, preceding_reference, preceding_date,
+           status, void_reason,
            flex1, flex2, flex3, flex4, flex5,
-           transaction_types(code), suppliers(code), currencies(code),
+           transaction_types(code, type, document_kind), suppliers(code), currencies(code),
            transaction_vat_breakdown(vat_category, vat_percentage, taxable_amount, vat_amount, exemption_code, exemption_reason)`,
         )
         .eq("organisation_id", organisationId)
@@ -107,13 +132,13 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
         .from("transaction_lines")
         .select(
           `header_id, line_number, product_id, description, gl_code_id, department_id, cost_centre_id, vat_rate_id,
-           quantity, price, discount_amount, nett_amount, vat_amount, products(code)`,
+           quantity, price, discount_amount, nett_amount, vat_amount, unit_code, line_note, seller_item_id, products(code)`,
         )
         .eq("organisation_id", organisationId)
         .order("line_number"),
       supabase
         .from("transaction_types")
-        .select("id, code, description, last_reference, type, flex1_label, flex2_label, flex3_label, flex4_label, flex5_label")
+        .select("id, code, description, last_reference, type, document_kind, flex1_label, flex2_label, flex3_label, flex4_label, flex5_label")
         .eq("organisation_id", organisationId)
         .eq("type", "Purchases")
         .order("code"),
@@ -130,7 +155,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
         .maybeSingle(),
       supabase
         .from("products")
-        .select("id, code, description, purchase_price, purchase_gl_code_id, purchase_vat_code_id")
+        .select("id, code, description, purchase_price, purchase_gl_code_id, purchase_vat_code_id, unit_code")
         .eq("organisation_id", organisationId)
         .order("code"),
       supabase
@@ -145,6 +170,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
         .select("id, code, description, rate, vat_type, vat_category, exemption_reason")
         .eq("organisation_id", organisationId)
         .order("code"),
+      listUnits(),
     ]);
 
   if (
@@ -158,7 +184,8 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
     glCodes.error ||
     departments.error ||
     costCentres.error ||
-    vatRates.error
+    vatRates.error ||
+    units.error
   ) {
     return { rows: [], choices: emptyChoices, error: "Purchase invoices could not be loaded." };
   }
@@ -202,6 +229,9 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
       paidAmount: formatMoney(row.paid_amount),
       roundingAmount: formatMoney(row.rounding_amount),
       amountDue: formatMoney(row.amount_due),
+      precedingHeaderId: row.preceding_header_id ?? "",
+      precedingReference: row.preceding_reference ?? "",
+      precedingDate: row.preceding_date ?? "",
       breakdown: (Array.isArray(row.transaction_vat_breakdown) ? row.transaction_vat_breakdown : []).map((item) => ({
         category: item.vat_category,
         rate: Number(item.vat_percentage),
@@ -221,12 +251,15 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
     }),
     choices: {
       types: (types.data ?? []).flatMap((row) => {
+        const documentKind = parseDocumentKind(row.document_kind);
+        if (!documentKind) return [];
         if (typeCode && row.code !== typeCode.trim().toUpperCase()) return [];
         return [
           {
             id: row.id,
             code: row.code,
             description: row.description,
+            documentKind,
             nextReference: row.last_reference + 1,
             flexLabels: [
               row.flex1_label ?? "",
@@ -258,6 +291,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
         purchasePrice: formatProductPrice(row.purchase_price),
         purchaseGlCodeId: row.purchase_gl_code_id,
         purchaseVatCodeId: row.purchase_vat_code_id,
+        unitCode: row.unit_code,
       })),
       glCodes: (glCodes.data ?? []).flatMap((row) => {
         const accountType = parseAccountType(row.account_type);
@@ -281,6 +315,20 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
           },
         ];
       }),
+      creditInvoices: (headers.data ?? []).flatMap((row) => {
+        const kind = embeddedType(row.transaction_types);
+        if (!kind || kind.type !== "Purchases" || kind.document_kind !== "invoice" || row.status !== "posted") return [];
+        return [
+          {
+            id: row.id,
+            reference: row.reference,
+            transactionDate: row.transaction_date,
+            supplierId: row.supplier_id,
+            typeCode: kind.code,
+          },
+        ];
+      }),
+      units: units.units,
     },
     error: null,
   };
@@ -298,7 +346,7 @@ export async function listPurchaseInvoiceLines(headerId: string): Promise<{
     .from("transaction_lines")
     .select(
       `line_number, product_id, description, gl_code_id, department_id, cost_centre_id, vat_rate_id,
-       quantity, price, discount_amount, nett_amount, vat_amount, products(code)`,
+       quantity, price, discount_amount, nett_amount, vat_amount, unit_code, line_note, seller_item_id, products(code)`,
     )
     .eq("header_id", headerId)
     .eq("organisation_id", workspace.current.organisationId)

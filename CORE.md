@@ -172,8 +172,9 @@ Purchase VAT on a product, and VAT on a purchase line, must be an Expense rate. 
 | `sales_gl_code_id` | An Income GL code in this organisation |
 | `purchase_vat_code_id` | An Expense VAT rate |
 | `sales_vat_code_id` | A Sales VAT rate |
+| `unit_code` | EN 16931 unit. Defaults to `C62`, one. A blank unit is stored as `C62` |
 
-Choosing a product on a purchase line copies its purchase price, Expense GL code, and Expense VAT rate. Those can then be changed on the line.
+Choosing a product on a purchase line copies its purchase price, unit, Expense GL code, and Expense VAT rate. Those can then be changed on the line.
 
 ### `customers` and `suppliers`
 
@@ -191,13 +192,16 @@ A supplier's currency becomes the currency of a purchase document and cannot be 
 
 ## Transaction types
 
-`transaction_types.type` is `Sales` or `Purchases`.
+`transaction_types.type` is `Sales` or `Purchases`. `document_kind` is `invoice`, `credit_note`, or `order`.
 
 | Column | Meaning |
 | --- | --- |
 | `code`, `description` | The short code shown in menus, and the name used as the page title |
+| `document_kind` | Invoice, credit note, or order. A description containing “order” was set to order. The kind cannot change after a document has been entered |
 | `last_reference` | The last number issued for this type. New types are forced to 0 |
 | `flex1_label` … `flex5_label` | Optional labels, up to 80 characters. A blank label hides that flex field on the document |
+
+An order still stores header totals. Later VAT reporting leaves orders out, and an order is never exported. A credit note, sales or purchase, needs the preceding invoice reference before it can be posted. Sales documents are still not stored.
 
 `last_reference` only moves forward. An update may set it to the previous value plus one. Any other change is put back. Deleting a document does not give the number back.
 
@@ -222,6 +226,8 @@ The app writes both tables through `save_purchase_invoice(jsonb)`. That function
 | `notes` | Optional, up to 4000 |
 | `currency_id`, `exchange_rate` | The supplier's currency, and the rate used for this document |
 | `order_number` | Optional, up to 40 |
+| `preceding_header_id` | Optional link to a posted invoice in this organisation, for the same supplier. Another organisation is refused |
+| `preceding_reference`, `preceding_date` | The invoice reference and date a credit note applies to. Copied from the linked invoice when left blank |
 | `foreign_nett_amount` | Sum of the line nett amounts, rounded to 2 decimal places |
 | `foreign_vat_amount` | Sum of the VAT breakdown, not the sum of the line VAT amounts |
 | `foreign_total_amount` | Nett plus VAT |
@@ -259,6 +265,9 @@ On every header insert or update the trigger replaces the six amount columns fro
 | `reference`, `transaction_type_id`, `organisation_id`, `tenant_id` | Copied from the header |
 | `product_id` | Optional. Must belong to the same organisation |
 | `description` | Required, 1–200 |
+| `unit_code` | EN 16931 unit. Defaults to `C62`, one |
+| `line_note` | Optional, up to 400 |
+| `seller_item_id` | Optional, up to 60. Purchases only |
 | `gl_code_id` | Optional GL code |
 | `department_id`, `cost_centre_id` | Optional |
 | `vat_rate_id` | Optional. If set, it must be an Expense rate. If null, VAT is 0 |

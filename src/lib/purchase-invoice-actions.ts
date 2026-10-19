@@ -32,6 +32,10 @@ function friendlyError(error: { code?: string; message: string } | null, fallbac
   if (error.code === "23503" && error.message.includes("currencies")) {
     return "Choose a currency from this organisation.";
   }
+  if (error.code === "23503" && error.message.includes("unit_code")) return "Choose a unit.";
+  if (error.code === "23503" && error.message.includes("preceding_header")) {
+    return "Choose a posted invoice from this organisation.";
+  }
   if (error.code === "23503") return "Choose a code from this organisation.";
   if (error.code === "P0001") return error.message;
   if (error.message.includes("Discount cannot")) return "Discount cannot be more than quantity times price.";
@@ -85,6 +89,9 @@ function linesFrom(value: string): PurchaseInvoiceLine[] | { error: string } {
         discountAmount: textValue("discountAmount"),
         nettAmount: textValue("nettAmount"),
         vatAmount: textValue("vatAmount"),
+        unitCode: textValue("unitCode"),
+        lineNote: textValue("lineNote"),
+        sellerItemId: textValue("sellerItemId"),
       },
     ];
   });
@@ -105,6 +112,9 @@ function documentFrom(formData: FormData) {
   const orderNumber = optionalText(text(formData, "order_number"), 40);
   const supplierReference = optionalText(text(formData, "supplier_reference"), 60);
   const supplyDate = text(formData, "supply_date").trim();
+  const precedingHeaderId = text(formData, "preceding_header_id").trim();
+  const precedingReference = optionalText(text(formData, "preceding_reference"), 60);
+  const precedingDate = text(formData, "preceding_date").trim();
   const flex = [1, 2, 3, 4, 5].map((number) => optionalText(text(formData, `flex${number}`), 200));
   const lines = linesFrom(text(formData, "lines"));
 
@@ -122,6 +132,9 @@ function documentFrom(formData: FormData) {
   if (orderNumber === undefined) return { error: "Order number can be up to 40 characters." } as const;
   if (supplierReference === undefined) return { error: "Supplier invoice number can be up to 60 characters." } as const;
   if (supplyDate && !parseInvoiceDate(supplyDate)) return { error: "Enter a valid supply date, or leave it blank." } as const;
+  if (precedingHeaderId && !parseUuid(precedingHeaderId)) return { error: "Choose the invoice this credit note applies to." } as const;
+  if (precedingReference === undefined) return { error: "The credited invoice reference can be up to 60 characters." } as const;
+  if (precedingDate && !parseInvoiceDate(precedingDate)) return { error: "Enter the credited invoice date, or leave it blank." } as const;
   if (flex.some((value) => value === undefined)) return { error: "Each flex field can be up to 200 characters." } as const;
   if ("error" in lines) return { error: lines.error } as const;
 
@@ -136,6 +149,10 @@ function documentFrom(formData: FormData) {
     if (!quantity || !(Number(quantity) > 0)) return { error: "Each line needs a quantity greater than 0." } as const;
     if (!price) return { error: "Each line needs a price of 0 or more." } as const;
     if (!discount) return { error: "Each line needs a discount of 0 or more." } as const;
+    const unitCode = line.unitCode.trim().toUpperCase();
+    if (unitCode && !/^[A-Z0-9]{2,3}$/.test(unitCode)) return { error: "Choose a unit." } as const;
+    if (line.lineNote.trim().length > 400) return { error: "A line note can be up to 400 characters." } as const;
+    if (line.sellerItemId.trim().length > 60) return { error: "A seller item identifier can be up to 60 characters." } as const;
     if (line.productId.trim() && !parseUuid(line.productId)) {
       return { error: "Choose a product from this organisation." } as const;
     }
@@ -158,6 +175,9 @@ function documentFrom(formData: FormData) {
     orderNumber,
     supplierReference,
     supplyDate,
+    precedingHeaderId,
+    precedingReference,
+    precedingDate,
     paidAmount,
     roundingAmount,
     flex1: flex[0],
@@ -175,6 +195,9 @@ function documentFrom(formData: FormData) {
       quantity: parseMoney(line.quantity),
       price: parseMoney(line.price),
       discountAmount: parseMoney(line.discountAmount || "0"),
+      unitCode: line.unitCode.trim().toUpperCase(),
+      lineNote: line.lineNote.trim(),
+      sellerItemId: line.sellerItemId.trim(),
     })),
   } as const;
 }
@@ -200,6 +223,9 @@ export async function savePurchaseInvoice(_state: ActionState, formData: FormDat
       orderNumber: document.orderNumber,
       supplierReference: document.supplierReference,
       supplyDate: document.supplyDate,
+      precedingHeaderId: document.precedingHeaderId,
+      precedingReference: document.precedingReference,
+      precedingDate: document.precedingDate,
       paidAmount: document.paidAmount,
       roundingAmount: document.roundingAmount,
       flex1: document.flex1,

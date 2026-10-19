@@ -8,6 +8,7 @@ type ProductRecord = {
   id: string;
   code: string;
   description: string;
+  unit_code: string;
   purchase_price: string | number;
   sales_price: string | number;
   purchase_gl_code_id: string;
@@ -36,7 +37,7 @@ export async function listProducts(): Promise<{
   const { data, error } = await supabase
     .from("products")
     .select(
-      `id, code, description, purchase_price, sales_price,
+      `id, code, description, unit_code, purchase_price, sales_price,
        purchase_gl_code_id, sales_gl_code_id, purchase_vat_code_id, sales_vat_code_id,
        purchase_gl:gl_codes!products_purchase_gl_code_id_fkey(code),
        sales_gl:gl_codes!products_sales_gl_code_id_fkey(code),
@@ -53,6 +54,7 @@ export async function listProducts(): Promise<{
       id: row.id,
       code: row.code,
       description: row.description,
+      unitCode: row.unit_code,
       purchasePrice: formatProductPrice(row.purchase_price),
       salesPrice: formatProductPrice(row.sales_price),
       purchaseGlCodeId: row.purchase_gl_code_id,

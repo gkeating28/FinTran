@@ -757,6 +757,7 @@ export type Database = {
           sales_price: number
           sales_vat_code_id: string
           tenant_id: string
+          unit_code: string
           updated_at: string
           updated_by: string | null
         }
@@ -774,6 +775,7 @@ export type Database = {
           sales_price: number
           sales_vat_code_id: string
           tenant_id: string
+          unit_code?: string
           updated_at?: string
           updated_by?: string | null
         }
@@ -791,6 +793,7 @@ export type Database = {
           sales_price?: number
           sales_vat_code_id?: string
           tenant_id?: string
+          unit_code?: string
           updated_at?: string
           updated_by?: string | null
         }
@@ -843,6 +846,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_unit_code_fkey"
+            columns: ["unit_code"]
+            isOneToOne: false
+            referencedRelation: "ref_units"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "products_updated_by_fkey"
@@ -1305,6 +1315,9 @@ export type Database = {
           party_snapshot: Json | null
           posted_at: string | null
           posted_by: string | null
+          preceding_date: string | null
+          preceding_header_id: string | null
+          preceding_reference: string | null
           reference: number | null
           rounding_amount: number
           status: Database["public"]["Enums"]["document_status"]
@@ -1350,6 +1363,9 @@ export type Database = {
           party_snapshot?: Json | null
           posted_at?: string | null
           posted_by?: string | null
+          preceding_date?: string | null
+          preceding_header_id?: string | null
+          preceding_reference?: string | null
           reference?: number | null
           rounding_amount?: number
           status?: Database["public"]["Enums"]["document_status"]
@@ -1395,6 +1411,9 @@ export type Database = {
           party_snapshot?: Json | null
           posted_at?: string | null
           posted_by?: string | null
+          preceding_date?: string | null
+          preceding_header_id?: string | null
+          preceding_reference?: string | null
           reference?: number | null
           rounding_amount?: number
           status?: Database["public"]["Enums"]["document_status"]
@@ -1448,6 +1467,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "transaction_headers_preceding_header_id_fkey"
+            columns: ["organisation_id", "preceding_header_id"]
+            isOneToOne: false
+            referencedRelation: "transaction_headers"
+            referencedColumns: ["organisation_id", "id"]
+          },
+          {
             foreignKeyName: "transaction_headers_supplier_id_fkey"
             columns: ["organisation_id", "supplier_id"]
             isOneToOne: false
@@ -1497,6 +1523,7 @@ export type Database = {
           gl_code_id: string | null
           header_id: string
           id: string
+          line_note: string | null
           line_number: number
           nett_amount: number
           organisation_id: string
@@ -1504,8 +1531,10 @@ export type Database = {
           product_id: string | null
           quantity: number
           reference: number | null
+          seller_item_id: string | null
           tenant_id: string
           transaction_type_id: string
+          unit_code: string
           updated_at: string
           updated_by: string | null
           vat_amount: number
@@ -1525,6 +1554,7 @@ export type Database = {
           gl_code_id?: string | null
           header_id: string
           id?: string
+          line_note?: string | null
           line_number: number
           nett_amount: number
           organisation_id: string
@@ -1532,8 +1562,10 @@ export type Database = {
           product_id?: string | null
           quantity: number
           reference?: number | null
+          seller_item_id?: string | null
           tenant_id: string
           transaction_type_id: string
+          unit_code?: string
           updated_at?: string
           updated_by?: string | null
           vat_amount: number
@@ -1553,6 +1585,7 @@ export type Database = {
           gl_code_id?: string | null
           header_id?: string
           id?: string
+          line_note?: string | null
           line_number?: number
           nett_amount?: number
           organisation_id?: string
@@ -1560,8 +1593,10 @@ export type Database = {
           product_id?: string | null
           quantity?: number
           reference?: number | null
+          seller_item_id?: string | null
           tenant_id?: string
           transaction_type_id?: string
+          unit_code?: string
           updated_at?: string
           updated_by?: string | null
           vat_amount?: number
@@ -1641,6 +1676,13 @@ export type Database = {
             referencedColumns: ["organisation_id", "id"]
           },
           {
+            foreignKeyName: "transaction_lines_unit_code_fkey"
+            columns: ["unit_code"]
+            isOneToOne: false
+            referencedRelation: "ref_units"
+            referencedColumns: ["code"]
+          },
+          {
             foreignKeyName: "transaction_lines_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
@@ -1669,6 +1711,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string
+          document_kind: Database["public"]["Enums"]["document_kind"]
           flex1_label: string | null
           flex2_label: string | null
           flex3_label: string | null
@@ -1688,6 +1731,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description: string
+          document_kind?: Database["public"]["Enums"]["document_kind"]
           flex1_label?: string | null
           flex2_label?: string | null
           flex3_label?: string | null
@@ -1707,6 +1751,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string
+          document_kind?: Database["public"]["Enums"]["document_kind"]
           flex1_label?: string | null
           flex2_label?: string | null
           flex3_label?: string | null
@@ -1940,6 +1985,7 @@ export type Database = {
       }
     }
     Enums: {
+      document_kind: "invoice" | "credit_note" | "order"
       document_status: "draft" | "posted" | "void"
       numbering_rule: "on_insert" | "on_post"
     }
@@ -2069,6 +2115,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      document_kind: ["invoice", "credit_note", "order"],
       document_status: ["draft", "posted", "void"],
       numbering_rule: ["on_insert", "on_post"],
     },

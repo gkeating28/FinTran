@@ -4,6 +4,7 @@ export type ProductRow = {
   id: string;
   code: string;
   description: string;
+  unitCode: string;
   purchasePrice: string;
   salesPrice: string;
   purchaseGlCodeId: string;

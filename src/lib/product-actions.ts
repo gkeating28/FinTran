@@ -17,6 +17,7 @@ function text(formData: FormData, name: string) {
 function friendlyError(error: { code?: string; message: string } | null, fallback: string) {
   if (!error) return fallback;
   if (error.code === "23505") return "That code is already used in this organisation.";
+  if (error.code === "23503" && error.message.includes("unit_code")) return "Choose a unit.";
   if (
     error.code === "23514" &&
     (error.message.includes("purchase_price") || error.message.includes("sales_price"))
@@ -85,6 +86,7 @@ function fieldsFrom(formData: FormData) {
   const salesGlCodeId = idFrom(formData, "sales_gl_code_id");
   const purchaseVatCodeId = idFrom(formData, "purchase_vat_code_id");
   const salesVatCodeId = idFrom(formData, "sales_vat_code_id");
+  const unitCode = text(formData, "unit_code").trim().toUpperCase();
 
   if (!code || !description) {
     return {
@@ -101,10 +103,12 @@ function fieldsFrom(formData: FormData) {
   if (!purchaseVatCodeId) return { error: "Choose a purchase VAT code." } as const;
   if (!salesGlCodeId) return { error: "Choose a sales GL code." } as const;
   if (!salesVatCodeId) return { error: "Choose a sales VAT code." } as const;
+  if (!/^[A-Z0-9]{2,3}$/.test(unitCode)) return { error: "Choose a unit." } as const;
 
   return {
     code,
     description,
+    unitCode,
     purchasePrice,
     salesPrice,
     purchaseGlCodeId,
@@ -142,6 +146,7 @@ export async function createProduct(_state: ActionState, formData: FormData): Pr
     organisation_id: current.organisationId,
     code: fields.code,
     description: fields.description,
+    unit_code: fields.unitCode,
     purchase_price: fields.purchasePrice,
     sales_price: fields.salesPrice,
     purchase_gl_code_id: fields.purchaseGlCodeId,
@@ -170,6 +175,7 @@ export async function updateProduct(_state: ActionState, formData: FormData): Pr
     .update({
       code: fields.code,
       description: fields.description,
+      unit_code: fields.unitCode,
       purchase_price: fields.purchasePrice,
       sales_price: fields.salesPrice,
       purchase_gl_code_id: fields.purchaseGlCodeId,

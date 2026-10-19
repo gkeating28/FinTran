@@ -1,5 +1,6 @@
 import { getWorkspace } from "@/lib/data";
 import {
+  parseDocumentKind,
   parseTransactionTypeKind,
   type TransactionTypeKind,
   type TransactionTypeRow,
@@ -14,18 +15,30 @@ export async function listTransactionTypes(): Promise<{
   if (workspace.status !== "ready") return { rows: [], error: null };
 
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("transaction_types")
-    .select("id, code, description, last_reference, type, numbering, flex1_label, flex2_label, flex3_label, flex4_label, flex5_label")
-    .eq("organisation_id", workspace.current.organisationId)
-    .order("code");
+  const organisationId = workspace.current.organisationId;
+  const [types, headers] = await Promise.all([
+    supabase
+      .from("transaction_types")
+      .select(
+        "id, code, description, last_reference, type, document_kind, numbering, flex1_label, flex2_label, flex3_label, flex4_label, flex5_label",
+      )
+      .eq("organisation_id", organisationId)
+      .order("code"),
+    supabase.from("transaction_headers").select("transaction_type_id").eq("organisation_id", organisationId),
+  ]);
 
-  if (error) return { rows: [], error: "Transaction types could not be loaded." };
+  if (types.error || headers.error) return { rows: [], error: "Transaction types could not be loaded." };
+
+  const counts = new Map<string, number>();
+  for (const header of headers.data ?? []) {
+    counts.set(header.transaction_type_id, (counts.get(header.transaction_type_id) ?? 0) + 1);
+  }
 
   return {
-    rows: (data ?? []).flatMap((row) => {
+    rows: (types.data ?? []).flatMap((row) => {
       const type = parseTransactionTypeKind(row.type);
-      if (!type) return [];
+      const documentKind = parseDocumentKind(row.document_kind);
+      if (!type || !documentKind) return [];
       return [
         {
           id: row.id,
@@ -33,6 +46,8 @@ export async function listTransactionTypes(): Promise<{
           description: row.description,
           lastReference: row.last_reference,
           type,
+          documentKind,
+          documentCount: counts.get(row.id) ?? 0,
           numbering: row.numbering === "on_post" ? "on_post" : "on_insert",
           flexLabels: [
             row.flex1_label ?? "",

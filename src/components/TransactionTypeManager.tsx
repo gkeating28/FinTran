@@ -11,7 +11,9 @@ import {
 } from "@/lib/transaction-type-actions";
 import { formatInteger } from "@/lib/numbers";
 import {
+  DOCUMENT_KINDS,
   TRANSACTION_TYPE_KINDS,
+  documentKindLabel,
   type TransactionTypeRow,
 } from "@/lib/transaction-types";
 import styles from "@/components/OpsPage.module.css";
@@ -35,9 +37,10 @@ export default function TransactionTypeManager({
       <div>
         <h1 className={styles.heading}>Transaction types</h1>
         <p className={styles.lede}>
-          Transaction types for this organisation. Each has a code, a description, and a type of
-          Sales or Purchases. Last reference starts at 0 for every type, so the next number is 1.
-          Name up to five flex fields. A blank label hides that field on the transaction.
+          Transaction types for this organisation. Each is an invoice, a credit note, or an order,
+          and is either Sales or Purchases. The kind cannot change after a document has been
+          entered. Last reference starts at 0 for every type, so the next number is 1. Name up to
+          five flex fields. A blank label hides that field on the transaction.
         </p>
       </div>
       {loadError ? (
@@ -53,7 +56,7 @@ export default function TransactionTypeManager({
       <DataGrid
         rows={rows}
         searchPlaceholder="Search transaction types"
-        searchText={(row) => `${row.code} ${row.description} ${row.type} ${row.lastReference} ${row.flexLabels.join(" ")}`}
+        searchText={(row) => `${row.code} ${row.description} ${row.type} ${documentKindLabel(row.documentKind)} ${row.lastReference} ${row.flexLabels.join(" ")}`}
         emptyLabel="No transaction types yet for this organisation."
         minWidth="1180px"
         toolbar={
@@ -82,6 +85,12 @@ export default function TransactionTypeManager({
             label: "Type",
             sortValue: (row) => row.type,
             render: (row) => row.type,
+          },
+          {
+            key: "kind",
+            label: "Kind",
+            sortValue: (row) => documentKindLabel(row.documentKind),
+            render: (row) => documentKindLabel(row.documentKind),
           },
           {
             key: "numbering",
@@ -150,6 +159,8 @@ function TransactionTypeForm({
   const [code, setCode] = useState(row?.code ?? "");
   const [description, setDescription] = useState(row?.description ?? "");
   const [type, setType] = useState(row?.type ?? "");
+  const [documentKind, setDocumentKind] = useState(row?.documentKind ?? "invoice");
+  const kindLocked = (row?.documentCount ?? 0) > 0;
   const [flexLabels, setFlexLabels] = useState(row?.flexLabels ?? ["", "", "", "", ""]);
 
   useEffect(() => {
@@ -203,6 +214,24 @@ function TransactionTypeForm({
             ))}
           </select>
         </label>
+        <label className={styles.field}>
+          Kind
+          {kindLocked ? <input type="hidden" name="document_kind" value={documentKind} /> : null}
+          <select
+            name={kindLocked ? undefined : "document_kind"}
+            required
+            autoComplete="off"
+            value={documentKind}
+            disabled={kindLocked}
+            onChange={(event) => setDocumentKind(event.target.value as TransactionTypeRow["documentKind"])}
+          >
+            {DOCUMENT_KINDS.map((kind) => (
+              <option key={kind} value={kind}>
+                {documentKindLabel(kind)}
+              </option>
+            ))}
+          </select>
+        </label>
         {flexLabels.map((label, index) => (
           <label className={styles.field} key={index}>
             {`Flex ${index + 1} label`}
@@ -220,6 +249,7 @@ function TransactionTypeForm({
         <p className={styles.panelMeta}>
           Last reference: {formatInteger(row ? row.lastReference : 0)}. Next number: {formatInteger((row?.lastReference ?? 0) + 1)}.
           A blank flex label is not shown on the transaction.
+          {kindLocked ? " The kind stays as it is because a document has been entered." : ""}
         </p>
         <div className={styles.modalActions}>
           <button className={styles.quiet} type="button" onClick={onClose}>
