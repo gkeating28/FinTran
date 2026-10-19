@@ -292,43 +292,45 @@ function OrganisationForm({
           Company reg. number
           <QuietInput name="company_number" maxLength={40} value={companyNumber} onChange={(event) => setCompanyNumber(event.target.value)} className={styles.mono} />
         </label>
-        <label className={`${styles.field} ${styles.wide}`}>
-          <span>
-            Address line 1
-            {organisation.profile.addressNeedsReview ? <span className={styles.reviewBadge}>Needs review</span> : null}
-          </span>
-          <QuietInput name="address_line1" maxLength={100} value={addressLine1} onChange={(event) => setAddressLine1(event.target.value)} />
-        </label>
-        <label className={`${styles.field} ${styles.wide}`}>
-          Address line 2
-          <QuietInput name="address_line2" maxLength={100} value={addressLine2} onChange={(event) => setAddressLine2(event.target.value)} />
-        </label>
-        <label className={`${styles.field} ${styles.wide}`}>
-          Address line 3
-          <QuietInput name="address_line3" maxLength={100} value={addressLine3} onChange={(event) => setAddressLine3(event.target.value)} />
-        </label>
-        <label className={styles.field}>
-          City
-          <QuietInput name="city" maxLength={60} value={city} onChange={(event) => setCity(event.target.value)} />
-        </label>
-        <label className={styles.field}>
-          Post code
-          <QuietInput name="post_code" maxLength={20} value={postCode} onChange={(event) => setPostCode(event.target.value)} className={styles.mono} />
-        </label>
-        <label className={styles.field}>
-          County
-          <QuietInput name="county" maxLength={60} value={county} onChange={(event) => setCounty(event.target.value)} />
-        </label>
-        <label className={styles.field}>
-          Country
-          <select name="country_code" autoComplete="off" value={countryCode} onChange={(event) => setCountryCode(event.target.value)}>
-            {orderedCountries.map((country) => (
-              <option key={country.code} value={country.code}>
-                {country.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className={styles.addressColumns}>
+          <label className={styles.field}>
+            <span>
+              Address line 1
+              {organisation.profile.addressNeedsReview ? <span className={styles.reviewBadge}>Needs review</span> : null}
+            </span>
+            <QuietInput name="address_line1" maxLength={100} value={addressLine1} onChange={(event) => setAddressLine1(event.target.value)} />
+          </label>
+          <label className={styles.field}>
+            Address line 2
+            <QuietInput name="address_line2" maxLength={100} value={addressLine2} onChange={(event) => setAddressLine2(event.target.value)} />
+          </label>
+          <label className={styles.field}>
+            Address line 3
+            <QuietInput name="address_line3" maxLength={100} value={addressLine3} onChange={(event) => setAddressLine3(event.target.value)} />
+          </label>
+          <label className={styles.field}>
+            City
+            <QuietInput name="city" maxLength={60} value={city} onChange={(event) => setCity(event.target.value)} />
+          </label>
+          <label className={styles.field}>
+            Post code
+            <QuietInput name="post_code" maxLength={20} value={postCode} onChange={(event) => setPostCode(event.target.value)} className={styles.mono} />
+          </label>
+          <label className={styles.field}>
+            County
+            <QuietInput name="county" maxLength={60} value={county} onChange={(event) => setCounty(event.target.value)} />
+          </label>
+          <label className={styles.field}>
+            Country
+            <select name="country_code" autoComplete="off" value={countryCode} onChange={(event) => setCountryCode(event.target.value)}>
+              {orderedCountries.map((country) => (
+                <option key={country.code} value={country.code}>
+                  {country.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
         <label className={styles.field}>
           Peppol scheme
           <SchemeLookup schemes={schemes} value={peppolScheme} onChange={setPeppolScheme} />

@@ -723,8 +723,21 @@
 
 .partyForm .wide,
 .partyForm .modalActions,
-.partyForm .alert {
+.partyForm .alert,
+.partyForm .addressColumns {
   grid-column: 1 / -1;
+}
+
+.addressColumns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+}
+
+@media (max-width: 640px) {
+  .addressColumns {
+    grid-template-columns: 1fr;
+  }
 }
 
 .partyForm .field input,
