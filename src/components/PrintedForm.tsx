@@ -123,17 +123,24 @@ export default function PrintedForm({ view }: { view: PrintView }) {
             <table className={styles.vat}>
               <thead>
                 <tr>
+                  <th>Category</th>
                   <th>Rate</th>
+                  <th className={styles.numeric}>Taxable</th>
                   <th className={styles.numeric}>VAT</th>
-                  <th className={styles.numeric}>Net</th>
+                  <th>Exemption</th>
                 </tr>
               </thead>
               <tbody>
-                {(view.vatRows.length ? view.vatRows : [{ rate: "VAT", vat: "\u00a0", nett: "\u00a0" }]).map((row) => (
-                  <tr key={row.rate}>
+                {(view.vatRows.length
+                  ? view.vatRows
+                  : [{ key: "empty", category: "VAT", rate: "\u00a0", taxable: "\u00a0", vat: "\u00a0", exemption: "\u00a0" }]
+                ).map((row) => (
+                  <tr key={row.key}>
+                    <td>{row.category}</td>
                     <td>{row.rate}</td>
+                    <td className={styles.numeric}>{row.taxable}</td>
                     <td className={styles.numeric}>{row.vat}</td>
-                    <td className={styles.numeric}>{row.nett}</td>
+                    <td>{row.exemption}</td>
                   </tr>
                 ))}
               </tbody>

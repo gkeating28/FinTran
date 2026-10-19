@@ -73,6 +73,7 @@ export type FormSource = {
   flexLabels: [string, string, string, string, string];
   numberLabel: string;
   watermark: "DRAFT" | "VOID" | null;
+  vatBreakdown: { category: string; rate: string; taxable: number; vat: number; exemption: string }[];
 };
 
 export type PrintCell = {
@@ -103,7 +104,7 @@ export type PrintView = {
   total: string;
   paid: string | null;
   balance: string;
-  vatRows: { rate: string; vat: string; nett: string }[];
+  vatRows: { key: string; category: string; rate: string; taxable: string; vat: string; exemption: string }[];
   showVatSummary: boolean;
   footerTitle: string;
   footerBody: string;
@@ -128,6 +129,22 @@ function formatQuantity(value: number) {
   if (!Number.isFinite(value)) return "";
   if (Math.abs(value - Math.round(value)) < 0.0001) return formatInteger(Math.round(value));
   return formatMoney(value);
+}
+
+function groupSampleVat(lines: FormLine[]) {
+  const groups = new Map<string, { label: string; nett: number; vat: number }>();
+  for (const line of lines) {
+    const key = line.taxRate == null ? "none" : line.taxRate.toFixed(2);
+    const current = groups.get(key) ?? {
+      label: line.taxRate == null ? "No VAT" : formatPercent(line.taxRate),
+      nett: 0,
+      vat: 0,
+    };
+    current.nett += line.nett;
+    current.vat += line.vat;
+    groups.set(key, current);
+  }
+  return groups;
 }
 
 function formatPercent(rate: number) {
@@ -226,18 +243,23 @@ export function buildPrintView(layout: FormLayout, source: FormSource): PrintVie
   const date = formatInvoiceDate(source.header.transactionDate);
   const lineRows = source.lines.map((line) => columns.map((column) => lineValue(column, line, date)));
 
-  const groups = new Map<string, { label: string; nett: number; vat: number }>();
-  for (const line of source.lines) {
-    const key = line.taxRate == null ? "none" : line.taxRate.toFixed(2);
-    const current = groups.get(key) ?? {
-      label: line.taxRate == null ? "No VAT" : formatPercent(line.taxRate),
-      nett: 0,
-      vat: 0,
-    };
-    current.nett += line.nett;
-    current.vat += line.vat;
-    groups.set(key, current);
-  }
+  const groupedRows = source.vatBreakdown.length
+    ? source.vatBreakdown.map((row) => ({
+        key: `${row.category}-${row.rate}-${row.exemption}`,
+        category: row.category,
+        rate: row.rate,
+        taxable: formatMoney(row.taxable),
+        vat: formatMoney(row.vat),
+        exemption: row.exemption,
+      }))
+    : [...groupSampleVat(source.lines).entries()].map(([key, group]) => ({
+        key,
+        category: group.label,
+        rate: group.label,
+        taxable: formatMoney(group.nett),
+        vat: formatMoney(group.vat),
+        exemption: "",
+      }));
 
   const paid = source.header.paidAmount;
   const balance = Math.max(0, source.header.foreignTotal - paid);
@@ -261,11 +283,7 @@ export function buildPrintView(layout: FormLayout, source: FormSource): PrintVie
     total: formatMoney(source.header.foreignTotal),
     paid: paid > 0 ? formatMoney(paid) : null,
     balance: currency ? `${currency} ${formatMoney(balance)}` : formatMoney(balance),
-    vatRows: [...groups.values()].map((group) => ({
-      rate: group.label,
-      vat: formatMoney(group.vat),
-      nett: formatMoney(group.nett),
-    })),
+    vatRows: groupedRows,
     showVatSummary: layout.showVatSummary,
     footerTitle: organisation.name || "Organisation",
     footerBody: footerBody || "Bank details",
@@ -321,6 +339,7 @@ export function sampleSource(organisation: FormOrganisation, currencyCode: strin
     flexLabels: ["", "", "", "", ""],
     numberLabel: "Invoice",
     watermark: null,
+    vatBreakdown: [],
   };
 }
 

@@ -95,9 +95,10 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
            contact_details, notes, currency_id, exchange_rate, order_number, supplier_reference, supply_date,
            foreign_nett_amount, foreign_vat_amount, foreign_total_amount,
            home_nett_amount, home_vat_amount, home_total_amount, paid_amount,
-           status, void_reason,
+           rounding_amount, amount_due, status, void_reason,
            flex1, flex2, flex3, flex4, flex5,
-           transaction_types(code), suppliers(code), currencies(code)`,
+           transaction_types(code), suppliers(code), currencies(code),
+           transaction_vat_breakdown(vat_category, vat_percentage, taxable_amount, vat_amount, exemption_code, exemption_reason)`,
         )
         .eq("organisation_id", organisationId)
         .order("transaction_date", { ascending: false })
@@ -141,7 +142,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
       supabase.from("cost_centres").select("id, code, description").eq("organisation_id", organisationId).order("code"),
       supabase
         .from("vat_rates")
-        .select("id, code, description, rate, vat_type")
+        .select("id, code, description, rate, vat_type, vat_category, exemption_reason")
         .eq("organisation_id", organisationId)
         .order("code"),
     ]);
@@ -199,6 +200,15 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
       homeVatAmount: formatMoney(row.home_vat_amount),
       homeTotalAmount: formatMoney(row.home_total_amount),
       paidAmount: formatMoney(row.paid_amount),
+      roundingAmount: formatMoney(row.rounding_amount),
+      amountDue: formatMoney(row.amount_due),
+      breakdown: (Array.isArray(row.transaction_vat_breakdown) ? row.transaction_vat_breakdown : []).map((item) => ({
+        category: item.vat_category,
+        rate: Number(item.vat_percentage),
+        taxable: Number(item.taxable_amount),
+        vat: Number(item.vat_amount),
+        exemption: [item.exemption_code, item.exemption_reason].filter(Boolean).join(" "),
+      })),
       status: row.status,
       voidReason: row.void_reason ?? "",
       flex1: row.flex1 ?? "",
@@ -266,6 +276,8 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
             description: row.description,
             rate: String(row.rate),
             vatType,
+            vatCategory: row.vat_category,
+            exemptionReason: row.exemption_reason ?? "",
           },
         ];
       }),

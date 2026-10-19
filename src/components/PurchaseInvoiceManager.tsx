@@ -16,9 +16,11 @@ import type { PurchaseInvoiceChoices } from "@/lib/purchase-invoice-data";
 import { formatInteger, groupThousands, numberValue } from "@/lib/numbers";
 import { formatExchangeRate, parseCurrencyRate } from "@/lib/currencies";
 import {
+  breakdownFromLines,
   formatMoney,
   lineAmounts,
   parseMoney,
+  roundCents,
   toHome,
   type InvoiceCode,
   type InvoiceProduct,
@@ -326,6 +328,7 @@ function InvoiceForm({
   const [supplierReference, setSupplierReference] = useState(header?.supplierReference ?? "");
   const [supplyDate, setSupplyDate] = useState(header?.supplyDate ?? "");
   const [paidAmount, setPaidAmount] = useState(header?.paidAmount || "0.00");
+  const [roundingAmount, setRoundingAmount] = useState(header?.roundingAmount || "0.00");
   const [flex, setFlex] = useState([
     header?.flex1 ?? "",
     header?.flex2 ?? "",
@@ -353,9 +356,32 @@ function InvoiceForm({
   const showFlex = flexLabels.some((label) => label.trim());
   const expenseVat = choices.vatRates.filter((rate) => rate.vatType === "Expense");
   const totals = useMemo(() => {
-    const foreignNett = invoiceLines.reduce((sum, line) => sum + numberValue(line.nettAmount), 0);
-    const foreignVat = invoiceLines.reduce((sum, line) => sum + numberValue(line.vatAmount), 0);
-    const foreignTotal = foreignNett + foreignVat;
+    if (locked && header) {
+      return {
+        foreignNett: numberValue(header.foreignNettAmount),
+        foreignVat: numberValue(header.foreignVatAmount),
+        foreignTotal: numberValue(header.foreignTotalAmount),
+        homeNett: numberValue(header.homeNettAmount),
+        homeVat: numberValue(header.homeVatAmount),
+        homeTotal: numberValue(header.homeTotalAmount),
+        amountDue: roundCents(numberValue(header.foreignTotalAmount) - numberValue(paidAmount) + numberValue(header.roundingAmount)),
+        breakdown: header.breakdown,
+      };
+    }
+    const breakdown = breakdownFromLines(
+      invoiceLines.map((line) => {
+        const vat = expenseVat.find((rate) => rate.id === line.vatRateId);
+        return {
+          nett: numberValue(line.nettAmount),
+          rate: vat ? Number(vat.rate) : 0,
+          category: vat?.vatCategory || "O",
+          exemption: vat?.exemptionReason ?? "",
+        };
+      }),
+    );
+    const foreignNett = roundCents(invoiceLines.reduce((sum, line) => sum + numberValue(line.nettAmount), 0));
+    const foreignVat = roundCents(breakdown.reduce((sum, row) => sum + row.vat, 0));
+    const foreignTotal = roundCents(foreignNett + foreignVat);
     return {
       foreignNett,
       foreignVat,
@@ -363,8 +389,10 @@ function InvoiceForm({
       homeNett: toHome(foreignNett, exchangeRate),
       homeVat: toHome(foreignVat, exchangeRate),
       homeTotal: toHome(foreignTotal, exchangeRate),
+      amountDue: roundCents(foreignTotal - numberValue(paidAmount) + numberValue(roundingAmount)),
+      breakdown,
     };
-  }, [exchangeRate, invoiceLines]);
+  }, [exchangeRate, expenseVat, header, invoiceLines, locked, paidAmount, roundingAmount]);
 
   function chooseSupplier(id: string) {
     setSupplierId(id);
@@ -556,6 +584,21 @@ function InvoiceForm({
           <QuietInput name="order_number" maxLength={40} disabled={locked} value={orderNumber} onChange={(event) => setOrderNumber(event.target.value)} />
         </label>
         <label className={styles.field}>
+          Rounding
+          <QuietInput
+            name="rounding_amount"
+            required
+            inputMode="decimal"
+            disabled={locked}
+            value={roundingAmount}
+            onChange={(event) => setRoundingAmount(event.target.value)}
+            onBlur={(event) => {
+              if (parseMoney(event.target.value)) setRoundingAmount(formatMoney(event.target.value));
+            }}
+            className={styles.mono}
+          />
+        </label>
+        <label className={styles.field}>
           Paid amount
           <QuietInput
             name="paid_amount"
@@ -607,6 +650,31 @@ function InvoiceForm({
               )}
             </tbody>
           </table>
+          <p className={styles.panelMeta}>Amount due {formatMoney(totals.amountDue)}</p>
+          {totals.breakdown.length ? (
+            <table>
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Rate</th>
+                  <th>Taxable</th>
+                  <th>VAT</th>
+                  <th>Exemption</th>
+                </tr>
+              </thead>
+              <tbody>
+                {totals.breakdown.map((row) => (
+                  <tr key={`${row.category}-${row.rate}`}>
+                    <td className={styles.mono}>{row.category}</td>
+                    <td className={styles.mono}>{row.rate.toFixed(2)}%</td>
+                    <td className={styles.mono}>{formatMoney(row.taxable)}</td>
+                    <td className={styles.mono}>{formatMoney(row.vat)}</td>
+                    <td>{row.exemption || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : null}
         </fieldset>
         </div>
         </div>

@@ -158,8 +158,10 @@ Code and description only. Both can be left empty on a purchase line.
 | --- | --- |
 | `rate` | Percentage from 0 to 100, two decimal places |
 | `vat_type` | `Sales` or `Expense` |
+| `vat_category` | EN 16931 category, such as `S` standard or `E` exempt. Standard must be above zero. Categories marked zero-rate must be 0 |
+| `exemption_code`, `exemption_reason` | Required for exempt, reverse charge, intra-community, export, and outside-scope categories. At least one of the two |
 
-Purchase VAT on a product, and VAT on a purchase line, must be an Expense rate. Sales VAT on a product must be a Sales rate.
+Purchase VAT on a product, and VAT on a purchase line, must be an Expense rate. Sales VAT on a product must be a Sales rate. A category used on a posted or void line cannot be changed. Existing rates above zero were set to `S`. There were no zero-rated codes.
 
 ### `products`
 
@@ -220,16 +222,20 @@ The app writes both tables through `save_purchase_invoice(jsonb)`. That function
 | `notes` | Optional, up to 4000 |
 | `currency_id`, `exchange_rate` | The supplier's currency, and the rate used for this document |
 | `order_number` | Optional, up to 40 |
-| `foreign_nett_amount`, `foreign_vat_amount`, `foreign_total_amount` | Sum of the lines, in the document currency. Maintained by trigger |
-| `home_nett_amount`, `home_vat_amount`, `home_total_amount` | Those sums divided by `exchange_rate` |
-| `paid_amount` | Zero or greater. Not recalculated from lines. On a posted document this is the only amount that can still be edited |
+| `foreign_nett_amount` | Sum of the line nett amounts, rounded to 2 decimal places |
+| `foreign_vat_amount` | Sum of the VAT breakdown, not the sum of the line VAT amounts |
+| `foreign_total_amount` | Nett plus VAT |
+| `rounding_amount` | Optional rounding, editable on a draft. Included in the amount due |
+| `amount_due` | Total minus paid, plus rounding. A posted document updates this when the paid amount changes |
+| `home_nett_amount`, `home_vat_amount`, `home_total_amount` | Each foreign figure divided by `exchange_rate` and rounded to 2 decimal places |
+| `paid_amount` | Zero or greater. On a posted document this is the only amount that can still be edited. The VAT totals stay as they were |
 | `status` | `draft`, `posted`, or `void`. Existing documents were marked posted when this column was added |
 | `posted_at`, `posted_by` | Set when the document is posted |
 | `voided_at`, `voided_by`, `void_reason` | Set when an owner or admin voids a posted document. The reason is required |
 
 A draft can be edited and deleted. Posting needs at least one line and is allowed for any member. Purchases are numbered when the draft is saved. A type set to number on posting, which every Sales type must use, leaves the draft without a number and issues the next number when it is posted. Deleting those drafts does not use a number. A posted document is read-only apart from the paid amount, until an owner or admin voids it from the document form. A void document cannot be changed or deleted. Status changes only through `post_document` and `void_document`.
 
-Posting copies the organisation and the supplier into `issuer_snapshot` and `party_snapshot`. Those copies do not change if the organisation or supplier is edited later. Documents that were already posted when snapshots were added were filled from the data at that time, including the live logo path. A new posting copies the logo to `{organisation_id}/snapshots/{header_id}` first, and does not post if that copy fails. Each line stores `vat_percentage` from the VAT code at the time the line is saved. A VAT code used on a posted or void line cannot have its rate or type changed. Customers and suppliers have an optional `vat_number`.
+Posting copies the organisation and the supplier into `issuer_snapshot` and `party_snapshot`. Those copies do not change if the organisation or supplier is edited later. Documents that were already posted when snapshots were added were filled from the data at that time, including the live logo path. A new posting copies the logo to `{organisation_id}/snapshots/{header_id}` first, and does not post if that copy fails. Each line stores `vat_percentage`, the VAT category, and any exemption from the VAT code at the time the line is saved. A line with no VAT code is category `O`. Line nett is rounded to 2 decimal places. Line VAT is kept for display. Document VAT is one row in `transaction_vat_breakdown` for each category and rate: the taxable amount times the rate, rounded to 2 decimal places. A posted document keeps the totals it had when it was posted. A VAT code used on a posted or void line cannot have its rate, type, or category changed. Customers and suppliers have an optional `vat_number`.
 
 A purchase document stores an optional supplier invoice number and supply date. The same supplier invoice number cannot be entered twice for one supplier, ignoring case, unless the first document has been voided. A purchase requires a supplier and cannot name a customer. `customer_id` is ready for sales documents, which are still not stored.
 

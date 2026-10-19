@@ -99,6 +99,7 @@ function documentFrom(formData: FormData) {
   const currencyId = parseUuid(text(formData, "currency_id"));
   const exchangeRate = parseExchangeRate(text(formData, "exchange_rate"));
   const paidAmount = parseMoney(text(formData, "paid_amount") || "0");
+  const roundingAmount = parseMoney(text(formData, "rounding_amount") || "0");
   const contactDetails = optionalText(text(formData, "contact_details"), 500);
   const notes = optionalText(text(formData, "notes"), 4000);
   const orderNumber = optionalText(text(formData, "order_number"), 40);
@@ -115,6 +116,7 @@ function documentFrom(formData: FormData) {
   if (!currencyId) return { error: "Choose a currency." } as const;
   if (!exchangeRate) return { error: "Enter an exchange rate greater than 0." } as const;
   if (!paidAmount) return { error: "Enter a paid amount of 0 or more." } as const;
+  if (!roundingAmount) return { error: "Enter a rounding amount of 0 or more." } as const;
   if (contactDetails === undefined) return { error: "Contact details can be up to 500 characters." } as const;
   if (notes === undefined) return { error: "Notes can be up to 4000 characters." } as const;
   if (orderNumber === undefined) return { error: "Order number can be up to 40 characters." } as const;
@@ -157,6 +159,7 @@ function documentFrom(formData: FormData) {
     supplierReference,
     supplyDate,
     paidAmount,
+    roundingAmount,
     flex1: flex[0],
     flex2: flex[1],
     flex3: flex[2],
@@ -198,6 +201,7 @@ export async function savePurchaseInvoice(_state: ActionState, formData: FormDat
       supplierReference: document.supplierReference,
       supplyDate: document.supplyDate,
       paidAmount: document.paidAmount,
+      roundingAmount: document.roundingAmount,
       flex1: document.flex1,
       flex2: document.flex2,
       flex3: document.flex3,

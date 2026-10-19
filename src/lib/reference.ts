@@ -25,6 +25,21 @@ export type ReferenceRow = {
   accountType: AccountType | null;
   rate: string | null;
   vatType: VatType | null;
+  vatCategory: string | null;
+  exemptionCode: string | null;
+  exemptionReason: string | null;
+};
+
+export type VatCategoryChoice = {
+  code: string;
+  name: string;
+  requiresExemptionReason: boolean;
+  rateMustBeZero: boolean;
+};
+
+export type VatexChoice = {
+  code: string;
+  name: string;
 };
 
 export const REFERENCE_META: Record<
@@ -53,7 +68,7 @@ export const REFERENCE_META: Record<
     path: "/vat-rates",
     title: "VAT rates",
     singular: "VAT rate",
-    lede: "VAT rates for this organisation. Each one has a code, a description, a percentage rate, and a type of Sales or Expense.",
+    lede: "VAT rates for this organisation. Each one has a code, a percentage, a Sales or Expense type, and an EN 16931 category.",
   },
 };
 

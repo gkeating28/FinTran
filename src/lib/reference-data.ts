@@ -6,6 +6,8 @@ import {
   REFERENCE_META,
   type ReferenceKind,
   type ReferenceRow,
+  type VatCategoryChoice,
+  type VatexChoice,
 } from "@/lib/reference";
 import { type CodeName } from "@/lib/code-lists";
 import { createClient } from "@/lib/supabase/server";
@@ -39,6 +41,9 @@ export async function listReference(kind: ReferenceKind): Promise<{
         accountType: parseAccountType(row.account_type),
         rate: null,
         vatType: null,
+        vatCategory: null,
+        exemptionCode: null,
+        exemptionReason: null,
       })),
       error: null,
     };
@@ -47,7 +52,7 @@ export async function listReference(kind: ReferenceKind): Promise<{
   if (kind === "vat_rates") {
     const { data, error } = await supabase
       .from("vat_rates")
-      .select("id, code, description, rate, vat_type")
+      .select("id, code, description, rate, vat_type, vat_category, exemption_code, exemption_reason")
       .eq("organisation_id", organisationId)
       .order("code");
 
@@ -61,6 +66,9 @@ export async function listReference(kind: ReferenceKind): Promise<{
         accountType: null,
         rate: parseRate(String(row.rate)),
         vatType: parseVatType(row.vat_type),
+        vatCategory: row.vat_category,
+        exemptionCode: row.exemption_code,
+        exemptionReason: row.exemption_reason,
       })),
       error: null,
     };
@@ -84,6 +92,9 @@ export async function listReference(kind: ReferenceKind): Promise<{
       accountType: null,
       rate: null,
       vatType: null,
+      vatCategory: null,
+      exemptionCode: null,
+      exemptionReason: null,
     })),
     error: null,
   };
@@ -95,6 +106,35 @@ export type CodeLists = {
   currencies: CodeName[];
   error: string | null;
 };
+
+export async function listVatLookups(): Promise<{
+  categories: VatCategoryChoice[];
+  exemptions: VatexChoice[];
+  error: string | null;
+}> {
+  const supabase = await createClient();
+  const [categories, exemptions] = await Promise.all([
+    supabase
+      .from("ref_vat_categories")
+      .select("code, name, requires_exemption_reason, rate_must_be_zero")
+      .eq("active", true)
+      .order("code"),
+    supabase.from("ref_vatex").select("code, name").eq("active", true).order("code"),
+  ]);
+  if (categories.error || exemptions.error) {
+    return { categories: [], exemptions: [], error: "VAT categories could not be loaded." };
+  }
+  return {
+    categories: (categories.data ?? []).map((row) => ({
+      code: row.code,
+      name: row.name,
+      requiresExemptionReason: row.requires_exemption_reason,
+      rateMustBeZero: row.rate_must_be_zero,
+    })),
+    exemptions: exemptions.data ?? [],
+    error: null,
+  };
+}
 
 export async function listCodeLists(): Promise<CodeLists> {
   const supabase = await createClient();

@@ -84,13 +84,36 @@ function vatFields(kind: ReferenceKind, formData: FormData): {
   error: string | null;
   rate: string | null;
   vatType: VatType | null;
+  vatCategory: string | null;
+  exemptionCode: string | null;
+  exemptionReason: string | null;
 } {
-  if (kind !== "vat_rates") return { error: null, rate: null, vatType: null };
+  const empty = {
+    error: null,
+    rate: null,
+    vatType: null,
+    vatCategory: null,
+    exemptionCode: null,
+    exemptionReason: null,
+  };
+  if (kind !== "vat_rates") return empty;
   const rate = parseRate(text(formData, "rate"));
   const vatType = parseVatType(text(formData, "vat_type"));
-  if (!rate) return { error: "Enter a rate from 0 to 100, with up to 2 decimal places.", rate: null, vatType: null };
-  if (!vatType) return { error: "Choose Sales or Expense.", rate: null, vatType: null };
-  return { error: null, rate, vatType };
+  const vatCategory = text(formData, "vat_category").trim();
+  const exemptionCode = text(formData, "exemption_code").trim();
+  const exemptionReason = text(formData, "exemption_reason").trim();
+  if (!rate) return { ...empty, error: "Enter a rate from 0 to 100, with up to 2 decimal places." };
+  if (!vatType) return { ...empty, error: "Choose Sales or Expense." };
+  if (!vatCategory) return { ...empty, error: "Choose a VAT category." };
+  if (exemptionReason.length > 200) return { ...empty, error: "Exemption reason can be up to 200 characters." };
+  return {
+    error: null,
+    rate,
+    vatType,
+    vatCategory,
+    exemptionCode: exemptionCode || null,
+    exemptionReason: exemptionReason || null,
+  };
 }
 
 export async function createReference(
@@ -116,7 +139,15 @@ export async function createReference(
     code,
     description,
     ...(accountType ? { account_type: accountType } : {}),
-    ...(vat.rate && vat.vatType ? { rate: vat.rate, vat_type: vat.vatType } : {}),
+    ...(vat.rate && vat.vatType
+      ? {
+          rate: vat.rate,
+          vat_type: vat.vatType,
+          vat_category: vat.vatCategory,
+          exemption_code: vat.exemptionCode,
+          exemption_reason: vat.exemptionReason,
+        }
+      : {}),
   });
 
   if (error) return { error: friendlyError(error, "That code could not be saved.") };
@@ -149,7 +180,15 @@ export async function updateReference(
       code,
       description,
       ...(accountType ? { account_type: accountType } : {}),
-      ...(vat.rate && vat.vatType ? { rate: vat.rate, vat_type: vat.vatType } : {}),
+      ...(vat.rate && vat.vatType
+        ? {
+            rate: vat.rate,
+            vat_type: vat.vatType,
+            vat_category: vat.vatCategory,
+            exemption_code: vat.exemptionCode,
+            exemption_reason: vat.exemptionReason,
+          }
+        : {}),
     })
     .eq("id", id)
     .eq("organisation_id", current.organisationId);

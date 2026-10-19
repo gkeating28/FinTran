@@ -43,6 +43,9 @@ export type PurchaseInvoiceRow = {
   homeVatAmount: string;
   homeTotalAmount: string;
   paidAmount: string;
+  roundingAmount: string;
+  amountDue: string;
+  breakdown: VatBreakdownRow[];
   status: "draft" | "posted" | "void";
   voidReason: string;
   flex1: string;
@@ -93,6 +96,16 @@ export type InvoiceCode = {
 export type InvoiceVat = InvoiceCode & {
   rate: string;
   vatType: string;
+  vatCategory: string;
+  exemptionReason: string;
+};
+
+export type VatBreakdownRow = {
+  category: string;
+  rate: number;
+  taxable: number;
+  vat: number;
+  exemption: string;
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -126,6 +139,11 @@ export function roundMoney(value: number) {
   return Math.round(value * 10000) / 10000;
 }
 
+export function roundCents(value: number) {
+  const sign = value < 0 ? -1 : 1;
+  return (sign * Math.round((Math.abs(value) + Number.EPSILON) * 100)) / 100;
+}
+
 export function lineAmounts(
   quantity: string,
   price: string,
@@ -136,17 +154,40 @@ export function lineAmounts(
   const unit = numberValue(price);
   const disc = numberValue(discount || 0);
   if (!(qty > 0) || !(unit >= 0) || !(disc >= 0)) return null;
-  const gross = roundMoney(qty * unit);
-  if (disc > gross) return { error: "Discount cannot be more than quantity times price." } as const;
-  const nett = roundMoney(gross - disc);
-  const vat = vatPercent == null ? 0 : roundMoney((nett * Number(vatPercent)) / 100);
+  if (disc > qty * unit) return { error: "Discount cannot be more than quantity times price." } as const;
+  const nett = roundCents(qty * unit - disc);
+  const vat = vatPercent == null ? 0 : roundCents((nett * Number(vatPercent)) / 100);
   return { nett, vat } as const;
+}
+
+export function breakdownFromLines(
+  lines: { nett: number; rate: number | null; category: string; exemption: string }[],
+): VatBreakdownRow[] {
+  const groups = new Map<string, { category: string; rate: number; taxable: number; exemption: string }>();
+  for (const line of lines) {
+    const category = line.category || "O";
+    const rate = line.rate ?? 0;
+    const key = `${category}|${rate}`;
+    const current = groups.get(key) ?? { category, rate, taxable: 0, exemption: line.exemption };
+    current.taxable += line.nett;
+    groups.set(key, current);
+  }
+  return [...groups.values()].map((group) => {
+    const taxable = roundCents(group.taxable);
+    return {
+      category: group.category,
+      rate: group.rate,
+      taxable,
+      vat: roundCents((taxable * group.rate) / 100),
+      exemption: group.exemption,
+    };
+  });
 }
 
 export function toHome(foreign: number, rate: string) {
   const exchange = numberValue(rate);
   if (!(exchange > 0)) return 0;
-  return roundMoney(foreign / exchange);
+  return roundCents(foreign / exchange);
 }
 
 export function formatMoney(value: string | number | null) {

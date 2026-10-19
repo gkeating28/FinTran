@@ -13,6 +13,8 @@ import {
   VAT_TYPES,
   type ReferenceKind,
   type ReferenceRow,
+  type VatCategoryChoice,
+  type VatexChoice,
 } from "@/lib/reference";
 import styles from "@/components/OpsPage.module.css";
 import type { ActionState } from "@/lib/types";
@@ -23,12 +25,16 @@ export default function ReferenceManager({
   loadError,
   actionError,
   canEdit = true,
+  vatCategories = [],
+  exemptions = [],
 }: {
   kind: ReferenceKind;
   rows: ReferenceRow[];
   loadError: string | null;
   actionError?: string;
   canEdit?: boolean;
+  vatCategories?: VatCategoryChoice[];
+  exemptions?: VatexChoice[];
 }) {
   const meta = REFERENCE_META[kind];
   const remove = deleteReference.bind(null, kind);
@@ -102,6 +108,12 @@ export default function ReferenceManager({
                   sortValue: (row: ReferenceRow) => row.vatType ?? "",
                   render: (row: ReferenceRow) => row.vatType ?? "",
                 },
+                {
+                  key: "vatCategory",
+                  label: "Category",
+                  sortValue: (row: ReferenceRow) => row.vatCategory ?? "",
+                  render: (row: ReferenceRow) => row.vatCategory ?? "",
+                },
               ]
             : []),
         ]}
@@ -134,6 +146,8 @@ export default function ReferenceManager({
           key={draft === "new" ? "new" : draft.id}
           kind={kind}
           row={draft === "new" ? null : draft}
+          vatCategories={vatCategories}
+          exemptions={exemptions}
           onClose={() => setDraft(null)}
         />
       ) : null}
@@ -144,10 +158,14 @@ export default function ReferenceManager({
 function ReferenceForm({
   kind,
   row,
+  vatCategories,
+  exemptions,
   onClose,
 }: {
   kind: ReferenceKind;
   row: ReferenceRow | null;
+  vatCategories: VatCategoryChoice[];
+  exemptions: VatexChoice[];
   onClose: () => void;
 }) {
   const meta = REFERENCE_META[kind];
@@ -158,6 +176,9 @@ function ReferenceForm({
   const [accountType, setAccountType] = useState(row?.accountType ?? "");
   const [rate, setRate] = useState(row?.rate ?? "");
   const [vatType, setVatType] = useState(row?.vatType ?? "");
+  const [vatCategory, setVatCategory] = useState(row?.vatCategory ?? "S");
+  const [exemptionCode, setExemptionCode] = useState(row?.exemptionCode ?? "");
+  const [exemptionReason, setExemptionReason] = useState(row?.exemptionReason ?? "");
 
   useEffect(() => {
     if (state.message) onClose();
@@ -239,6 +260,49 @@ function ReferenceForm({
                   </option>
                 ))}
               </select>
+            </label>
+            <label className={styles.field}>
+              Category
+              <select
+                name="vat_category"
+                required
+                autoComplete="off"
+                value={vatCategory}
+                onChange={(event) => setVatCategory(event.target.value)}
+              >
+                {vatCategories.map((category) => (
+                  <option key={category.code} value={category.code}>
+                    {category.code} — {category.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={styles.field}>
+              Exemption code
+              <select
+                name="exemption_code"
+                autoComplete="off"
+                value={exemptionCode}
+                onChange={(event) => setExemptionCode(event.target.value)}
+              >
+                <option value="">None</option>
+                {exemptions.map((exemption) => (
+                  <option key={exemption.code} value={exemption.code}>
+                    {exemption.code}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={`${styles.field} ${styles.wide}`}>
+              Exemption reason
+              <QuietInput
+                name="exemption_reason"
+                maxLength={200}
+                autoComplete="off"
+                spellCheck={false}
+                value={exemptionReason}
+                onChange={(event) => setExemptionReason(event.target.value)}
+              />
             </label>
           </>
         ) : null}

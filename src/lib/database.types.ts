@@ -1277,6 +1277,7 @@ export type Database = {
       }
       transaction_headers: {
         Row: {
+          amount_due: number
           contact_details: string | null
           created_at: string
           created_by: string | null
@@ -1305,6 +1306,7 @@ export type Database = {
           posted_at: string | null
           posted_by: string | null
           reference: number | null
+          rounding_amount: number
           status: Database["public"]["Enums"]["document_status"]
           supplier_id: string | null
           supplier_name: string
@@ -1320,6 +1322,7 @@ export type Database = {
           voided_by: string | null
         }
         Insert: {
+          amount_due: number
           contact_details?: string | null
           created_at?: string
           created_by?: string | null
@@ -1348,6 +1351,7 @@ export type Database = {
           posted_at?: string | null
           posted_by?: string | null
           reference?: number | null
+          rounding_amount?: number
           status?: Database["public"]["Enums"]["document_status"]
           supplier_id?: string | null
           supplier_name: string
@@ -1363,6 +1367,7 @@ export type Database = {
           voided_by?: string | null
         }
         Update: {
+          amount_due?: number
           contact_details?: string | null
           created_at?: string
           created_by?: string | null
@@ -1391,6 +1396,7 @@ export type Database = {
           posted_at?: string | null
           posted_by?: string | null
           reference?: number | null
+          rounding_amount?: number
           status?: Database["public"]["Enums"]["document_status"]
           supplier_id?: string | null
           supplier_name?: string
@@ -1486,6 +1492,8 @@ export type Database = {
           department_id: string | null
           description: string
           discount_amount: number
+          exemption_code: string | null
+          exemption_reason: string | null
           gl_code_id: string | null
           header_id: string
           id: string
@@ -1501,6 +1509,7 @@ export type Database = {
           updated_at: string
           updated_by: string | null
           vat_amount: number
+          vat_category: string
           vat_percentage: number
           vat_rate_id: string | null
         }
@@ -1511,6 +1520,8 @@ export type Database = {
           department_id?: string | null
           description: string
           discount_amount?: number
+          exemption_code?: string | null
+          exemption_reason?: string | null
           gl_code_id?: string | null
           header_id: string
           id?: string
@@ -1526,6 +1537,7 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           vat_amount: number
+          vat_category?: string
           vat_percentage?: number
           vat_rate_id?: string | null
         }
@@ -1536,6 +1548,8 @@ export type Database = {
           department_id?: string | null
           description?: string
           discount_amount?: number
+          exemption_code?: string | null
+          exemption_reason?: string | null
           gl_code_id?: string | null
           header_id?: string
           id?: string
@@ -1551,6 +1565,7 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           vat_amount?: number
+          vat_category?: string
           vat_percentage?: number
           vat_rate_id?: string | null
         }
@@ -1575,6 +1590,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "departments"
             referencedColumns: ["organisation_id", "id"]
+          },
+          {
+            foreignKeyName: "transaction_lines_exemption_code_fkey"
+            columns: ["exemption_code"]
+            isOneToOne: false
+            referencedRelation: "ref_vatex"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "transaction_lines_gl_code_id_fkey"
@@ -1624,6 +1646,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_lines_vat_category_fkey"
+            columns: ["vat_category"]
+            isOneToOne: false
+            referencedRelation: "ref_vat_categories"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "transaction_lines_vat_rate_id_fkey"
@@ -1723,18 +1752,79 @@ export type Database = {
           },
         ]
       }
+      transaction_vat_breakdown: {
+        Row: {
+          exemption_code: string | null
+          exemption_reason: string | null
+          header_id: string
+          organisation_id: string
+          taxable_amount: number
+          tenant_id: string
+          vat_amount: number
+          vat_category: string
+          vat_percentage: number
+        }
+        Insert: {
+          exemption_code?: string | null
+          exemption_reason?: string | null
+          header_id: string
+          organisation_id: string
+          taxable_amount: number
+          tenant_id: string
+          vat_amount: number
+          vat_category: string
+          vat_percentage: number
+        }
+        Update: {
+          exemption_code?: string | null
+          exemption_reason?: string | null
+          header_id?: string
+          organisation_id?: string
+          taxable_amount?: number
+          tenant_id?: string
+          vat_amount?: number
+          vat_category?: string
+          vat_percentage?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_vat_breakdown_exemption_code_fkey"
+            columns: ["exemption_code"]
+            isOneToOne: false
+            referencedRelation: "ref_vatex"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "transaction_vat_breakdown_organisation_id_header_id_fkey"
+            columns: ["organisation_id", "header_id"]
+            isOneToOne: false
+            referencedRelation: "transaction_headers"
+            referencedColumns: ["organisation_id", "id"]
+          },
+          {
+            foreignKeyName: "transaction_vat_breakdown_vat_category_fkey"
+            columns: ["vat_category"]
+            isOneToOne: false
+            referencedRelation: "ref_vat_categories"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       vat_rates: {
         Row: {
           code: string
           created_at: string
           created_by: string | null
           description: string
+          exemption_code: string | null
+          exemption_reason: string | null
           id: string
           organisation_id: string
           rate: number
           tenant_id: string
           updated_at: string
           updated_by: string | null
+          vat_category: string
           vat_type: string
         }
         Insert: {
@@ -1742,12 +1832,15 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description: string
+          exemption_code?: string | null
+          exemption_reason?: string | null
           id?: string
           organisation_id: string
           rate: number
           tenant_id: string
           updated_at?: string
           updated_by?: string | null
+          vat_category: string
           vat_type: string
         }
         Update: {
@@ -1755,12 +1848,15 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string
+          exemption_code?: string | null
+          exemption_reason?: string | null
           id?: string
           organisation_id?: string
           rate?: number
           tenant_id?: string
           updated_at?: string
           updated_by?: string | null
+          vat_category?: string
           vat_type?: string
         }
         Relationships: [
@@ -1770,6 +1866,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vat_rates_exemption_code_fkey"
+            columns: ["exemption_code"]
+            isOneToOne: false
+            referencedRelation: "ref_vatex"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "vat_rates_organisation_id_fkey"
@@ -1791,6 +1894,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vat_rates_vat_category_fkey"
+            columns: ["vat_category"]
+            isOneToOne: false
+            referencedRelation: "ref_vat_categories"
+            referencedColumns: ["code"]
           },
         ]
       }

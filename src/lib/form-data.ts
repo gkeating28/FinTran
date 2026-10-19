@@ -25,6 +25,7 @@ const HEADER_SELECT = `
   id, status, reference, transaction_date, due_date, supplier_name, contact_details,
   exchange_rate, order_number, supplier_reference, supply_date, foreign_nett_amount, foreign_vat_amount, foreign_total_amount, paid_amount,
   flex1, flex2, flex3, flex4, flex5, issuer_snapshot, party_snapshot,
+  transaction_vat_breakdown(vat_category, vat_percentage, taxable_amount, vat_amount, exemption_code, exemption_reason),
   currencies(code),
   suppliers(code, name, phone, email, website, address_line1, address_line2, address_line3, city, post_code, county, country_code, contact_details, vat_number, ref_countries(name)),
   transaction_lines(
@@ -223,6 +224,13 @@ function sourceFromHeader(row: Loose, type: FormType, organisation: FormOrganisa
     flexLabels: type.flexLabels,
     numberLabel: documentNumberLabel(type.code, type.description),
     watermark: status === "void" ? "VOID" : status === "posted" ? null : row.id ? "DRAFT" : null,
+    vatBreakdown: (Array.isArray(row.transaction_vat_breakdown) ? row.transaction_vat_breakdown : []).map((item) => ({
+      category: text(item.vat_category),
+      rate: `${amount(item.vat_percentage).toFixed(2)}%`,
+      taxable: amount(item.taxable_amount),
+      vat: amount(item.vat_amount),
+      exemption: [text(item.exemption_code), text(item.exemption_reason)].filter(Boolean).join(" "),
+    })),
   };
 }
 
