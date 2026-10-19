@@ -5,6 +5,7 @@ import DataGrid from "@/components/DataGrid";
 import { CreateOrganisationForm } from "@/components/Forms";
 import FormModal from "@/components/FormModal";
 import { QuietInput, QuietTextarea } from "@/components/QuietField";
+import { deleteOrganisation } from "@/lib/actions";
 import { updateOrganisationDefaults } from "@/lib/currency-actions";
 import type { OrganisationProfile } from "@/lib/currency-data";
 import { currencyLabel, type CurrencyChoice } from "@/lib/currencies";
@@ -289,6 +290,36 @@ function OrganisationForm({
           </button>
         </div>
       </form>
+      {organisation.role === "owner" ? <DeleteOrganisationForm organisation={organisation} /> : null}
     </FormModal>
+  );
+}
+
+function DeleteOrganisationForm({ organisation }: { organisation: OrganisationGridRow }) {
+  const [state, action, pending] = useActionState(deleteOrganisation, {} as ActionState);
+  const [confirmation, setConfirmation] = useState("");
+
+  return (
+    <form className={`${styles.modalForm} ${styles.voidBar}`} action={action} autoComplete="off" noValidate>
+      <input type="hidden" name="organisationId" value={organisation.id} />
+      <input type="hidden" name="organisationName" value={organisation.name} />
+      {state.error ? (
+        <p className={styles.alert} role="alert">
+          {state.error}
+        </p>
+      ) : null}
+      <label className={styles.field}>
+        Delete organisation
+        <QuietInput
+          name="confirmation"
+          value={confirmation}
+          onChange={(event) => setConfirmation(event.target.value)}
+          placeholder={`Type ${organisation.name}`}
+        />
+      </label>
+      <button className={styles.quiet} type="submit" disabled={pending || confirmation !== organisation.name}>
+        {pending ? "Deleting…" : "Delete"}
+      </button>
+    </form>
   );
 }

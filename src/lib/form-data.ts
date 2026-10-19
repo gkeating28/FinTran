@@ -15,19 +15,19 @@ import {
   type FormLayout,
 } from "@/lib/form-layout";
 import { formatInteger } from "@/lib/numbers";
-import { organisationLogoUrl } from "@/lib/organisation-logo";
+import { organisationLogoUrl, organisationObjectUrl } from "@/lib/organisation-logo";
 import { listTransactionMenu, type TransactionMenuTile } from "@/lib/transaction-type-data";
 import { parseTransactionTypeKind, type TransactionTypeKind } from "@/lib/transaction-types";
 import { createClient } from "@/lib/supabase/server";
 
 const HEADER_SELECT = `
-  id, reference, transaction_date, due_date, supplier_name, contact_details,
-  exchange_rate, order_number, foreign_nett_amount, foreign_vat_amount, foreign_total_amount, paid_amount,
-  flex1, flex2, flex3, flex4, flex5,
+  id, status, reference, transaction_date, due_date, supplier_name, contact_details,
+  exchange_rate, order_number, supplier_reference, supply_date, foreign_nett_amount, foreign_vat_amount, foreign_total_amount, paid_amount,
+  flex1, flex2, flex3, flex4, flex5, issuer_snapshot, party_snapshot,
   currencies(code),
-  suppliers(code, name, phone, email, website, address, contact_details),
+  suppliers(code, name, phone, email, website, address, contact_details, vat_number),
   transaction_lines(
-    line_number, description, quantity, price, discount_amount, nett_amount, vat_amount,
+    line_number, description, quantity, price, discount_amount, nett_amount, vat_amount, vat_percentage,
     products(code, description),
     gl_codes(code),
     departments(code),
@@ -102,7 +102,36 @@ async function organisationDetails(organisationId: string, organisationName: str
   return { organisation, currencyCode: text(currency?.code) };
 }
 
-function sourceFromHeader(row: Loose, type: FormType, organisation: FormOrganisation): FormSource {
+function snapshotText(snapshot: Loose | null, key: string) {
+  return text(snapshot?.[key]);
+}
+
+function organisationFromSnapshot(snapshot: Loose, organisationId: string): FormOrganisation {
+  const logoPath = snapshotText(snapshot, "logoPath");
+  return {
+    ...emptyOrganisation(),
+    name: snapshotText(snapshot, "name"),
+    address: snapshotText(snapshot, "address"),
+    phone: snapshotText(snapshot, "phone"),
+    contactName: snapshotText(snapshot, "contactName"),
+    contactEmail: snapshotText(snapshot, "contactEmail"),
+    website: snapshotText(snapshot, "website"),
+    vatNumber: snapshotText(snapshot, "vatNumber"),
+    companyNumber: snapshotText(snapshot, "companyNumber"),
+    bankingDetails: snapshotText(snapshot, "bankingDetails"),
+    logoUrl: logoPath ? organisationObjectUrl(organisationId, logoPath, logoPath) : null,
+  };
+}
+
+function sourceFromHeader(row: Loose, type: FormType, organisation: FormOrganisation, organisationId: string): FormSource {
+  const status = text(row.status);
+  const frozen = status === "posted" || status === "void";
+  const issuer = frozen && row.issuer_snapshot && typeof row.issuer_snapshot === "object"
+    ? (row.issuer_snapshot as Loose)
+    : null;
+  const partySnapshot = frozen && row.party_snapshot && typeof row.party_snapshot === "object"
+    ? (row.party_snapshot as Loose)
+    : null;
   const supplier = one(row.suppliers as Loose | Loose[] | null);
   const currency = one(row.currencies as { code?: string } | { code?: string }[] | null);
   const rawLines = row.transaction_lines;
@@ -115,7 +144,9 @@ function sourceFromHeader(row: Loose, type: FormType, organisation: FormOrganisa
     const department = one(line.departments as Loose | Loose[] | null);
     const centre = one(line.cost_centres as Loose | Loose[] | null);
     const vat = one(line.vat_rates as Loose | Loose[] | null);
-    const rate = vat?.rate == null || vat.rate === "" ? null : amount(vat.rate);
+    const storedRate = line.vat_percentage == null || line.vat_percentage === "" ? null : amount(line.vat_percentage);
+    const liveRate = vat?.rate == null || vat.rate === "" ? null : amount(vat.rate);
+    const rate = frozen ? storedRate : liveRate;
     return {
       item: text(product?.description) || text(product?.code),
       description: text(line.description),
@@ -133,25 +164,38 @@ function sourceFromHeader(row: Loose, type: FormType, organisation: FormOrganisa
     };
   });
 
+  const printedOrganisation = issuer ? organisationFromSnapshot(issuer, organisationId) : organisation;
   return {
-    organisation,
-    party: {
-      code: text(supplier?.code),
-      name: text(row.supplier_name) || text(supplier?.name),
-      address: text(supplier?.address),
-      contactDetails: text(row.contact_details) || text(supplier?.contact_details),
-      phone: text(supplier?.phone),
-      email: text(supplier?.email),
-      website: text(supplier?.website),
-    },
+    organisation: printedOrganisation,
+    party: partySnapshot
+      ? {
+          code: snapshotText(partySnapshot, "code"),
+          name: snapshotText(partySnapshot, "name"),
+          address: snapshotText(partySnapshot, "address"),
+          contactDetails: snapshotText(partySnapshot, "contactDetails"),
+          phone: snapshotText(partySnapshot, "phone"),
+          email: snapshotText(partySnapshot, "email"),
+          website: snapshotText(partySnapshot, "website"),
+        }
+      : {
+          code: text(supplier?.code),
+          name: text(row.supplier_name) || text(supplier?.name),
+          address: text(supplier?.address),
+          contactDetails: text(row.contact_details) || text(supplier?.contact_details),
+          phone: text(supplier?.phone),
+          email: text(supplier?.email),
+          website: text(supplier?.website),
+        },
     header: {
-      reference: formatInteger(text(row.reference)),
+      reference: text(row.reference) ? formatInteger(text(row.reference)) : "Draft",
       transactionDate: text(row.transaction_date),
       dueDate: text(row.due_date),
       orderNumber: text(row.order_number),
       currencyCode: text(currency?.code),
       exchangeRate: text(row.exchange_rate),
       paidAmount: amount(row.paid_amount),
+      supplierReference: text(row.supplier_reference),
+      supplyDate: text(row.supply_date),
       flex: [1, 2, 3, 4, 5].map((index) => text(row[`flex${index}`])) as FormSource["header"]["flex"],
       foreignNett: amount(row.foreign_nett_amount),
       foreignVat: amount(row.foreign_vat_amount),
@@ -160,6 +204,7 @@ function sourceFromHeader(row: Loose, type: FormType, organisation: FormOrganisa
     lines,
     flexLabels: type.flexLabels,
     numberLabel: documentNumberLabel(type.code, type.description),
+    watermark: status === "void" ? "VOID" : status === "posted" ? null : row.id ? "DRAFT" : null,
   };
 }
 
@@ -266,7 +311,7 @@ export async function loadFormDesigner(code: string): Promise<{
     .maybeSingle();
 
   const source = latest.data
-    ? sourceFromHeader(latest.data as unknown as Loose, type, details.organisation)
+    ? sourceFromHeader(latest.data as unknown as Loose, type, details.organisation, workspace.current.organisationId)
     : sampleSource(details.organisation, details.currencyCode);
   source.numberLabel = documentNumberLabel(type.code, type.description);
   source.flexLabels = type.flexLabels;
@@ -308,7 +353,10 @@ export async function loadPrintedDocument(code: string, id: string): Promise<{
   if (!header.data) return { view: null, type: loaded.type, error: null };
 
   return {
-    view: buildPrintView(stored.layout, sourceFromHeader(header.data as unknown as Loose, loaded.type, details.organisation)),
+    view: buildPrintView(
+      stored.layout,
+      sourceFromHeader(header.data as unknown as Loose, loaded.type, details.organisation, workspace.current.organisationId),
+    ),
     type: loaded.type,
     error: null,
   };

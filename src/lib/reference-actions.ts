@@ -50,7 +50,7 @@ function friendlyError(error: { code?: string; message: string } | null, fallbac
   if (error.code === "23514" && error.message.includes("rate")) {
     return "Enter a rate from 0 to 100, with up to 2 decimal places.";
   }
-  if (error.code === "23514") return "Use 1 to 20 letters or numbers, and a description up to 200 characters.";
+  if (error.code === "23514") return "Start the code with a letter or number. Then use letters, numbers, dots, or hyphens, up to 20 characters, and a description up to 200 characters.";
   return error.message || fallback;
 }
 
@@ -103,7 +103,7 @@ export async function createReference(
   const accountType = accountTypeFrom(kind, formData);
   const vat = vatFields(kind, formData);
   if (!code || !description) {
-    return { error: "Use 1 to 20 letters or numbers, and a description up to 200 characters." };
+    return { error: "Start the code with a letter or number. Then use letters, numbers, dots, or hyphens, up to 20 characters, and a description up to 200 characters." };
   }
   if (kind === "gl_codes" && !accountType) return { error: "Choose an account type." };
   if (vat.error) return { error: vat.error };
@@ -136,7 +136,7 @@ export async function updateReference(
   const accountType = accountTypeFrom(kind, formData);
   const vat = vatFields(kind, formData);
   if (!id || !code || !description) {
-    return { error: "Use 1 to 20 letters or numbers, and a description up to 200 characters." };
+    return { error: "Start the code with a letter or number. Then use letters, numbers, dots, or hyphens, up to 20 characters, and a description up to 200 characters." };
   }
   if (kind === "gl_codes" && !accountType) return { error: "Choose an account type." };
   if (vat.error) return { error: vat.error };

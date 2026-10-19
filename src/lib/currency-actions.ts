@@ -50,7 +50,7 @@ function friendlyError(error: { code?: string; message: string } | null, fallbac
     return "Banking details can be up to 1000 characters.";
   }
   if (error.code === "23514" && error.message.includes("logo_path")) return ORGANISATION_LOGO_ERROR;
-  if (error.code === "23514") return "Use 1 to 20 letters or numbers, and a name up to 80 characters.";
+  if (error.code === "23514") return "Start the code with a letter or number. Then use letters, numbers, dots, or hyphens, up to 20 characters, and a name up to 80 characters.";
   if (error.code === "P0001" && error.message.includes("Home currency")) {
     return "Choose a currency from this organisation.";
   }
@@ -83,7 +83,7 @@ function currencyFields(formData: FormData) {
   const name = parseCurrencyName(text(formData, "name"));
   const rate = parseCurrencyRate(text(formData, "rate"));
   if (!code || !name) {
-    return { error: "Use 1 to 20 letters or numbers, and a name up to 80 characters." } as const;
+    return { error: "Start the code with a letter or number. Then use letters, numbers, dots, or hyphens, up to 20 characters, and a name up to 80 characters." } as const;
   }
   if (!rate) {
     return { error: "Enter a rate greater than 0, with up to 8 decimal places." } as const;

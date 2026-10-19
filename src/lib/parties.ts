@@ -14,6 +14,7 @@ export type PartyRow = {
   address: string;
   contactDetails: string;
   notes: string;
+  vatNumber: string;
 };
 
 export type PartyCurrency = {
@@ -50,6 +51,7 @@ export type PartyFields = {
   address: string | null;
   contactDetails: string | null;
   notes: string | null;
+  vatNumber: string | null;
 };
 
 function optionalText(value: string, max: number) {
@@ -69,12 +71,13 @@ export function parseParty(input: {
   address: string;
   contactDetails: string;
   notes: string;
+  vatNumber: string;
 }): PartyFields | { error: string } {
   const code = input.code.trim().toUpperCase();
   const name = input.name.trim();
   const currencyId = input.currencyId.trim();
-  if (!/^[A-Z0-9]{1,20}$/.test(code) || name.length < 1 || name.length > 200) {
-    return { error: "Use 1 to 20 letters or numbers, and a name up to 200 characters." };
+  if (!/^[A-Z0-9][A-Z0-9.-]{0,19}$/.test(code) || name.length < 1 || name.length > 200) {
+    return { error: "Start the code with a letter or number. Then use letters, numbers, dots, or hyphens, up to 20 characters." };
   }
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(currencyId)) {
     return { error: "Choose a currency." };
@@ -104,5 +107,10 @@ export function parseParty(input: {
   const notes = optionalText(input.notes, 4000);
   if (notes === undefined) return { error: "Notes can be up to 4000 characters." };
 
-  return { code, name, currencyId, phone, email, website, address, contactDetails, notes };
+  const vatNumber = optionalText(input.vatNumber, 40);
+  if (vatNumber === undefined || (vatNumber && !/^[A-Za-z0-9][A-Za-z0-9 ./-]*$/.test(vatNumber))) {
+    return { error: "VAT number can be up to 40 characters and must start with a letter or number." };
+  }
+
+  return { code, name, currencyId, phone, email, website, address, contactDetails, notes, vatNumber };
 }

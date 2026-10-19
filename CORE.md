@@ -189,7 +189,17 @@ The app writes both tables through `save_purchase_invoice(jsonb)`. That function
 | `posted_at`, `posted_by` | Set when the document is posted |
 | `voided_at`, `voided_by`, `void_reason` | Set when an owner or admin voids a posted document. The reason is required |
 
-A draft can be edited and deleted. Posting needs at least one line and is allowed for any member. A posted document is read-only apart from the paid amount, until an owner or admin voids it. A void document cannot be changed or deleted. Status changes only through `post_document` and `void_document`.
+A draft can be edited and deleted. Posting needs at least one line and is allowed for any member. Purchases are numbered when the draft is saved. A type set to number on posting, which every Sales type must use, leaves the draft without a number and issues the next number when it is posted. Deleting those drafts does not use a number. A posted document is read-only apart from the paid amount, until an owner or admin voids it from the document form. A void document cannot be changed or deleted. Status changes only through `post_document` and `void_document`.
+
+Posting copies the organisation and the supplier into `issuer_snapshot` and `party_snapshot`. Those copies do not change if the organisation or supplier is edited later. Documents that were already posted when snapshots were added were filled from the data at that time, including the live logo path. A new posting copies the logo to `{organisation_id}/snapshots/{header_id}` first, and does not post if that copy fails. Each line stores `vat_percentage` from the VAT code at the time the line is saved. A VAT code used on a posted or void line cannot have its rate or type changed. Customers and suppliers have an optional `vat_number`.
+
+A purchase document stores an optional supplier invoice number and supply date. The same supplier invoice number cannot be entered twice for one supplier, ignoring case, unless the first document has been voided. A purchase requires a supplier and cannot name a customer. `customer_id` is ready for sales documents, which are still not stored.
+
+Codes may contain dots and hyphens after the first character. The first character is a letter or number. Products may be 30 characters. Other codes may be 20.
+
+An owner can delete an organisation that has no documents, unless it is the last organisation in the tenant. The app then removes its logo files. There is no direct delete of an organisation from the API.
+
+A saved form layout is checked in the database. A sales form must show the organisation name, address, and VAT number, the customer name and address, the document number and date, the line description, quantity, price, tax, and amount, and the VAT summary. The standard layout meets those rules.
 
 `organisation_defaults.lock_date` blocks creating, editing, posting, voiding, or deleting a document whose date is on or before that day. Owners and admins set the lock date.
 | `flex1` … `flex5` | Optional text, up to 200. Shown only when that type has a label |
@@ -241,7 +251,7 @@ Allowed organisation fields: `name`, `address`, `phone`, `contactEmail`, `websit
 
 Allowed bill-to fields: `contactDetails`, `name`, `address`, `phone`, `email`, `website`, `code`. For a purchase document the party is the supplier. For a sales layout it is the customer.
 
-Allowed document fields: `reference`, `transactionDate`, `terms`, `dueDate`, `orderNumber`, `currency`, `exchangeRate`, `paidAmount`, and `flex1` through `flex5`. Terms are the number of days from the document date to the due date. Flex fields appear only when that transaction type has a label.
+Allowed document fields: `reference`, `transactionDate`, `terms`, `dueDate`, `orderNumber`, `supplierReference`, `supplyDate`, `currency`, `exchangeRate`, `paidAmount`, and `flex1` through `flex5`. Terms are the number of days from the document date to the due date. Flex fields appear only when that transaction type has a label.
 
 Allowed line columns: `date`, `item`, `description`, `tax`, `quantity`, `price`, `amount`, `discount`, `glCode`, `vatCode`, `department`, `costCentre`. Quantity, price, amount, and discount are the numeric columns.
 

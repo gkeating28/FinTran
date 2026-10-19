@@ -10,6 +10,7 @@ export default function PrintedForm({ view }: { view: PrintView }) {
       style={{ ["--page-width" as string]: page.width, ["--page-height" as string]: page.height }}
     >
       <style>{`@page { size: ${page.css}; margin: 14mm; }`}</style>
+      {view.watermark ? <div className={styles.watermark}>{view.watermark}</div> : null}
       <div className={styles.sheetBody}>
       <header className={styles.top}>
         <div>

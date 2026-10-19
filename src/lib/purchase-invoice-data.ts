@@ -92,7 +92,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
         .from("transaction_headers")
         .select(
           `id, transaction_type_id, reference, transaction_date, due_date, supplier_id, supplier_name,
-           contact_details, notes, currency_id, exchange_rate, order_number,
+           contact_details, notes, currency_id, exchange_rate, order_number, supplier_reference, supply_date,
            foreign_nett_amount, foreign_vat_amount, foreign_total_amount,
            home_nett_amount, home_vat_amount, home_total_amount, paid_amount,
            status, void_reason,
@@ -190,6 +190,8 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
       currencyCode: embeddedCode(row.currencies),
       exchangeRate: formatExchangeRate(row.exchange_rate),
       orderNumber: row.order_number ?? "",
+      supplierReference: row.supplier_reference ?? "",
+      supplyDate: row.supply_date ?? "",
       foreignNettAmount: formatMoney(row.foreign_nett_amount),
       foreignVatAmount: formatMoney(row.foreign_vat_amount),
       foreignTotalAmount: formatMoney(row.foreign_total_amount),

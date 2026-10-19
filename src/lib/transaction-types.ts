@@ -8,6 +8,7 @@ export type TransactionTypeRow = {
   description: string;
   lastReference: number;
   type: TransactionTypeKind;
+  numbering: "on_insert" | "on_post";
   flexLabels: [string, string, string, string, string];
 };
 

@@ -28,6 +28,22 @@ import {
 import type { FormType } from "@/lib/form-data";
 import type { ActionState } from "@/lib/types";
 
+function salesLayout(layout: FormLayout, sales: boolean): FormLayout {
+  if (!sales) return layout;
+  const add = <T extends string>(current: readonly T[], required: readonly T[]) => [
+    ...current,
+    ...required.filter((item) => !current.includes(item)),
+  ];
+  return {
+    ...layout,
+    showVatSummary: true,
+    organisationFields: add(layout.organisationFields, ["name", "address", "vatNumber"]),
+    partyFields: add(layout.partyFields, ["name", "address"]),
+    headerFields: add(layout.headerFields, ["reference", "transactionDate"]),
+    lineColumns: add(layout.lineColumns, ["description", "quantity", "price", "tax", "amount"]),
+  };
+}
+
 export default function FormDesigner({
   type,
   initialLayout,
@@ -49,13 +65,18 @@ export default function FormDesigner({
     numberLabel: source.numberLabel,
   });
   const headerFields = HEADER_FIELDS.filter((field) => !field.startsWith("flex") || type.flexLabels[Number(field.slice(4)) - 1]?.trim());
+  const sales = type.kind === "Sales";
+  const lockedOrganisation = sales ? new Set(["name", "address", "vatNumber"]) : undefined;
+  const lockedParty = sales ? new Set(["name", "address"]) : undefined;
+  const lockedHeader = sales ? new Set(["reference", "transactionDate"]) : undefined;
+  const lockedLines = sales ? new Set(["description", "quantity", "price", "tax", "amount"]) : undefined;
 
   return (
     <div className={printStyles.designer}>
       <form action={action} autoComplete="off" noValidate style={{ display: "contents" }}>
         <fieldset disabled={!canEdit} className={printStyles.controls}>
         <input type="hidden" name="code" value={type.code} />
-        <input type="hidden" name="layout" value={JSON.stringify(layout)} />
+        <input type="hidden" name="layout" value={JSON.stringify(salesLayout(layout, sales))} />
         {state.error ? (
           <p className={styles.alert} role="alert">
             {state.error}
@@ -98,7 +119,8 @@ export default function FormDesigner({
           <label className={printStyles.check}>
             <input
               type="checkbox"
-              checked={layout.showVatSummary}
+              checked={sales ? true : layout.showVatSummary}
+              disabled={sales}
               onChange={(event) => setLayout({ ...layout, showVatSummary: event.target.checked })}
             />
             VAT summary
@@ -117,6 +139,7 @@ export default function FormDesigner({
           fields={ORGANISATION_FIELDS}
           selected={layout.organisationFields}
           label={organisationFieldLabel}
+          lockedFields={lockedOrganisation}
           onChange={(organisationFields) => setLayout((current) => ({ ...current, organisationFields }))}
         />
         <FieldList
@@ -124,6 +147,7 @@ export default function FormDesigner({
           fields={PARTY_FIELDS}
           selected={layout.partyFields}
           label={partyFieldLabel}
+          lockedFields={lockedParty}
           onChange={(partyFields) => setLayout((current) => ({ ...current, partyFields }))}
         />
         <FieldList
@@ -131,6 +155,7 @@ export default function FormDesigner({
           fields={headerFields}
           selected={layout.headerFields}
           label={(field) => headerFieldLabel(field, type.flexLabels, source.numberLabel)}
+          lockedFields={lockedHeader}
           onChange={(headerFields) => setLayout((current) => ({ ...current, headerFields }))}
         />
         <FieldList
@@ -138,6 +163,7 @@ export default function FormDesigner({
           fields={LINE_COLUMNS}
           selected={layout.lineColumns}
           label={lineColumnLabel}
+          lockedFields={lockedLines}
           onChange={(lineColumns) => setLayout((current) => ({ ...current, lineColumns }))}
         />
         {canEdit ? (
@@ -175,12 +201,14 @@ function FieldList<T extends OrganisationField | PartyField | HeaderField | Line
   fields,
   selected,
   label,
+  lockedFields,
   onChange,
 }: {
   legend: string;
   fields: readonly T[];
   selected: T[];
   label: (field: T) => string;
+  lockedFields?: ReadonlySet<string>;
   onChange: (fields: T[]) => void;
 }) {
   const shown = selected.filter((field) => fields.includes(field));
@@ -205,7 +233,16 @@ function FieldList<T extends OrganisationField | PartyField | HeaderField | Line
     const on = index !== null;
     return (
       <div key={field} className={printStyles.choice}>
-        <input id={id} type="checkbox" checked={on} onChange={() => toggle(field)} />
+        <input
+          id={id}
+          type="checkbox"
+          checked={on}
+          disabled={on && lockedFields?.has(field)}
+          onChange={() => {
+            if (on && lockedFields?.has(field)) return;
+            toggle(field);
+          }}
+        />
         <label htmlFor={id}>{label(field)}</label>
         <span className={printStyles.moves}>
           <button

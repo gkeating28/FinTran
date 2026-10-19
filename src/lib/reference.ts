@@ -63,7 +63,7 @@ export function isReferenceKind(value: string): value is ReferenceKind {
 
 export function parseReferenceCode(value: string) {
   const code = value.trim().toUpperCase();
-  if (!/^[A-Z0-9]{1,20}$/.test(code)) return null;
+  if (!/^[A-Z0-9][A-Z0-9.-]{0,19}$/.test(code)) return null;
   return code;
 }
 

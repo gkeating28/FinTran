@@ -171,7 +171,7 @@ export default function PurchaseInvoiceManager({
             label: "Reference",
             mono: true,
             sortValue: (row) => String(row.reference),
-            render: (row) => formatInteger(row.reference),
+            render: (row) => (row.reference == null ? "Draft" : formatInteger(row.reference)),
           },
           {
             key: "status",
@@ -323,6 +323,8 @@ function InvoiceForm({
   const [currencyId, setCurrencyId] = useState(header?.currencyId ?? "");
   const [exchangeRate, setExchangeRate] = useState(header?.exchangeRate ?? "");
   const [orderNumber, setOrderNumber] = useState(header?.orderNumber ?? "");
+  const [supplierReference, setSupplierReference] = useState(header?.supplierReference ?? "");
+  const [supplyDate, setSupplyDate] = useState(header?.supplyDate ?? "");
   const [paidAmount, setPaidAmount] = useState(header?.paidAmount || "0.00");
   const [flex, setFlex] = useState([
     header?.flex1 ?? "",
@@ -513,6 +515,14 @@ function InvoiceForm({
         <label className={styles.field}>
           Supplier name
           <QuietInput name="supplier_name" required maxLength={200} disabled={locked} value={supplierName} onChange={(event) => setSupplierName(event.target.value)} />
+        </label>
+        <label className={styles.field}>
+          Supplier invoice no.
+          <QuietInput name="supplier_reference" maxLength={60} disabled={locked} value={supplierReference} onChange={(event) => setSupplierReference(event.target.value)} />
+        </label>
+        <label className={styles.field}>
+          Supply date
+          <QuietInput name="supply_date" type="date" disabled={locked} value={supplyDate} onChange={(event) => setSupplyDate(event.target.value)} />
         </label>
         {showFlex ? <FlexField index={2} label={flexLabels[2]} value={flex[2]} disabled={locked} onChange={setFlex} /> : null}
         <label className={styles.field}>

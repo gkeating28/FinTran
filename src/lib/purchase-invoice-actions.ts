@@ -12,6 +12,7 @@ import {
   parseUuid,
   type PurchaseInvoiceLine,
 } from "@/lib/purchase-invoices";
+import { ORGANISATION_LOGO_BUCKET, organisationSnapshotPath } from "@/lib/organisation-logo";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionState } from "@/lib/types";
 
@@ -21,6 +22,9 @@ function text(formData: FormData, name: string) {
 
 function friendlyError(error: { code?: string; message: string } | null, fallback: string) {
   if (!error) return fallback;
+  if (error.code === "23505" && error.message.includes("supplier_reference")) {
+    return "This supplier invoice number has already been entered for this supplier.";
+  }
   if (error.code === "23505") return "That reference is already used for this transaction type.";
   if (error.code === "23503" && error.message.includes("suppliers")) {
     return "Choose a supplier from this organisation.";
@@ -98,6 +102,8 @@ function documentFrom(formData: FormData) {
   const contactDetails = optionalText(text(formData, "contact_details"), 500);
   const notes = optionalText(text(formData, "notes"), 4000);
   const orderNumber = optionalText(text(formData, "order_number"), 40);
+  const supplierReference = optionalText(text(formData, "supplier_reference"), 60);
+  const supplyDate = text(formData, "supply_date").trim();
   const flex = [1, 2, 3, 4, 5].map((number) => optionalText(text(formData, `flex${number}`), 200));
   const lines = linesFrom(text(formData, "lines"));
 
@@ -112,6 +118,8 @@ function documentFrom(formData: FormData) {
   if (contactDetails === undefined) return { error: "Contact details can be up to 500 characters." } as const;
   if (notes === undefined) return { error: "Notes can be up to 4000 characters." } as const;
   if (orderNumber === undefined) return { error: "Order number can be up to 40 characters." } as const;
+  if (supplierReference === undefined) return { error: "Supplier invoice number can be up to 60 characters." } as const;
+  if (supplyDate && !parseInvoiceDate(supplyDate)) return { error: "Enter a valid supply date, or leave it blank." } as const;
   if (flex.some((value) => value === undefined)) return { error: "Each flex field can be up to 200 characters." } as const;
   if ("error" in lines) return { error: lines.error } as const;
 
@@ -146,6 +154,8 @@ function documentFrom(formData: FormData) {
     currencyId,
     exchangeRate,
     orderNumber,
+    supplierReference,
+    supplyDate,
     paidAmount,
     flex1: flex[0],
     flex2: flex[1],
@@ -185,6 +195,8 @@ export async function savePurchaseInvoice(_state: ActionState, formData: FormDat
       currencyId: document.currencyId,
       exchangeRate: document.exchangeRate,
       orderNumber: document.orderNumber,
+      supplierReference: document.supplierReference,
+      supplyDate: document.supplyDate,
       paidAmount: document.paidAmount,
       flex1: document.flex1,
       flex2: document.flex2,
@@ -212,10 +224,26 @@ export async function postPurchaseInvoice(formData: FormData) {
   const next = returnPath(formData);
   if (!id) redirect(next);
 
+  const workspace = await getWorkspace();
+  if (workspace.status !== "ready") redirect("/login");
   await currentOrganisation();
   const supabase = await createClient();
-  const { error } = await supabase.rpc("post_document", { p_header_id: id });
+  const defaults = await supabase
+    .from("organisation_defaults")
+    .select("logo_path")
+    .eq("organisation_id", workspace.current.organisationId)
+    .maybeSingle();
+  let logoPath: string | null = null;
+  if (defaults.data?.logo_path) {
+    logoPath = organisationSnapshotPath(workspace.current.organisationId, id);
+    const copied = await supabase.storage.from(ORGANISATION_LOGO_BUCKET).copy(defaults.data.logo_path, logoPath);
+    if (copied.error) {
+      redirect(`${next}?error=${encodeURIComponent("The organisation logo could not be copied, so the document was not posted.")}`);
+    }
+  }
+  const { error } = await supabase.rpc("post_document", { p_header_id: id, p_logo_path: logoPath });
   if (error) {
+    if (logoPath) await supabase.storage.from(ORGANISATION_LOGO_BUCKET).remove([logoPath]);
     redirect(`${next}?error=${encodeURIComponent(friendlyError(error, "That document could not be posted."))}`);
   }
 

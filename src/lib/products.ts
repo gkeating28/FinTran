@@ -18,7 +18,7 @@ export type ProductRow = {
 
 export function parseProductCode(value: string) {
   const code = value.trim().toUpperCase();
-  if (!/^[A-Z0-9]{1,30}$/.test(code)) return null;
+  if (!/^[A-Z0-9][A-Z0-9.-]{0,29}$/.test(code)) return null;
   return code;
 }
 

@@ -16,7 +16,7 @@ export async function listTransactionTypes(): Promise<{
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("transaction_types")
-    .select("id, code, description, last_reference, type, flex1_label, flex2_label, flex3_label, flex4_label, flex5_label")
+    .select("id, code, description, last_reference, type, numbering, flex1_label, flex2_label, flex3_label, flex4_label, flex5_label")
     .eq("organisation_id", workspace.current.organisationId)
     .order("code");
 
@@ -33,6 +33,7 @@ export async function listTransactionTypes(): Promise<{
           description: row.description,
           lastReference: row.last_reference,
           type,
+          numbering: row.numbering === "on_post" ? "on_post" : "on_insert",
           flexLabels: [
             row.flex1_label ?? "",
             row.flex2_label ?? "",

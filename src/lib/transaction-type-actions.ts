@@ -21,7 +21,7 @@ function friendlyError(error: { code?: string; message: string } | null, fallbac
   }
   if (error.code === "23514" && error.message.includes("type")) return "Choose Sales or Purchases.";
   if (error.code === "23514" && error.message.includes("flex")) return "Each flex label can be up to 80 characters.";
-  if (error.code === "23514") return "Use 1 to 20 letters or numbers, and a description up to 200 characters.";
+  if (error.code === "23514") return "Start the code with a letter or number. Then use letters, numbers, dots, or hyphens, up to 20 characters, and a description up to 200 characters.";
   return error.message || fallback;
 }
 
@@ -51,7 +51,7 @@ function fieldsFrom(formData: FormData) {
   const description = parseDescription(text(formData, "description"));
   const type = parseTransactionTypeKind(text(formData, "type"));
   if (!code || !description) {
-    return { error: "Use 1 to 20 letters or numbers, and a description up to 200 characters." } as const;
+    return { error: "Start the code with a letter or number. Then use letters, numbers, dots, or hyphens, up to 20 characters, and a description up to 200 characters." } as const;
   }
   if (!type) return { error: "Choose Sales or Purchases." } as const;
   const flexLabels = [1, 2, 3, 4, 5].map((number) => parseFlexLabel(text(formData, `flex${number}_label`)));

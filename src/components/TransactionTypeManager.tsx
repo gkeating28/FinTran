@@ -84,6 +84,12 @@ export default function TransactionTypeManager({
             render: (row) => row.type,
           },
           {
+            key: "numbering",
+            label: "Numbering",
+            sortValue: (row) => row.numbering,
+            render: (row) => (row.type === "Sales" || row.numbering === "on_post" ? "On posting" : "On entry"),
+          },
+          {
             key: "lastReference",
             label: "Last reference",
             mono: true,

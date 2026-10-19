@@ -24,7 +24,7 @@ function friendlyError(error: { code?: string; message: string } | null, fallbac
     return "Enter a price of 0 or more, with up to 4 decimal places.";
   }
   if (error.code === "23514") {
-    return "Use 1 to 30 letters or numbers, and a description up to 200 characters.";
+    return "Start the code with a letter or number. Then use letters, numbers, dots, or hyphens, up to 30 characters, and a description up to 200 characters.";
   }
   if (error.code === "P0001" && error.message.includes("Expense account")) {
     return "Choose an Expense GL code for purchases.";
@@ -88,7 +88,7 @@ function fieldsFrom(formData: FormData) {
 
   if (!code || !description) {
     return {
-      error: "Use 1 to 30 letters or numbers, and a description up to 200 characters.",
+      error: "Start the code with a letter or number. Then use letters, numbers, dots, or hyphens, up to 30 characters, and a description up to 200 characters.",
     } as const;
   }
   if (!purchasePrice) {

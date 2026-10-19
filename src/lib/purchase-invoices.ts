@@ -22,7 +22,7 @@ export type PurchaseInvoiceRow = {
   id: string;
   transactionTypeId: string;
   transactionTypeCode: string;
-  reference: number;
+  reference: number | null;
   transactionDate: string;
   dueDate: string;
   supplierId: string;
@@ -34,6 +34,8 @@ export type PurchaseInvoiceRow = {
   currencyCode: string;
   exchangeRate: string;
   orderNumber: string;
+  supplierReference: string;
+  supplyDate: string;
   foreignNettAmount: string;
   foreignVatAmount: string;
   foreignTotalAmount: string;

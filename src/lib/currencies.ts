@@ -16,7 +16,7 @@ export type CurrencyChoice = {
 
 export function parseCurrencyCode(value: string) {
   const code = value.trim().toUpperCase();
-  if (!/^[A-Z0-9]{1,20}$/.test(code)) return null;
+  if (!/^[A-Z0-9][A-Z0-9.-]{0,19}$/.test(code)) return null;
   return code;
 }
 

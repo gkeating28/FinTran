@@ -42,7 +42,7 @@ export async function saveTransactionForm(_state: ActionState, formData: FormDat
     { onConflict: "organisation_id,transaction_type_id" },
   );
 
-  if (error) return { error: "That form could not be saved." };
+  if (error) return { error: error.message || "That form could not be saved." };
 
   revalidatePath("/forms");
   revalidatePath(`/forms/${loaded.type.code}`);

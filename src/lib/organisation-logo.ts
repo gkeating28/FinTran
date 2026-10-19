@@ -11,6 +11,17 @@ export function organisationLogoUrl(organisationId: string, updatedAt: string) {
   return `/organisation-logo/${organisationId}?v=${encodeURIComponent(updatedAt)}`;
 }
 
+export function organisationSnapshotPath(organisationId: string, headerId: string) {
+  return `${organisationId}/snapshots/${headerId}`;
+}
+
+export function organisationObjectUrl(organisationId: string, objectPath: string, version: string) {
+  const object = objectPath.startsWith(`${organisationId}/`)
+    ? objectPath.slice(organisationId.length + 1)
+    : objectPath;
+  return `/organisation-logo/${organisationId}?object=${encodeURIComponent(object)}&v=${encodeURIComponent(version)}`;
+}
+
 export function logoContentType(bytes: Uint8Array) {
   if (bytes.byteLength < 12 || bytes.byteLength > ORGANISATION_LOGO_LIMIT) return null;
   if (

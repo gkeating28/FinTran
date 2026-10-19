@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { ORGANISATION_COOKIE } from "@/lib/data";
+import { ORGANISATION_LOGO_BUCKET } from "@/lib/organisation-logo";
 import { createClient } from "@/lib/supabase/server";
 import { isRole, type ActionState } from "@/lib/types";
 
@@ -134,6 +135,39 @@ export async function createOrganisation(
   if (typeof data === "string") await rememberOrganisation(data);
 
   revalidatePath("/organisations");
+  redirect("/organisations");
+}
+
+export async function deleteOrganisation(_state: ActionState, formData: FormData): Promise<ActionState> {
+  const organisationId = text(formData, "organisationId");
+  const organisationName = text(formData, "organisationName");
+  const confirmation = text(formData, "confirmation");
+  if (!organisationId || confirmation !== organisationName) {
+    return { error: "Type the organisation name to confirm deletion." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("delete_organisation", { p_organisation_id: organisationId });
+  if (error) return failure(error, "The organisation could not be deleted.");
+
+  const paths: string[] = [];
+  const listed = await supabase.storage.from(ORGANISATION_LOGO_BUCKET).list(organisationId);
+  for (const entry of listed.data ?? []) {
+    if (!entry.name) continue;
+    if (entry.id) {
+      paths.push(`${organisationId}/${entry.name}`);
+      continue;
+    }
+    const nested = await supabase.storage.from(ORGANISATION_LOGO_BUCKET).list(`${organisationId}/${entry.name}`);
+    for (const child of nested.data ?? []) {
+      if (child.name) paths.push(`${organisationId}/${entry.name}/${child.name}`);
+    }
+  }
+  if (paths.length > 0) {
+    await supabase.storage.from(ORGANISATION_LOGO_BUCKET).remove(paths);
+  }
+
+  revalidatePath("/", "layout");
   redirect("/organisations");
 }
 

@@ -22,7 +22,7 @@ export async function listParties(kind: PartyKind): Promise<{
   const [parties, currencies, defaults] = await Promise.all([
     supabase
       .from(kind)
-      .select("id, code, name, phone, email, website, address, contact_details, notes, currency_id, currencies(code)")
+      .select("id, code, name, phone, email, website, address, contact_details, notes, vat_number, currency_id, currencies(code)")
       .eq("organisation_id", organisationId)
       .order("code"),
     supabase.from("currencies").select("id, code, name").eq("organisation_id", organisationId).order("code"),
@@ -50,6 +50,7 @@ export async function listParties(kind: PartyKind): Promise<{
       address: row.address ?? "",
       contactDetails: row.contact_details ?? "",
       notes: row.notes ?? "",
+      vatNumber: row.vat_number ?? "",
     })),
     currencies: currencies.data ?? [],
     homeCurrencyId: defaults.data?.home_currency_id ?? null,

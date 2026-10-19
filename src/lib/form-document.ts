@@ -41,6 +41,8 @@ export type FormHeader = {
   currencyCode: string;
   exchangeRate: string;
   paidAmount: number;
+  supplierReference: string;
+  supplyDate: string;
   flex: [string, string, string, string, string];
   foreignNett: number;
   foreignVat: number;
@@ -70,6 +72,7 @@ export type FormSource = {
   lines: FormLine[];
   flexLabels: [string, string, string, string, string];
   numberLabel: string;
+  watermark: "DRAFT" | "VOID" | null;
 };
 
 export type PrintCell = {
@@ -105,6 +108,7 @@ export type PrintView = {
   footerTitle: string;
   footerBody: string;
   showFooter: boolean;
+  watermark: "DRAFT" | "VOID" | null;
 };
 
 function linesOf(value: string) {
@@ -150,6 +154,8 @@ function headerValue(field: HeaderField, source: FormSource) {
   if (field === "currency") return header.currencyCode;
   if (field === "exchangeRate") return header.exchangeRate ? formatExchangeRate(header.exchangeRate) : "";
   if (field === "paidAmount") return formatMoney(header.paidAmount);
+  if (field === "supplierReference") return header.supplierReference;
+  if (field === "supplyDate") return formatInvoiceDate(header.supplyDate);
   const index = Number(field.slice(4)) - 1;
   return header.flex[index] ?? "";
 }
@@ -264,6 +270,7 @@ export function buildPrintView(layout: FormLayout, source: FormSource): PrintVie
     footerTitle: organisation.name || "Organisation",
     footerBody: footerBody || "Bank details",
     showFooter: layout.showBanking,
+    watermark: source.watermark,
   };
 }
 
@@ -287,6 +294,8 @@ export function sampleSource(organisation: FormOrganisation, currencyCode: strin
       currencyCode: currencyCode || "EUR",
       exchangeRate: "1",
       paidAmount: 0,
+      supplierReference: "",
+      supplyDate: "",
       flex: ["", "", "", "", ""],
       foreignNett: 4000,
       foreignVat: 920,
@@ -311,6 +320,7 @@ export function sampleSource(organisation: FormOrganisation, currencyCode: strin
     ],
     flexLabels: ["", "", "", "", ""],
     numberLabel: "Invoice",
+    watermark: null,
   };
 }
 

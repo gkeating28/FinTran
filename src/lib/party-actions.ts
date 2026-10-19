@@ -28,7 +28,7 @@ function friendlyError(error: { code?: string; message: string } | null, fallbac
     return "Contact details can be up to 500 characters.";
   }
   if (error.code === "23514" && error.message.includes("notes")) return "Notes can be up to 4000 characters.";
-  if (error.code === "23514") return "Use 1 to 20 letters or numbers, and a name up to 200 characters.";
+  if (error.code === "23514") return "Start the code with a letter or number. Then use letters, numbers, dots, or hyphens, up to 20 characters, and a name up to 200 characters.";
   if (error.code === "P0001" && error.message.includes("Currency")) {
     return "Choose a currency from this organisation.";
   }
@@ -67,6 +67,7 @@ function fieldsFrom(formData: FormData) {
     address: text(formData, "address"),
     contactDetails: text(formData, "contact_details"),
     notes: text(formData, "notes"),
+    vatNumber: text(formData, "vat_number"),
   });
 }
 
@@ -81,6 +82,7 @@ function rowFrom(fields: PartyFields) {
     address: fields.address,
     contact_details: fields.contactDetails,
     notes: fields.notes,
+    vat_number: fields.vatNumber,
   };
 }
 

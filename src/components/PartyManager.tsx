@@ -157,6 +157,7 @@ function PartyForm({
   const [address, setAddress] = useState(row?.address ?? "");
   const [contactDetails, setContactDetails] = useState(row?.contactDetails ?? "");
   const [notes, setNotes] = useState(row?.notes ?? "");
+  const [vatNumber, setVatNumber] = useState(row?.vatNumber ?? "");
 
   useEffect(() => {
     if (state.message) onClose();
@@ -225,6 +226,19 @@ function PartyForm({
           {currencies.length === 0 ? (
             <span className={styles.panelMeta}>Add a currency for this organisation before saving.</span>
           ) : null}
+        </label>
+        <label className={styles.field}>
+          VAT number
+          <QuietInput
+            name="vat_number"
+            maxLength={40}
+            autoComplete="off"
+            spellCheck={false}
+            value={vatNumber}
+            onChange={(event) => setVatNumber(event.target.value)}
+            placeholder="IE1234567A"
+            className={styles.mono}
+          />
         </label>
         <label className={styles.field}>
           Phone
