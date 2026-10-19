@@ -40,11 +40,13 @@ function FlexField({
   index,
   label,
   value,
+  disabled,
   onChange,
 }: {
   index: number;
   label: string;
   value: string;
+  disabled?: boolean;
   onChange: (update: (current: string[]) => string[]) => void;
 }) {
   if (!label.trim()) return <div />;
@@ -54,6 +56,7 @@ function FlexField({
       <QuietInput
         name={`flex${index + 1}`}
         maxLength={200}
+        disabled={disabled}
         value={value}
         onChange={(event) =>
           onChange((current) => current.map((item, itemIndex) => (itemIndex === index ? event.target.value : item)))
@@ -105,7 +108,6 @@ export default function PurchaseInvoiceManager({
   canVoid?: boolean;
 }) {
   const [draft, setDraft] = useState<PurchaseInvoiceRow | "new" | null>(null);
-  const [paidRow, setPaidRow] = useState<PurchaseInvoiceRow | null>(null);
   const [lines, setLines] = useState<PurchaseInvoiceLine[] | null>(null);
   const [lineError, setLineError] = useState<string | null>(null);
 
@@ -175,7 +177,7 @@ export default function PurchaseInvoiceManager({
             key: "status",
             label: "Status",
             sortValue: (row) => row.status,
-            render: (row) => (row.status === "void" && row.voidReason ? `${statusLabel(row.status)} — ${row.voidReason}` : statusLabel(row.status)),
+            render: (row) => statusLabel(row.status),
           },
           {
             key: "date",
@@ -253,30 +255,14 @@ export default function PurchaseInvoiceManager({
                   </button>
                 </form>
               </>
-            ) : null}
-            {row.status === "posted" ? (
-              <>
-                <button className={styles.quiet} type="button" onClick={() => setPaidRow(row)}>
-                  Paid amount
-                </button>
-                {canVoid ? (
-                  <form action={voidPurchaseInvoice} className={styles.inlineForm}>
-                    <input type="hidden" name="id" value={row.id} />
-                    {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
-                    <QuietInput name="reason" required maxLength={500} placeholder="Void reason" aria-label="Void reason" />
-                    <button className={styles.quiet} type="submit">
-                      Void
-                    </button>
-                  </form>
-                ) : null}
-              </>
-            ) : null}
+            ) : (
+              <button className={styles.quiet} type="button" onClick={() => edit(row)}>
+                View
+              </button>
+            )}
           </>
         )}
       />
-      {paidRow ? (
-        <PaidAmountForm key={paidRow.id} row={paidRow} onClose={() => setPaidRow(null)} />
-      ) : null}
       {draft ? (
         <InvoiceForm
           key={draft === "new" ? "new" : draft.id}
@@ -285,6 +271,8 @@ export default function PurchaseInvoiceManager({
           lines={lines}
           lineError={lineError}
           choices={choices}
+          typeCode={typeCode}
+          canVoid={canVoid}
           onClose={() => setDraft(null)}
         />
       ) : null}
@@ -298,52 +286,14 @@ function statusLabel(status: PurchaseInvoiceRow["status"]) {
   return "Draft";
 }
 
-function PaidAmountForm({ row, onClose }: { row: PurchaseInvoiceRow; onClose: () => void }) {
-  const [state, action, pending] = useActionState(updatePaidAmount, {} as ActionState);
-  const [paidAmount, setPaidAmount] = useState(row.paidAmount);
-
-  useEffect(() => {
-    if (state.message) onClose();
-  }, [state.message, onClose]);
-
-  return (
-    <FormModal title={`Paid amount for ${row.transactionTypeCode} ${formatInteger(row.reference)}`} onClose={onClose}>
-      <form className={styles.modalForm} action={action} autoComplete="off" noValidate>
-        <input type="hidden" name="id" value={row.id} />
-        {state.error ? (
-          <p className={styles.alert} role="alert">
-            {state.error}
-          </p>
-        ) : null}
-        <label className={styles.field}>
-          Paid amount
-          <QuietInput
-            name="paid_amount"
-            inputMode="decimal"
-            value={paidAmount}
-            onChange={(event) => setPaidAmount(event.target.value)}
-            className={styles.mono}
-          />
-        </label>
-        <div className={styles.modalActions}>
-          <button className={styles.quiet} type="button" onClick={onClose}>
-            Cancel
-          </button>
-          <button className={styles.primary} type="submit" disabled={pending}>
-            {pending ? "Saving…" : "Save"}
-          </button>
-        </div>
-      </form>
-    </FormModal>
-  );
-}
-
 function InvoiceForm({
   title,
   header,
   lines,
   lineError,
   choices,
+  typeCode,
+  canVoid,
   onClose,
 }: {
   title: string;
@@ -351,9 +301,18 @@ function InvoiceForm({
   lines: PurchaseInvoiceLine[] | null;
   lineError: string | null;
   choices: PurchaseInvoiceChoices;
+  typeCode?: string;
+  canVoid: boolean;
   onClose: () => void;
 }) {
-  const [state, action, pending] = useActionState(savePurchaseInvoice, {} as ActionState);
+  const posted = header?.status === "posted";
+  const voided = header?.status === "void";
+  const locked = posted || voided;
+  const [saveState, saveAction, savePending] = useActionState(savePurchaseInvoice, {} as ActionState);
+  const [paidState, paidAction, paidPending] = useActionState(updatePaidAmount, {} as ActionState);
+  const state = posted ? paidState : saveState;
+  const action = posted ? paidAction : saveAction;
+  const pending = posted ? paidPending : savePending;
   const [typeId, setTypeId] = useState(header?.transactionTypeId ?? choices.types[0]?.id ?? "");
   const [transactionDate, setTransactionDate] = useState(header?.transactionDate ?? today());
   const [dueDate, setDueDate] = useState(header?.dueDate ?? "");
@@ -471,10 +430,23 @@ function InvoiceForm({
 
   return (
     <>
-    <FormModal title={header ? `Edit ${title}` : `Add ${title}`} onClose={onClose} className={styles.invoiceDialog}>
-      <form className={styles.modalForm} action={action} autoComplete="off" noValidate>
+    <FormModal
+      title={locked ? `View ${title}` : header ? `Edit ${title}` : `Add ${title}`}
+      onClose={onClose}
+      className={styles.invoiceDialog}
+    >
+      <div className={styles.modalForm}>
+      <form id="purchase-document" className={styles.documentFields} action={action} autoComplete="off" noValidate>
         {header ? <input type="hidden" name="id" value={header.id} /> : null}
-        <input type="hidden" name="lines" value={JSON.stringify(invoiceLines)} />
+        {locked ? null : <input type="hidden" name="lines" value={JSON.stringify(invoiceLines)} />}
+        {posted ? (
+          <p className={styles.notice}>Posted. The document is read-only, except the paid amount.</p>
+        ) : null}
+        {voided ? (
+          <p className={styles.alert} role="status">
+            Void{header?.voidReason ? ` — ${header.voidReason}` : ""}. This document cannot be changed.
+          </p>
+        ) : null}
         {state.error ? (
           <p className={styles.alert} role="alert">
             {state.error}
@@ -497,7 +469,7 @@ function InvoiceForm({
             required
             autoComplete="off"
             value={typeId}
-            disabled={typeLocked}
+            disabled={typeLocked || locked}
             onChange={(event) => setTypeId(event.target.value)}
           >
             <option value="">Choose a type</option>
@@ -517,19 +489,19 @@ function InvoiceForm({
             className={styles.mono}
           />
         </label>
-        {showFlex ? <FlexField index={0} label={flexLabels[0]} value={flex[0]} onChange={setFlex} /> : null}
+        {showFlex ? <FlexField index={0} label={flexLabels[0]} value={flex[0]} disabled={locked} onChange={setFlex} /> : null}
         <label className={styles.field}>
           Transaction date
-          <QuietInput name="transaction_date" type="date" required value={transactionDate} onChange={(event) => setTransactionDate(event.target.value)} />
+          <QuietInput name="transaction_date" type="date" required disabled={locked} value={transactionDate} onChange={(event) => setTransactionDate(event.target.value)} />
         </label>
         <label className={styles.field}>
           Due date
-          <QuietInput name="due_date" type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
+          <QuietInput name="due_date" type="date" disabled={locked} value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
         </label>
-        {showFlex ? <FlexField index={1} label={flexLabels[1]} value={flex[1]} onChange={setFlex} /> : null}
+        {showFlex ? <FlexField index={1} label={flexLabels[1]} value={flex[1]} disabled={locked} onChange={setFlex} /> : null}
         <label className={styles.field}>
           Supplier code
-          <select name="supplier_id" required autoComplete="off" value={supplierId} onChange={(event) => chooseSupplier(event.target.value)}>
+          <select name="supplier_id" required autoComplete="off" value={supplierId} disabled={locked} onChange={(event) => chooseSupplier(event.target.value)}>
             <option value="">Choose a supplier</option>
             {choices.suppliers.map((supplier) => (
               <option key={supplier.id} value={supplier.id}>
@@ -540,9 +512,9 @@ function InvoiceForm({
         </label>
         <label className={styles.field}>
           Supplier name
-          <QuietInput name="supplier_name" required maxLength={200} value={supplierName} onChange={(event) => setSupplierName(event.target.value)} />
+          <QuietInput name="supplier_name" required maxLength={200} disabled={locked} value={supplierName} onChange={(event) => setSupplierName(event.target.value)} />
         </label>
-        {showFlex ? <FlexField index={2} label={flexLabels[2]} value={flex[2]} onChange={setFlex} /> : null}
+        {showFlex ? <FlexField index={2} label={flexLabels[2]} value={flex[2]} disabled={locked} onChange={setFlex} /> : null}
         <label className={styles.field}>
           Currency
           <input type="hidden" name="currency_id" value={currencyId} />
@@ -559,6 +531,7 @@ function InvoiceForm({
             name="exchange_rate"
             required
             inputMode="decimal"
+            disabled={locked}
             value={exchangeRate}
             onChange={(event) => setExchangeRate(event.target.value)}
             onBlur={(event) => {
@@ -567,10 +540,10 @@ function InvoiceForm({
             className={styles.mono}
           />
         </label>
-        {showFlex ? <FlexField index={3} label={flexLabels[3]} value={flex[3]} onChange={setFlex} /> : null}
+        {showFlex ? <FlexField index={3} label={flexLabels[3]} value={flex[3]} disabled={locked} onChange={setFlex} /> : null}
         <label className={styles.field}>
           Order number
-          <QuietInput name="order_number" maxLength={40} value={orderNumber} onChange={(event) => setOrderNumber(event.target.value)} />
+          <QuietInput name="order_number" maxLength={40} disabled={locked} value={orderNumber} onChange={(event) => setOrderNumber(event.target.value)} />
         </label>
         <label className={styles.field}>
           Paid amount
@@ -578,6 +551,7 @@ function InvoiceForm({
             name="paid_amount"
             required
             inputMode="decimal"
+            disabled={voided}
             value={paidAmount}
             onChange={(event) => setPaidAmount(event.target.value)}
             onBlur={(event) => {
@@ -586,14 +560,14 @@ function InvoiceForm({
             className={styles.mono}
           />
         </label>
-        {showFlex ? <FlexField index={4} label={flexLabels[4]} value={flex[4]} onChange={setFlex} /> : null}
+        {showFlex ? <FlexField index={4} label={flexLabels[4]} value={flex[4]} disabled={locked} onChange={setFlex} /> : null}
         <label className={`${styles.field} ${styles.wide}`}>
           Contact details
-          <QuietTextarea name="contact_details" maxLength={500} rows={2} value={contactDetails} onChange={(event) => setContactDetails(event.target.value)} />
+          <QuietTextarea name="contact_details" maxLength={500} rows={2} disabled={locked} value={contactDetails} onChange={(event) => setContactDetails(event.target.value)} />
         </label>
         <label className={`${styles.field} ${styles.wide}`}>
           Notes
-          <QuietTextarea name="notes" maxLength={4000} rows={2} value={notes} onChange={(event) => setNotes(event.target.value)} />
+          <QuietTextarea name="notes" maxLength={4000} rows={2} disabled={locked} value={notes} onChange={(event) => setNotes(event.target.value)} />
         </label>
         <fieldset className={`${styles.wide} ${styles.amountBox}`}>
           <legend>Totals</legend>
@@ -629,16 +603,18 @@ function InvoiceForm({
         <div className={styles.linesPane}>
           <div className={styles.gridToolbar}>
             <span className={styles.paneLabel}>Lines{lines === null ? "" : ` (${invoiceLines.length})`}</span>
-            <button
-              className={styles.primary}
-              type="button"
-              onClick={() => {
-                setLineMessage(null);
-                setLineDraft(blankLine());
-              }}
-            >
-              Add line
-            </button>
+            {locked ? null : (
+              <button
+                className={styles.primary}
+                type="button"
+                onClick={() => {
+                  setLineMessage(null);
+                  setLineDraft(blankLine());
+                }}
+              >
+                Add line
+              </button>
+            )}
           </div>
           {lines === null ? (
             <p className={styles.empty}>Loading lines…</p>
@@ -656,13 +632,13 @@ function InvoiceForm({
                     <th className={styles.num}>Qty</th>
                     <th className={styles.num}>Nett</th>
                     <th className={styles.num}>VAT amount</th>
-                    <th className={styles.actions}>&nbsp;</th>
+                    {locked ? null : <th className={styles.actions}>&nbsp;</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {invoiceLines.length === 0 ? (
                     <tr>
-                      <td colSpan={9}>No lines yet.</td>
+                      <td colSpan={locked ? 8 : 9}>No lines yet.</td>
                     </tr>
                   ) : (
                     invoiceLines.map((line) => (
@@ -675,24 +651,26 @@ function InvoiceForm({
                         <td className={`${styles.mono} ${styles.num}`}>{line.quantity}</td>
                         <td className={`${styles.mono} ${styles.num}`}>{line.nettAmount}</td>
                         <td className={`${styles.mono} ${styles.num}`}>{line.vatAmount}</td>
-                        <td className={styles.actions}>
-                          <button className={styles.quiet} type="button" onClick={() => { setLineMessage(null); setLineDraft(line); }}>
-                            Edit
-                          </button>
-                          <button
-                            className={styles.quiet}
-                            type="button"
-                            onClick={() =>
-                              setInvoiceLines((current) =>
-                                current
-                                  .filter((item) => item.lineNumber !== line.lineNumber)
-                                  .map((item, index) => ({ ...item, lineNumber: index + 1 })),
-                              )
-                            }
-                          >
-                            Remove
-                          </button>
-                        </td>
+                        {locked ? null : (
+                          <td className={styles.actions}>
+                            <button className={styles.quiet} type="button" onClick={() => { setLineMessage(null); setLineDraft(line); }}>
+                              Edit
+                            </button>
+                            <button
+                              className={styles.quiet}
+                              type="button"
+                              onClick={() =>
+                                setInvoiceLines((current) =>
+                                  current
+                                    .filter((item) => item.lineNumber !== line.lineNumber)
+                                    .map((item, index) => ({ ...item, lineNumber: index + 1 })),
+                                )
+                              }
+                            >
+                              Remove
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     ))
                   )}
@@ -702,7 +680,7 @@ function InvoiceForm({
                     <th colSpan={6}>Total</th>
                     <td className={`${styles.mono} ${styles.num}`}>{formatMoney(totals.foreignNett)}</td>
                     <td className={`${styles.mono} ${styles.num}`}>{formatMoney(totals.foreignVat)}</td>
-                    <td />
+                    {locked ? null : <td />}
                   </tr>
                 </tfoot>
               </table>
@@ -716,15 +694,31 @@ function InvoiceForm({
         {choices.suppliers.length === 0 ? (
           <p className={`${styles.panelMeta} ${styles.wide}`}>Add a supplier before saving an invoice.</p>
         ) : null}
-        <div className={styles.modalActions}>
-          <button className={styles.quiet} type="button" onClick={onClose}>
-            Cancel
-          </button>
-          <button className={styles.primary} type="submit" disabled={pending || blocked || !supplierId}>
-            {pending ? "Saving…" : "Save"}
-          </button>
-        </div>
       </form>
+      {posted && canVoid ? (
+        <form className={styles.voidBar} action={voidPurchaseInvoice} autoComplete="off">
+          <input type="hidden" name="id" value={header.id} />
+          {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
+          <label className={styles.field}>
+            Void reason
+            <QuietInput name="reason" required maxLength={500} placeholder="Why this document is being voided" />
+          </label>
+          <button className={styles.quiet} type="submit">
+            Void
+          </button>
+        </form>
+      ) : null}
+      <div className={styles.modalActions}>
+        <button className={styles.quiet} type="button" onClick={onClose}>
+          {locked && !posted ? "Close" : "Cancel"}
+        </button>
+        {voided ? null : (
+          <button className={styles.primary} type="submit" form="purchase-document" disabled={pending || (!posted && (blocked || !supplierId))}>
+            {pending ? "Saving…" : posted ? "Save paid amount" : "Save"}
+          </button>
+        )}
+      </div>
+      </div>
     </FormModal>
     {lineDraft ? (
       <LineEditor

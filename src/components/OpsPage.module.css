@@ -339,10 +339,16 @@
   width: auto;
 }
 
-.inlineForm {
-  display: inline-flex;
-  gap: 6px;
-  align-items: center;
+.voidBar {
+  display: flex;
+  gap: 8px;
+  align-items: end;
+  padding-top: 4px;
+  border-top: 1px solid var(--ops-border-soft);
+}
+
+.voidBar .field {
+  flex: 1;
 }
 
 .actions {
@@ -437,6 +443,12 @@
   flex-direction: column;
   gap: 12px;
   padding: 16px;
+}
+
+.documentFields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .partyDialog {
@@ -895,6 +907,14 @@
   min-height: 72px;
   padding: 8px 10px;
   resize: vertical;
+}
+
+.field input:disabled,
+.field select:disabled,
+.field textarea:disabled {
+  color: var(--ops-text);
+  background: var(--ops-panel-muted);
+  opacity: 1;
 }
 
 .primary,
