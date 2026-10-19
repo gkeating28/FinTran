@@ -6,7 +6,7 @@ import FormModal from "@/components/FormModal";
 import { QuietInput } from "@/components/QuietField";
 import { createCurrency, deleteCurrency, updateCurrency } from "@/lib/currency-actions";
 import { formatCurrencyRate, parseCurrencyRate, type CurrencyRow } from "@/lib/currencies";
-import type { CodeName } from "@/lib/reference-data";
+import type { CodeName } from "@/lib/code-lists";
 import styles from "@/components/OpsPage.module.css";
 import type { ActionState } from "@/lib/types";
 

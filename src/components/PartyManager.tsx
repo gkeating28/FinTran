@@ -7,7 +7,7 @@ import { QuietInput, QuietTextarea } from "@/components/QuietField";
 import { formatPostalAddress } from "@/lib/address";
 import { createParty, deleteParty, updateParty } from "@/lib/party-actions";
 import { PARTY_META, type PartyCurrency, type PartyKind, type PartyRow } from "@/lib/parties";
-import { countryChoices, type CodeName } from "@/lib/reference-data";
+import { countryChoices, type CodeName } from "@/lib/code-lists";
 import styles from "@/components/OpsPage.module.css";
 import type { ActionState } from "@/lib/types";
 

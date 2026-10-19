@@ -7,7 +7,10 @@ import {
   type ReferenceKind,
   type ReferenceRow,
 } from "@/lib/reference";
+import { type CodeName } from "@/lib/code-lists";
 import { createClient } from "@/lib/supabase/server";
+
+export type { CodeName } from "@/lib/code-lists";
 
 export async function listReference(kind: ReferenceKind): Promise<{
   rows: ReferenceRow[];
@@ -86,25 +89,12 @@ export async function listReference(kind: ReferenceKind): Promise<{
   };
 }
 
-export type CodeName = {
-  code: string;
-  name: string;
-};
-
 export type CodeLists = {
   countries: CodeName[];
   schemes: CodeName[];
   currencies: CodeName[];
   error: string | null;
 };
-
-export function countryChoices(countries: CodeName[]) {
-  return [...countries].sort((left, right) => {
-    if (left.code === "IE") return -1;
-    if (right.code === "IE") return 1;
-    return left.name.localeCompare(right.name);
-  });
-}
 
 export async function listCodeLists(): Promise<CodeLists> {
   const supabase = await createClient();

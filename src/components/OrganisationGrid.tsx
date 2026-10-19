@@ -9,7 +9,7 @@ import { deleteOrganisation } from "@/lib/actions";
 import { updateOrganisationDefaults } from "@/lib/currency-actions";
 import type { OrganisationProfile } from "@/lib/currency-data";
 import { currencyLabel, type CurrencyChoice } from "@/lib/currencies";
-import { countryChoices, type CodeName } from "@/lib/reference-data";
+import { countryChoices, type CodeName } from "@/lib/code-lists";
 import {
   ORGANISATION_LOGO_ACCEPT,
   ORGANISATION_LOGO_ERROR,
