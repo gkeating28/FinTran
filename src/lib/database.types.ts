@@ -770,6 +770,150 @@ export type Database = {
         }
         Relationships: []
       }
+      ref_countries: {
+        Row: {
+          active: boolean
+          code: string
+          name: string
+          vat_prefix_only: boolean
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          name: string
+          vat_prefix_only?: boolean
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          name?: string
+          vat_prefix_only?: boolean
+        }
+        Relationships: []
+      }
+      ref_currencies: {
+        Row: {
+          active: boolean
+          code: string
+          minor_units: number | null
+          name: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          minor_units?: number | null
+          name: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          minor_units?: number | null
+          name?: string
+        }
+        Relationships: []
+      }
+      ref_eas: {
+        Row: {
+          active: boolean
+          code: string
+          name: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          name: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      ref_payment_means: {
+        Row: {
+          active: boolean
+          code: string
+          common: boolean
+          name: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          common?: boolean
+          name: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          common?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
+      ref_units: {
+        Row: {
+          active: boolean
+          code: string
+          common: boolean
+          name: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          common?: boolean
+          name: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          common?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
+      ref_vat_categories: {
+        Row: {
+          active: boolean
+          code: string
+          name: string
+          rate_must_be_zero: boolean
+          requires_exemption_reason: boolean
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          name: string
+          rate_must_be_zero: boolean
+          requires_exemption_reason: boolean
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          name?: string
+          rate_must_be_zero?: boolean
+          requires_exemption_reason?: boolean
+        }
+        Relationships: []
+      }
+      ref_vatex: {
+        Row: {
+          active: boolean
+          code: string
+          name: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          name: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          name?: string
+        }
+        Relationships: []
+      }
       suppliers: {
         Row: {
           address: string | null

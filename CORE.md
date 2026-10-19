@@ -31,6 +31,28 @@ Almost every business table carries both `tenant_id` and `organisation_id`. A tr
 
 Where a code is used by another row, the foreign key is `ON DELETE RESTRICT`. You cannot remove a currency, GL code, VAT rate, product, supplier, or transaction type that is still referenced. Deleting an organisation deletes the rows that belong only to it (`ON DELETE CASCADE`).
 
+## Reference code lists
+
+EN 16931 code lists are shared by every organisation. They are not copied per tenant. Any signed-in user can read them. The API grants no insert, update, or delete.
+
+The seed is pinned to Peppol BIS Billing 3.0.21, the May 2026 release, code list publication 2026-03-06, taken from the code list pages at `https://docs.peppol.eu/poacc/billing/3.0/codelist/`. Currency minor units come from the ISO 4217 maintenance agency list published 2026-09-17. `CNH` is on the Peppol currency list and not on that ISO list, so it is stored with 2 minor units, the same as `CNY`.
+
+| Table | What it holds |
+| --- | --- |
+| `ref_countries` | ISO 3166-1 alpha-2, page version 2013, plus `EL` |
+| `ref_currencies` | ISO 4217, page version 2018-01-01, with `minor_units` |
+| `ref_units` | UN/ECE Recommendation 20, including Recommendation 21 codes prefixed with X, revision 11e |
+| `ref_vat_categories` | UNCL5305 OpenPEPPOL subset, version D.16B |
+| `ref_vatex` | CEF VATEX exemption reason codes |
+| `ref_payment_means` | UNCL4461, version D.16B |
+| `ref_eas` | Peppol electronic address schemes |
+
+`EL` is Greece's VAT prefix. `vat_prefix_only` is true, so it is not a postal country. Postal Greece is `GR`. Irish VAT electronic addresses use EAS scheme `9935`, Ireland VAT number.
+
+VAT category flags follow the CEN schematron published with that release. An exemption reason is required for `E`, `AE`, `K`, `G`, and `O` (`BR-E-10`, `BR-AE-10`, `BR-IC-10`, `BR-G-10`, `BR-O-10`). The rate must be zero for `Z`, `E`, `AE`, `K`, `G`, and `O`. Category `O` omits the rate in UBL (`BR-O-05`); the flag records that as zero. `S` must be above zero and must not carry an exemption. `L` and `M` may be zero or more. `B` is the Italian split-payment category from the same Peppol subset.
+
+The short unit pick list is `C62`, `H87`, `HUR`, `DAY`, `MON`, `KGM`, `LTR`, `MTR`, `MTK`, `KMT`, `SET`, and `XBX`. The short payment-means pick list is `30`, `31`, `42`, `48`, `49`, `58`, and `59`. `58` is SEPA credit transfer.
+
 ## People, tenants, and organisations
 
 Sign-in is Supabase Auth. `public.profiles` is one row per user. Its `id` is the Auth user id. A trigger on `auth.users` creates the profile and, if no display name was given, uses the part of the email before `@`. Email is unique ignoring case.
