@@ -15,7 +15,7 @@ export async function listCurrencies(): Promise<{
   const [currencies, defaults] = await Promise.all([
     supabase
       .from("currencies")
-      .select("id, code, name, rate")
+      .select("id, code, name, rate, iso_code")
       .eq("organisation_id", organisationId)
       .order("code"),
     supabase
@@ -36,6 +36,7 @@ export async function listCurrencies(): Promise<{
       code: row.code,
       name: row.name,
       rate: formatCurrencyRate(row.rate),
+      isoCode: row.iso_code,
       home: row.id === homeCurrencyId,
     })),
     error: null,
@@ -43,25 +44,49 @@ export async function listCurrencies(): Promise<{
 }
 
 export type OrganisationProfile = {
-  address: string;
+  addressLine1: string;
+  addressLine2: string;
+  addressLine3: string;
+  city: string;
+  postCode: string;
+  county: string;
+  countryCode: string;
+  addressNeedsReview: boolean;
   contactName: string;
   contactEmail: string;
   website: string;
   phone: string;
   vatNumber: string;
   companyNumber: string;
+  peppolScheme: string;
+  peppolId: string;
+  iban: string;
+  bic: string;
+  bankAccountName: string;
   bankingDetails: string;
   lockDate: string;
 };
 
 export const emptyOrganisationProfile: OrganisationProfile = {
-  address: "",
+  addressLine1: "",
+  addressLine2: "",
+  addressLine3: "",
+  city: "",
+  postCode: "",
+  county: "",
+  countryCode: "IE",
+  addressNeedsReview: false,
   contactName: "",
   contactEmail: "",
   website: "",
   phone: "",
   vatNumber: "",
   companyNumber: "",
+  peppolScheme: "",
+  peppolId: "",
+  iban: "",
+  bic: "",
+  bankAccountName: "",
   bankingDetails: "",
   lockDate: "",
 };
@@ -101,7 +126,7 @@ export async function listDefaultsByOrganisation(organisationIds: string[]): Pro
     supabase
       .from("organisation_defaults")
       .select(
-        "organisation_id, home_currency_id, address, contact_name, contact_email, website, phone, vat_number, company_number, banking_details, lock_date, logo_path, updated_at",
+        "organisation_id, home_currency_id, address_line1, address_line2, address_line3, city, post_code, county, country_code, address_needs_review, contact_name, contact_email, website, phone, vat_number, company_number, peppol_scheme, peppol_id, iban, bic, bank_account_name, banking_details, lock_date, logo_path, updated_at",
       )
       .in("organisation_id", organisationIds),
   ]);
@@ -122,13 +147,25 @@ export async function listDefaultsByOrganisation(organisationIds: string[]): Pro
     if (!set) continue;
     set.homeCurrencyId = row.home_currency_id;
     set.profile = {
-      address: row.address ?? "",
+      addressLine1: row.address_line1 ?? "",
+      addressLine2: row.address_line2 ?? "",
+      addressLine3: row.address_line3 ?? "",
+      city: row.city ?? "",
+      postCode: row.post_code ?? "",
+      county: row.county ?? "",
+      countryCode: row.country_code ?? "IE",
+      addressNeedsReview: row.address_needs_review,
       contactName: row.contact_name ?? "",
       contactEmail: row.contact_email ?? "",
       website: row.website ?? "",
       phone: row.phone ?? "",
       vatNumber: row.vat_number ?? "",
       companyNumber: row.company_number ?? "",
+      peppolScheme: row.peppol_scheme ?? "",
+      peppolId: row.peppol_id ?? "",
+      iban: row.iban ?? "",
+      bic: row.bic ?? "",
+      bankAccountName: row.bank_account_name ?? "",
       bankingDetails: row.banking_details ?? "",
       lockDate: row.lock_date ?? "",
     };

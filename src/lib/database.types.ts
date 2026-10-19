@@ -124,6 +124,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          iso_code: string
           name: string
           organisation_id: string
           rate: number
@@ -136,6 +137,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          iso_code: string
           name: string
           organisation_id: string
           rate: number
@@ -148,6 +150,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          iso_code?: string
           name?: string
           organisation_id?: string
           rate?: number
@@ -162,6 +165,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "currencies_iso_code_fkey"
+            columns: ["iso_code"]
+            isOneToOne: false
+            referencedRelation: "ref_currencies"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "currencies_organisation_id_fkey"
@@ -188,9 +198,16 @@ export type Database = {
       }
       customers: {
         Row: {
-          address: string | null
+          address_line1: string | null
+          address_line2: string | null
+          address_line3: string | null
+          address_needs_review: boolean
+          city: string | null
           code: string
+          company_number: string | null
           contact_details: string | null
+          country_code: string
+          county: string | null
           created_at: string
           created_by: string | null
           currency_id: string
@@ -199,7 +216,10 @@ export type Database = {
           name: string
           notes: string | null
           organisation_id: string
+          peppol_id: string | null
+          peppol_scheme: string | null
           phone: string | null
+          post_code: string | null
           tenant_id: string
           updated_at: string
           updated_by: string | null
@@ -207,9 +227,16 @@ export type Database = {
           website: string | null
         }
         Insert: {
-          address?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          address_line3?: string | null
+          address_needs_review?: boolean
+          city?: string | null
           code: string
+          company_number?: string | null
           contact_details?: string | null
+          country_code?: string
+          county?: string | null
           created_at?: string
           created_by?: string | null
           currency_id: string
@@ -218,7 +245,10 @@ export type Database = {
           name: string
           notes?: string | null
           organisation_id: string
+          peppol_id?: string | null
+          peppol_scheme?: string | null
           phone?: string | null
+          post_code?: string | null
           tenant_id: string
           updated_at?: string
           updated_by?: string | null
@@ -226,9 +256,16 @@ export type Database = {
           website?: string | null
         }
         Update: {
-          address?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          address_line3?: string | null
+          address_needs_review?: boolean
+          city?: string | null
           code?: string
+          company_number?: string | null
           contact_details?: string | null
+          country_code?: string
+          county?: string | null
           created_at?: string
           created_by?: string | null
           currency_id?: string
@@ -237,7 +274,10 @@ export type Database = {
           name?: string
           notes?: string | null
           organisation_id?: string
+          peppol_id?: string | null
+          peppol_scheme?: string | null
           phone?: string | null
+          post_code?: string | null
           tenant_id?: string
           updated_at?: string
           updated_by?: string | null
@@ -245,6 +285,13 @@ export type Database = {
           website?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customers_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "ref_countries"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "customers_created_by_fkey"
             columns: ["created_by"]
@@ -265,6 +312,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organisations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customers_peppol_scheme_fkey"
+            columns: ["peppol_scheme"]
+            isOneToOne: false
+            referencedRelation: "ref_eas"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "customers_tenant_id_fkey"
@@ -489,18 +543,30 @@ export type Database = {
       }
       organisation_defaults: {
         Row: {
-          address: string | null
+          address_line1: string | null
+          address_line2: string | null
+          address_line3: string | null
+          address_needs_review: boolean
+          bank_account_name: string | null
           banking_details: string | null
+          bic: string | null
+          city: string | null
           company_number: string | null
           contact_email: string | null
           contact_name: string | null
+          country_code: string
+          county: string | null
           created_at: string
           created_by: string | null
           home_currency_id: string | null
+          iban: string | null
           lock_date: string | null
           logo_path: string | null
           organisation_id: string
+          peppol_id: string | null
+          peppol_scheme: string | null
           phone: string | null
+          post_code: string | null
           tenant_id: string
           updated_at: string
           updated_by: string | null
@@ -508,18 +574,30 @@ export type Database = {
           website: string | null
         }
         Insert: {
-          address?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          address_line3?: string | null
+          address_needs_review?: boolean
+          bank_account_name?: string | null
           banking_details?: string | null
+          bic?: string | null
+          city?: string | null
           company_number?: string | null
           contact_email?: string | null
           contact_name?: string | null
+          country_code?: string
+          county?: string | null
           created_at?: string
           created_by?: string | null
           home_currency_id?: string | null
+          iban?: string | null
           lock_date?: string | null
           logo_path?: string | null
           organisation_id: string
+          peppol_id?: string | null
+          peppol_scheme?: string | null
           phone?: string | null
+          post_code?: string | null
           tenant_id: string
           updated_at?: string
           updated_by?: string | null
@@ -527,18 +605,30 @@ export type Database = {
           website?: string | null
         }
         Update: {
-          address?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          address_line3?: string | null
+          address_needs_review?: boolean
+          bank_account_name?: string | null
           banking_details?: string | null
+          bic?: string | null
+          city?: string | null
           company_number?: string | null
           contact_email?: string | null
           contact_name?: string | null
+          country_code?: string
+          county?: string | null
           created_at?: string
           created_by?: string | null
           home_currency_id?: string | null
+          iban?: string | null
           lock_date?: string | null
           logo_path?: string | null
           organisation_id?: string
+          peppol_id?: string | null
+          peppol_scheme?: string | null
           phone?: string | null
+          post_code?: string | null
           tenant_id?: string
           updated_at?: string
           updated_by?: string | null
@@ -546,6 +636,13 @@ export type Database = {
           website?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "organisation_defaults_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "ref_countries"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "organisation_defaults_created_by_fkey"
             columns: ["created_by"]
@@ -566,6 +663,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "organisations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organisation_defaults_peppol_scheme_fkey"
+            columns: ["peppol_scheme"]
+            isOneToOne: false
+            referencedRelation: "ref_eas"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "organisation_defaults_tenant_id_fkey"
@@ -916,9 +1020,16 @@ export type Database = {
       }
       suppliers: {
         Row: {
-          address: string | null
+          address_line1: string | null
+          address_line2: string | null
+          address_line3: string | null
+          address_needs_review: boolean
+          city: string | null
           code: string
+          company_number: string | null
           contact_details: string | null
+          country_code: string
+          county: string | null
           created_at: string
           created_by: string | null
           currency_id: string
@@ -927,7 +1038,10 @@ export type Database = {
           name: string
           notes: string | null
           organisation_id: string
+          peppol_id: string | null
+          peppol_scheme: string | null
           phone: string | null
+          post_code: string | null
           tenant_id: string
           updated_at: string
           updated_by: string | null
@@ -935,9 +1049,16 @@ export type Database = {
           website: string | null
         }
         Insert: {
-          address?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          address_line3?: string | null
+          address_needs_review?: boolean
+          city?: string | null
           code: string
+          company_number?: string | null
           contact_details?: string | null
+          country_code?: string
+          county?: string | null
           created_at?: string
           created_by?: string | null
           currency_id: string
@@ -946,7 +1067,10 @@ export type Database = {
           name: string
           notes?: string | null
           organisation_id: string
+          peppol_id?: string | null
+          peppol_scheme?: string | null
           phone?: string | null
+          post_code?: string | null
           tenant_id: string
           updated_at?: string
           updated_by?: string | null
@@ -954,9 +1078,16 @@ export type Database = {
           website?: string | null
         }
         Update: {
-          address?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          address_line3?: string | null
+          address_needs_review?: boolean
+          city?: string | null
           code?: string
+          company_number?: string | null
           contact_details?: string | null
+          country_code?: string
+          county?: string | null
           created_at?: string
           created_by?: string | null
           currency_id?: string
@@ -965,7 +1096,10 @@ export type Database = {
           name?: string
           notes?: string | null
           organisation_id?: string
+          peppol_id?: string | null
+          peppol_scheme?: string | null
           phone?: string | null
+          post_code?: string | null
           tenant_id?: string
           updated_at?: string
           updated_by?: string | null
@@ -973,6 +1107,13 @@ export type Database = {
           website?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "suppliers_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "ref_countries"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "suppliers_created_by_fkey"
             columns: ["created_by"]
@@ -993,6 +1134,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organisations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suppliers_peppol_scheme_fkey"
+            columns: ["peppol_scheme"]
+            isOneToOne: false
+            referencedRelation: "ref_eas"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "suppliers_tenant_id_fkey"

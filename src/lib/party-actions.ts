@@ -23,7 +23,13 @@ function friendlyError(error: { code?: string; message: string } | null, fallbac
   if (error.code === "23514" && error.message.includes("website")) {
     return "Use a website up to 200 characters, without spaces.";
   }
-  if (error.code === "23514" && error.message.includes("address")) return "Address can be up to 500 characters.";
+  if (error.code === "23505" && error.message.includes("peppol")) {
+    return "That Peppol ID is already used in this organisation.";
+  }
+  if (error.code === "23514" && error.message.includes("address_line")) return "Each address line can be up to 100 characters.";
+  if (error.code === "23514" && error.message.includes("post_code")) return "Post code can be up to 20 characters.";
+  if (error.code === "23514" && error.message.includes("city")) return "City can be up to 60 characters.";
+  if (error.code === "23514" && error.message.includes("county")) return "County can be up to 60 characters.";
   if (error.code === "23514" && error.message.includes("contact_details")) {
     return "Contact details can be up to 500 characters.";
   }
@@ -64,10 +70,21 @@ function fieldsFrom(formData: FormData) {
     phone: text(formData, "phone"),
     email: text(formData, "email"),
     website: text(formData, "website"),
-    address: text(formData, "address"),
+    address: {
+      line1: text(formData, "address_line1"),
+      line2: text(formData, "address_line2"),
+      line3: text(formData, "address_line3"),
+      city: text(formData, "city"),
+      postCode: text(formData, "post_code"),
+      county: text(formData, "county"),
+      countryCode: text(formData, "country_code"),
+    },
     contactDetails: text(formData, "contact_details"),
     notes: text(formData, "notes"),
     vatNumber: text(formData, "vat_number"),
+    companyNumber: text(formData, "company_number"),
+    peppolScheme: text(formData, "peppol_scheme"),
+    peppolId: text(formData, "peppol_id"),
   });
 }
 
@@ -79,10 +96,20 @@ function rowFrom(fields: PartyFields) {
     phone: fields.phone,
     email: fields.email,
     website: fields.website,
-    address: fields.address,
+    address_line1: fields.addressLine1,
+    address_line2: fields.addressLine2,
+    address_line3: fields.addressLine3,
+    city: fields.city,
+    post_code: fields.postCode,
+    county: fields.county,
+    country_code: fields.countryCode,
+    address_needs_review: false,
     contact_details: fields.contactDetails,
     notes: fields.notes,
     vat_number: fields.vatNumber,
+    company_number: fields.companyNumber,
+    peppol_scheme: fields.peppolScheme,
+    peppol_id: fields.peppolId,
   };
 }
 

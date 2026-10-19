@@ -1,3 +1,4 @@
+import { formatPostalAddress } from "@/lib/address";
 import { getWorkspace } from "@/lib/data";
 import {
   buildPrintView,
@@ -25,7 +26,7 @@ const HEADER_SELECT = `
   exchange_rate, order_number, supplier_reference, supply_date, foreign_nett_amount, foreign_vat_amount, foreign_total_amount, paid_amount,
   flex1, flex2, flex3, flex4, flex5, issuer_snapshot, party_snapshot,
   currencies(code),
-  suppliers(code, name, phone, email, website, address, contact_details, vat_number),
+  suppliers(code, name, phone, email, website, address_line1, address_line2, address_line3, city, post_code, county, country_code, contact_details, vat_number, ref_countries(name)),
   transaction_lines(
     line_number, description, quantity, price, discount_amount, nett_amount, vat_amount, vat_percentage,
     products(code, description),
@@ -79,17 +80,26 @@ async function organisationDetails(organisationId: string, organisationName: str
   const { data } = await supabase
     .from("organisation_defaults")
     .select(
-      "address, contact_name, contact_email, website, phone, vat_number, company_number, banking_details, logo_path, updated_at, currencies(code)",
+      "address_line1, address_line2, address_line3, city, post_code, county, country_code, ref_countries(name), contact_name, contact_email, website, phone, vat_number, company_number, banking_details, logo_path, updated_at, currencies(code)",
     )
     .eq("organisation_id", organisationId)
     .maybeSingle();
 
   const row = (data ?? {}) as Loose;
   const currency = one(row.currencies as { code?: string } | { code?: string }[] | null);
+  const country = one(row.ref_countries as { name?: string } | { name?: string }[] | null);
   const organisation: FormOrganisation = {
     ...emptyOrganisation(),
     name: organisationName,
-    address: text(row.address),
+    address: formatPostalAddress({
+      line1: text(row.address_line1),
+      line2: text(row.address_line2),
+      line3: text(row.address_line3),
+      city: text(row.city),
+      county: text(row.county),
+      postCode: text(row.post_code),
+      countryName: text(country?.name) || text(row.country_code),
+    }),
     phone: text(row.phone),
     contactName: text(row.contact_name),
     contactEmail: text(row.contact_email),
@@ -180,7 +190,15 @@ function sourceFromHeader(row: Loose, type: FormType, organisation: FormOrganisa
       : {
           code: text(supplier?.code),
           name: text(row.supplier_name) || text(supplier?.name),
-          address: text(supplier?.address),
+          address: formatPostalAddress({
+            line1: text(supplier?.address_line1),
+            line2: text(supplier?.address_line2),
+            line3: text(supplier?.address_line3),
+            city: text(supplier?.city),
+            county: text(supplier?.county),
+            postCode: text(supplier?.post_code),
+            countryName: text(one(supplier?.ref_countries as { name?: string } | { name?: string }[] | null)?.name) || text(supplier?.country_code),
+          }),
           contactDetails: text(row.contact_details) || text(supplier?.contact_details),
           phone: text(supplier?.phone),
           email: text(supplier?.email),

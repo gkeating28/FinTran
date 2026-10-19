@@ -5,6 +5,7 @@ export type CurrencyRow = {
   code: string;
   name: string;
   rate: string;
+  isoCode: string;
   home: boolean;
 };
 

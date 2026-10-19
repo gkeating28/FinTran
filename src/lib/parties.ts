@@ -1,3 +1,5 @@
+import { parsePeppol, parsePostalAddress, parseVatNumber, type PostalAddress } from "@/lib/address";
+
 export const PARTY_KINDS = ["customers", "suppliers"] as const;
 
 export type PartyKind = (typeof PARTY_KINDS)[number];
@@ -11,10 +13,20 @@ export type PartyRow = {
   phone: string;
   email: string;
   website: string;
-  address: string;
+  addressLine1: string;
+  addressLine2: string;
+  addressLine3: string;
+  city: string;
+  postCode: string;
+  county: string;
+  countryCode: string;
+  addressNeedsReview: boolean;
   contactDetails: string;
   notes: string;
   vatNumber: string;
+  companyNumber: string;
+  peppolScheme: string;
+  peppolId: string;
 };
 
 export type PartyCurrency = {
@@ -48,10 +60,19 @@ export type PartyFields = {
   phone: string | null;
   email: string | null;
   website: string | null;
-  address: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  addressLine3: string | null;
+  city: string | null;
+  postCode: string | null;
+  county: string | null;
+  countryCode: string;
   contactDetails: string | null;
   notes: string | null;
   vatNumber: string | null;
+  companyNumber: string | null;
+  peppolScheme: string | null;
+  peppolId: string | null;
 };
 
 function optionalText(value: string, max: number) {
@@ -68,10 +89,13 @@ export function parseParty(input: {
   phone: string;
   email: string;
   website: string;
-  address: string;
+  address: PostalAddress;
   contactDetails: string;
   notes: string;
   vatNumber: string;
+  companyNumber: string;
+  peppolScheme: string;
+  peppolId: string;
 }): PartyFields | { error: string } {
   const code = input.code.trim().toUpperCase();
   const name = input.name.trim();
@@ -98,8 +122,8 @@ export function parseParty(input: {
     return { error: "Use a website up to 200 characters, without spaces." };
   }
 
-  const address = optionalText(input.address, 500);
-  if (address === undefined) return { error: "Address can be up to 500 characters." };
+  const address = parsePostalAddress(input.address);
+  if ("error" in address) return address;
 
   const contactDetails = optionalText(input.contactDetails, 500);
   if (contactDetails === undefined) return { error: "Contact details can be up to 500 characters." };
@@ -107,10 +131,38 @@ export function parseParty(input: {
   const notes = optionalText(input.notes, 4000);
   if (notes === undefined) return { error: "Notes can be up to 4000 characters." };
 
-  const vatNumber = optionalText(input.vatNumber, 40);
-  if (vatNumber === undefined || (vatNumber && !/^[A-Za-z0-9][A-Za-z0-9 ./-]*$/.test(vatNumber))) {
-    return { error: "VAT number can be up to 40 characters and must start with a letter or number." };
+  const vatNumber = parseVatNumber(input.vatNumber);
+  if (vatNumber === undefined) {
+    return { error: "Enter a VAT number with a country prefix, for example IE1234567T." };
   }
 
-  return { code, name, currencyId, phone, email, website, address, contactDetails, notes, vatNumber };
+  const companyNumber = optionalText(input.companyNumber, 40);
+  if (companyNumber === undefined || (companyNumber && !/^[A-Za-z0-9][A-Za-z0-9 ./-]*$/.test(companyNumber))) {
+    return { error: "Company number can be up to 40 letters or numbers." };
+  }
+
+  const peppol = parsePeppol(input.peppolScheme, input.peppolId);
+  if ("error" in peppol) return { error: peppol.error };
+
+  return {
+    code,
+    name,
+    currencyId,
+    phone,
+    email,
+    website,
+    addressLine1: address.line1 || null,
+    addressLine2: address.line2 || null,
+    addressLine3: address.line3 || null,
+    city: address.city || null,
+    postCode: address.postCode || null,
+    county: address.county || null,
+    countryCode: address.countryCode,
+    contactDetails,
+    notes,
+    vatNumber,
+    companyNumber,
+    peppolScheme: peppol.peppolScheme,
+    peppolId: peppol.peppolId,
+  };
 }

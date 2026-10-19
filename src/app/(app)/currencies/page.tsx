@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import CurrencyManager from "@/components/CurrencyManager";
 import { listCurrencies } from "@/lib/currency-data";
 import { getWorkspace } from "@/lib/data";
+import { listCodeLists } from "@/lib/reference-data";
 import { canManage } from "@/lib/types";
 
 export const metadata = { title: "Currencies" };
@@ -12,16 +13,18 @@ export default async function CurrenciesPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const listed = listCurrencies();
+  const lists = listCodeLists();
   const workspace = await getWorkspace();
   if (workspace.status === "signed-out") redirect("/login");
   if (workspace.status !== "ready") redirect("/");
 
-  const [{ rows, error }, params] = await Promise.all([listed, searchParams]);
+  const [{ rows, error }, codes, params] = await Promise.all([listed, lists, searchParams]);
 
   return (
     <CurrencyManager
       rows={rows}
-      loadError={error}
+      isoCurrencies={codes.currencies}
+      loadError={error ?? codes.error}
       actionError={params.error}
       canEdit={canManage(workspace.current.role)}
     />

@@ -3,6 +3,7 @@ import OrganisationGrid from "@/components/OrganisationGrid";
 import styles from "@/components/OpsPage.module.css";
 import { emptyOrganisationProfile, listDefaultsByOrganisation } from "@/lib/currency-data";
 import { getWorkspace } from "@/lib/data";
+import { listCodeLists } from "@/lib/reference-data";
 
 export const metadata = { title: "Organisations" };
 
@@ -13,9 +14,10 @@ export default async function OrganisationsPage() {
 
   const { current, memberships } = workspace;
   const organisations = memberships.filter((membership) => membership.tenantId === current.tenantId);
-  const { byOrganisation, error } = await listDefaultsByOrganisation(
-    organisations.map((organisation) => organisation.organisationId),
-  );
+  const [{ byOrganisation, error }, codes] = await Promise.all([
+    listDefaultsByOrganisation(organisations.map((organisation) => organisation.organisationId)),
+    listCodeLists(),
+  ]);
 
   return (
     <section className={styles.stack}>
@@ -26,14 +28,16 @@ export default async function OrganisationsPage() {
           to set its logo, home currency, address, contact, registration, and banking details.
         </p>
       </div>
-      {error ? (
+      {error || codes.error ? (
         <p className={styles.alert} role="alert">
-          {error}
+          {error || codes.error}
         </p>
       ) : null}
       <OrganisationGrid
         tenantId={current.tenantId}
         canAdd={organisations.some((organisation) => organisation.role === "owner")}
+        countries={codes.countries}
+        schemes={codes.schemes}
         rows={organisations.map((organisation) => {
           const defaults = byOrganisation[organisation.organisationId];
           return {

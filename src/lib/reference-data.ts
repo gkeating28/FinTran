@@ -85,3 +85,43 @@ export async function listReference(kind: ReferenceKind): Promise<{
     error: null,
   };
 }
+
+export type CodeName = {
+  code: string;
+  name: string;
+};
+
+export type CodeLists = {
+  countries: CodeName[];
+  schemes: CodeName[];
+  currencies: CodeName[];
+  error: string | null;
+};
+
+export function countryChoices(countries: CodeName[]) {
+  return [...countries].sort((left, right) => {
+    if (left.code === "IE") return -1;
+    if (right.code === "IE") return 1;
+    return left.name.localeCompare(right.name);
+  });
+}
+
+export async function listCodeLists(): Promise<CodeLists> {
+  const supabase = await createClient();
+  const [countries, schemes, currencies] = await Promise.all([
+    supabase.from("ref_countries").select("code, name").eq("vat_prefix_only", false).eq("active", true).order("name"),
+    supabase.from("ref_eas").select("code, name").eq("active", true).order("code"),
+    supabase.from("ref_currencies").select("code, name").eq("active", true).order("code"),
+  ]);
+
+  if (countries.error || schemes.error || currencies.error) {
+    return { countries: [], schemes: [], currencies: [], error: "Reference lists could not be loaded." };
+  }
+
+  return {
+    countries: countries.data ?? [],
+    schemes: schemes.data ?? [],
+    currencies: currencies.data ?? [],
+    error: null,
+  };
+}

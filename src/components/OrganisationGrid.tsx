@@ -9,6 +9,7 @@ import { deleteOrganisation } from "@/lib/actions";
 import { updateOrganisationDefaults } from "@/lib/currency-actions";
 import type { OrganisationProfile } from "@/lib/currency-data";
 import { currencyLabel, type CurrencyChoice } from "@/lib/currencies";
+import { countryChoices, type CodeName } from "@/lib/reference-data";
 import {
   ORGANISATION_LOGO_ACCEPT,
   ORGANISATION_LOGO_ERROR,
@@ -32,10 +33,14 @@ export default function OrganisationGrid({
   rows,
   tenantId,
   canAdd,
+  countries,
+  schemes,
 }: {
   rows: OrganisationGridRow[];
   tenantId: string;
   canAdd: boolean;
+  countries: CodeName[];
+  schemes: CodeName[];
 }) {
   const [editing, setEditing] = useState<OrganisationGridRow | null>(null);
 
@@ -52,7 +57,12 @@ export default function OrganisationGrid({
             key: "name",
             label: "Organisation",
             sortValue: (row) => row.name,
-            render: (row) => row.name,
+            render: (row) => (
+              <span>
+                {row.name}
+                {row.profile.addressNeedsReview ? <span className={styles.reviewBadge}>Needs review</span> : null}
+              </span>
+            ),
           },
           {
             key: "logo",
@@ -90,7 +100,7 @@ export default function OrganisationGrid({
         }
       />
       {editing ? (
-        <OrganisationForm key={editing.id} organisation={editing} onClose={() => setEditing(null)} />
+        <OrganisationForm key={editing.id} organisation={editing} countries={countries} schemes={schemes} onClose={() => setEditing(null)} />
       ) : null}
     </div>
   );
@@ -103,9 +113,13 @@ function homeLabel(row: OrganisationGridRow) {
 
 function OrganisationForm({
   organisation,
+  countries,
+  schemes,
   onClose,
 }: {
   organisation: OrganisationGridRow;
+  countries: CodeName[];
+  schemes: CodeName[];
   onClose: () => void;
 }) {
   const [state, action, pending] = useActionState(updateOrganisationDefaults, {} as ActionState);
@@ -116,8 +130,20 @@ function OrganisationForm({
   const [website, setWebsite] = useState(organisation.profile.website);
   const [vatNumber, setVatNumber] = useState(organisation.profile.vatNumber);
   const [companyNumber, setCompanyNumber] = useState(organisation.profile.companyNumber);
-  const [address, setAddress] = useState(organisation.profile.address);
+  const [addressLine1, setAddressLine1] = useState(organisation.profile.addressLine1);
+  const [addressLine2, setAddressLine2] = useState(organisation.profile.addressLine2);
+  const [addressLine3, setAddressLine3] = useState(organisation.profile.addressLine3);
+  const [city, setCity] = useState(organisation.profile.city);
+  const [postCode, setPostCode] = useState(organisation.profile.postCode);
+  const [county, setCounty] = useState(organisation.profile.county);
+  const [countryCode, setCountryCode] = useState(organisation.profile.countryCode || "IE");
+  const [peppolScheme, setPeppolScheme] = useState(organisation.profile.peppolScheme);
+  const [peppolId, setPeppolId] = useState(organisation.profile.peppolId);
+  const [iban, setIban] = useState(organisation.profile.iban);
+  const [bic, setBic] = useState(organisation.profile.bic);
+  const [bankAccountName, setBankAccountName] = useState(organisation.profile.bankAccountName);
   const [bankingDetails, setBankingDetails] = useState(organisation.profile.bankingDetails);
+  const orderedCountries = countryChoices(countries);
   const [lockDate, setLockDate] = useState(organisation.profile.lockDate);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [removeLogo, setRemoveLogo] = useState(false);
@@ -258,19 +284,81 @@ function OrganisationForm({
         </label>
         <label className={styles.field}>
           VAT registration number
-          <QuietInput name="vat_number" maxLength={40} value={vatNumber} onChange={(event) => setVatNumber(event.target.value)} className={styles.mono} />
+          <QuietInput name="vat_number" maxLength={16} value={vatNumber} onChange={(event) => setVatNumber(event.target.value)} placeholder="IE1234567T" className={styles.mono} />
+          <span className={styles.panelMeta}>Country prefix and number, for example IE1234567T.</span>
         </label>
         <label className={styles.field}>
           Company reg. number
           <QuietInput name="company_number" maxLength={40} value={companyNumber} onChange={(event) => setCompanyNumber(event.target.value)} className={styles.mono} />
         </label>
         <label className={`${styles.field} ${styles.wide}`}>
-          Address
-          <QuietTextarea name="address" maxLength={500} rows={4} value={address} onChange={(event) => setAddress(event.target.value)} />
+          <span>
+            Address line 1
+            {organisation.profile.addressNeedsReview ? <span className={styles.reviewBadge}>Needs review</span> : null}
+          </span>
+          <QuietInput name="address_line1" maxLength={100} value={addressLine1} onChange={(event) => setAddressLine1(event.target.value)} />
+        </label>
+        <label className={`${styles.field} ${styles.wide}`}>
+          Address line 2
+          <QuietInput name="address_line2" maxLength={100} value={addressLine2} onChange={(event) => setAddressLine2(event.target.value)} />
+        </label>
+        <label className={`${styles.field} ${styles.wide}`}>
+          Address line 3
+          <QuietInput name="address_line3" maxLength={100} value={addressLine3} onChange={(event) => setAddressLine3(event.target.value)} />
+        </label>
+        <label className={styles.field}>
+          City
+          <QuietInput name="city" maxLength={60} value={city} onChange={(event) => setCity(event.target.value)} />
+        </label>
+        <label className={styles.field}>
+          Post code
+          <QuietInput name="post_code" maxLength={20} value={postCode} onChange={(event) => setPostCode(event.target.value)} className={styles.mono} />
+        </label>
+        <label className={styles.field}>
+          County
+          <QuietInput name="county" maxLength={60} value={county} onChange={(event) => setCounty(event.target.value)} />
+        </label>
+        <label className={styles.field}>
+          Country
+          <select name="country_code" autoComplete="off" value={countryCode} onChange={(event) => setCountryCode(event.target.value)}>
+            {orderedCountries.map((country) => (
+              <option key={country.code} value={country.code}>
+                {country.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className={styles.field}>
+          Peppol scheme
+          <select name="peppol_scheme" autoComplete="off" value={peppolScheme} onChange={(event) => setPeppolScheme(event.target.value)}>
+            <option value="">None</option>
+            {schemes.map((scheme) => (
+              <option key={scheme.code} value={scheme.code}>
+                {scheme.code} — {scheme.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className={styles.field}>
+          Peppol ID
+          <QuietInput name="peppol_id" maxLength={100} value={peppolId} onChange={(event) => setPeppolId(event.target.value)} className={styles.mono} />
+        </label>
+        <label className={styles.field}>
+          IBAN
+          <QuietInput name="iban" maxLength={42} value={iban} onChange={(event) => setIban(event.target.value)} placeholder="IE29AIBK93115212345678" className={styles.mono} />
+        </label>
+        <label className={styles.field}>
+          BIC
+          <QuietInput name="bic" maxLength={11} value={bic} onChange={(event) => setBic(event.target.value)} placeholder="AIBKIE2D" className={styles.mono} />
+        </label>
+        <label className={`${styles.field} ${styles.wide}`}>
+          Account name
+          <QuietInput name="bank_account_name" maxLength={100} value={bankAccountName} onChange={(event) => setBankAccountName(event.target.value)} />
         </label>
         <label className={`${styles.field} ${styles.wide}`}>
           Banking details
           <QuietTextarea name="banking_details" maxLength={1000} rows={4} value={bankingDetails} onChange={(event) => setBankingDetails(event.target.value)} />
+          <span className={styles.panelMeta}>Printed as written. IBAN, BIC, and account name are stored separately.</span>
         </label>
         <label className={styles.field}>
           Lock date

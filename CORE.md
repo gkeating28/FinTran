@@ -100,19 +100,35 @@ Creating an organisation inserts one `organisation_defaults` row.
 | `organisation_id` | Primary key, and the organisation |
 | `tenant_id` | Must match that organisation |
 | `home_currency_id` | The organisation's home currency. Must be one of its `currencies` |
-| `address` | Up to 500 characters |
+| `address_line1`, `address_line2`, `address_line3` | Up to 100 characters each. EN 16931 BT-35, BT-36, and BT-162 |
+| `city` | Up to 60. BT-37 |
+| `post_code` | Up to 20, stored in capitals with internal spaces collapsed. BT-38 |
+| `county` | Up to 60. BT-39 |
+| `country_code` | Postal country, default `IE`. It cannot be `EL`, which is only a VAT prefix. BT-40 |
+| `address_needs_review` | Set when a free-text address was split, or when a VAT number could not be kept. Saving the address clears it |
 | `contact_name` | Up to 200 |
 | `contact_email` | An email address, up to 200 |
 | `website` | Up to 200, no spaces |
 | `phone` | Up to 40, digits and `+(). -` |
-| `vat_number`, `company_number` | Up to 40, starting with a letter or digit |
-| `banking_details` | Up to 1000 |
+| `vat_number` | A country prefix from the country list, including `EL`, then 2 to 13 letters or digits. Example: `IE1234567T`. BT-31 |
+| `company_number` | Up to 40, starting with a letter or digit. BT-30 |
+| `peppol_scheme`, `peppol_id` | Both set, or both empty. The scheme is an EAS code. Irish VAT electronic addresses use `9935`. BT-34 |
+| `iban` | Checked with the ISO 13616 mod-97 rule and stored without spaces. BT-84 |
+| `bic` | 8 or 11 characters. BT-86 |
+| `bank_account_name` | Up to 100. BT-85 |
+| `banking_details` | Free text up to 1000, still used for the printed bank block |
 | `logo_path` | Null, or `{organisation_id}/logo` |
 | `updated_at` | Set on every change |
 
+Customers and suppliers use the same address, VAT, company number, and Peppol columns. On a sales document those are the buyer (BT-47 to BT-55). On a purchase document the supplier columns are the seller. Peppol IDs are unique per organisation for customers, and separately for suppliers. Several records can have no Peppol ID.
+
 Blank text is stored as null.
 
-`currencies.rate` is how many units of that currency equal one unit of the home currency. The home currency's own rate is 1. A rate is greater than 0 and has up to 8 decimal places. On a document, the same convention is stored as `exchange_rate`: home amount = foreign amount ÷ rate.
+A free-text address that was already stored was split on line breaks into lines 1 to 3. Further lines were joined into line 3, the country was set to `IE`, and the address was marked for review. A blank address was left blank. A VAT number that already had a known prefix was kept. An Irish number without a prefix was given `IE`. Any other old VAT number was cleared, written to the audit log, and the address was marked for review.
+
+`currencies.iso_code` is the ISO 4217 code, linked to `ref_currencies`, and unique inside the organisation. It is filled from the currency code when that code is already an ISO code. `currencies.rate` is how many units of that currency equal one unit of the home currency. The home currency's own rate is 1. A rate is greater than 0 and has up to 8 decimal places. On a document, the same convention is stored as `exchange_rate`: home amount = foreign amount ÷ rate.
+
+Printing still uses one Address field. For a draft it joins the structured lines, city, county, post code, and country. A posted or void document keeps the single address string already stored on its snapshot.
 
 The logo file is not in the table. It is an object in the private Storage bucket `organisation-logos`, at `{organisation_id}/logo`. The bucket allows PNG, JPEG, WebP, and GIF up to 2 MB. Storage policies use `private.organisation_logo_allowed`, so only a member of that organisation can read or replace the file. The app serves it through `/organisation-logo/{organisation_id}` after checking membership.
 

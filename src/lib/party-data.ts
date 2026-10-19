@@ -2,6 +2,12 @@ import { getWorkspace } from "@/lib/data";
 import { PARTY_META, type PartyCurrency, type PartyKind, type PartyRow } from "@/lib/parties";
 import { createClient } from "@/lib/supabase/server";
 
+const PARTY_SELECT = `
+  id, code, name, phone, email, website, contact_details, notes, vat_number, company_number,
+  peppol_scheme, peppol_id, currency_id, currencies(code),
+  address_line1, address_line2, address_line3, city, post_code, county, country_code, address_needs_review
+`;
+
 function embeddedCode(value: { code: string } | { code: string }[] | null) {
   if (Array.isArray(value)) return value[0]?.code ?? "";
   return value?.code ?? "";
@@ -22,7 +28,7 @@ export async function listParties(kind: PartyKind): Promise<{
   const [parties, currencies, defaults] = await Promise.all([
     supabase
       .from(kind)
-      .select("id, code, name, phone, email, website, address, contact_details, notes, vat_number, currency_id, currencies(code)")
+      .select(PARTY_SELECT)
       .eq("organisation_id", organisationId)
       .order("code"),
     supabase.from("currencies").select("id, code, name").eq("organisation_id", organisationId).order("code"),
@@ -47,10 +53,20 @@ export async function listParties(kind: PartyKind): Promise<{
       phone: row.phone ?? "",
       email: row.email ?? "",
       website: row.website ?? "",
-      address: row.address ?? "",
+      addressLine1: row.address_line1 ?? "",
+      addressLine2: row.address_line2 ?? "",
+      addressLine3: row.address_line3 ?? "",
+      city: row.city ?? "",
+      postCode: row.post_code ?? "",
+      county: row.county ?? "",
+      countryCode: row.country_code ?? "IE",
+      addressNeedsReview: row.address_needs_review,
       contactDetails: row.contact_details ?? "",
       notes: row.notes ?? "",
       vatNumber: row.vat_number ?? "",
+      companyNumber: row.company_number ?? "",
+      peppolScheme: row.peppol_scheme ?? "",
+      peppolId: row.peppol_id ?? "",
     })),
     currencies: currencies.data ?? [],
     homeCurrencyId: defaults.data?.home_currency_id ?? null,

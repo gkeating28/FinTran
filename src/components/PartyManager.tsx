@@ -4,8 +4,10 @@ import { useActionState, useEffect, useState } from "react";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
 import { QuietInput, QuietTextarea } from "@/components/QuietField";
+import { formatPostalAddress } from "@/lib/address";
 import { createParty, deleteParty, updateParty } from "@/lib/party-actions";
 import { PARTY_META, type PartyCurrency, type PartyKind, type PartyRow } from "@/lib/parties";
+import { countryChoices, type CodeName } from "@/lib/reference-data";
 import styles from "@/components/OpsPage.module.css";
 import type { ActionState } from "@/lib/types";
 
@@ -13,6 +15,8 @@ export default function PartyManager({
   kind,
   rows,
   currencies,
+  countries,
+  schemes,
   homeCurrencyId,
   loadError,
   actionError,
@@ -20,6 +24,8 @@ export default function PartyManager({
   kind: PartyKind;
   rows: PartyRow[];
   currencies: PartyCurrency[];
+  countries: CodeName[];
+  schemes: CodeName[];
   homeCurrencyId: string | null;
   loadError: string | null;
   actionError?: string;
@@ -48,7 +54,7 @@ export default function PartyManager({
         rows={rows}
         searchPlaceholder={`Search ${meta.title.toLowerCase()}`}
         searchText={(row) =>
-          `${row.code} ${row.name} ${row.currencyCode} ${row.phone} ${row.email} ${row.website} ${row.address} ${row.contactDetails} ${row.notes}`
+          `${row.code} ${row.name} ${row.currencyCode} ${row.phone} ${row.email} ${row.website} ${formatPostalAddress(row)} ${row.contactDetails} ${row.notes} ${row.vatNumber} ${row.peppolId}`
         }
         emptyLabel={`No ${meta.title.toLowerCase()} yet for this organisation.`}
         toolbar={
@@ -71,7 +77,12 @@ export default function PartyManager({
             label: "Name",
             width: "20%",
             sortValue: (row) => row.name,
-            render: (row) => row.name,
+            render: (row) => (
+              <span>
+                {row.name}
+                {row.addressNeedsReview ? <span className={styles.reviewBadge}>Needs review</span> : null}
+              </span>
+            ),
           },
           {
             key: "currency",
@@ -122,6 +133,8 @@ export default function PartyManager({
           kind={kind}
           row={draft === "new" ? null : draft}
           currencies={currencies}
+          countries={countries}
+          schemes={schemes}
           homeCurrencyId={homeCurrencyId}
           onClose={() => setDraft(null)}
         />
@@ -134,12 +147,16 @@ function PartyForm({
   kind,
   row,
   currencies,
+  countries,
+  schemes,
   homeCurrencyId,
   onClose,
 }: {
   kind: PartyKind;
   row: PartyRow | null;
   currencies: PartyCurrency[];
+  countries: CodeName[];
+  schemes: CodeName[];
   homeCurrencyId: string | null;
   onClose: () => void;
 }) {
@@ -154,10 +171,20 @@ function PartyForm({
   const [phone, setPhone] = useState(row?.phone ?? "");
   const [email, setEmail] = useState(row?.email ?? "");
   const [website, setWebsite] = useState(row?.website ?? "");
-  const [address, setAddress] = useState(row?.address ?? "");
+  const [addressLine1, setAddressLine1] = useState(row?.addressLine1 ?? "");
+  const [addressLine2, setAddressLine2] = useState(row?.addressLine2 ?? "");
+  const [addressLine3, setAddressLine3] = useState(row?.addressLine3 ?? "");
+  const [city, setCity] = useState(row?.city ?? "");
+  const [postCode, setPostCode] = useState(row?.postCode ?? "");
+  const [county, setCounty] = useState(row?.county ?? "");
+  const [countryCode, setCountryCode] = useState(row?.countryCode ?? "IE");
   const [contactDetails, setContactDetails] = useState(row?.contactDetails ?? "");
   const [notes, setNotes] = useState(row?.notes ?? "");
   const [vatNumber, setVatNumber] = useState(row?.vatNumber ?? "");
+  const [companyNumber, setCompanyNumber] = useState(row?.companyNumber ?? "");
+  const [peppolScheme, setPeppolScheme] = useState(row?.peppolScheme ?? "");
+  const [peppolId, setPeppolId] = useState(row?.peppolId ?? "");
+  const orderedCountries = countryChoices(countries);
 
   useEffect(() => {
     if (state.message) onClose();
@@ -231,12 +258,25 @@ function PartyForm({
           VAT number
           <QuietInput
             name="vat_number"
-            maxLength={40}
+            maxLength={16}
             autoComplete="off"
             spellCheck={false}
             value={vatNumber}
             onChange={(event) => setVatNumber(event.target.value)}
-            placeholder="IE1234567A"
+            placeholder="IE1234567T"
+            className={styles.mono}
+          />
+          <span className={styles.panelMeta}>Country prefix and number, for example IE1234567T.</span>
+        </label>
+        <label className={styles.field}>
+          Company number
+          <QuietInput
+            name="company_number"
+            maxLength={40}
+            autoComplete="off"
+            spellCheck={false}
+            value={companyNumber}
+            onChange={(event) => setCompanyNumber(event.target.value)}
             className={styles.mono}
           />
         </label>
@@ -279,17 +319,56 @@ function PartyForm({
           />
         </label>
         <label className={`${styles.field} ${styles.wide}`}>
-          Address
-          <QuietTextarea
-            name="address"
-            maxLength={500}
-            rows={3}
-            autoComplete="off"
-            spellCheck={false}
-            value={address}
-            onChange={(event) => setAddress(event.target.value)}
-            placeholder="1 Dock Street, Dublin"
-          />
+          <span>
+            Address line 1
+            {row?.addressNeedsReview ? <span className={styles.reviewBadge}>Needs review</span> : null}
+          </span>
+          <QuietInput name="address_line1" maxLength={100} autoComplete="off" spellCheck={false} value={addressLine1} onChange={(event) => setAddressLine1(event.target.value)} />
+        </label>
+        <label className={`${styles.field} ${styles.wide}`}>
+          Address line 2
+          <QuietInput name="address_line2" maxLength={100} autoComplete="off" spellCheck={false} value={addressLine2} onChange={(event) => setAddressLine2(event.target.value)} />
+        </label>
+        <label className={`${styles.field} ${styles.wide}`}>
+          Address line 3
+          <QuietInput name="address_line3" maxLength={100} autoComplete="off" spellCheck={false} value={addressLine3} onChange={(event) => setAddressLine3(event.target.value)} />
+        </label>
+        <label className={styles.field}>
+          City
+          <QuietInput name="city" maxLength={60} autoComplete="off" spellCheck={false} value={city} onChange={(event) => setCity(event.target.value)} />
+        </label>
+        <label className={styles.field}>
+          Post code
+          <QuietInput name="post_code" maxLength={20} autoComplete="off" spellCheck={false} value={postCode} onChange={(event) => setPostCode(event.target.value)} className={styles.mono} />
+        </label>
+        <label className={styles.field}>
+          County
+          <QuietInput name="county" maxLength={60} autoComplete="off" spellCheck={false} value={county} onChange={(event) => setCounty(event.target.value)} />
+        </label>
+        <label className={styles.field}>
+          Country
+          <select name="country_code" autoComplete="off" value={countryCode} onChange={(event) => setCountryCode(event.target.value)}>
+            {orderedCountries.map((country) => (
+              <option key={country.code} value={country.code}>
+                {country.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className={styles.field}>
+          Peppol scheme
+          <select name="peppol_scheme" autoComplete="off" value={peppolScheme} onChange={(event) => setPeppolScheme(event.target.value)}>
+            <option value="">None</option>
+            {schemes.map((scheme) => (
+              <option key={scheme.code} value={scheme.code}>
+                {scheme.code} — {scheme.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className={styles.field}>
+          Peppol ID
+          <QuietInput name="peppol_id" maxLength={100} autoComplete="off" spellCheck={false} value={peppolId} onChange={(event) => setPeppolId(event.target.value)} className={styles.mono} />
         </label>
         <label className={`${styles.field} ${styles.wide}`}>
           Contact details

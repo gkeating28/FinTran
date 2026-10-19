@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { parseBic, parseIban, parsePeppol, parsePostalAddress, parseVatNumber } from "@/lib/address";
 import { parseCurrencyCode, parseCurrencyName, parseCurrencyRate } from "@/lib/currencies";
 import { getWorkspace, ORGANISATION_COOKIE } from "@/lib/data";
 import {
@@ -20,6 +21,12 @@ function text(formData: FormData, name: string) {
 
 function friendlyError(error: { code?: string; message: string } | null, fallback: string) {
   if (!error) return fallback;
+  if (error.code === "23505" && error.message.includes("iso_code")) {
+    return "That ISO currency is already used in this organisation.";
+  }
+  if (error.code === "23505" && error.message.includes("peppol")) {
+    return "That Peppol ID is already used.";
+  }
   if (error.code === "23505") return "That code is already used in this organisation.";
   if (error.code === "23503" && error.message.includes("home_currency")) {
     return "That currency is the home currency. Choose another home currency before removing it.";
@@ -38,7 +45,11 @@ function friendlyError(error: { code?: string; message: string } | null, fallbac
   if (error.code === "23514" && error.message.includes("website")) {
     return "Use a website up to 200 characters, without spaces.";
   }
-  if (error.code === "23514" && error.message.includes("address")) return "Address can be up to 500 characters.";
+  if (error.code === "23514" && error.message.includes("address_line")) return "Each address line can be up to 100 characters.";
+  if (error.code === "23514" && error.message.includes("post_code")) return "Post code can be up to 20 characters.";
+  if (error.code === "23514" && error.message.includes("city")) return "City can be up to 60 characters.";
+  if (error.code === "23514" && error.message.includes("county")) return "County can be up to 60 characters.";
+  if (error.code === "23514" && error.message.includes("bank_account_name")) return "Account name can be up to 100 characters.";
   if (error.code === "23514" && error.message.includes("contact_name")) return "Contact name can be up to 200 characters.";
   if (error.code === "23514" && error.message.includes("vat_number")) {
     return "VAT number can be up to 40 letters or numbers.";
@@ -82,13 +93,15 @@ function currencyFields(formData: FormData) {
   const code = parseCurrencyCode(text(formData, "code"));
   const name = parseCurrencyName(text(formData, "name"));
   const rate = parseCurrencyRate(text(formData, "rate"));
+  const isoCode = text(formData, "iso_code").trim().toUpperCase();
   if (!code || !name) {
     return { error: "Start the code with a letter or number. Then use letters, numbers, dots, or hyphens, up to 20 characters, and a name up to 80 characters." } as const;
   }
+  if (!/^[A-Z]{3}$/.test(isoCode)) return { error: "Choose an ISO currency code." } as const;
   if (!rate) {
     return { error: "Enter a rate greater than 0, with up to 8 decimal places." } as const;
   }
-  return { code, name, rate } as const;
+  return { code, name, rate, iso_code: isoCode } as const;
 }
 
 function refresh() {
@@ -111,6 +124,7 @@ export async function createCurrency(_state: ActionState, formData: FormData): P
     code: fields.code,
     name: fields.name,
     rate: fields.rate,
+    iso_code: fields.iso_code,
   });
 
   if (error) return { error: friendlyError(error, "That currency could not be saved.") };
@@ -130,7 +144,7 @@ export async function updateCurrency(_state: ActionState, formData: FormData): P
   const supabase = await createClient();
   const { error } = await supabase
     .from("currencies")
-    .update({ code: fields.code, name: fields.name, rate: fields.rate })
+    .update({ code: fields.code, name: fields.name, rate: fields.rate, iso_code: fields.iso_code })
     .eq("id", id)
     .eq("organisation_id", current.organisationId);
 
@@ -179,7 +193,15 @@ function lockDateFrom(value: string) {
 }
 
 function profileFrom(formData: FormData) {
-  const address = optionalField(text(formData, "address"), 500);
+  const address = parsePostalAddress({
+    line1: text(formData, "address_line1"),
+    line2: text(formData, "address_line2"),
+    line3: text(formData, "address_line3"),
+    city: text(formData, "city"),
+    postCode: text(formData, "post_code"),
+    county: text(formData, "county"),
+    countryCode: text(formData, "country_code"),
+  });
   const contactName = optionalField(text(formData, "contact_name"), 200);
   const contactEmail = optionalField(
     text(formData, "contact_email"),
@@ -188,29 +210,49 @@ function profileFrom(formData: FormData) {
   );
   const website = optionalField(text(formData, "website"), 200, /^\S+$/);
   const phone = optionalField(text(formData, "phone"), 40, /^[0-9+(). -]+$/);
-  const vatNumber = optionalField(text(formData, "vat_number"), 40, /^[A-Za-z0-9][A-Za-z0-9 ./-]*$/);
+  const vatNumber = parseVatNumber(text(formData, "vat_number"));
   const companyNumber = optionalField(text(formData, "company_number"), 40, /^[A-Za-z0-9][A-Za-z0-9 ./-]*$/);
+  const peppol = parsePeppol(text(formData, "peppol_scheme"), text(formData, "peppol_id"));
+  const iban = parseIban(text(formData, "iban"));
+  const bic = parseBic(text(formData, "bic"));
+  const bankAccountName = optionalField(text(formData, "bank_account_name"), 100);
   const bankingDetails = optionalField(text(formData, "banking_details"), 1000);
   const lockDate = lockDateFrom(text(formData, "lock_date"));
-  if (address === undefined) return { error: "Address can be up to 500 characters." } as const;
+  if ("error" in address) return { error: address.error } as const;
   if (contactName === undefined) return { error: "Contact name can be up to 200 characters." } as const;
   if (contactEmail === undefined) return { error: "Use a contact email, or leave it blank." } as const;
   if (website === undefined) return { error: "Use a website up to 200 characters, without spaces." } as const;
   if (phone === undefined) return { error: "Use a phone number up to 40 characters." } as const;
-  if (vatNumber === undefined) return { error: "VAT number can be up to 40 letters or numbers." } as const;
+  if (vatNumber === undefined) return { error: "Enter a VAT number with a country prefix, for example IE1234567T." } as const;
   if (companyNumber === undefined) return { error: "Company number can be up to 40 letters or numbers." } as const;
+  if ("error" in peppol) return { error: peppol.error } as const;
+  if (iban === undefined) return { error: "Enter a valid IBAN." } as const;
+  if (bic === undefined) return { error: "Enter a BIC of 8 or 11 characters." } as const;
+  if (bankAccountName === undefined) return { error: "Account name can be up to 100 characters." } as const;
   if (bankingDetails === undefined) return { error: "Banking details can be up to 1000 characters." } as const;
   if (lockDate === undefined) return { error: "Use a lock date, or leave it blank." } as const;
   return {
-    address,
+    address_line1: address.line1 || null,
+    address_line2: address.line2 || null,
+    address_line3: address.line3 || null,
+    city: address.city || null,
+    post_code: address.postCode || null,
+    county: address.county || null,
+    country_code: address.countryCode,
+    address_needs_review: false,
     contact_name: contactName,
     contact_email: contactEmail,
     website,
     phone,
     vat_number: vatNumber,
     company_number: companyNumber,
+    peppol_scheme: peppol.peppolScheme,
+    peppol_id: peppol.peppolId,
+    iban,
+    bic,
+    bank_account_name: bankAccountName,
     banking_details: bankingDetails,
-    lock_date: lockDateFrom(text(formData, "lock_date")),
+    lock_date: lockDate,
   } as const;
 }
 

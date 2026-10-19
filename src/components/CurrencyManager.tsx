@@ -6,16 +6,19 @@ import FormModal from "@/components/FormModal";
 import { QuietInput } from "@/components/QuietField";
 import { createCurrency, deleteCurrency, updateCurrency } from "@/lib/currency-actions";
 import { formatCurrencyRate, parseCurrencyRate, type CurrencyRow } from "@/lib/currencies";
+import type { CodeName } from "@/lib/reference-data";
 import styles from "@/components/OpsPage.module.css";
 import type { ActionState } from "@/lib/types";
 
 export default function CurrencyManager({
   rows,
+  isoCurrencies,
   loadError,
   actionError,
   canEdit = true,
 }: {
   rows: CurrencyRow[];
+  isoCurrencies: CodeName[];
   loadError: string | null;
   actionError?: string;
   canEdit?: boolean;
@@ -44,7 +47,7 @@ export default function CurrencyManager({
       <DataGrid
         rows={rows}
         searchPlaceholder="Search currencies"
-        searchText={(row) => `${row.code} ${row.name} ${row.rate} ${row.home ? "home" : ""}`}
+        searchText={(row) => `${row.code} ${row.isoCode} ${row.name} ${row.rate} ${row.home ? "home" : ""}`}
         emptyLabel="No currencies yet for this organisation."
         toolbar={
           canEdit ? (
@@ -60,6 +63,13 @@ export default function CurrencyManager({
             mono: true,
             sortValue: (row) => row.code,
             render: (row) => row.code,
+          },
+          {
+            key: "iso",
+            label: "ISO",
+            mono: true,
+            sortValue: (row) => row.isoCode,
+            render: (row) => row.isoCode,
           },
           {
             key: "name",
@@ -109,6 +119,7 @@ export default function CurrencyManager({
         <CurrencyForm
           key={draft === "new" ? "new" : draft.id}
           row={draft === "new" ? null : draft}
+          isoCurrencies={isoCurrencies}
           onClose={() => setDraft(null)}
         />
       ) : null}
@@ -116,12 +127,21 @@ export default function CurrencyManager({
   );
 }
 
-function CurrencyForm({ row, onClose }: { row: CurrencyRow | null; onClose: () => void }) {
+function CurrencyForm({
+  row,
+  isoCurrencies,
+  onClose,
+}: {
+  row: CurrencyRow | null;
+  isoCurrencies: CodeName[];
+  onClose: () => void;
+}) {
   const save = row ? updateCurrency : createCurrency;
   const [state, action, pending] = useActionState(save, {} as ActionState);
   const [code, setCode] = useState(row?.code ?? "");
   const [name, setName] = useState(row?.name ?? "");
   const [rate, setRate] = useState(row?.rate ?? "");
+  const [isoCode, setIsoCode] = useState(row?.isoCode ?? "");
 
   useEffect(() => {
     if (state.message) onClose();
@@ -163,6 +183,19 @@ function CurrencyForm({ row, onClose }: { row: CurrencyRow | null; onClose: () =
             onChange={(event) => setName(event.target.value)}
             placeholder="Euro"
           />
+        </label>
+        <label className={styles.field}>
+          ISO code
+          <select name="iso_code" required autoComplete="off" value={isoCode} onChange={(event) => setIsoCode(event.target.value)}>
+            <option value="" disabled>
+              Choose an ISO currency
+            </option>
+            {isoCurrencies.map((currency) => (
+              <option key={currency.code} value={currency.code}>
+                {currency.code} — {currency.name}
+              </option>
+            ))}
+          </select>
         </label>
         <label className={styles.field}>
           Rate
