@@ -53,6 +53,12 @@ export type PurchaseInvoiceRow = {
   precedingHeaderId: string;
   precedingReference: string;
   precedingDate: string;
+  buyerReference: string;
+  contractReference: string;
+  paymentTerms: string;
+  invoicePeriodStart: string;
+  invoicePeriodEnd: string;
+  paymentMeansCode: string;
   breakdown: VatBreakdownRow[];
   status: "draft" | "posted" | "void";
   voidReason: string;
@@ -109,6 +115,12 @@ export type InvoiceCode = {
   id: string;
   code: string;
   description: string;
+};
+
+export type PaymentMeansChoice = {
+  code: string;
+  name: string;
+  common: boolean;
 };
 
 export type InvoiceVat = InvoiceCode & {

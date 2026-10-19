@@ -342,6 +342,12 @@ function InvoiceForm({
   const [precedingHeaderId, setPrecedingHeaderId] = useState(header?.precedingHeaderId ?? "");
   const [precedingReference, setPrecedingReference] = useState(header?.precedingReference ?? "");
   const [precedingDate, setPrecedingDate] = useState(header?.precedingDate ?? "");
+  const [buyerReference, setBuyerReference] = useState(header?.buyerReference ?? "");
+  const [contractReference, setContractReference] = useState(header?.contractReference ?? "");
+  const [paymentTerms, setPaymentTerms] = useState(header?.paymentTerms ?? "");
+  const [invoicePeriodStart, setInvoicePeriodStart] = useState(header?.invoicePeriodStart ?? "");
+  const [invoicePeriodEnd, setInvoicePeriodEnd] = useState(header?.invoicePeriodEnd ?? "");
+  const [paymentMeansCode, setPaymentMeansCode] = useState(header?.paymentMeansCode ?? "");
   const [flex, setFlex] = useState([
     header?.flex1 ?? "",
     header?.flex2 ?? "",
@@ -502,6 +508,10 @@ function InvoiceForm({
   const blocked =
     choices.types.length === 0 || choices.suppliers.length === 0 || choices.currencies.length === 0 || lines === null;
   const creditNote = selectedType?.documentKind === "credit_note";
+  const paymentMeans =
+    !paymentMeansCode || choices.paymentMeans.some((means) => means.code === paymentMeansCode)
+      ? choices.paymentMeans
+      : [{ code: paymentMeansCode, name: paymentMeansCode, common: false }, ...choices.paymentMeans];
   const creditChoices = choices.creditInvoices.filter(
     (invoice) => invoice.supplierId === supplierId && invoice.id !== header?.id,
   );
@@ -630,6 +640,59 @@ function InvoiceForm({
         <label className={styles.field}>
           Order number
           <QuietInput name="order_number" maxLength={40} disabled={locked} value={orderNumber} onChange={(event) => setOrderNumber(event.target.value)} />
+        </label>
+        <label className={styles.field}>
+          Buyer reference
+          <QuietInput name="buyer_reference" maxLength={100} disabled={locked} value={buyerReference} onChange={(event) => setBuyerReference(event.target.value)} />
+        </label>
+        <label className={styles.field}>
+          Contract reference
+          <QuietInput name="contract_reference" maxLength={60} disabled={locked} value={contractReference} onChange={(event) => setContractReference(event.target.value)} />
+        </label>
+        <label className={styles.field}>
+          Period start
+          <QuietInput name="invoice_period_start" type="date" disabled={locked} value={invoicePeriodStart} onChange={(event) => setInvoicePeriodStart(event.target.value)} />
+        </label>
+        <label className={styles.field}>
+          Period end
+          <QuietInput name="invoice_period_end" type="date" disabled={locked} value={invoicePeriodEnd} onChange={(event) => setInvoicePeriodEnd(event.target.value)} />
+          <span className={styles.panelMeta}>Enter both dates, or leave both blank.</span>
+        </label>
+        <label className={styles.field}>
+          Payment means
+          <select
+            name="payment_means_code"
+            autoComplete="off"
+            value={paymentMeansCode}
+            disabled={locked}
+            onChange={(event) => setPaymentMeansCode(event.target.value)}
+          >
+            <option value="">No payment means</option>
+            {paymentMeans.some((means) => means.common) ? (
+              <optgroup label="Common">
+                {paymentMeans
+                  .filter((means) => means.common)
+                  .map((means) => (
+                    <option key={means.code} value={means.code}>
+                      {means.code} — {means.name}
+                    </option>
+                  ))}
+              </optgroup>
+            ) : null}
+            <optgroup label="All">
+              {paymentMeans
+                .filter((means) => !means.common)
+                .map((means) => (
+                  <option key={means.code} value={means.code}>
+                    {means.code} — {means.name}
+                  </option>
+                ))}
+            </optgroup>
+          </select>
+        </label>
+        <label className={`${styles.field} ${styles.wide}`}>
+          Payment terms
+          <QuietTextarea name="payment_terms" maxLength={400} rows={2} disabled={locked} value={paymentTerms} onChange={(event) => setPaymentTerms(event.target.value)} />
         </label>
         {creditNote ? (
           <>

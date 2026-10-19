@@ -21,6 +21,8 @@ export type FormOrganisation = {
   companyNumber: string;
   bankingDetails: string;
   logoUrl: string | null;
+  peppolId: string;
+  country: string;
 };
 
 export type FormParty = {
@@ -31,6 +33,8 @@ export type FormParty = {
   phone: string;
   email: string;
   website: string;
+  peppolId: string;
+  country: string;
 };
 
 export type FormHeader = {
@@ -43,6 +47,11 @@ export type FormHeader = {
   paidAmount: number;
   supplierReference: string;
   supplyDate: string;
+  buyerReference: string;
+  contractReference: string;
+  paymentTerms: string;
+  invoicePeriod: string;
+  precedingReference: string;
   flex: [string, string, string, string, string];
   foreignNett: number;
   foreignVat: number;
@@ -63,6 +72,8 @@ export type FormLine = {
   vatCode: string;
   department: string;
   costCentre: string;
+  unit: string;
+  lineNote: string;
 };
 
 export type FormSource = {
@@ -173,6 +184,11 @@ function headerValue(field: HeaderField, source: FormSource) {
   if (field === "paidAmount") return formatMoney(header.paidAmount);
   if (field === "supplierReference") return header.supplierReference;
   if (field === "supplyDate") return formatInvoiceDate(header.supplyDate);
+  if (field === "buyerReference") return header.buyerReference;
+  if (field === "contractReference") return header.contractReference;
+  if (field === "paymentTerms") return header.paymentTerms;
+  if (field === "invoicePeriod") return header.invoicePeriod;
+  if (field === "precedingReference") return header.precedingReference;
   const index = Number(field.slice(4)) - 1;
   return header.flex[index] ?? "";
 }
@@ -191,7 +207,9 @@ function lineValue(column: LineColumn, line: FormLine, date: string): PrintCell 
     if (column === "glCode") return line.glCode;
     if (column === "vatCode") return line.vatCode;
     if (column === "department") return line.department;
-    return line.costCentre;
+    if (column === "costCentre") return line.costCentre;
+    if (column === "unit") return line.unit;
+    return line.lineNote;
   })();
   return { text, align: right ? "right" : "left" };
 }
@@ -223,6 +241,8 @@ export function buildPrintView(layout: FormLayout, source: FormSource): PrintVie
     if (field === "companyNumber") {
       organisationLines.push(organisation.companyNumber ? `Company no. ${organisation.companyNumber}` : "Company no.");
     }
+    if (field === "peppolId") organisationLines.push(organisation.peppolId || "Peppol ID");
+    if (field === "country") organisationLines.push(organisation.country || "Country");
   }
 
   const partyLines = layout.partyFields.flatMap((field) => {
@@ -303,6 +323,8 @@ export function sampleSource(organisation: FormOrganisation, currencyCode: strin
       phone: "+353 1 555 0190",
       email: "accounts@northdock.example",
       website: "",
+      peppolId: "",
+      country: "Ireland",
     },
     header: {
       reference: "1030",
@@ -314,6 +336,11 @@ export function sampleSource(organisation: FormOrganisation, currencyCode: strin
       paidAmount: 0,
       supplierReference: "",
       supplyDate: "",
+      buyerReference: "",
+      contractReference: "",
+      paymentTerms: "",
+      invoicePeriod: "",
+      precedingReference: "",
       flex: ["", "", "", "", ""],
       foreignNett: 4000,
       foreignVat: 920,
@@ -334,6 +361,8 @@ export function sampleSource(organisation: FormOrganisation, currencyCode: strin
         vatCode: "S23",
         department: "",
         costCentre: "",
+        unit: "C62",
+        lineNote: "",
       },
     ],
     flexLabels: ["", "", "", "", ""],
@@ -355,5 +384,7 @@ export function emptyOrganisation(): FormOrganisation {
     companyNumber: "",
     bankingDetails: "",
     logoUrl: null,
+    peppolId: "",
+    country: "",
   };
 }

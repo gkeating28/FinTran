@@ -23,13 +23,15 @@ import { createClient } from "@/lib/supabase/server";
 
 const HEADER_SELECT = `
   id, status, reference, transaction_date, due_date, supplier_name, contact_details,
-  exchange_rate, order_number, supplier_reference, supply_date, foreign_nett_amount, foreign_vat_amount, foreign_total_amount, paid_amount,
+  exchange_rate, order_number, supplier_reference, supply_date, buyer_reference, contract_reference, payment_terms,
+  invoice_period_start, invoice_period_end, preceding_reference, preceding_date,
+  foreign_nett_amount, foreign_vat_amount, foreign_total_amount, paid_amount,
   flex1, flex2, flex3, flex4, flex5, issuer_snapshot, party_snapshot,
   transaction_vat_breakdown(vat_category, vat_percentage, taxable_amount, vat_amount, exemption_code, exemption_reason),
   currencies(code),
-  suppliers(code, name, phone, email, website, address_line1, address_line2, address_line3, city, post_code, county, country_code, contact_details, vat_number, ref_countries(name)),
+  suppliers(code, name, phone, email, website, address_line1, address_line2, address_line3, city, post_code, county, country_code, contact_details, vat_number, company_number, peppol_scheme, peppol_id, ref_countries(name)),
   transaction_lines(
-    line_number, description, quantity, price, discount_amount, nett_amount, vat_amount, vat_percentage,
+    line_number, description, quantity, price, discount_amount, nett_amount, vat_amount, vat_percentage, unit_code, line_note,
     products(code, description),
     gl_codes(code),
     departments(code),
@@ -43,6 +45,7 @@ export type FormType = {
   code: string;
   description: string;
   kind: TransactionTypeKind;
+  documentKind: "invoice" | "credit_note" | "order";
   flexLabels: [string, string, string, string, string];
 };
 
@@ -59,6 +62,18 @@ function one<T>(value: T | T[] | null | undefined): T | null {
 
 function text(value: unknown) {
   return value == null ? "" : String(value);
+}
+
+function shownDate(value: unknown) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(text(value));
+  return match ? `${match[3]}-${match[2]}-${match[1]}` : "";
+}
+
+function invoicePeriod(start: unknown, end: unknown) {
+  const opened = shownDate(start);
+  const closed = shownDate(end);
+  if (opened && closed) return `${opened} – ${closed}`;
+  return opened || closed;
 }
 
 function amount(value: unknown) {
@@ -81,7 +96,7 @@ async function organisationDetails(organisationId: string, organisationName: str
   const { data } = await supabase
     .from("organisation_defaults")
     .select(
-      "address_line1, address_line2, address_line3, city, post_code, county, country_code, ref_countries(name), contact_name, contact_email, website, phone, vat_number, company_number, banking_details, logo_path, updated_at, currencies(code)",
+      "address_line1, address_line2, address_line3, city, post_code, county, country_code, ref_countries(name), contact_name, contact_email, website, phone, vat_number, company_number, peppol_scheme, peppol_id, banking_details, logo_path, updated_at, currencies(code)",
     )
     .eq("organisation_id", organisationId)
     .maybeSingle();
@@ -107,6 +122,8 @@ async function organisationDetails(organisationId: string, organisationName: str
     website: text(row.website),
     vatNumber: text(row.vat_number),
     companyNumber: text(row.company_number),
+    peppolId: [text(row.peppol_scheme), text(row.peppol_id)].filter(Boolean).join(" "),
+    country: text(country?.name) || text(row.country_code),
     bankingDetails: text(row.banking_details),
     logoUrl: row.logo_path ? organisationLogoUrl(organisationId, text(row.updated_at)) : null,
   };
@@ -129,6 +146,8 @@ function organisationFromSnapshot(snapshot: Loose, organisationId: string): Form
     website: snapshotText(snapshot, "website"),
     vatNumber: snapshotText(snapshot, "vatNumber"),
     companyNumber: snapshotText(snapshot, "companyNumber"),
+    peppolId: [snapshotText(snapshot, "peppolScheme"), snapshotText(snapshot, "peppolId")].filter(Boolean).join(" "),
+    country: snapshotText(snapshot, "countryName") || snapshotText(snapshot, "countryCode"),
     bankingDetails: snapshotText(snapshot, "bankingDetails"),
     logoUrl: logoPath ? organisationObjectUrl(organisationId, logoPath, logoPath) : null,
   };
@@ -172,6 +191,8 @@ function sourceFromHeader(row: Loose, type: FormType, organisation: FormOrganisa
       vatCode: text(vat?.code),
       department: text(department?.code),
       costCentre: text(centre?.code),
+      unit: text(line.unit_code),
+      lineNote: text(line.line_note),
     };
   });
 
@@ -187,6 +208,8 @@ function sourceFromHeader(row: Loose, type: FormType, organisation: FormOrganisa
           phone: snapshotText(partySnapshot, "phone"),
           email: snapshotText(partySnapshot, "email"),
           website: snapshotText(partySnapshot, "website"),
+          peppolId: [snapshotText(partySnapshot, "peppolScheme"), snapshotText(partySnapshot, "peppolId")].filter(Boolean).join(" "),
+          country: snapshotText(partySnapshot, "countryName") || snapshotText(partySnapshot, "countryCode"),
         }
       : {
           code: text(supplier?.code),
@@ -204,6 +227,8 @@ function sourceFromHeader(row: Loose, type: FormType, organisation: FormOrganisa
           phone: text(supplier?.phone),
           email: text(supplier?.email),
           website: text(supplier?.website),
+          peppolId: [text(supplier?.peppol_scheme), text(supplier?.peppol_id)].filter(Boolean).join(" "),
+          country: text(one(supplier?.ref_countries as { name?: string } | { name?: string }[] | null)?.name) || text(supplier?.country_code),
         },
     header: {
       reference: text(row.reference) ? formatInteger(text(row.reference)) : "Draft",
@@ -215,6 +240,11 @@ function sourceFromHeader(row: Loose, type: FormType, organisation: FormOrganisa
       paidAmount: amount(row.paid_amount),
       supplierReference: text(row.supplier_reference),
       supplyDate: text(row.supply_date),
+      buyerReference: text(row.buyer_reference),
+      contractReference: text(row.contract_reference),
+      paymentTerms: text(row.payment_terms),
+      invoicePeriod: invoicePeriod(row.invoice_period_start, row.invoice_period_end),
+      precedingReference: [text(row.preceding_reference), shownDate(row.preceding_date)].filter(Boolean).join(" · "),
       flex: [1, 2, 3, 4, 5].map((index) => text(row[`flex${index}`])) as FormSource["header"]["flex"],
       foreignNett: amount(row.foreign_nett_amount),
       foreignVat: amount(row.foreign_vat_amount),
@@ -241,7 +271,7 @@ export async function getFormType(code: string): Promise<{ type: FormType | null
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("transaction_types")
-    .select("id, code, description, type, flex1_label, flex2_label, flex3_label, flex4_label, flex5_label")
+    .select("id, code, description, type, document_kind, flex1_label, flex2_label, flex3_label, flex4_label, flex5_label")
     .eq("organisation_id", workspace.current.organisationId)
     .eq("code", code.trim().toUpperCase())
     .maybeSingle();
@@ -256,6 +286,7 @@ export async function getFormType(code: string): Promise<{ type: FormType | null
       code: data.code,
       description: data.description,
       kind,
+      documentKind: data.document_kind === "credit_note" || data.document_kind === "order" ? data.document_kind : "invoice",
       flexLabels: flexLabels(data),
     },
     error: null,

@@ -28,7 +28,7 @@ import {
 import type { FormType } from "@/lib/form-data";
 import type { ActionState } from "@/lib/types";
 
-function salesLayout(layout: FormLayout, sales: boolean): FormLayout {
+function salesLayout(layout: FormLayout, sales: boolean, creditNote: boolean): FormLayout {
   if (!sales) return layout;
   const add = <T extends string>(current: readonly T[], required: readonly T[]) => [
     ...current,
@@ -39,7 +39,7 @@ function salesLayout(layout: FormLayout, sales: boolean): FormLayout {
     showVatSummary: true,
     organisationFields: add(layout.organisationFields, ["name", "address", "vatNumber"]),
     partyFields: add(layout.partyFields, ["name", "address"]),
-    headerFields: add(layout.headerFields, ["reference", "transactionDate"]),
+    headerFields: add(layout.headerFields, creditNote ? ["reference", "transactionDate", "precedingReference"] : ["reference", "transactionDate"]),
     lineColumns: add(layout.lineColumns, ["description", "quantity", "price", "tax", "amount"]),
   };
 }
@@ -66,9 +66,12 @@ export default function FormDesigner({
   });
   const headerFields = HEADER_FIELDS.filter((field) => !field.startsWith("flex") || type.flexLabels[Number(field.slice(4)) - 1]?.trim());
   const sales = type.kind === "Sales";
+  const creditNote = sales && type.documentKind === "credit_note";
   const lockedOrganisation = sales ? new Set(["name", "address", "vatNumber"]) : undefined;
   const lockedParty = sales ? new Set(["name", "address"]) : undefined;
-  const lockedHeader = sales ? new Set(["reference", "transactionDate"]) : undefined;
+  const lockedHeader = sales
+    ? new Set(creditNote ? ["reference", "transactionDate", "precedingReference"] : ["reference", "transactionDate"])
+    : undefined;
   const lockedLines = sales ? new Set(["description", "quantity", "price", "tax", "amount"]) : undefined;
 
   return (
@@ -76,7 +79,7 @@ export default function FormDesigner({
       <form action={action} autoComplete="off" noValidate style={{ display: "contents" }}>
         <fieldset disabled={!canEdit} className={printStyles.controls}>
         <input type="hidden" name="code" value={type.code} />
-        <input type="hidden" name="layout" value={JSON.stringify(salesLayout(layout, sales))} />
+        <input type="hidden" name="layout" value={JSON.stringify(salesLayout(layout, sales, creditNote))} />
         {state.error ? (
           <p className={styles.alert} role="alert">
             {state.error}

@@ -211,11 +211,13 @@ export type Database = {
           created_at: string
           created_by: string | null
           currency_id: string
+          default_buyer_reference: string | null
           email: string | null
           id: string
           name: string
           notes: string | null
           organisation_id: string
+          payment_terms_days: number | null
           peppol_id: string | null
           peppol_scheme: string | null
           phone: string | null
@@ -240,11 +242,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           currency_id: string
+          default_buyer_reference?: string | null
           email?: string | null
           id?: string
           name: string
           notes?: string | null
           organisation_id: string
+          payment_terms_days?: number | null
           peppol_id?: string | null
           peppol_scheme?: string | null
           phone?: string | null
@@ -269,11 +273,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           currency_id?: string
+          default_buyer_reference?: string | null
           email?: string | null
           id?: string
           name?: string
           notes?: string | null
           organisation_id?: string
+          payment_terms_days?: number | null
           peppol_id?: string | null
           peppol_scheme?: string | null
           phone?: string | null
@@ -1048,6 +1054,7 @@ export type Database = {
           name: string
           notes: string | null
           organisation_id: string
+          payment_terms_days: number | null
           peppol_id: string | null
           peppol_scheme: string | null
           phone: string | null
@@ -1077,6 +1084,7 @@ export type Database = {
           name: string
           notes?: string | null
           organisation_id: string
+          payment_terms_days?: number | null
           peppol_id?: string | null
           peppol_scheme?: string | null
           phone?: string | null
@@ -1106,6 +1114,7 @@ export type Database = {
           name?: string
           notes?: string | null
           organisation_id?: string
+          payment_terms_days?: number | null
           peppol_id?: string | null
           peppol_scheme?: string | null
           phone?: string | null
@@ -1288,7 +1297,9 @@ export type Database = {
       transaction_headers: {
         Row: {
           amount_due: number
+          buyer_reference: string | null
           contact_details: string | null
+          contract_reference: string | null
           created_at: string
           created_by: string | null
           currency_id: string
@@ -1307,12 +1318,16 @@ export type Database = {
           home_total_amount: number
           home_vat_amount: number
           id: string
+          invoice_period_end: string | null
+          invoice_period_start: string | null
           issuer_snapshot: Json | null
           notes: string | null
           order_number: string | null
           organisation_id: string
           paid_amount: number
           party_snapshot: Json | null
+          payment_means_code: string | null
+          payment_terms: string | null
           posted_at: string | null
           posted_by: string | null
           preceding_date: string | null
@@ -1336,7 +1351,9 @@ export type Database = {
         }
         Insert: {
           amount_due: number
+          buyer_reference?: string | null
           contact_details?: string | null
+          contract_reference?: string | null
           created_at?: string
           created_by?: string | null
           currency_id: string
@@ -1355,12 +1372,16 @@ export type Database = {
           home_total_amount?: number
           home_vat_amount?: number
           id?: string
+          invoice_period_end?: string | null
+          invoice_period_start?: string | null
           issuer_snapshot?: Json | null
           notes?: string | null
           order_number?: string | null
           organisation_id: string
           paid_amount?: number
           party_snapshot?: Json | null
+          payment_means_code?: string | null
+          payment_terms?: string | null
           posted_at?: string | null
           posted_by?: string | null
           preceding_date?: string | null
@@ -1384,7 +1405,9 @@ export type Database = {
         }
         Update: {
           amount_due?: number
+          buyer_reference?: string | null
           contact_details?: string | null
+          contract_reference?: string | null
           created_at?: string
           created_by?: string | null
           currency_id?: string
@@ -1403,12 +1426,16 @@ export type Database = {
           home_total_amount?: number
           home_vat_amount?: number
           id?: string
+          invoice_period_end?: string | null
+          invoice_period_start?: string | null
           issuer_snapshot?: Json | null
           notes?: string | null
           order_number?: string | null
           organisation_id?: string
           paid_amount?: number
           party_snapshot?: Json | null
+          payment_means_code?: string | null
+          payment_terms?: string | null
           posted_at?: string | null
           posted_by?: string | null
           preceding_date?: string | null
@@ -1458,6 +1485,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organisations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_headers_payment_means_code_fkey"
+            columns: ["payment_means_code"]
+            isOneToOne: false
+            referencedRelation: "ref_payment_means"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "transaction_headers_posted_by_fkey"

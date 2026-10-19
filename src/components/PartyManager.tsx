@@ -183,6 +183,8 @@ function PartyForm({
   const [notes, setNotes] = useState(row?.notes ?? "");
   const [vatNumber, setVatNumber] = useState(row?.vatNumber ?? "");
   const [companyNumber, setCompanyNumber] = useState(row?.companyNumber ?? "");
+  const [paymentTermsDays, setPaymentTermsDays] = useState(row?.paymentTermsDays ?? "");
+  const [defaultBuyerReference, setDefaultBuyerReference] = useState(row?.defaultBuyerReference ?? "");
   const [peppolScheme, setPeppolScheme] = useState(row?.peppolScheme ?? "");
   const [peppolId, setPeppolId] = useState(row?.peppolId ?? "");
   const orderedCountries = countryChoices(countries);
@@ -281,6 +283,31 @@ function PartyForm({
             className={styles.mono}
           />
         </label>
+        <label className={styles.field}>
+          Payment terms (days)
+          <QuietInput
+            name="payment_terms_days"
+            inputMode="numeric"
+            maxLength={3}
+            autoComplete="off"
+            value={paymentTermsDays}
+            onChange={(event) => setPaymentTermsDays(event.target.value)}
+            placeholder="30"
+          />
+        </label>
+        {kind === "customers" ? (
+          <label className={styles.field}>
+            Buyer reference
+            <QuietInput
+              name="default_buyer_reference"
+              maxLength={100}
+              autoComplete="off"
+              spellCheck={false}
+              value={defaultBuyerReference}
+              onChange={(event) => setDefaultBuyerReference(event.target.value)}
+            />
+          </label>
+        ) : null}
         <label className={styles.field}>
           Phone
           <QuietInput

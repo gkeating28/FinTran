@@ -187,8 +187,12 @@ Both have the same shape.
 | `phone`, `email`, `website`, `address` | Optional, with the same checks as the organisation profile |
 | `contact_details` | Optional, up to 500 |
 | `notes` | Optional, up to 4000 |
+| `payment_terms_days` | Optional whole number from 0 to 365 |
+| `default_buyer_reference` | Customers only. Optional, up to 100. EN 16931 BT-10 |
 
 A supplier's currency becomes the currency of a purchase document and cannot be edited on the document. Customers are stored for sales documents, which are not entered yet.
+
+A new sales draft copies blank fields from its customer. A blank buyer reference takes `default_buyer_reference`. When `payment_terms_days` is set, a blank due date becomes the document date plus that many days, and blank payment terms become “Due on receipt” for 0, “Payment due within 1 day” for 1, or “Payment due within N days”. Values already entered are left as they are. Purchase drafts are not filled from the supplier.
 
 ## Transaction types
 
@@ -228,6 +232,11 @@ The app writes both tables through `save_purchase_invoice(jsonb)`. That function
 | `order_number` | Optional, up to 40 |
 | `preceding_header_id` | Optional link to a posted invoice in this organisation, for the same supplier. Another organisation is refused |
 | `preceding_reference`, `preceding_date` | The invoice reference and date a credit note applies to. Copied from the linked invoice when left blank |
+| `buyer_reference` | Optional, up to 100. EN 16931 BT-10 |
+| `contract_reference` | Optional, up to 60. EN 16931 BT-12 |
+| `payment_terms` | Optional, up to 400. EN 16931 BT-20 |
+| `invoice_period_start`, `invoice_period_end` | Both set, or both empty. The end is not before the start. EN 16931 BG-14, BT-73 and BT-74 |
+| `payment_means_code` | Optional UNCL4461 code. EN 16931 BT-81. A purchase is not given one automatically |
 | `foreign_nett_amount` | Sum of the line nett amounts, rounded to 2 decimal places |
 | `foreign_vat_amount` | Sum of the VAT breakdown, not the sum of the line VAT amounts |
 | `foreign_total_amount` | Nett plus VAT |
@@ -241,7 +250,7 @@ The app writes both tables through `save_purchase_invoice(jsonb)`. That function
 
 A draft can be edited and deleted. Posting needs at least one line and is allowed for any member. Purchases are numbered when the draft is saved. A type set to number on posting, which every Sales type must use, leaves the draft without a number and issues the next number when it is posted. Deleting those drafts does not use a number. A posted document is read-only apart from the paid amount, until an owner or admin voids it from the document form. A void document cannot be changed or deleted. Status changes only through `post_document` and `void_document`.
 
-Posting copies the organisation and the supplier into `issuer_snapshot` and `party_snapshot`. Those copies do not change if the organisation or supplier is edited later. Documents that were already posted when snapshots were added were filled from the data at that time, including the live logo path. A new posting copies the logo to `{organisation_id}/snapshots/{header_id}` first, and does not post if that copy fails. Each line stores `vat_percentage`, the VAT category, and any exemption from the VAT code at the time the line is saved. A line with no VAT code is category `O`. Line nett is rounded to 2 decimal places. Line VAT is kept for display. Document VAT is one row in `transaction_vat_breakdown` for each category and rate: the taxable amount times the rate, rounded to 2 decimal places. A posted document keeps the totals it had when it was posted. A VAT code used on a posted or void line cannot have its rate, type, or category changed. Customers and suppliers have an optional `vat_number`.
+Posting copies the organisation and the supplier into `issuer_snapshot` and `party_snapshot`. Those copies do not change if the organisation or supplier is edited later. A new posting also stores the structured address, country, Peppol scheme and identifier, VAT number, and company number. The issuer copy adds the IBAN, BIC, and bank account name. Documents posted before these fields existed keep the snapshot they already had. When a sales document is posted and the organisation has an IBAN, a blank payment means becomes `58` (SEPA credit transfer). A means already chosen is left. Purchases stay unset. Missing buyer reference, order number, due date, payment terms, Peppol ID, or address does not block posting. Documents that were already posted when snapshots were added were filled from the data at that time, including the live logo path. A new posting copies the logo to `{organisation_id}/snapshots/{header_id}` first, and does not post if that copy fails. Each line stores `vat_percentage`, the VAT category, and any exemption from the VAT code at the time the line is saved. A line with no VAT code is category `O`. Line nett is rounded to 2 decimal places. Line VAT is kept for display. Document VAT is one row in `transaction_vat_breakdown` for each category and rate: the taxable amount times the rate, rounded to 2 decimal places. A posted document keeps the totals it had when it was posted. A VAT code used on a posted or void line cannot have its rate, type, or category changed. Customers and suppliers have an optional `vat_number`.
 
 A purchase document stores an optional supplier invoice number and supply date. The same supplier invoice number cannot be entered twice for one supplier, ignoring case, unless the first document has been voided. A purchase requires a supplier and cannot name a customer. `customer_id` is ready for sales documents, which are still not stored.
 
@@ -249,7 +258,7 @@ Codes may contain dots and hyphens after the first character. The first characte
 
 An owner can delete an organisation that has no documents, unless it is the last organisation in the tenant. The app then removes its logo files. There is no direct delete of an organisation from the API.
 
-A saved form layout is checked in the database. A sales form must show the organisation name, address, and VAT number, the customer name and address, the document number and date, the line description, quantity, price, tax, and amount, and the VAT summary. The standard layout meets those rules.
+A saved form layout is checked in the database. A sales form must show the organisation name, address, and VAT number, the customer name and address, the document number and date, the line description, quantity, price, tax, and amount, and the VAT summary. A sales credit note must also show the preceding invoice. A purchase credit note may leave that field off the form; posting still requires the reference. The standard layout meets the sales invoice rules.
 
 `organisation_defaults.lock_date` blocks creating, editing, posting, voiding, or deleting a document whose date is on or before that day. Owners and admins set the lock date.
 | `flex1` … `flex5` | Optional text, up to 200. Shown only when that type has a label |
@@ -300,13 +309,13 @@ The screen may show a calculated nett and VAT before save. The stored figures ar
 
 `pageSize` is `A4`, `A5`, `Letter`, or `Legal`. A4 is the default when the value is missing.
 
-Allowed organisation fields: `name`, `address`, `phone`, `contactEmail`, `website`, `contactName`, `vatNumber`, `companyNumber`.
+Allowed organisation fields: `name`, `address`, `phone`, `contactEmail`, `website`, `contactName`, `vatNumber`, `companyNumber`, `peppolId`, `country`.
 
-Allowed bill-to fields: `contactDetails`, `name`, `address`, `phone`, `email`, `website`, `code`. For a purchase document the party is the supplier. For a sales layout it is the customer.
+Allowed bill-to fields: `contactDetails`, `name`, `address`, `phone`, `email`, `website`, `code`, `peppolId`, `country`. For a purchase document the party is the supplier. For a sales layout it is the customer.
 
-Allowed document fields: `reference`, `transactionDate`, `terms`, `dueDate`, `orderNumber`, `supplierReference`, `supplyDate`, `currency`, `exchangeRate`, `paidAmount`, and `flex1` through `flex5`. Terms are the number of days from the document date to the due date. Flex fields appear only when that transaction type has a label.
+Allowed document fields: `reference`, `transactionDate`, `terms`, `dueDate`, `orderNumber`, `supplierReference`, `supplyDate`, `currency`, `exchangeRate`, `paidAmount`, `buyerReference`, `contractReference`, `paymentTerms`, `invoicePeriod`, `precedingReference`, and `flex1` through `flex5`. Terms are the number of days from the document date to the due date. Payment terms are the stored text. The invoice period is the two dates. Flex fields appear only when that transaction type has a label.
 
-Allowed line columns: `date`, `item`, `description`, `tax`, `quantity`, `price`, `amount`, `discount`, `glCode`, `vatCode`, `department`, `costCentre`. Quantity, price, amount, and discount are the numeric columns.
+Allowed line columns: `date`, `item`, `description`, `tax`, `quantity`, `price`, `amount`, `discount`, `glCode`, `vatCode`, `department`, `costCentre`, `unit`, `lineNote`. Quantity, price, amount, and discount are the numeric columns.
 
 If no row has been saved, printing uses this standard layout. The VAT summary and bank details are drawn at the bottom of the page. Print opens the browser print dialog. PDF downloads the same page at the layout's page size.
 

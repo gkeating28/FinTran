@@ -85,10 +85,12 @@ function fieldsFrom(formData: FormData) {
     companyNumber: text(formData, "company_number"),
     peppolScheme: text(formData, "peppol_scheme"),
     peppolId: text(formData, "peppol_id"),
+    paymentTermsDays: text(formData, "payment_terms_days"),
+    defaultBuyerReference: text(formData, "default_buyer_reference"),
   });
 }
 
-function rowFrom(fields: PartyFields) {
+function rowFrom(kind: PartyKind, fields: PartyFields) {
   return {
     code: fields.code,
     name: fields.name,
@@ -110,6 +112,8 @@ function rowFrom(fields: PartyFields) {
     company_number: fields.companyNumber,
     peppol_scheme: fields.peppolScheme,
     peppol_id: fields.peppolId,
+    payment_terms_days: fields.paymentTermsDays,
+    ...(kind === "customers" ? { default_buyer_reference: fields.defaultBuyerReference } : {}),
   };
 }
 
@@ -126,7 +130,7 @@ export async function createParty(
   const { error } = await supabase.from(kind).insert({
     tenant_id: current.tenantId,
     organisation_id: current.organisationId,
-    ...rowFrom(fields),
+    ...rowFrom(kind, fields),
   });
 
   if (error) return { error: friendlyError(error, "That record could not be saved.") };
@@ -150,7 +154,7 @@ export async function updateParty(
   const supabase = await createClient();
   const { error } = await supabase
     .from(kind)
-    .update(rowFrom(fields))
+    .update(rowFrom(kind, fields))
     .eq("id", id)
     .eq("organisation_id", current.organisationId);
 

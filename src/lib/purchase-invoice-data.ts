@@ -9,6 +9,7 @@ import {
   type InvoiceCurrency,
   type InvoiceProduct,
   type InvoiceVat,
+  type PaymentMeansChoice,
   type PurchaseInvoiceLine,
   type PurchaseInvoiceRow,
   type CreditInvoice,
@@ -84,6 +85,7 @@ export type PurchaseInvoiceChoices = {
   vatRates: InvoiceVat[];
   creditInvoices: CreditInvoice[];
   units: UnitChoice[];
+  paymentMeans: PaymentMeansChoice[];
 };
 
 const emptyChoices: PurchaseInvoiceChoices = {
@@ -98,6 +100,7 @@ const emptyChoices: PurchaseInvoiceChoices = {
   vatRates: [],
   creditInvoices: [],
   units: [],
+  paymentMeans: [],
 };
 
 export async function listPurchaseInvoices(typeCode?: string): Promise<{
@@ -110,7 +113,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
 
   const supabase = await createClient();
   const organisationId = workspace.current.organisationId;
-  const [headers, lineRows, types, suppliers, currencies, defaults, products, glCodes, departments, costCentres, vatRates, units] =
+  const [headers, lineRows, types, suppliers, currencies, defaults, products, glCodes, departments, costCentres, vatRates, units, paymentMeans] =
     await Promise.all([
       supabase
         .from("transaction_headers")
@@ -120,6 +123,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
            foreign_nett_amount, foreign_vat_amount, foreign_total_amount,
            home_nett_amount, home_vat_amount, home_total_amount, paid_amount,
            rounding_amount, amount_due, preceding_header_id, preceding_reference, preceding_date,
+           buyer_reference, contract_reference, payment_terms, invoice_period_start, invoice_period_end, payment_means_code,
            status, void_reason,
            flex1, flex2, flex3, flex4, flex5,
            transaction_types(code, type, document_kind), suppliers(code), currencies(code),
@@ -171,6 +175,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
         .eq("organisation_id", organisationId)
         .order("code"),
       listUnits(),
+      supabase.from("ref_payment_means").select("code, name, common").order("common", { ascending: false }).order("code"),
     ]);
 
   if (
@@ -185,7 +190,8 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
     departments.error ||
     costCentres.error ||
     vatRates.error ||
-    units.error
+    units.error ||
+    paymentMeans.error
   ) {
     return { rows: [], choices: emptyChoices, error: "Purchase invoices could not be loaded." };
   }
@@ -232,6 +238,12 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
       precedingHeaderId: row.preceding_header_id ?? "",
       precedingReference: row.preceding_reference ?? "",
       precedingDate: row.preceding_date ?? "",
+      buyerReference: row.buyer_reference ?? "",
+      contractReference: row.contract_reference ?? "",
+      paymentTerms: row.payment_terms ?? "",
+      invoicePeriodStart: row.invoice_period_start ?? "",
+      invoicePeriodEnd: row.invoice_period_end ?? "",
+      paymentMeansCode: row.payment_means_code ?? "",
       breakdown: (Array.isArray(row.transaction_vat_breakdown) ? row.transaction_vat_breakdown : []).map((item) => ({
         category: item.vat_category,
         rate: Number(item.vat_percentage),
@@ -329,6 +341,11 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
         ];
       }),
       units: units.units,
+      paymentMeans: (paymentMeans.data ?? []).map((row) => ({
+        code: row.code,
+        name: row.name,
+        common: row.common,
+      })),
     },
     error: null,
   };

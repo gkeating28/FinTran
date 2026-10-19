@@ -115,6 +115,12 @@ function documentFrom(formData: FormData) {
   const precedingHeaderId = text(formData, "preceding_header_id").trim();
   const precedingReference = optionalText(text(formData, "preceding_reference"), 60);
   const precedingDate = text(formData, "preceding_date").trim();
+  const buyerReference = optionalText(text(formData, "buyer_reference"), 100);
+  const contractReference = optionalText(text(formData, "contract_reference"), 60);
+  const paymentTerms = optionalText(text(formData, "payment_terms"), 400);
+  const invoicePeriodStart = text(formData, "invoice_period_start").trim();
+  const invoicePeriodEnd = text(formData, "invoice_period_end").trim();
+  const paymentMeansCode = text(formData, "payment_means_code").trim().toUpperCase();
   const flex = [1, 2, 3, 4, 5].map((number) => optionalText(text(formData, `flex${number}`), 200));
   const lines = linesFrom(text(formData, "lines"));
 
@@ -135,6 +141,21 @@ function documentFrom(formData: FormData) {
   if (precedingHeaderId && !parseUuid(precedingHeaderId)) return { error: "Choose the invoice this credit note applies to." } as const;
   if (precedingReference === undefined) return { error: "The credited invoice reference can be up to 60 characters." } as const;
   if (precedingDate && !parseInvoiceDate(precedingDate)) return { error: "Enter the credited invoice date, or leave it blank." } as const;
+  if (buyerReference === undefined) return { error: "Buyer reference can be up to 100 characters." } as const;
+  if (contractReference === undefined) return { error: "Contract reference can be up to 60 characters." } as const;
+  if (paymentTerms === undefined) return { error: "Payment terms can be up to 400 characters." } as const;
+  if ((invoicePeriodStart && !parseInvoiceDate(invoicePeriodStart)) || (invoicePeriodEnd && !parseInvoiceDate(invoicePeriodEnd))) {
+    return { error: "Enter the invoice period dates, or leave both blank." } as const;
+  }
+  if ((invoicePeriodStart && !invoicePeriodEnd) || (!invoicePeriodStart && invoicePeriodEnd)) {
+    return { error: "Enter both the invoice period start and end, or leave both blank." } as const;
+  }
+  if (invoicePeriodStart && invoicePeriodEnd && invoicePeriodEnd < invoicePeriodStart) {
+    return { error: "The invoice period end cannot be before the start." } as const;
+  }
+  if (paymentMeansCode && !/^[0-9A-Z]{1,3}$/.test(paymentMeansCode)) {
+    return { error: "Choose a payment means." } as const;
+  }
   if (flex.some((value) => value === undefined)) return { error: "Each flex field can be up to 200 characters." } as const;
   if ("error" in lines) return { error: lines.error } as const;
 
@@ -178,6 +199,12 @@ function documentFrom(formData: FormData) {
     precedingHeaderId,
     precedingReference,
     precedingDate,
+    buyerReference,
+    contractReference,
+    paymentTerms,
+    invoicePeriodStart,
+    invoicePeriodEnd,
+    paymentMeansCode,
     paidAmount,
     roundingAmount,
     flex1: flex[0],
@@ -226,6 +253,12 @@ export async function savePurchaseInvoice(_state: ActionState, formData: FormDat
       precedingHeaderId: document.precedingHeaderId,
       precedingReference: document.precedingReference,
       precedingDate: document.precedingDate,
+      buyerReference: document.buyerReference,
+      contractReference: document.contractReference,
+      paymentTerms: document.paymentTerms,
+      invoicePeriodStart: document.invoicePeriodStart,
+      invoicePeriodEnd: document.invoicePeriodEnd,
+      paymentMeansCode: document.paymentMeansCode,
       paidAmount: document.paidAmount,
       roundingAmount: document.roundingAmount,
       flex1: document.flex1,

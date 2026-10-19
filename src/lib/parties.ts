@@ -27,6 +27,8 @@ export type PartyRow = {
   companyNumber: string;
   peppolScheme: string;
   peppolId: string;
+  paymentTermsDays: string;
+  defaultBuyerReference: string;
 };
 
 export type PartyCurrency = {
@@ -73,6 +75,8 @@ export type PartyFields = {
   companyNumber: string | null;
   peppolScheme: string | null;
   peppolId: string | null;
+  paymentTermsDays: number | null;
+  defaultBuyerReference: string | null;
 };
 
 function optionalText(value: string, max: number) {
@@ -96,6 +100,8 @@ export function parseParty(input: {
   companyNumber: string;
   peppolScheme: string;
   peppolId: string;
+  paymentTermsDays: string;
+  defaultBuyerReference: string;
 }): PartyFields | { error: string } {
   const code = input.code.trim().toUpperCase();
   const name = input.name.trim();
@@ -144,6 +150,17 @@ export function parseParty(input: {
   const peppol = parsePeppol(input.peppolScheme, input.peppolId);
   if ("error" in peppol) return { error: peppol.error };
 
+  const termsText = input.paymentTermsDays.trim();
+  let paymentTermsDays: number | null = null;
+  if (termsText) {
+    if (!/^\d{1,3}$/.test(termsText) || Number(termsText) > 365) {
+      return { error: "Payment terms must be a whole number of days from 0 to 365." };
+    }
+    paymentTermsDays = Number(termsText);
+  }
+  const defaultBuyerReference = optionalText(input.defaultBuyerReference, 100);
+  if (defaultBuyerReference === undefined) return { error: "Buyer reference can be up to 100 characters." };
+
   return {
     code,
     name,
@@ -164,5 +181,7 @@ export function parseParty(input: {
     companyNumber,
     peppolScheme: peppol.peppolScheme,
     peppolId: peppol.peppolId,
+    paymentTermsDays,
+    defaultBuyerReference,
   };
 }

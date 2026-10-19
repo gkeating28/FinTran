@@ -9,6 +9,8 @@ export const ORGANISATION_FIELDS = [
   "contactName",
   "vatNumber",
   "companyNumber",
+  "peppolId",
+  "country",
 ] as const;
 
 export const PARTY_FIELDS = [
@@ -19,6 +21,8 @@ export const PARTY_FIELDS = [
   "email",
   "website",
   "code",
+  "peppolId",
+  "country",
 ] as const;
 
 export const HEADER_FIELDS = [
@@ -32,6 +36,11 @@ export const HEADER_FIELDS = [
   "paidAmount",
   "supplierReference",
   "supplyDate",
+  "buyerReference",
+  "contractReference",
+  "paymentTerms",
+  "invoicePeriod",
+  "precedingReference",
   "flex1",
   "flex2",
   "flex3",
@@ -52,6 +61,8 @@ export const LINE_COLUMNS = [
   "vatCode",
   "department",
   "costCentre",
+  "unit",
+  "lineNote",
 ] as const;
 
 export type OrganisationField = (typeof ORGANISATION_FIELDS)[number];
@@ -91,6 +102,8 @@ const ORGANISATION_LABELS: Record<OrganisationField, string> = {
   contactName: "Contact name",
   vatNumber: "VAT number",
   companyNumber: "Company number",
+  peppolId: "Peppol ID",
+  country: "Country",
 };
 
 const PARTY_LABELS: Record<PartyField, string> = {
@@ -101,6 +114,8 @@ const PARTY_LABELS: Record<PartyField, string> = {
   email: "Email",
   website: "Web",
   code: "Code",
+  peppolId: "Peppol ID",
+  country: "Country",
 };
 
 const HEADER_LABELS: Record<HeaderField, string> = {
@@ -114,6 +129,11 @@ const HEADER_LABELS: Record<HeaderField, string> = {
   paidAmount: "Paid",
   supplierReference: "Supplier invoice no.",
   supplyDate: "Supply date",
+  buyerReference: "Buyer reference",
+  contractReference: "Contract reference",
+  paymentTerms: "Payment terms",
+  invoicePeriod: "Invoice period",
+  precedingReference: "Preceding invoice",
   flex1: "Flex 1",
   flex2: "Flex 2",
   flex3: "Flex 3",
@@ -134,6 +154,8 @@ const LINE_LABELS: Record<LineColumn, string> = {
   vatCode: "VAT code",
   department: "Department",
   costCentre: "Cost centre",
+  unit: "Unit",
+  lineNote: "Note",
 };
 
 export function organisationFieldLabel(field: OrganisationField) {
