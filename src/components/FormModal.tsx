@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useSetFormChrome } from "@/components/FormChrome";
 import styles from "@/components/OpsPage.module.css";
 
 export default function FormModal({
@@ -18,6 +19,19 @@ export default function FormModal({
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const setFormChrome = useSetFormChrome();
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    if (!fillPage) return;
+    setFormChrome({
+      title,
+      titleId,
+      close: () => onCloseRef.current(),
+    });
+    return () => setFormChrome(null);
+  }, [fillPage, setFormChrome, title, titleId]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -88,12 +102,14 @@ export default function FormModal({
         if (event.target === dialogRef.current) onClose();
       }}
     >
-      <div className={styles.dialogHead}>
-        <h2 id={titleId}>{title}</h2>
-        <button className={styles.dialogClose} type="button" onClick={onClose} aria-label="Close">
-          ×
-        </button>
-      </div>
+      {fillPage ? null : (
+        <div className={styles.dialogHead}>
+          <h2 id={titleId}>{title}</h2>
+          <button className={styles.dialogClose} type="button" onClick={onClose} aria-label="Close">
+            ×
+          </button>
+        </div>
+      )}
       {children}
     </dialog>
   );

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import AppSidebar from "@/components/AppSidebar";
 import AppTitleBar from "@/components/AppTitleBar";
+import { FormChromeProvider } from "@/components/FormChrome";
 import styles from "@/components/OpsPage.module.css";
 import type { Membership, Profile } from "@/lib/types";
 
@@ -18,15 +19,17 @@ export default function AppShell({
   return (
     <div className={styles.shell}>
       <AppSidebar profile={profile} memberships={memberships} current={current} />
-      <div className={styles.main}>
-        <AppTitleBar
-          organisationName={current?.organisationName ?? "FinTran"}
-          setup={!current}
-        />
-        <div className={styles.page} data-app-page="">
-          {children}
+      <FormChromeProvider>
+        <div className={styles.main}>
+          <AppTitleBar
+            organisationName={current?.organisationName ?? "FinTran"}
+            setup={!current}
+          />
+          <div className={styles.page} data-app-page="">
+            {children}
+          </div>
         </div>
-      </div>
+      </FormChromeProvider>
     </div>
   );
 }

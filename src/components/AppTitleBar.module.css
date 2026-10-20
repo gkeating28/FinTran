@@ -34,6 +34,7 @@
 }
 
 .crumbText {
+  flex: 1 1 0;
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -53,6 +54,20 @@
 .breadcrumb strong {
   color: #f4f7fb;
   font-weight: 600;
+}
+
+.breadcrumb > .sep {
+  flex-shrink: 0;
+}
+
+.breadcrumb strong.formTitle {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sep {

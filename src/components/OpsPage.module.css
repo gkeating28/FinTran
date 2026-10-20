@@ -482,6 +482,10 @@
   box-shadow: none;
 }
 
+.pageDialog:not([open]) {
+  display: none;
+}
+
 .pageDialog > .modalForm {
   flex: 1;
   min-height: 0;

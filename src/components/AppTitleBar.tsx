@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/lib/actions";
+import { useFormChrome } from "@/components/FormChrome";
 import styles from "./AppTitleBar.module.css";
 
 const PAGE_LABELS: Record<string, string> = {
@@ -32,6 +33,7 @@ export default function AppTitleBar({
   setup?: boolean;
 }) {
   const pathname = usePathname();
+  const formTitle = useFormChrome();
   const transactionCode = pathname.match(/^\/transactions\/([A-Za-z0-9]+)$/)?.[1];
   const formCode = pathname.match(/^\/forms\/([A-Za-z0-9]+)$/)?.[1];
   const pageLabel = setup ? "Set up" : transactionCode ? transactionCode.toUpperCase() : (PAGE_LABELS[pathname] ?? "Home");
@@ -54,8 +56,21 @@ export default function AppTitleBar({
             <strong>{pageLabel}</strong>
           )}
         </span>
+        {formTitle ? (
+          <>
+            <span className={styles.sep}>/</span>
+            <strong id={formTitle.titleId} className={styles.formTitle}>
+              {formTitle.title}
+            </strong>
+          </>
+        ) : null}
       </div>
       <div className={styles.actions}>
+        {formTitle ? (
+          <button className={styles.exitBtn} type="button" onClick={formTitle.close}>
+            Close
+          </button>
+        ) : null}
         {formCode ? (
           <Link href="/forms" className={styles.exitBtn}>
             Exit
