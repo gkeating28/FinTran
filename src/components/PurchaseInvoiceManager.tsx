@@ -596,7 +596,7 @@ function InvoiceForm({
     <FormModal
       title={locked ? `View ${title}` : header ? `Edit ${title}` : `Add ${title}`}
       onClose={onClose}
-      className={styles.invoiceDialog}
+      fillPage
     >
       <div className={styles.modalForm}>
       <form id="purchase-document" className={styles.documentFields} action={action} autoComplete="off" noValidate>

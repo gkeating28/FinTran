@@ -473,13 +473,33 @@
   width: min(1120px, calc(100vw - 32px));
 }
 
-.invoiceDialog {
-  width: min(1960px, calc(100vw - var(--app-sidebar) - 32px));
-  max-width: min(1960px, calc(100vw - var(--app-sidebar) - 32px));
-  margin-left: calc(
-    var(--app-sidebar) + (100vw - var(--app-sidebar) - min(1960px, 100vw - var(--app-sidebar) - 32px)) / 2
-  );
-  margin-right: auto;
+.pageDialog {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.pageDialog > .modalForm {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.pageDialog .documentFields {
+  flex: 1;
+  min-height: 0;
+}
+
+.pageDialog .invoiceSplit {
+  flex: 1;
+  min-height: 0;
+}
+
+.pageDialog .linesPane {
+  max-height: none;
 }
 
 .invoiceSplit {

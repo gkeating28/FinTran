@@ -180,7 +180,7 @@ function OrganisationForm({
   }, [state.message, onClose]);
 
   return (
-    <FormModal title={`Edit ${organisation.name}`} onClose={onClose} className={`${styles.partyDialog} ${styles.wideDialog}`}>
+    <FormModal title={`Edit ${organisation.name}`} onClose={onClose} fillPage>
       <form className={`${styles.modalForm} ${styles.partyForm}`} action={action} autoComplete="off" noValidate>
         <input type="hidden" name="organisation_id" value={organisation.id} />
         <div className={`${styles.field} ${styles.wide}`}>

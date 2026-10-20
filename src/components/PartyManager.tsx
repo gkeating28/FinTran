@@ -197,7 +197,7 @@ function PartyForm({
     <FormModal
       title={row ? `Edit ${meta.singular}` : `Add ${meta.singular}`}
       onClose={onClose}
-      className={`${styles.partyDialog} ${styles.wideDialog}`}
+      fillPage
     >
       <form className={`${styles.modalForm} ${styles.partyForm}`} action={action} autoComplete="off" noValidate>
         {row ? <input type="hidden" name="id" value={row.id} /> : null}

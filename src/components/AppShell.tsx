@@ -23,7 +23,9 @@ export default function AppShell({
           organisationName={current?.organisationName ?? "FinTran"}
           setup={!current}
         />
-        <div className={styles.page}>{children}</div>
+        <div className={styles.page} data-app-page="">
+          {children}
+        </div>
       </div>
     </div>
   );
