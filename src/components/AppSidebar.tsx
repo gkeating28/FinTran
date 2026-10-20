@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { selectOrganisation } from "@/lib/actions";
+import { selectOrganisation, signOut } from "@/lib/actions";
 import type { Membership, Profile } from "@/lib/types";
 import styles from "./AppSidebar.module.css";
 
@@ -158,6 +158,11 @@ export default function AppSidebar({
       <div className={styles.footer}>
         <div className={styles.footerName}>{profile.displayName}</div>
         <div className={styles.footerEmail}>{profile.email}</div>
+        <form action={signOut}>
+          <button className={styles.signOut} type="submit">
+            Sign out
+          </button>
+        </form>
       </div>
     </aside>
   );

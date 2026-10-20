@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { signOut } from "@/lib/actions";
+import { usePathname, useRouter } from "next/navigation";
 import { useFormChrome } from "@/components/FormChrome";
+import { previousPage } from "@/lib/previous-page";
 import styles from "./AppTitleBar.module.css";
 
 const PAGE_LABELS: Record<string, string> = {
@@ -33,10 +33,20 @@ export default function AppTitleBar({
   setup?: boolean;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const formTitle = useFormChrome();
   const transactionCode = pathname.match(/^\/transactions\/([A-Za-z0-9]+)$/)?.[1];
   const formCode = pathname.match(/^\/forms\/([A-Za-z0-9]+)$/)?.[1];
   const pageLabel = setup ? "Set up" : transactionCode ? transactionCode.toUpperCase() : (PAGE_LABELS[pathname] ?? "Home");
+  const back = previousPage(pathname);
+
+  function exit() {
+    if (formTitle) {
+      formTitle.close();
+      return;
+    }
+    if (back) router.push(back);
+  }
 
   return (
     <div className={styles.bar}>
@@ -66,22 +76,11 @@ export default function AppTitleBar({
         ) : null}
       </div>
       <div className={styles.actions}>
-        {formTitle ? (
-          <button className={styles.exitBtn} type="button" onClick={formTitle.close}>
-            Close
+        {formTitle || back ? (
+          <button className={styles.exitBtn} type="button" onClick={exit}>
+            Exit
           </button>
         ) : null}
-        {formCode ? (
-          <Link href="/forms" className={styles.exitBtn}>
-            Exit
-          </Link>
-        ) : (
-          <form id="fintran-sign-out" action={signOut}>
-            <button className={styles.exitBtn} type="submit" form="fintran-sign-out">
-              Exit
-            </button>
-          </form>
-        )}
       </div>
     </div>
   );

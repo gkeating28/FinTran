@@ -139,6 +139,22 @@
   white-space: nowrap;
 }
 
+.signOut {
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #9aabc4;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.signOut:hover {
+  color: #fff;
+}
+
 @media (max-width: 860px) {
   .sidebar {
     width: 100%;
