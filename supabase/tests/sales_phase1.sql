@@ -138,19 +138,24 @@ begin
       end if;
   end;
 
+  insert into public.transaction_headers (
+    tenant_id, organisation_id, transaction_type_id, transaction_date,
+    party_name, currency_id, exchange_rate, customer_id
+  ) values (
+    current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, current_setting('test.so')::uuid,
+    '2026-10-06', 'Acme', current_setting('test.eur')::uuid, 1, current_setting('test.customer')::uuid
+  )
+  returning id into v_id;
+  if v_id is null then
+    raise exception 'phase 1: a sales order was not saved';
+  end if;
   begin
-    insert into public.transaction_headers (
-      tenant_id, organisation_id, transaction_type_id, transaction_date,
-      party_name, currency_id, exchange_rate, customer_id
-    ) values (
-      current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, current_setting('test.so')::uuid,
-      '2026-10-06', 'Acme', current_setting('test.eur')::uuid, 1, current_setting('test.customer')::uuid
-    );
-    raise exception 'phase 1: a sales order was saved';
+    perform public.en16931_document(v_id);
+    raise exception 'phase 1: a sales order was exported';
   exception
     when others then
-      if sqlerrm not like '%Sales orders are not stored%' then
-        raise exception 'phase 1: sales order error was %', sqlerrm;
+      if sqlerrm not like '%An order is not exported%' then
+        raise exception 'phase 1: order export error was %', sqlerrm;
       end if;
   end;
 

@@ -15,8 +15,28 @@ export type TransactionTypeRow = {
   documentKind: DocumentKind;
   documentCount: number;
   numbering: "on_insert" | "on_post";
+  referencePrefix: string;
+  referencePadding: number;
   flexLabels: [string, string, string, string, string];
 };
+
+export function documentNumberPreview(prefix: string, padding: number, reference: number) {
+  const body = String(reference);
+  const padded = padding > body.length ? body.padStart(padding, "0") : body;
+  return `${prefix}${padded}`;
+}
+
+export function parseReferencePrefix(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (!/^[A-Za-z0-9./-]{1,10}$/.test(trimmed)) return undefined;
+  return trimmed;
+}
+
+export function parseReferencePadding(value: string) {
+  if (!/^(?:[0-9]|10)$/.test(value.trim())) return undefined;
+  return Number(value.trim());
+}
 
 export function parseDocumentKind(value: string): DocumentKind | null {
   return DOCUMENT_KINDS.find((kind) => kind === value) ?? null;

@@ -37,28 +37,17 @@ export default async function TransactionTypePage({
   }
   if (!tile) notFound();
 
-  if (tile.type === "Sales" && tile.documentKind === "order") {
-    return (
-      <section className={styles.stack}>
-        <div>
-          <h1 className={styles.heading}>{tile.description}</h1>
-          <p className={styles.lede}>
-            Sales orders are not stored yet. Invoices and credit notes are entered from their transaction types.
-          </p>
-        </div>
-      </section>
-    );
-  }
-
   const listed = await listPurchaseInvoices(tile.code);
 
   return (
     <PurchaseInvoiceManager
       title={tile.description}
       summary={
-        tile.type === "Sales"
-          ? `${tile.code} is numbered when it is posted. The currency comes from the customer. Amounts in the home currency are the foreign amounts divided by the exchange rate.`
-          : `The reference for ${tile.code} comes from this type, and the next number is one more than its last reference. Amounts in the home currency are the foreign amounts divided by the exchange rate.`
+        tile.documentKind === "order" && tile.type === "Sales"
+          ? `${tile.code} is numbered when it is posted. The currency comes from the customer. An order is stored and printed here, and it is not exported as an EN 16931 invoice.`
+          : tile.type === "Sales"
+            ? `${tile.code} is numbered when it is posted. The currency comes from the customer. Amounts in the home currency are the foreign amounts divided by the exchange rate.`
+            : `The reference for ${tile.code} comes from this type, and the next number is one more than its last reference. Amounts in the home currency are the foreign amounts divided by the exchange rate.`
       }
       typeCode={tile.code}
       direction={tile.type}
@@ -68,7 +57,7 @@ export default async function TransactionTypePage({
       actionError={query.error}
       openId={query.open}
       canVoid={canManage(workspace.current.role) && tile.type === "Purchases"}
-      canDownload={canManage(workspace.current.role)}
+      canDownload={canManage(workspace.current.role) && tile.documentKind !== "order"}
     />
   );
 }

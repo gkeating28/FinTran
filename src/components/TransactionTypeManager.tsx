@@ -14,6 +14,7 @@ import {
   DOCUMENT_KINDS,
   TRANSACTION_TYPE_KINDS,
   documentKindLabel,
+  documentNumberPreview,
   type TransactionTypeRow,
 } from "@/lib/transaction-types";
 import styles from "@/components/OpsPage.module.css";
@@ -93,6 +94,13 @@ export default function TransactionTypeManager({
             render: (row) => documentKindLabel(row.documentKind),
           },
           {
+            key: "number",
+            label: "Number",
+            mono: true,
+            sortValue: (row) => documentNumberPreview(row.referencePrefix, row.referencePadding, row.lastReference + 1),
+            render: (row) => documentNumberPreview(row.referencePrefix, row.referencePadding, row.lastReference + 1),
+          },
+          {
             key: "numbering",
             label: "Numbering",
             sortValue: (row) => row.numbering,
@@ -160,6 +168,8 @@ function TransactionTypeForm({
   const [description, setDescription] = useState(row?.description ?? "");
   const [type, setType] = useState(row?.type ?? "");
   const [documentKind, setDocumentKind] = useState(row?.documentKind ?? "invoice");
+  const [referencePrefix, setReferencePrefix] = useState(row?.referencePrefix ?? "");
+  const [referencePadding, setReferencePadding] = useState(String(row?.referencePadding ?? 0));
   const kindLocked = (row?.documentCount ?? 0) > 0;
   const [flexLabels, setFlexLabels] = useState(row?.flexLabels ?? ["", "", "", "", ""]);
 
@@ -232,6 +242,30 @@ function TransactionTypeForm({
             ))}
           </select>
         </label>
+        <label className={styles.field}>
+          Number prefix
+          <QuietInput
+            name="reference_prefix"
+            maxLength={10}
+            value={referencePrefix}
+            onChange={(event) => setReferencePrefix(event.target.value)}
+            placeholder="INV-"
+            className={styles.mono}
+          />
+        </label>
+        <label className={styles.field}>
+          Number padding
+          <QuietInput
+            name="reference_padding"
+            required
+            inputMode="numeric"
+            maxLength={2}
+            value={referencePadding}
+            onChange={(event) => setReferencePadding(event.target.value)}
+            placeholder="0"
+            className={styles.mono}
+          />
+        </label>
         {flexLabels.map((label, index) => (
           <label className={styles.field} key={index}>
             {`Flex ${index + 1} label`}
@@ -247,7 +281,13 @@ function TransactionTypeForm({
           </label>
         ))}
         <p className={styles.panelMeta}>
-          Last reference: {formatInteger(row ? row.lastReference : 0)}. Next number: {formatInteger((row?.lastReference ?? 0) + 1)}.
+          Last reference: {formatInteger(row ? row.lastReference : 0)}. Next document number:{" "}
+          {documentNumberPreview(
+            referencePrefix.trim(),
+            Number(referencePadding) || 0,
+            (row?.lastReference ?? 0) + 1,
+          )}
+          . A later change to the prefix or padding leaves numbers already issued as they are.
           A blank flex label is not shown on the transaction.
           {kindLocked ? " The kind stays as it is because a document has been entered." : ""}
         </p>

@@ -21,7 +21,7 @@ export async function listTransactionTypes(): Promise<{
     supabase
       .from("transaction_types")
       .select(
-        "id, code, description, last_reference, type, document_kind, numbering, flex1_label, flex2_label, flex3_label, flex4_label, flex5_label",
+        "id, code, description, last_reference, type, document_kind, numbering, reference_prefix, reference_padding, flex1_label, flex2_label, flex3_label, flex4_label, flex5_label",
       )
       .eq("organisation_id", organisationId)
       .order("code"),
@@ -50,6 +50,8 @@ export async function listTransactionTypes(): Promise<{
           documentKind,
           documentCount: counts.get(row.id) ?? 0,
           numbering: row.numbering === "on_post" ? "on_post" : "on_insert",
+          referencePrefix: row.reference_prefix ?? "",
+          referencePadding: row.reference_padding,
           flexLabels: [
             row.flex1_label ?? "",
             row.flex2_label ?? "",

@@ -4,7 +4,7 @@ FinTran keeps financial setup and purchase documents separate for each organisat
 
 The live database is the FinTran Supabase project. The schema is the SQL in `supabase/migrations`, applied in filename order. Postgres holds the rules: uniqueness, which codes may be used together, reference numbers, and totals. The Next.js app reads and writes through the Supabase API as the signed-in user. It does not use a service-role key.
 
-Sales invoices and sales credit notes are stored with purchase documents. Sales orders are not stored yet.
+Sales invoices, sales credit notes, and sales orders are stored with purchase documents. An order is not exported as an EN 16931 invoice.
 
 ## How the pieces fit
 
@@ -205,7 +205,7 @@ A new sales draft copies blank fields from its customer. A blank buyer reference
 | `last_reference` | The last number issued for this type. New types are forced to 0 |
 | `flex1_label` … `flex5_label` | Optional labels, up to 80 characters. A blank label hides that flex field on the document |
 
-An order still stores header totals when it is a purchase. Later VAT reporting leaves orders out, and an order is never exported. A sales order cannot be stored. A credit note, sales or purchase, needs the preceding invoice reference before it can be posted.
+An order stores header totals. Later VAT reporting leaves orders out, and an order is never exported. A credit note, sales or purchase, needs the preceding invoice reference before it can be posted.
 
 `reference_prefix` is optional, up to 10 characters, using letters, digits, `-`, `/`, and `.`. `reference_padding` is 0 to 10. Together they form the printed document number when a reference is issued: the prefix, then the reference padded with zeros. Padding 0 leaves the reference as written. The number is stored on the document and does not change if the prefix or padding is edited later.
 
@@ -215,7 +215,7 @@ The header insert trigger is what advances it: it adds one and stores that numbe
 
 ## Purchase documents
 
-`transaction_headers` is one document. `transaction_lines` are its lines. A sales invoice or sales credit note can be saved here. A sales order is refused. A purchase requires a supplier and cannot name a customer. A sale requires a customer and cannot name a supplier. The document currency must be the party's currency. A supplier invoice number is only stored on a purchase.
+`transaction_headers` is one document. `transaction_lines` are its lines. A sales invoice, sales credit note, or sales order can be saved here. A purchase requires a supplier and cannot name a customer. A sale requires a customer and cannot name a supplier. The document currency must be the party's currency. A supplier invoice number is only stored on a purchase.
 
 The app writes both tables through `save_document(jsonb)`. Direction comes from the transaction type. The function checks the organisation, the party, the currency, and the codes, copies blank product fields from the purchase or sales side of the product, replaces the lines, and lets the triggers calculate amounts. A new sales draft with an empty buyer reference, due date, or payment terms takes those from the customer. When the document date later changes and the due date is still the one derived from the customer's terms, the due date moves with it. A value sent in the payload is left as it is.
 
@@ -347,4 +347,4 @@ For a posted or void document the parties come from the snapshot taken at postin
 | Forms | `transaction_forms` and `transaction_types` |
 | Print and PDF | The saved form, or the standard layout, filled from the organisation, the supplier, and one header with its lines |
 
-Purchase and sales pages share one entry form. The transaction type is fixed on that page, so each type keeps its own reference sequence and flex labels. A purchase uses a supplier. A sale uses a customer. Currency is taken from that party and shown read-only. A posted sales invoice lists its credit notes and the amount still available to credit. Sales orders are not entered.
+Purchase and sales pages share one entry form. The transaction type is fixed on that page, so each type keeps its own reference sequence and flex labels. A purchase uses a supplier. A sale uses a customer. Currency is taken from that party and shown read-only. A posted sales invoice lists its credit notes and the amount still available to credit. A sales order uses that same form. The transaction type form sets the document number prefix and padding.

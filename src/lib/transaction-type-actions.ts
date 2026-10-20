@@ -5,7 +5,13 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getWorkspace, ORGANISATION_COOKIE } from "@/lib/data";
 import { parseDescription, parseReferenceCode } from "@/lib/reference";
-import { parseDocumentKind, parseFlexLabel, parseTransactionTypeKind } from "@/lib/transaction-types";
+import {
+  parseDocumentKind,
+  parseFlexLabel,
+  parseReferencePadding,
+  parseReferencePrefix,
+  parseTransactionTypeKind,
+} from "@/lib/transaction-types";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionState } from "@/lib/types";
 
@@ -21,6 +27,8 @@ function friendlyError(error: { code?: string; message: string } | null, fallbac
   }
   if (error.code === "23514" && error.message.includes("type")) return "Choose Sales or Purchases.";
   if (error.code === "23514" && error.message.includes("flex")) return "Each flex label can be up to 80 characters.";
+  if (error.message.includes("reference prefix")) return "A prefix can use letters, digits, and - / . and must be at most 10 characters.";
+  if (error.message.includes("Reference padding")) return "Padding must be a whole number from 0 to 10.";
   if (error.code === "23514") return "Start the code with a letter or number. Then use letters, numbers, dots, or hyphens, up to 20 characters, and a description up to 200 characters.";
   return error.message || fallback;
 }
@@ -56,11 +64,25 @@ function fieldsFrom(formData: FormData) {
   }
   if (!type) return { error: "Choose Sales or Purchases." } as const;
   if (!documentKind) return { error: "Choose an invoice, credit note, or order." } as const;
+  const referencePrefix = parseReferencePrefix(text(formData, "reference_prefix"));
+  const referencePadding = parseReferencePadding(text(formData, "reference_padding"));
+  if (referencePrefix === undefined) {
+    return { error: "A prefix can use letters, digits, and - / . and must be at most 10 characters." } as const;
+  }
+  if (referencePadding === undefined) return { error: "Padding must be a whole number from 0 to 10." } as const;
   const flexLabels = [1, 2, 3, 4, 5].map((number) => parseFlexLabel(text(formData, `flex${number}_label`)));
   if (flexLabels.some((label) => label === undefined)) {
     return { error: "Each flex label can be up to 80 characters." } as const;
   }
-  return { code, description, type, documentKind, flexLabels: flexLabels as [string | null, string | null, string | null, string | null, string | null] } as const;
+  return {
+    code,
+    description,
+    type,
+    documentKind,
+    referencePrefix,
+    referencePadding,
+    flexLabels: flexLabels as [string | null, string | null, string | null, string | null, string | null],
+  } as const;
 }
 
 function refresh() {
@@ -95,6 +117,8 @@ export async function createTransactionType(
     description: fields.description,
     type: fields.type,
     document_kind: fields.documentKind,
+    reference_prefix: fields.referencePrefix,
+    reference_padding: fields.referencePadding,
     last_reference: 0,
     ...labelColumns(fields.flexLabels),
   });
@@ -124,6 +148,8 @@ export async function updateTransactionType(
       description: fields.description,
       type: fields.type,
       document_kind: fields.documentKind,
+      reference_prefix: fields.referencePrefix,
+      reference_padding: fields.referencePadding,
       ...labelColumns(fields.flexLabels),
     })
     .eq("id", id)
