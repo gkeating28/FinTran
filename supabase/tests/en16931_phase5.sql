@@ -87,7 +87,7 @@ begin
       raise exception 'phase 5: payment days error was %', sqlerrm;
   end;
 
-  v_header := public.save_purchase_invoice(jsonb_build_object(
+  v_header := public.save_document(jsonb_build_object(
     'transactionTypeId', current_setting('test.pi'),
     'supplierId', current_setting('test.supplier'),
     'transactionDate', '2026-10-01',
@@ -102,7 +102,7 @@ begin
   end if;
 
   begin
-    perform public.save_purchase_invoice(jsonb_build_object(
+    perform public.save_document(jsonb_build_object(
       'transactionTypeId', current_setting('test.pi'),
       'supplierId', current_setting('test.supplier'),
       'transactionDate', '2026-10-02',
@@ -120,7 +120,7 @@ begin
   end;
 
   begin
-    perform public.save_purchase_invoice(jsonb_build_object(
+    perform public.save_document(jsonb_build_object(
       'transactionTypeId', current_setting('test.pi'),
       'supplierId', current_setting('test.supplier'),
       'transactionDate', '2026-10-02',
@@ -138,7 +138,7 @@ begin
       end if;
   end;
 
-  v_header := public.save_purchase_invoice(jsonb_build_object(
+  v_header := public.save_document(jsonb_build_object(
     'transactionTypeId', current_setting('test.pi'),
     'supplierId', current_setting('test.supplier'),
     'transactionDate', '2026-10-02',
@@ -216,8 +216,22 @@ begin
 end;
 $$;
 
+update public.organisation_defaults
+set address_line1 = 'Dock 1', city = 'Dublin', vat_number = 'IE1234567T',
+    peppol_scheme = '9935', peppol_id = 'IE1234567T'
+where organisation_id = current_setting('test.org')::uuid;
+update public.customers
+set address_line1 = '1 Acme Quay', city = 'Dublin', vat_number = 'IE7654321A',
+    peppol_scheme = '9935', peppol_id = 'IE7654321A'
+where id = current_setting('test.customer')::uuid;
+insert into public.gl_codes (tenant_id, organisation_id, code, description, account_type)
+values (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '4000', 'Sales', 'Income');
+insert into public.vat_rates (tenant_id, organisation_id, code, description, rate, vat_type, vat_category)
+values (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'S23', 'Sales VAT', 23, 'Sales', 'S');
+select set_config('test.income', (select id::text from public.gl_codes where organisation_id = current_setting('test.org')::uuid and code = '4000'), true);
+select set_config('test.sales_vat', (select id::text from public.vat_rates where organisation_id = current_setting('test.org')::uuid and code = 'S23'), true);
+
 reset role;
-alter table public.transaction_headers disable trigger transaction_headers_scope;
 set local role authenticated;
 
 do $$
@@ -231,7 +245,7 @@ declare
 begin
   insert into public.transaction_headers (
     tenant_id, organisation_id, transaction_type_id, transaction_date,
-    supplier_name, currency_id, exchange_rate, amount_due, customer_id
+    party_name, currency_id, exchange_rate, amount_due, customer_id
   ) values (
     current_setting('test.tenant')::uuid,
     current_setting('test.org')::uuid,
@@ -252,7 +266,7 @@ begin
 
   insert into public.transaction_headers (
     tenant_id, organisation_id, transaction_type_id, transaction_date,
-    supplier_name, currency_id, exchange_rate, amount_due, customer_id,
+    party_name, currency_id, exchange_rate, amount_due, customer_id,
     buyer_reference, due_date, payment_terms
   ) values (
     current_setting('test.tenant')::uuid,
@@ -277,7 +291,7 @@ begin
 
   insert into public.transaction_headers (
     tenant_id, organisation_id, transaction_type_id, transaction_date,
-    supplier_name, currency_id, exchange_rate, amount_due, customer_id, buyer_reference
+    party_name, currency_id, exchange_rate, amount_due, customer_id, buyer_reference
   ) values (
     current_setting('test.tenant')::uuid,
     current_setting('test.org')::uuid,
@@ -298,7 +312,7 @@ begin
   update public.customers set payment_terms_days = 0 where id = current_setting('test.customer')::uuid;
   insert into public.transaction_headers (
     tenant_id, organisation_id, transaction_type_id, transaction_date,
-    supplier_name, currency_id, exchange_rate, amount_due, customer_id, buyer_reference
+    party_name, currency_id, exchange_rate, amount_due, customer_id, buyer_reference
   ) values (
     current_setting('test.tenant')::uuid,
     current_setting('test.org')::uuid,
@@ -320,7 +334,7 @@ begin
   update public.customers set payment_terms_days = 1 where id = current_setting('test.customer')::uuid;
   insert into public.transaction_headers (
     tenant_id, organisation_id, transaction_type_id, transaction_date,
-    supplier_name, currency_id, exchange_rate, amount_due, customer_id, buyer_reference
+    party_name, currency_id, exchange_rate, amount_due, customer_id, buyer_reference
   ) values (
     current_setting('test.tenant')::uuid,
     current_setting('test.org')::uuid,
@@ -341,7 +355,7 @@ begin
 
   insert into public.transaction_headers (
     tenant_id, organisation_id, transaction_type_id, transaction_date,
-    supplier_name, currency_id, exchange_rate, amount_due, customer_id, buyer_reference
+    party_name, currency_id, exchange_rate, amount_due, customer_id, buyer_reference
   ) values (
     current_setting('test.tenant')::uuid,
     current_setting('test.org')::uuid,
@@ -357,7 +371,7 @@ begin
   returning id into v_header;
   insert into public.transaction_lines (
     tenant_id, organisation_id, header_id, line_number, description,
-    quantity, price, discount_amount, nett_amount, vat_amount
+    quantity, price, discount_amount, nett_amount, vat_amount, vat_rate_id, gl_code_id
   ) values (
     current_setting('test.tenant')::uuid,
     current_setting('test.org')::uuid,
@@ -368,7 +382,9 @@ begin
     1,
     0,
     1,
-    0
+    0,
+    current_setting('test.sales_vat')::uuid,
+    current_setting('test.income')::uuid
   );
   perform public.post_document(v_header, null);
   if (select payment_means_code from public.transaction_headers where id = v_header) is not null then
@@ -381,7 +397,7 @@ begin
 
   insert into public.transaction_headers (
     tenant_id, organisation_id, transaction_type_id, transaction_date,
-    supplier_name, currency_id, exchange_rate, amount_due, customer_id, buyer_reference
+    party_name, currency_id, exchange_rate, amount_due, customer_id, buyer_reference
   ) values (
     current_setting('test.tenant')::uuid,
     current_setting('test.org')::uuid,
@@ -397,9 +413,10 @@ begin
   returning id into v_header;
   insert into public.transaction_lines (
     tenant_id, organisation_id, header_id, line_number, description,
-    quantity, price, discount_amount, nett_amount, vat_amount
+    quantity, price, discount_amount, nett_amount, vat_amount, vat_rate_id, gl_code_id
   ) values (
-    current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, v_header, 1, 'Sold', 1, 1, 0, 1, 0
+    current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, v_header, 1, 'Sold', 1, 1, 0, 1, 0,
+    current_setting('test.sales_vat')::uuid, current_setting('test.income')::uuid
   );
   perform public.post_document(v_header, null);
   select payment_means_code, issuer_snapshot into v_means, v_snapshot
@@ -410,7 +427,7 @@ begin
 
   insert into public.transaction_headers (
     tenant_id, organisation_id, transaction_type_id, transaction_date,
-    supplier_name, currency_id, exchange_rate, amount_due, customer_id, buyer_reference, payment_means_code
+    party_name, currency_id, exchange_rate, amount_due, customer_id, buyer_reference, payment_means_code
   ) values (
     current_setting('test.tenant')::uuid,
     current_setting('test.org')::uuid,
@@ -427,9 +444,10 @@ begin
   returning id into v_header;
   insert into public.transaction_lines (
     tenant_id, organisation_id, header_id, line_number, description,
-    quantity, price, discount_amount, nett_amount, vat_amount
+    quantity, price, discount_amount, nett_amount, vat_amount, vat_rate_id, gl_code_id
   ) values (
-    current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, v_header, 1, 'Sold', 1, 1, 0, 1, 0
+    current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, v_header, 1, 'Sold', 1, 1, 0, 1, 0,
+    current_setting('test.sales_vat')::uuid, current_setting('test.income')::uuid
   );
   perform public.post_document(v_header, null);
   if (select payment_means_code from public.transaction_headers where id = v_header) <> '30' then
@@ -447,7 +465,7 @@ declare
   v_means text;
   v_purchase uuid;
 begin
-  v_purchase := public.save_purchase_invoice(jsonb_build_object(
+  v_purchase := public.save_document(jsonb_build_object(
     'transactionTypeId', current_setting('test.pi'),
     'supplierId', current_setting('test.supplier'),
     'transactionDate', '2026-10-06',

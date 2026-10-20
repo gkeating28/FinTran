@@ -36,7 +36,7 @@ select current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 
 from public.currencies where organisation_id = current_setting('test.org')::uuid;
 insert into public.transaction_types (tenant_id, organisation_id, code, description, last_reference, type)
 values (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'PI', 'Purchase invoice', 0, 'Purchases');
-select public.save_purchase_invoice(jsonb_build_object(
+select public.save_document(jsonb_build_object(
   'transactionTypeId', (select id from public.transaction_types where organisation_id = current_setting('test.org')::uuid),
   'supplierId', (select id from public.suppliers where organisation_id = current_setting('test.org')::uuid),
   'transactionDate', '2026-10-19',

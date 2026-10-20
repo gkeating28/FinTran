@@ -17,16 +17,16 @@ select set_config('test.tenant', (select tenant_id::text from public.organisatio
 
 insert into public.currencies (tenant_id, organisation_id, code, name, rate)
 values (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'EUR', 'Euro', 1);
-insert into public.vat_rates (tenant_id, organisation_id, code, description, rate, vat_type)
-values (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'P23', 'Purchase VAT', 23, 'Expense');
-insert into public.suppliers (tenant_id, organisation_id, code, name, currency_id, address, vat_number)
+insert into public.vat_rates (tenant_id, organisation_id, code, description, rate, vat_type, vat_category)
+values (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'P23', 'Purchase VAT', 23, 'Expense', 'S');
+insert into public.suppliers (tenant_id, organisation_id, code, name, currency_id, address_line1, vat_number)
 select current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'VOD', 'Vodafone', id, 'Old quay', 'IE1234567A'
 from public.currencies where organisation_id = current_setting('test.org')::uuid;
 insert into public.transaction_types (tenant_id, organisation_id, code, description, last_reference, type)
 values (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'PI', 'Purchase invoice', 0, 'Purchases');
 
 update public.organisation_defaults
-set address = 'Dock Road', vat_number = 'IE999', banking_details = 'IBAN OLD'
+set address_line1 = 'Dock Road', vat_number = 'IE9999999T', banking_details = 'IBAN OLD'
 where organisation_id = current_setting('test.org')::uuid;
 
 select set_config('test.type', (select id::text from public.transaction_types where organisation_id = current_setting('test.org')::uuid), true);
@@ -34,7 +34,7 @@ select set_config('test.supplier', (select id::text from public.suppliers where 
 select set_config('test.currency', (select id::text from public.currencies where organisation_id = current_setting('test.org')::uuid), true);
 select set_config('test.vat', (select id::text from public.vat_rates where organisation_id = current_setting('test.org')::uuid), true);
 
-select set_config('test.header', public.save_purchase_invoice(jsonb_build_object(
+select set_config('test.header', public.save_document(jsonb_build_object(
   'transactionTypeId', current_setting('test.type'),
   'supplierId', current_setting('test.supplier'),
   'transactionDate', '2026-10-19',
@@ -58,7 +58,7 @@ $$;
 
 update public.vat_rates set rate = 10 where id = current_setting('test.vat')::uuid;
 
-select public.save_purchase_invoice(jsonb_build_object(
+select public.save_document(jsonb_build_object(
   'id', current_setting('test.header'),
   'transactionTypeId', current_setting('test.type'),
   'supplierId', current_setting('test.supplier'),
@@ -104,11 +104,11 @@ end;
 $$;
 
 update public.organisation_defaults
-set address = 'New street', vat_number = 'IE000', banking_details = 'IBAN NEW'
+set address_line1 = 'New street', vat_number = 'IE0000000T', banking_details = 'IBAN NEW'
 where organisation_id = current_setting('test.org')::uuid;
 
 update public.suppliers
-set address = 'New quay'
+set address_line1 = 'New quay'
 where id = current_setting('test.supplier')::uuid;
 
 do $$
@@ -120,12 +120,12 @@ begin
   from public.transaction_headers
   where id = current_setting('test.header')::uuid;
 
-  if v_issuer->>'address' is distinct from 'Dock Road'
-     or v_issuer->>'vatNumber' is distinct from 'IE999'
+  if v_issuer->>'addressLine1' is distinct from 'Dock Road'
+     or v_issuer->>'vatNumber' is distinct from 'IE9999999T'
      or v_issuer->>'bankingDetails' is distinct from 'IBAN OLD' then
     raise exception 'phase 5: issuer snapshot changed to %', v_issuer;
   end if;
-  if v_party->>'address' is distinct from 'Old quay' then
+  if v_party->>'addressLine1' is distinct from 'Old quay' then
     raise exception 'phase 5: party snapshot changed to %', v_party;
   end if;
 

@@ -56,7 +56,7 @@ select set_config(
 
 select set_config(
   'request.jwt.claims',
-  json_build_object('sub', (select id from phase1_users where who = 'member'), 'role', 'authenticated')::text,
+  json_build_object('sub', (select id from phase1_users where who = 'admin'), 'role', 'authenticated')::text,
   true
 );
 set local role authenticated;
@@ -64,6 +64,14 @@ set local role authenticated;
 update public.organisation_defaults
 set banking_details = 'Sort code 11-22-33'
 where organisation_id = current_setting('test.org1')::uuid;
+
+reset role;
+select set_config(
+  'request.jwt.claims',
+  json_build_object('sub', (select id from phase1_users where who = 'member'), 'role', 'authenticated')::text,
+  true
+);
+set local role authenticated;
 
 do $$
 declare
@@ -130,8 +138,8 @@ begin
   if v_created_by is distinct from (select id from phase1_users where who = 'owner') then
     raise exception 'phase 1: created_by is %, expected the owner', v_created_by;
   end if;
-  if v_updated_by is distinct from (select id from phase1_users where who = 'member') then
-    raise exception 'phase 1: updated_by is %, expected the member', v_updated_by;
+  if v_updated_by is distinct from (select id from phase1_users where who = 'admin') then
+    raise exception 'phase 1: updated_by is %, expected the admin', v_updated_by;
   end if;
   if v_created_at is distinct from current_setting('test.created_at')::timestamptz then
     raise exception 'phase 1: created_at changed from % to %', current_setting('test.created_at'), v_created_at;

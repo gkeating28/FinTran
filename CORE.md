@@ -4,7 +4,7 @@ FinTran keeps financial setup and purchase documents separate for each organisat
 
 The live database is the FinTran Supabase project. The schema is the SQL in `supabase/migrations`, applied in filename order. Postgres holds the rules: uniqueness, which codes may be used together, reference numbers, and totals. The Next.js app reads and writes through the Supabase API as the signed-in user. It does not use a service-role key.
 
-Sales transaction types can be defined, and a printable form can be designed for them. Sales documents are not stored yet. Purchase documents are.
+Sales invoices and sales credit notes are stored with purchase documents. Sales orders are not stored yet.
 
 ## How the pieces fit
 
@@ -23,7 +23,7 @@ tenant
         ├── suppliers
         ├── transaction_types
         │     └── transaction_forms    one printable layout
-        └── transaction_headers        purchase documents only
+        └── transaction_headers        purchase documents, sales invoices, and sales credit notes
               └── transaction_lines
 ```
 
@@ -87,7 +87,7 @@ Exceptions:
 
 - `tenants`, `organisations`, `profiles`, and `organisation_access` can be read by a member. They are changed through the functions above, not by open insert and update policies.
 - `organisation_defaults` can be selected, inserted, and updated by a member. Delete is not granted. The row is created with the organisation and removed when the organisation is deleted.
-- `save_purchase_invoice` is security invoker. It runs as the caller, so the header and line policies still apply. It does not call into the `private` schema.
+- `save_document` is security invoker. It runs as the caller, so the header and line policies still apply. It does not call into the `private` schema.
 
 `private` is not on the API. Authenticated users can execute a few helpers such as `is_org_member` only because policies and triggers need them. They cannot list or change that schema.
 
@@ -190,7 +190,7 @@ Both have the same shape.
 | `payment_terms_days` | Optional whole number from 0 to 365 |
 | `default_buyer_reference` | Customers only. Optional, up to 100. EN 16931 BT-10 |
 
-A supplier's currency becomes the currency of a purchase document and cannot be edited on the document. Customers are stored for sales documents, which are not entered yet.
+A supplier's currency becomes the currency of a purchase document and cannot be edited on the document. A customer's currency becomes the currency of a sales document in the same way.
 
 A new sales draft copies blank fields from its customer. A blank buyer reference takes `default_buyer_reference`. When `payment_terms_days` is set, a blank due date becomes the document date plus that many days, and blank payment terms become “Due on receipt” for 0, “Payment due within 1 day” for 1, or “Payment due within N days”. Values already entered are left as they are. Purchase drafts are not filled from the supplier.
 
@@ -205,7 +205,9 @@ A new sales draft copies blank fields from its customer. A blank buyer reference
 | `last_reference` | The last number issued for this type. New types are forced to 0 |
 | `flex1_label` … `flex5_label` | Optional labels, up to 80 characters. A blank label hides that flex field on the document |
 
-An order still stores header totals. Later VAT reporting leaves orders out, and an order is never exported. A credit note, sales or purchase, needs the preceding invoice reference before it can be posted. Sales documents are still not stored.
+An order still stores header totals when it is a purchase. Later VAT reporting leaves orders out, and an order is never exported. A sales order cannot be stored. A credit note, sales or purchase, needs the preceding invoice reference before it can be posted.
+
+`reference_prefix` is optional, up to 10 characters, using letters, digits, `-`, `/`, and `.`. `reference_padding` is 0 to 10. Together they form the printed document number when a reference is issued: the prefix, then the reference padded with zeros. Padding 0 leaves the reference as written. The number is stored on the document and does not change if the prefix or padding is edited later.
 
 `last_reference` only moves forward. An update may set it to the previous value plus one. Any other change is put back. Deleting a document does not give the number back.
 
@@ -213,9 +215,9 @@ The header insert trigger is what advances it: it adds one and stores that numbe
 
 ## Purchase documents
 
-`transaction_headers` is one document. `transaction_lines` are its lines. The header trigger rejects any type whose `type` is not `Purchases`, so a sales type cannot be saved here.
+`transaction_headers` is one document. `transaction_lines` are its lines. A sales invoice or sales credit note can be saved here. A sales order is refused. A purchase requires a supplier and cannot name a customer. A sale requires a customer and cannot name a supplier. The document currency must be the party's currency. A supplier invoice number is only stored on a purchase.
 
-The app writes both tables through `save_purchase_invoice(jsonb)`. That function checks the organisation, supplier, currency, product, and codes, replaces the lines, and lets the triggers calculate amounts.
+The app writes both tables through `save_document(jsonb)`. Direction comes from the transaction type. The function checks the organisation, the party, the currency, and the codes, copies blank product fields from the purchase or sales side of the product, replaces the lines, and lets the triggers calculate amounts. A new sales draft with an empty buyer reference, due date, or payment terms takes those from the customer. When the document date later changes and the due date is still the one derived from the customer's terms, the due date moves with it. A value sent in the payload is left as it is.
 
 ### Header
 
@@ -225,7 +227,8 @@ The app writes both tables through `save_purchase_invoice(jsonb)`. That function
 | `reference` | Issued from `last_reference`. Unique per organisation and type. Cannot be renumbered |
 | `transaction_date` | Required |
 | `due_date` | Optional |
-| `supplier_id`, `supplier_name` | The supplier, and the name stored on the document |
+| `supplier_id`, `customer_id`, `party_name` | The supplier or the customer, and the name stored on the document |
+| `document_number` | The printed number, set when `reference` is issued. Unique per organisation and type |
 | `contact_details` | Optional, up to 500 |
 | `notes` | Optional, up to 4000 |
 | `currency_id`, `exchange_rate` | The supplier's currency, and the rate used for this document |
@@ -248,11 +251,13 @@ The app writes both tables through `save_purchase_invoice(jsonb)`. That function
 | `posted_at`, `posted_by` | Set when the document is posted |
 | `voided_at`, `voided_by`, `void_reason` | Set when an owner or admin voids a posted document. The reason is required |
 
-A draft can be edited and deleted. Posting needs at least one line and is allowed for any member. Purchases are numbered when the draft is saved. A type set to number on posting, which every Sales type must use, leaves the draft without a number and issues the next number when it is posted. Deleting those drafts does not use a number. A posted document is read-only apart from the paid amount, until an owner or admin voids it from the document form. A void document cannot be changed or deleted. Status changes only through `post_document` and `void_document`.
+A draft can be edited and deleted. Posting needs at least one line and is allowed for any member. Purchases are numbered when the draft is saved. A type set to number on posting, which every Sales type must use, leaves the draft without a number and issues the next number when it is posted. The type row is locked first. Sales readiness is checked before that number is taken, so a failed post does not use a number. Deleting a sales draft does not use a number. A posted purchase can be voided by an owner or admin. A posted sales document cannot be voided; the correction is a credit note. A void document cannot be changed or deleted. Status changes only through `post_document` and `void_document`.
+
+Posting a sales document also requires an Income GL code on every line, and a document date no later than tomorrow. A credit note linked to an invoice in FinTran, sales or purchase, must use the same currency. The posted credits against that invoice, including the one being posted, cannot exceed the invoice total with VAT. The invoice row is locked while that is checked. A credit note that only names an invoice from outside FinTran is not limited.
 
 Posting copies the organisation and the supplier into `issuer_snapshot` and `party_snapshot`. Those copies do not change if the organisation or supplier is edited later. A new posting also stores the structured address, country, Peppol scheme and identifier, VAT number, and company number. The issuer copy adds the IBAN, BIC, and bank account name. Documents posted before these fields existed keep the snapshot they already had. When a sales document is posted and the organisation has an IBAN, a blank payment means becomes `58` (SEPA credit transfer). A means already chosen is left. Purchases stay unset. Missing buyer reference, order number, due date, payment terms, Peppol ID, or address does not block a purchase. Those gaps are warnings. The same gaps block a sales document. Documents that were already posted when snapshots were added were filled from the data at that time, including the live logo path. A new posting copies the logo to `{organisation_id}/snapshots/{header_id}` first, and does not post if that copy fails. Each line stores `vat_percentage`, the VAT category, and any exemption from the VAT code at the time the line is saved. A line with no VAT code is category `O`. Line nett is rounded to 2 decimal places. Line VAT is kept for display. Document VAT is one row in `transaction_vat_breakdown` for each category and rate: the taxable amount times the rate, rounded to 2 decimal places. A posted document keeps the totals it had when it was posted. A VAT code used on a posted or void line cannot have its rate, type, or category changed. Customers and suppliers have an optional `vat_number`.
 
-A purchase document stores an optional supplier invoice number and supply date. The same supplier invoice number cannot be entered twice for one supplier, ignoring case, unless the first document has been voided. A purchase requires a supplier and cannot name a customer. `customer_id` is ready for sales documents, which are still not stored.
+A purchase document stores an optional supplier invoice number and supply date. The same supplier invoice number cannot be entered twice for one supplier, ignoring case, unless the first document has been voided. Sales documents leave the supplier invoice number empty.
 
 Codes may contain dots and hyphens after the first character. The first character is a letter or number. Products may be 30 characters. Other codes may be 20.
 
@@ -279,7 +284,7 @@ On every header insert or update the trigger replaces the six amount columns fro
 | `seller_item_id` | Optional, up to 60. Purchases only |
 | `gl_code_id` | Optional GL code |
 | `department_id`, `cost_centre_id` | Optional |
-| `vat_rate_id` | Optional. If set, it must be an Expense rate. If null, VAT is 0 |
+| `vat_rate_id` | Optional. A purchase line must use an Expense rate. A sales line must use a Sales rate. If null, VAT is 0 |
 | `quantity` | Greater than 0 |
 | `price` | Zero or greater |
 | `discount_amount` | Zero or greater, and not more than quantity × price |
@@ -302,7 +307,7 @@ The screen may show a calculated nett and VAT before save. The stored figures ar
   "showBanking": true,
   "organisationFields": ["name", "address", "phone", "contactEmail", "vatNumber"],
   "partyFields": ["contactDetails", "name", "address"],
-  "headerFields": ["reference", "transactionDate", "terms", "dueDate"],
+  "headerFields": ["documentNumber", "transactionDate", "terms", "dueDate"],
   "lineColumns": ["date", "item", "description", "tax", "quantity", "price", "amount"]
 }
 ```
@@ -311,9 +316,9 @@ The screen may show a calculated nett and VAT before save. The stored figures ar
 
 Allowed organisation fields: `name`, `address`, `phone`, `contactEmail`, `website`, `contactName`, `vatNumber`, `companyNumber`, `peppolId`, `country`.
 
-Allowed bill-to fields: `contactDetails`, `name`, `address`, `phone`, `email`, `website`, `code`, `peppolId`, `country`. For a purchase document the party is the supplier. For a sales layout it is the customer.
+Allowed bill-to fields: `contactDetails`, `name`, `address`, `phone`, `email`, `website`, `code`, `peppolId`, `country`, `vatNumber`. For a purchase document the party is the supplier. For a sales layout it is the customer.
 
-Allowed document fields: `reference`, `transactionDate`, `terms`, `dueDate`, `orderNumber`, `supplierReference`, `supplyDate`, `currency`, `exchangeRate`, `paidAmount`, `buyerReference`, `contractReference`, `paymentTerms`, `invoicePeriod`, `precedingReference`, and `flex1` through `flex5`. Terms are the number of days from the document date to the due date. Payment terms are the stored text. The invoice period is the two dates. Flex fields appear only when that transaction type has a label.
+Allowed document fields: `reference`, `documentNumber`, `transactionDate`, `terms`, `dueDate`, `orderNumber`, `supplierReference`, `supplyDate`, `currency`, `exchangeRate`, `paidAmount`, `buyerReference`, `contractReference`, `paymentTerms`, `invoicePeriod`, `precedingReference`, and `flex1` through `flex5`. `documentNumber` is the printed number. `reference` remains allowed so existing layouts keep working. A sales layout must show one of those two, and the date. Terms are the number of days from the document date to the due date. Payment terms are the stored text. The invoice period is the two dates. Flex fields appear only when that transaction type has a label.
 
 Allowed line columns: `date`, `item`, `description`, `tax`, `quantity`, `price`, `amount`, `discount`, `glCode`, `vatCode`, `department`, `costCentre`, `unit`, `lineNote`. Quantity, price, amount, and discount are the numeric columns.
 
@@ -321,7 +326,7 @@ If no row has been saved, printing uses this standard layout. The VAT summary an
 
 ## EN 16931 export and readiness
 
-`en16931_document(header id)` returns the posted or draft document as EN 16931 business terms in JSON. Amounts are strings with two decimal places and prices keep four. Empty terms are left out. `BT-23` and `BT-24` are the Peppol process and specification identifiers. `BT-83` repeats the invoice number. A line discount is an allowance with reason code `95`, and the unit price stays the price before that discount. Purchases use the supplier invoice number as `BT-1`. Sales use the FinTran reference. Orders raise an error. A document the caller cannot see returns no row.
+`en16931_document(header id)` returns the posted or draft document as EN 16931 business terms in JSON. Amounts are strings with two decimal places and prices keep four. Empty terms are left out. `BT-23` and `BT-24` are the Peppol process and specification identifiers. `BT-83` repeats the invoice number. A line discount is an allowance with reason code `95`, and the unit price stays the price before that discount. Purchases use the supplier invoice number as `BT-1`. Sales use `document_number`. Orders raise an error. A document the caller cannot see returns no row.
 
 For a posted or void document the parties come from the snapshot taken at posting. A later change to the supplier or customer does not change that JSON.
 

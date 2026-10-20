@@ -22,7 +22,7 @@ import { parseTransactionTypeKind, type TransactionTypeKind } from "@/lib/transa
 import { createClient } from "@/lib/supabase/server";
 
 const HEADER_SELECT = `
-  id, status, reference, transaction_date, due_date, supplier_name, contact_details,
+  id, status, reference, document_number, transaction_date, due_date, party_name, contact_details,
   exchange_rate, order_number, supplier_reference, supply_date, buyer_reference, contract_reference, payment_terms,
   invoice_period_start, invoice_period_end, preceding_reference, preceding_date,
   foreign_nett_amount, foreign_vat_amount, foreign_total_amount, paid_amount,
@@ -210,10 +210,11 @@ function sourceFromHeader(row: Loose, type: FormType, organisation: FormOrganisa
           website: snapshotText(partySnapshot, "website"),
           peppolId: [snapshotText(partySnapshot, "peppolScheme"), snapshotText(partySnapshot, "peppolId")].filter(Boolean).join(" "),
           country: snapshotText(partySnapshot, "countryName") || snapshotText(partySnapshot, "countryCode"),
+          vatNumber: snapshotText(partySnapshot, "vatNumber"),
         }
       : {
           code: text(supplier?.code),
-          name: text(row.supplier_name) || text(supplier?.name),
+          name: text(row.party_name) || text(supplier?.name),
           address: formatPostalAddress({
             line1: text(supplier?.address_line1),
             line2: text(supplier?.address_line2),
@@ -229,9 +230,11 @@ function sourceFromHeader(row: Loose, type: FormType, organisation: FormOrganisa
           website: text(supplier?.website),
           peppolId: [text(supplier?.peppol_scheme), text(supplier?.peppol_id)].filter(Boolean).join(" "),
           country: text(one(supplier?.ref_countries as { name?: string } | { name?: string }[] | null)?.name) || text(supplier?.country_code),
+          vatNumber: text(supplier?.vat_number),
         },
     header: {
       reference: text(row.reference) ? formatInteger(text(row.reference)) : "Draft",
+      documentNumber: text(row.document_number),
       transactionDate: text(row.transaction_date),
       dueDate: text(row.due_date),
       orderNumber: text(row.order_number),

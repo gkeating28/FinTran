@@ -27,15 +27,15 @@ insert into public.departments (tenant_id, organisation_id, code, description)
 values (current_setting('test.tenant')::uuid, current_setting('test.org2')::uuid, 'GEN', 'Other department');
 insert into public.cost_centres (tenant_id, organisation_id, code, description)
 values (current_setting('test.tenant')::uuid, current_setting('test.org2')::uuid, 'HQ', 'Other centre');
-insert into public.vat_rates (tenant_id, organisation_id, code, description, rate, vat_type)
-values (current_setting('test.tenant')::uuid, current_setting('test.org2')::uuid, 'P23', 'Other VAT', 23, 'Expense');
+insert into public.vat_rates (tenant_id, organisation_id, code, description, rate, vat_type, vat_category)
+values (current_setting('test.tenant')::uuid, current_setting('test.org2')::uuid, 'P23', 'Other VAT', 23, 'Expense', 'S');
 insert into public.suppliers (tenant_id, organisation_id, code, name, currency_id)
 select current_setting('test.tenant')::uuid, current_setting('test.org1')::uuid, 'VOD', 'Vodafone', id
 from public.currencies where organisation_id = current_setting('test.org1')::uuid and code = 'EUR';
 insert into public.transaction_types (tenant_id, organisation_id, code, description, last_reference, type)
 values (current_setting('test.tenant')::uuid, current_setting('test.org1')::uuid, 'PI', 'Purchase invoice', 0, 'Purchases');
 
-select set_config('test.header', public.save_purchase_invoice(jsonb_build_object(
+select set_config('test.header', public.save_document(jsonb_build_object(
   'transactionTypeId', (select id from public.transaction_types where organisation_id = current_setting('test.org1')::uuid and code = 'PI'),
   'supplierId', (select id from public.suppliers where organisation_id = current_setting('test.org1')::uuid and code = 'VOD'),
   'transactionDate', '2026-10-18',

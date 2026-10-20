@@ -35,10 +35,12 @@ export type FormParty = {
   website: string;
   peppolId: string;
   country: string;
+  vatNumber: string;
 };
 
 export type FormHeader = {
   reference: string;
+  documentNumber: string;
   transactionDate: string;
   dueDate: string;
   orderNumber: string;
@@ -175,6 +177,7 @@ function terms(start: string, due: string) {
 function headerValue(field: HeaderField, source: FormSource) {
   const header = source.header;
   if (field === "reference") return header.reference;
+  if (field === "documentNumber") return header.documentNumber;
   if (field === "transactionDate") return formatInvoiceDate(header.transactionDate);
   if (field === "dueDate") return formatInvoiceDate(header.dueDate);
   if (field === "terms") return terms(header.transactionDate, header.dueDate);
@@ -325,9 +328,11 @@ export function sampleSource(organisation: FormOrganisation, currencyCode: strin
       website: "",
       peppolId: "",
       country: "Ireland",
+      vatNumber: "IE1234567T",
     },
     header: {
       reference: "1030",
+      documentNumber: "1030",
       transactionDate: "2026-09-30",
       dueDate: "2026-10-30",
       orderNumber: "",

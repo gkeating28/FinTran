@@ -193,7 +193,7 @@ begin
   select id into v_supplier from public.suppliers where code = 'IECO';
   insert into public.transaction_types (tenant_id, organisation_id, code, description, last_reference, type)
   values (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'PI', 'Purchase invoice', 0, 'Purchases');
-  perform public.save_purchase_invoice(jsonb_build_object(
+  perform public.save_document(jsonb_build_object(
     'transactionTypeId', (select id from public.transaction_types where organisation_id = current_setting('test.org')::uuid),
     'supplierId', v_supplier,
     'transactionDate', '2026-10-19',

@@ -693,7 +693,7 @@ function InvoiceForm({
         </label>
         <label className={styles.field}>
           Supplier name
-          <QuietInput name="supplier_name" required maxLength={200} disabled={locked} value={supplierName} onChange={(event) => setSupplierName(event.target.value)} />
+          <QuietInput name="party_name" required maxLength={200} disabled={locked} value={supplierName} onChange={(event) => setSupplierName(event.target.value)} />
         </label>
         <label className={styles.field}>
           Supplier invoice no.

@@ -32,7 +32,7 @@ declare
   v_doc jsonb;
   v_warnings integer;
 begin
-  v_id := public.save_purchase_invoice(jsonb_build_object(
+  v_id := public.save_document(jsonb_build_object(
     'transactionTypeId', current_setting('test.pi'),
     'supplierId', current_setting('test.supplier'),
     'transactionDate', '2026-10-06',
@@ -46,7 +46,7 @@ begin
   end if;
   perform public.post_document(v_id, null);
 
-  v_id := public.save_purchase_invoice(jsonb_build_object(
+  v_id := public.save_document(jsonb_build_object(
     'transactionTypeId', current_setting('test.pi'),
     'supplierId', current_setting('test.supplier'),
     'transactionDate', '2026-10-07',

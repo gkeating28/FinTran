@@ -40,7 +40,7 @@ reset role;
 select set_config('request.jwt.claims', json_build_object('sub', current_setting('test.member_id'), 'role', 'authenticated')::text, true);
 set local role authenticated;
 
-select set_config('test.header', public.save_purchase_invoice(jsonb_build_object(
+select set_config('test.header', public.save_document(jsonb_build_object(
   'transactionTypeId', current_setting('test.type'),
   'supplierId', current_setting('test.supplier'),
   'transactionDate', '2026-06-15',
@@ -49,7 +49,7 @@ select set_config('test.header', public.save_purchase_invoice(jsonb_build_object
   'lines', jsonb_build_array(jsonb_build_object('description', 'Paper', 'quantity', 1, 'price', 10))
 ))::text, true);
 
-select set_config('test.sealed', public.save_purchase_invoice(jsonb_build_object(
+select set_config('test.sealed', public.save_document(jsonb_build_object(
   'transactionTypeId', current_setting('test.type'),
   'supplierId', current_setting('test.supplier'),
   'transactionDate', '2026-06-15',
@@ -59,7 +59,7 @@ select set_config('test.sealed', public.save_purchase_invoice(jsonb_build_object
 ))::text, true);
 select public.post_document(current_setting('test.sealed')::uuid);
 
-select set_config('test.locked', public.save_purchase_invoice(jsonb_build_object(
+select set_config('test.locked', public.save_document(jsonb_build_object(
   'transactionTypeId', current_setting('test.type'),
   'supplierId', current_setting('test.supplier'),
   'transactionDate', '2026-06-15',
@@ -68,7 +68,7 @@ select set_config('test.locked', public.save_purchase_invoice(jsonb_build_object
   'lines', jsonb_build_array(jsonb_build_object('description', 'Locked line', 'quantity', 1, 'price', 8))
 ))::text, true);
 
-select set_config('test.empty', public.save_purchase_invoice(jsonb_build_object(
+select set_config('test.empty', public.save_document(jsonb_build_object(
   'transactionTypeId', current_setting('test.type'),
   'supplierId', current_setting('test.supplier'),
   'transactionDate', '2026-07-01',
@@ -206,7 +206,7 @@ where organisation_id = current_setting('test.org')::uuid;
 do $$
 begin
   begin
-    perform public.save_purchase_invoice(jsonb_build_object(
+    perform public.save_document(jsonb_build_object(
       'transactionTypeId', current_setting('test.type'),
       'supplierId', current_setting('test.supplier'),
       'transactionDate', '2026-06-15',

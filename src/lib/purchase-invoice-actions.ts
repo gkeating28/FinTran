@@ -102,7 +102,7 @@ function documentFrom(formData: FormData) {
   const transactionDate = parseInvoiceDate(text(formData, "transaction_date"));
   const dueDate = text(formData, "due_date").trim();
   const supplierId = parseUuid(text(formData, "supplier_id"));
-  const supplierName = text(formData, "supplier_name").trim();
+  const supplierName = text(formData, "party_name").trim();
   const currencyId = parseUuid(text(formData, "currency_id"));
   const exchangeRate = parseExchangeRate(text(formData, "exchange_rate"));
   const paidAmount = parseMoney(text(formData, "paid_amount") || "0");
@@ -235,14 +235,14 @@ export async function savePurchaseInvoice(_state: ActionState, formData: FormDat
 
   await currentOrganisation();
   const supabase = await createClient();
-  const { error } = await supabase.rpc("save_purchase_invoice", {
+  const { error } = await supabase.rpc("save_document", {
     p_document: {
       id: document.id,
       transactionTypeId: document.transactionTypeId,
       transactionDate: document.transactionDate,
       dueDate: document.dueDate,
       supplierId: document.supplierId,
-      supplierName: document.supplierName,
+      partyName: document.supplierName,
       contactDetails: document.contactDetails,
       notes: document.notes,
       currencyId: document.currencyId,

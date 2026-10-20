@@ -23,10 +23,12 @@ export const PARTY_FIELDS = [
   "code",
   "peppolId",
   "country",
+  "vatNumber",
 ] as const;
 
 export const HEADER_FIELDS = [
   "reference",
+  "documentNumber",
   "transactionDate",
   "terms",
   "dueDate",
@@ -116,10 +118,12 @@ const PARTY_LABELS: Record<PartyField, string> = {
   code: "Code",
   peppolId: "Peppol ID",
   country: "Country",
+  vatNumber: "VAT number",
 };
 
 const HEADER_LABELS: Record<HeaderField, string> = {
   reference: "Invoice",
+  documentNumber: "Number",
   transactionDate: "Date",
   terms: "Terms",
   dueDate: "Due date",
@@ -171,7 +175,7 @@ export function lineColumnLabel(column: LineColumn) {
 }
 
 export function headerFieldLabel(field: HeaderField, flexLabels: readonly string[], numberLabel: string) {
-  if (field === "reference") return numberLabel;
+  if (field === "reference" || field === "documentNumber") return numberLabel;
   if (field.startsWith("flex")) {
     const label = flexLabels[Number(field.slice(4)) - 1]?.trim();
     return label || HEADER_LABELS[field];
@@ -203,7 +207,7 @@ export function defaultLayout(kind: TransactionTypeKind, description: string): F
     showBanking: true,
     organisationFields: ["name", "address", "phone", "contactEmail", "vatNumber"],
     partyFields: ["contactDetails", "name", "address"],
-    headerFields: ["reference", "transactionDate", "terms", "dueDate"],
+    headerFields: ["documentNumber", "transactionDate", "terms", "dueDate"],
     lineColumns: ["date", "item", "description", "tax", "quantity", "price", "amount"],
   };
 }

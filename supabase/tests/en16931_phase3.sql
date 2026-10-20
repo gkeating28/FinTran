@@ -60,7 +60,7 @@ begin
       end if;
   end;
 
-  v_header := public.save_purchase_invoice(jsonb_build_object(
+  v_header := public.save_document(jsonb_build_object(
     'transactionTypeId', current_setting('test.type'),
     'supplierId', current_setting('test.supplier'),
     'transactionDate', '2026-10-19',
@@ -114,7 +114,7 @@ begin
       end if;
   end;
 
-  v_header := public.save_purchase_invoice(jsonb_build_object(
+  v_header := public.save_document(jsonb_build_object(
     'transactionTypeId', current_setting('test.type'),
     'supplierId', current_setting('test.supplier'),
     'transactionDate', '2026-10-20',
@@ -136,7 +136,7 @@ begin
     raise exception 'phase 3: penny lines gave breakdown VAT % and line VAT %', v_vat, v_line_vat;
   end if;
 
-  v_header := public.save_purchase_invoice(jsonb_build_object(
+  v_header := public.save_document(jsonb_build_object(
     'transactionTypeId', current_setting('test.type'),
     'supplierId', current_setting('test.supplier'),
     'transactionDate', '2026-10-21',

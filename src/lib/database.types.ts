@@ -1333,11 +1333,12 @@ export type Database = {
           preceding_date: string | null
           preceding_header_id: string | null
           preceding_reference: string | null
+          document_number: string | null
           reference: number | null
           rounding_amount: number
           status: Database["public"]["Enums"]["document_status"]
           supplier_id: string | null
-          supplier_name: string
+          party_name: string
           supplier_reference: string | null
           supply_date: string | null
           tenant_id: string
@@ -1387,11 +1388,12 @@ export type Database = {
           preceding_date?: string | null
           preceding_header_id?: string | null
           preceding_reference?: string | null
+          document_number?: string | null
           reference?: number | null
           rounding_amount?: number
           status?: Database["public"]["Enums"]["document_status"]
           supplier_id?: string | null
-          supplier_name: string
+          party_name: string
           supplier_reference?: string | null
           supply_date?: string | null
           tenant_id: string
@@ -1441,11 +1443,12 @@ export type Database = {
           preceding_date?: string | null
           preceding_header_id?: string | null
           preceding_reference?: string | null
+          document_number?: string | null
           reference?: number | null
           rounding_amount?: number
           status?: Database["public"]["Enums"]["document_status"]
           supplier_id?: string | null
-          supplier_name?: string
+          party_name?: string
           supplier_reference?: string | null
           supply_date?: string | null
           tenant_id?: string
@@ -1754,6 +1757,8 @@ export type Database = {
           id: string
           last_reference: number
           numbering: Database["public"]["Enums"]["numbering_rule"]
+          reference_padding: number
+          reference_prefix: string | null
           organisation_id: string
           tenant_id: string
           type: string
@@ -1774,6 +1779,8 @@ export type Database = {
           id?: string
           last_reference: number
           numbering?: Database["public"]["Enums"]["numbering_rule"]
+          reference_padding?: number
+          reference_prefix?: string | null
           organisation_id: string
           tenant_id: string
           type: string
@@ -1794,6 +1801,8 @@ export type Database = {
           id?: string
           last_reference?: number
           numbering?: Database["public"]["Enums"]["numbering_rule"]
+          reference_padding?: number
+          reference_prefix?: string | null
           organisation_id?: string
           tenant_id?: string
           type?: string
@@ -2025,7 +2034,7 @@ export type Database = {
         Args: { p_organisation_id: string; p_user_id: string }
         Returns: undefined
       }
-      save_purchase_invoice: { Args: { p_document: Json }; Returns: string }
+      save_document: { Args: { p_document: Json }; Returns: string }
       void_document: {
         Args: { p_header_id: string; p_reason: string }
         Returns: undefined

@@ -40,7 +40,7 @@ select set_config('test.currency', (select id::text from public.currencies where
 select set_config('test.supplier', (select id::text from public.suppliers where organisation_id = current_setting('test.org')::uuid), true);
 select set_config('test.po', (select id::text from public.transaction_types where organisation_id = current_setting('test.org')::uuid and code = 'PO'), true);
 
-select set_config('test.draft', public.save_purchase_invoice(jsonb_build_object(
+select set_config('test.draft', public.save_document(jsonb_build_object(
   'transactionTypeId', current_setting('test.po'),
   'supplierId', current_setting('test.supplier'),
   'transactionDate', '2026-10-19',
@@ -56,7 +56,7 @@ begin
     raise exception 'phase 6: an on_post draft was numbered';
   end if;
   for i in 1..2 loop
-    perform public.save_purchase_invoice(jsonb_build_object(
+    perform public.save_document(jsonb_build_object(
       'transactionTypeId', current_setting('test.po'),
       'supplierId', current_setting('test.supplier'),
       'transactionDate', '2026-10-19',
@@ -72,7 +72,7 @@ begin
 end;
 $$;
 
-select set_config('test.posted', public.save_purchase_invoice(jsonb_build_object(
+select set_config('test.posted', public.save_document(jsonb_build_object(
   'transactionTypeId', current_setting('test.po'),
   'supplierId', current_setting('test.supplier'),
   'transactionDate', '2026-10-19',

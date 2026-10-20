@@ -118,7 +118,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
       supabase
         .from("transaction_headers")
         .select(
-          `id, transaction_type_id, reference, transaction_date, due_date, supplier_id, supplier_name,
+          `id, transaction_type_id, reference, document_number, transaction_date, due_date, supplier_id, party_name,
            contact_details, notes, currency_id, exchange_rate, order_number, supplier_reference, supply_date,
            foreign_nett_amount, foreign_vat_amount, foreign_total_amount,
            home_nett_amount, home_vat_amount, home_total_amount, paid_amount,
@@ -216,7 +216,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
       dueDate: row.due_date ?? "",
       supplierId: row.supplier_id,
       supplierCode: embeddedCode(row.suppliers),
-      supplierName: row.supplier_name,
+      supplierName: row.party_name,
       contactDetails: row.contact_details ?? "",
       notes: row.notes ?? "",
       currencyId: row.currency_id,

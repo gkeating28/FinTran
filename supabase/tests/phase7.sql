@@ -33,7 +33,7 @@ select set_config('test.vod', (select id::text from public.suppliers where organ
 select set_config('test.eir', (select id::text from public.suppliers where organisation_id = current_setting('test.org')::uuid and code = 'EIR'), true);
 select set_config('test.customer', (select id::text from public.customers where organisation_id = current_setting('test.org')::uuid), true);
 
-select public.save_purchase_invoice(jsonb_build_object(
+select public.save_document(jsonb_build_object(
   'transactionTypeId', current_setting('test.type'),
   'supplierId', current_setting('test.vod'),
   'supplierReference', ' inv-9 ',
@@ -46,7 +46,7 @@ select public.save_purchase_invoice(jsonb_build_object(
 do $$
 begin
   begin
-    perform public.save_purchase_invoice(jsonb_build_object(
+    perform public.save_document(jsonb_build_object(
       'transactionTypeId', current_setting('test.type'),
       'supplierId', current_setting('test.vod'),
       'supplierReference', 'INV-9',
@@ -60,7 +60,7 @@ begin
     when unique_violation then null;
   end;
 
-  perform public.save_purchase_invoice(jsonb_build_object(
+  perform public.save_document(jsonb_build_object(
     'transactionTypeId', current_setting('test.type'),
     'supplierId', current_setting('test.eir'),
     'supplierReference', 'INV-9',
@@ -83,7 +83,7 @@ begin
     limit 1
   ), 'Re-enter');
 
-  perform public.save_purchase_invoice(jsonb_build_object(
+  perform public.save_document(jsonb_build_object(
     'transactionTypeId', current_setting('test.type'),
     'supplierId', current_setting('test.vod'),
     'supplierReference', 'INV-9',
@@ -96,7 +96,7 @@ begin
   begin
     insert into public.transaction_headers (
       tenant_id, organisation_id, transaction_type_id, transaction_date, supplier_id, customer_id,
-      supplier_name, currency_id, exchange_rate
+      party_name, currency_id, exchange_rate
     ) values (
       current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, current_setting('test.type')::uuid,
       '2026-10-19', current_setting('test.vod')::uuid, current_setting('test.customer')::uuid,
@@ -112,7 +112,7 @@ begin
 
   begin
     insert into public.transaction_headers (
-      tenant_id, organisation_id, transaction_type_id, transaction_date, supplier_name, currency_id, exchange_rate
+      tenant_id, organisation_id, transaction_type_id, transaction_date, party_name, currency_id, exchange_rate
     ) values (
       current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, current_setting('test.type')::uuid,
       '2026-10-19', 'Vodafone', current_setting('test.currency')::uuid, 1

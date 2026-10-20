@@ -29,10 +29,10 @@ insert into public.departments (tenant_id, organisation_id, code, description)
 values (current_setting('test.tenant')::uuid, current_setting('test.org1')::uuid, 'GEN', 'General');
 insert into public.cost_centres (tenant_id, organisation_id, code, description)
 values (current_setting('test.tenant')::uuid, current_setting('test.org1')::uuid, 'HQ', 'Head office');
-insert into public.vat_rates (tenant_id, organisation_id, code, description, rate, vat_type)
+insert into public.vat_rates (tenant_id, organisation_id, code, description, rate, vat_type, vat_category)
 values
-  (current_setting('test.tenant')::uuid, current_setting('test.org1')::uuid, 'P23', 'Purchase VAT', 23, 'Expense'),
-  (current_setting('test.tenant')::uuid, current_setting('test.org1')::uuid, 'S23', 'Sales VAT', 23, 'Sales');
+  (current_setting('test.tenant')::uuid, current_setting('test.org1')::uuid, 'P23', 'Purchase VAT', 23, 'Expense', 'S'),
+  (current_setting('test.tenant')::uuid, current_setting('test.org1')::uuid, 'S23', 'Sales VAT', 23, 'Sales', 'S');
 insert into public.gl_codes (tenant_id, organisation_id, code, description, account_type)
 values (current_setting('test.tenant')::uuid, current_setting('test.org1')::uuid, '5000', 'Sales', 'Income');
 insert into public.currencies (tenant_id, organisation_id, code, name, rate)
@@ -64,7 +64,7 @@ values (
   current_setting('test.tenant')::uuid,
   current_setting('test.org1')::uuid,
   current_setting('test.type')::uuid,
-  '{"version":1,"title":"Purchase invoice"}'::jsonb
+  '{"version":1,"title":"Purchase invoice","organisationFields":[],"partyFields":[],"headerFields":[],"lineColumns":[]}'::jsonb
 );
 
 reset role;
@@ -125,7 +125,7 @@ $$;
 
 select set_config(
   'test.header',
-  public.save_purchase_invoice(jsonb_build_object(
+  public.save_document(jsonb_build_object(
     'transactionTypeId', current_setting('test.type'),
     'supplierId', current_setting('test.supplier'),
     'transactionDate', '2026-10-18',
@@ -244,7 +244,7 @@ values (current_setting('test.tenant')::uuid, current_setting('test.org2')::uuid
 
 do $$
 begin
-  perform public.save_purchase_invoice(jsonb_build_object(
+  perform public.save_document(jsonb_build_object(
     'id', current_setting('test.header'),
     'transactionTypeId', (select id from public.transaction_types where organisation_id = current_setting('test.org2')::uuid and code = 'PI'),
     'supplierId', current_setting('test.supplier'),

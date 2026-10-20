@@ -39,7 +39,7 @@ function salesLayout(layout: FormLayout, sales: boolean, creditNote: boolean): F
     showVatSummary: true,
     organisationFields: add(layout.organisationFields, ["name", "address", "vatNumber"]),
     partyFields: add(layout.partyFields, ["name", "address"]),
-    headerFields: add(layout.headerFields, creditNote ? ["reference", "transactionDate", "precedingReference"] : ["reference", "transactionDate"]),
+    headerFields: add(layout.headerFields, creditNote ? ["documentNumber", "transactionDate", "precedingReference"] : ["documentNumber", "transactionDate"]),
     lineColumns: add(layout.lineColumns, ["description", "quantity", "price", "tax", "amount"]),
   };
 }
@@ -70,7 +70,7 @@ export default function FormDesigner({
   const lockedOrganisation = sales ? new Set(["name", "address", "vatNumber"]) : undefined;
   const lockedParty = sales ? new Set(["name", "address"]) : undefined;
   const lockedHeader = sales
-    ? new Set(creditNote ? ["reference", "transactionDate", "precedingReference"] : ["reference", "transactionDate"])
+    ? new Set(creditNote ? ["documentNumber", "transactionDate", "precedingReference"] : ["documentNumber", "transactionDate"])
     : undefined;
   const lockedLines = sales ? new Set(["description", "quantity", "price", "tax", "amount"]) : undefined;
 

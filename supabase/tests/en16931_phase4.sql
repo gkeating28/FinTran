@@ -118,7 +118,7 @@ begin
     raise exception 'phase 4: a blank product unit was not put back to C62';
   end if;
 
-  v_invoice := public.save_purchase_invoice(jsonb_build_object(
+  v_invoice := public.save_document(jsonb_build_object(
     'transactionTypeId', current_setting('test.type'),
     'supplierId', current_setting('test.supplier'),
     'transactionDate', '2026-10-12',
@@ -138,7 +138,7 @@ begin
     raise exception 'phase 4: omitted unit or line text was % / % / %', v_unit, v_note, v_seller;
   end if;
 
-  v_draft := public.save_purchase_invoice(jsonb_build_object(
+  v_draft := public.save_document(jsonb_build_object(
     'transactionTypeId', current_setting('test.type'),
     'supplierId', current_setting('test.supplier'),
     'transactionDate', '2026-10-13',
@@ -147,7 +147,7 @@ begin
     'lines', jsonb_build_array(jsonb_build_object('description', 'Draft', 'quantity', 1, 'price', 1))
   ));
 
-  v_order := public.save_purchase_invoice(jsonb_build_object(
+  v_order := public.save_document(jsonb_build_object(
     'transactionTypeId', current_setting('test.order'),
     'supplierId', current_setting('test.supplier'),
     'transactionDate', '2026-10-14',
@@ -157,7 +157,7 @@ begin
   ));
   perform public.post_document(v_order, null);
 
-  v_other := public.save_purchase_invoice(jsonb_build_object(
+  v_other := public.save_document(jsonb_build_object(
     'transactionTypeId', current_setting('test.type2'),
     'supplierId', current_setting('test.supplier2'),
     'transactionDate', '2026-10-12',
@@ -167,7 +167,7 @@ begin
   ));
   perform public.post_document(v_other, null);
 
-  v_credit := public.save_purchase_invoice(jsonb_build_object(
+  v_credit := public.save_document(jsonb_build_object(
     'transactionTypeId', current_setting('test.credit'),
     'supplierId', current_setting('test.supplier'),
     'transactionDate', '2026-10-19',
@@ -186,7 +186,7 @@ begin
   end;
 
   begin
-    perform public.save_purchase_invoice(jsonb_build_object(
+    perform public.save_document(jsonb_build_object(
       'transactionTypeId', current_setting('test.credit'),
       'supplierId', current_setting('test.supplier'),
       'transactionDate', '2026-10-19',
@@ -204,7 +204,7 @@ begin
   end;
 
   begin
-    perform public.save_purchase_invoice(jsonb_build_object(
+    perform public.save_document(jsonb_build_object(
       'transactionTypeId', current_setting('test.credit'),
       'supplierId', current_setting('test.supplier'),
       'transactionDate', '2026-10-19',
@@ -222,7 +222,7 @@ begin
   end;
 
   begin
-    perform public.save_purchase_invoice(jsonb_build_object(
+    perform public.save_document(jsonb_build_object(
       'transactionTypeId', current_setting('test.credit'),
       'supplierId', current_setting('test.other'),
       'transactionDate', '2026-10-19',
@@ -240,7 +240,7 @@ begin
   end;
 
   begin
-    perform public.save_purchase_invoice(jsonb_build_object(
+    perform public.save_document(jsonb_build_object(
       'transactionTypeId', current_setting('test.credit'),
       'supplierId', current_setting('test.supplier'),
       'transactionDate', '2026-10-19',
@@ -270,7 +270,7 @@ begin
   end;
 
   begin
-    perform public.save_purchase_invoice(jsonb_build_object(
+    perform public.save_document(jsonb_build_object(
       'transactionTypeId', current_setting('test.type'),
       'supplierId', current_setting('test.supplier'),
       'transactionDate', '2026-10-19',
@@ -286,7 +286,7 @@ begin
       raise exception 'phase 4: line unit error was %', sqlerrm;
   end;
 
-  v_credit := public.save_purchase_invoice(jsonb_build_object(
+  v_credit := public.save_document(jsonb_build_object(
     'id', v_credit,
     'transactionTypeId', current_setting('test.credit'),
     'supplierId', current_setting('test.supplier'),
@@ -307,7 +307,7 @@ begin
   end if;
   perform public.post_document(v_credit, null);
 
-  v_credit := public.save_purchase_invoice(jsonb_build_object(
+  v_credit := public.save_document(jsonb_build_object(
     'transactionTypeId', current_setting('test.credit'),
     'supplierId', current_setting('test.supplier'),
     'transactionDate', '2026-10-20',
@@ -352,7 +352,7 @@ begin
 
   insert into public.transaction_headers (
     tenant_id, organisation_id, transaction_type_id, transaction_date,
-    supplier_name, currency_id, exchange_rate, amount_due, customer_id, status
+    party_name, currency_id, exchange_rate, amount_due, customer_id, status
   )
   values (
     current_setting('test.tenant')::uuid,
@@ -404,7 +404,7 @@ begin
   begin
     insert into public.transaction_headers (
       tenant_id, organisation_id, transaction_type_id, transaction_date,
-      supplier_name, currency_id, exchange_rate, amount_due, customer_id,
+      party_name, currency_id, exchange_rate, amount_due, customer_id,
       preceding_header_id
     )
     values (
@@ -429,7 +429,7 @@ begin
 
   insert into public.transaction_headers (
     tenant_id, organisation_id, transaction_type_id, transaction_date,
-    supplier_name, currency_id, exchange_rate, amount_due, customer_id,
+    party_name, currency_id, exchange_rate, amount_due, customer_id,
     preceding_header_id
   )
   values (
@@ -483,7 +483,7 @@ begin
     raise exception 'phase 4: a sales credit note was posted without an invoice';
   exception
     when others then
-      if sqlerrm not like '%Enter the invoice%' then
+      if sqlerrm not like '%needs the invoice%' and sqlerrm not like '%Enter the invoice%' then
         raise exception 'phase 4: sales credit error was %', sqlerrm;
       end if;
   end;
@@ -497,7 +497,7 @@ set local role authenticated;
 do $$
 begin
   begin
-    perform public.save_purchase_invoice(jsonb_build_object(
+    perform public.save_document(jsonb_build_object(
       'transactionTypeId', (select id from public.transaction_types where organisation_id = current_setting('test.org')::uuid and code = 'SI'),
       'supplierId', current_setting('test.supplier'),
       'transactionDate', '2026-10-21',
@@ -508,7 +508,7 @@ begin
     raise exception 'phase 4: a sales document was stored';
   exception
     when others then
-      if sqlerrm not like '%Purchases transaction type%' then
+      if sqlerrm not like '%cannot have a supplier%' then
         raise exception 'phase 4: sales storage error was %', sqlerrm;
       end if;
   end;
