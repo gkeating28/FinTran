@@ -39,6 +39,9 @@ export default function FormModal({
     if (fillPage) dialog.show();
     else dialog.showModal();
     dialog.querySelector<HTMLElement>("input, select, textarea")?.focus();
+    return () => {
+      if (dialog.open) dialog.close();
+    };
   }, [fillPage]);
 
   useEffect(() => {

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useActionState, useEffect, useMemo, useState } from "react";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
@@ -122,9 +123,16 @@ export default function PurchaseInvoiceManager({
   canVoid?: boolean;
   canDownload?: boolean;
 }) {
+  const pathname = usePathname();
   const [draft, setDraft] = useState<PurchaseInvoiceRow | "new" | null>(null);
   const [lines, setLines] = useState<PurchaseInvoiceLine[] | null>(null);
   const [lineError, setLineError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDraft(null);
+    setLines(null);
+    setLineError(null);
+  }, [pathname]);
 
   function edit(row: PurchaseInvoiceRow) {
     setLineError(null);

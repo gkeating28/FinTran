@@ -78,7 +78,7 @@ export default function AppTitleBar({
       <div className={styles.actions}>
         {formTitle || back ? (
           <button className={styles.exitBtn} type="button" onClick={exit}>
-            Exit
+            Back
           </button>
         ) : null}
       </div>
