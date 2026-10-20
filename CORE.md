@@ -325,7 +325,7 @@ If no row has been saved, printing uses this standard layout. The VAT summary an
 
 For a posted or void document the parties come from the snapshot taken at posting. A later change to the supplier or customer does not change that JSON.
 
-`en16931_readiness(header id)` lists gaps as `error` or `warning`. Sales errors stop posting. Purchase gaps stay warnings, apart from the credit-note rule that already requires the preceding invoice. The document page lists each gap. A party gap links to Suppliers or Organisations. A document field stays on the form. Owners and admins can download the JSON.
+`en16931_readiness(header id)` lists gaps as `error` or `warning`. Sales errors stop posting. Purchase gaps stay warnings, apart from the credit-note rule that already requires the preceding invoice. The document page and the document list show a Readiness button. It is red when there is an error, orange when there are only warnings, and green when the document is ready. The button opens the gaps. A party gap links to Suppliers or Organisations. A document field stays on the form. Owners and admins can download the JSON.
 
 ## What the screens do
 

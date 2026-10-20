@@ -198,7 +198,7 @@ export default function PurchaseInvoiceManager({
             key: "readiness",
             label: "Readiness",
             sortValue: (row) => String(row.readiness.filter((item) => item.severity === "error").length * 100 + row.readiness.length),
-            render: (row) => readinessLabel(row.readiness),
+            render: (row) => <ReadinessControl items={row.readiness} />,
           },
           {
             key: "date",
@@ -308,13 +308,67 @@ function statusLabel(status: PurchaseInvoiceRow["status"]) {
   return "Draft";
 }
 
-function readinessLabel(items: PurchaseInvoiceRow["readiness"]) {
+function readinessStatus(items: PurchaseInvoiceRow["readiness"]) {
+  if (items.some((item) => item.severity === "error")) return "error" as const;
+  if (items.length > 0) return "warning" as const;
+  return "ready" as const;
+}
+
+function readinessSummary(items: PurchaseInvoiceRow["readiness"]) {
   const errors = items.filter((item) => item.severity === "error").length;
   const warnings = items.filter((item) => item.severity === "warning").length;
-  if (errors === 0 && warnings === 0) return "Ready";
-  return [errors ? `${errors} error${errors === 1 ? "" : "s"}` : "", warnings ? `${warnings} warning${warnings === 1 ? "" : "s"}` : ""]
-    .filter(Boolean)
-    .join(", ");
+  if (errors > 0) {
+    return `${errors} error${errors === 1 ? "" : "s"}. Posting is blocked until these are fixed.`;
+  }
+  if (warnings > 0) {
+    return `${warnings} warning${warnings === 1 ? "" : "s"}. A purchase can still be posted.`;
+  }
+  return "Ready. This document has the data needed for an EN 16931 invoice.";
+}
+
+function ReadinessControl({ items }: { items: PurchaseInvoiceRow["readiness"] }) {
+  const [open, setOpen] = useState(false);
+  const status = readinessStatus(items);
+
+  return (
+    <>
+      <button
+        className={styles.readinessButton}
+        data-status={status}
+        type="button"
+        onClick={() => setOpen(true)}
+      >
+        Readiness
+      </button>
+      {open ? (
+        <FormModal title="Readiness" className={styles.readinessDialog} onClose={() => setOpen(false)}>
+          <div className={styles.readinessBody}>
+            <p className={styles.readinessSummary} data-status={status}>
+              {readinessSummary(items)}
+            </p>
+            {items.length > 0 ? (
+              <ul className={styles.readinessList}>
+                {items.map((item, index) => {
+                  const href = purchaseReadinessHref(item.businessTerm);
+                  return (
+                    <li key={`${item.ruleId}-${item.businessTerm}-${index}`} className={styles.readinessItem} data-status={item.severity}>
+                      <div className={styles.readinessRule}>{item.ruleId}</div>
+                      <p>{item.message}</p>
+                      {href ? (
+                        <Link href={href}>{href === "/suppliers" ? "Open Suppliers" : "Open Organisations"}</Link>
+                      ) : (
+                        <p className={styles.panelMeta}>Enter this on the document.</p>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
+          </div>
+        </FormModal>
+      ) : null}
+    </>
+  );
 }
 
 function InvoiceForm({
@@ -566,35 +620,15 @@ function InvoiceForm({
             {lineError}
           </p>
         ) : null}
-        {header && header.readiness.length > 0 ? (
-          <div className={`${styles.wide} ${styles.stack}`}>
-            <p className={styles.paneLabel}>Readiness</p>
-            <ul className={styles.stack}>
-              {header.readiness.map((item) => {
-                const href = purchaseReadinessHref(item.businessTerm);
-                return (
-                  <li key={`${item.ruleId}-${item.businessTerm}`}>
-                    <span className={item.severity === "error" ? styles.alert : styles.notice}>
-                      {item.ruleId}: {item.message}
-                    </span>
-                    {href ? (
-                      <>
-                        {" "}
-                        <Link href={href}>Open the record</Link>
-                      </>
-                    ) : (
-                      <span className={styles.panelMeta}> Shown on this document.</span>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
+        {header ? (
+          <div className={styles.readinessBar}>
+            <ReadinessControl items={header.readiness} />
+            {canDownload ? (
+              <a className={styles.quiet} href={`/transactions/${header.transactionTypeCode}/${header.id}/en16931`}>
+                Download EN 16931 JSON
+              </a>
+            ) : null}
           </div>
-        ) : null}
-        {header && canDownload ? (
-          <p className={styles.panelMeta}>
-            <a href={`/transactions/${header.transactionTypeCode}/${header.id}/en16931`}>Download EN 16931 JSON</a>
-          </p>
         ) : null}
         <div className={styles.invoiceSplit}>
         <div className={styles.headerPane}>
