@@ -23,14 +23,25 @@ export type PurchaseInvoiceLine = {
   sellerItemId: string;
 };
 
+export type LinkedCredit = {
+  id: string;
+  typeCode: string;
+  documentNumber: string;
+  transactionDate: string;
+  total: string;
+  status: "draft" | "posted" | "void";
+};
+
 export type PurchaseInvoiceRow = {
   id: string;
   transactionTypeId: string;
   transactionTypeCode: string;
   reference: number | null;
+  documentNumber: string;
   transactionDate: string;
   dueDate: string;
   supplierId: string;
+  customerId: string;
   supplierCode: string;
   supplierName: string;
   contactDetails: string;
@@ -69,6 +80,8 @@ export type PurchaseInvoiceRow = {
   flex4: string;
   flex5: string;
   lines: PurchaseInvoiceLine[];
+  credits: LinkedCredit[];
+  remainingAmount: string;
 };
 
 export type PurchaseTypeChoice = {
@@ -83,9 +96,18 @@ export type PurchaseTypeChoice = {
 export type CreditInvoice = {
   id: string;
   reference: number | null;
+  documentNumber: string;
   transactionDate: string;
   supplierId: string;
+  customerId: string;
+  currencyId: string;
   typeCode: string;
+};
+
+export type CreditNoteType = {
+  id: string;
+  code: string;
+  description: string;
 };
 
 export type SupplierChoice = {
@@ -94,6 +116,8 @@ export type SupplierChoice = {
   name: string;
   contactDetails: string;
   currencyId: string;
+  paymentTermsDays: string;
+  buyerReference: string;
 };
 
 export type InvoiceCurrency = {
@@ -107,8 +131,11 @@ export type InvoiceProduct = {
   code: string;
   description: string;
   purchasePrice: string;
+  salesPrice: string;
   purchaseGlCodeId: string;
+  salesGlCodeId: string;
   purchaseVatCodeId: string;
+  salesVatCodeId: string;
   unitCode: string;
 };
 
@@ -116,6 +143,7 @@ export type InvoiceCode = {
   id: string;
   code: string;
   description: string;
+  accountType?: string;
 };
 
 export type PaymentMeansChoice = {

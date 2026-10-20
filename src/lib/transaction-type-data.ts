@@ -2,6 +2,7 @@ import { getWorkspace } from "@/lib/data";
 import {
   parseDocumentKind,
   parseTransactionTypeKind,
+  type DocumentKind,
   type TransactionTypeKind,
   type TransactionTypeRow,
 } from "@/lib/transaction-types";
@@ -68,7 +69,11 @@ export type TransactionMenuTile = {
   code: string;
   description: string;
   type: TransactionTypeKind;
+  documentKind: DocumentKind;
   count: number;
+  draftCount: number;
+  postedCount: number;
+  voidCount: number;
 };
 
 export async function listTransactionMenu(): Promise<{
@@ -83,31 +88,41 @@ export async function listTransactionMenu(): Promise<{
   const [types, headers] = await Promise.all([
     supabase
       .from("transaction_types")
-      .select("id, code, description, type")
+      .select("id, code, description, type, document_kind")
       .eq("organisation_id", organisationId)
       .order("code"),
-    supabase.from("transaction_headers").select("transaction_type_id").eq("organisation_id", organisationId),
+    supabase.from("transaction_headers").select("transaction_type_id, status").eq("organisation_id", organisationId),
   ]);
 
   if (types.error || headers.error) {
     return { tiles: [], error: "Transaction types could not be loaded." };
   }
 
-  const counts = new Map<string, number>();
+  const counts = new Map<string, { draft: number; posted: number; void: number }>();
   for (const header of headers.data ?? []) {
-    counts.set(header.transaction_type_id, (counts.get(header.transaction_type_id) ?? 0) + 1);
+    const current = counts.get(header.transaction_type_id) ?? { draft: 0, posted: 0, void: 0 };
+    if (header.status === "posted") current.posted += 1;
+    else if (header.status === "void") current.void += 1;
+    else current.draft += 1;
+    counts.set(header.transaction_type_id, current);
   }
 
   const tiles = (types.data ?? []).flatMap((row) => {
     const type = parseTransactionTypeKind(row.type);
-    if (!type) return [];
+    const documentKind = parseDocumentKind(row.document_kind);
+    if (!type || !documentKind) return [];
+    const count = counts.get(row.id) ?? { draft: 0, posted: 0, void: 0 };
     return [
       {
         id: row.id,
         code: row.code,
         description: row.description,
         type,
-        count: counts.get(row.id) ?? 0,
+        documentKind,
+        draftCount: count.draft,
+        postedCount: count.posted,
+        voidCount: count.void,
+        count: count.draft + count.posted + count.void,
       },
     ];
   });

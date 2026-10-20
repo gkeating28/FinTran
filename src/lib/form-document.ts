@@ -85,6 +85,7 @@ export type FormSource = {
   lines: FormLine[];
   flexLabels: [string, string, string, string, string];
   numberLabel: string;
+  downloadName: string;
   watermark: "DRAFT" | "VOID" | null;
   vatBreakdown: { category: string; rate: string; taxable: number; vat: number; exemption: string }[];
 };
@@ -103,6 +104,7 @@ export type PrintHeader = {
 export type PrintView = {
   title: string;
   reference: string;
+  downloadName: string;
   pageSize: FormLayout["pageSize"];
   showLogo: boolean;
   logoUrl: string | null;
@@ -292,6 +294,7 @@ export function buildPrintView(layout: FormLayout, source: FormSource): PrintVie
   return {
     title: layout.title,
     reference: source.header.reference,
+    downloadName: source.downloadName,
     pageSize: layout.pageSize,
     showLogo: layout.showLogo,
     logoUrl: layout.showLogo ? organisation.logoUrl : null,
@@ -372,6 +375,7 @@ export function sampleSource(organisation: FormOrganisation, currencyCode: strin
     ],
     flexLabels: ["", "", "", "", ""],
     numberLabel: "Invoice",
+    downloadName: "1030",
     watermark: null,
     vatBreakdown: [],
   };

@@ -1,4 +1,4 @@
-import type { TransactionTypeKind } from "@/lib/transaction-types";
+import type { DocumentKind, TransactionTypeKind } from "@/lib/transaction-types";
 
 export const ORGANISATION_FIELDS = [
   "name",
@@ -191,23 +191,28 @@ export function documentNumberLabel(code: string, description: string) {
   return "Number";
 }
 
-export function defaultTitle(kind: TransactionTypeKind, description: string) {
+export function defaultTitle(kind: TransactionTypeKind, description: string, documentKind?: DocumentKind) {
+  if (kind === "Sales" && documentKind === "credit_note") return "Credit Note";
+  if (kind === "Sales" && documentKind === "invoice") return "Invoice";
   if (kind === "Sales" && /invoice/i.test(description)) return "Tax Invoice";
   const title = description.trim();
   return title || "Tax Invoice";
 }
 
-export function defaultLayout(kind: TransactionTypeKind, description: string): FormLayout {
+export function defaultLayout(kind: TransactionTypeKind, description: string, documentKind?: DocumentKind): FormLayout {
+  const salesDocument = kind === "Sales" && (documentKind === "invoice" || documentKind === "credit_note");
   return {
     version: 1,
-    title: defaultTitle(kind, description),
+    title: defaultTitle(kind, description, documentKind),
     pageSize: "A4",
     showLogo: true,
     showVatSummary: true,
     showBanking: true,
     organisationFields: ["name", "address", "phone", "contactEmail", "vatNumber"],
-    partyFields: ["contactDetails", "name", "address"],
-    headerFields: ["documentNumber", "transactionDate", "terms", "dueDate"],
+    partyFields: salesDocument ? ["name", "address", "vatNumber"] : ["contactDetails", "name", "address"],
+    headerFields: documentKind === "credit_note"
+      ? ["documentNumber", "transactionDate", "precedingReference", "dueDate"]
+      : ["documentNumber", "transactionDate", "terms", "dueDate"],
     lineColumns: ["date", "item", "description", "tax", "quantity", "price", "amount"],
   };
 }
@@ -231,8 +236,8 @@ function pageSize(value: unknown): PageSize {
   return PAGE_SIZES.includes(value as PageSize) ? (value as PageSize) : "A4";
 }
 
-export function parseLayout(value: unknown, kind: TransactionTypeKind, description: string): FormLayout {
-  const base = defaultLayout(kind, description);
+export function parseLayout(value: unknown, kind: TransactionTypeKind, description: string, documentKind?: DocumentKind): FormLayout {
+  const base = defaultLayout(kind, description, documentKind);
   if (!value || typeof value !== "object") return base;
   const record = value as Record<string, unknown>;
   const title = typeof record.title === "string" ? record.title.trim() : "";

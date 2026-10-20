@@ -13,6 +13,7 @@ import {
   type PurchaseInvoiceLine,
   type PurchaseInvoiceRow,
   type CreditInvoice,
+  type CreditNoteType,
   type PurchaseTypeChoice,
   type SupplierChoice,
 } from "@/lib/purchase-invoices";
@@ -76,6 +77,8 @@ function toPurchaseInvoiceLine(row: {
 export type PurchaseInvoiceChoices = {
   types: PurchaseTypeChoice[];
   suppliers: SupplierChoice[];
+  customers: SupplierChoice[];
+  creditNoteTypes: CreditNoteType[];
   currencies: InvoiceCurrency[];
   homeCurrencyCode: string;
   products: InvoiceProduct[];
@@ -91,6 +94,8 @@ export type PurchaseInvoiceChoices = {
 const emptyChoices: PurchaseInvoiceChoices = {
   types: [],
   suppliers: [],
+  customers: [],
+  creditNoteTypes: [],
   currencies: [],
   homeCurrencyCode: "",
   products: [],
@@ -113,12 +118,12 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
 
   const supabase = await createClient();
   const organisationId = workspace.current.organisationId;
-  const [headers, lineRows, types, suppliers, currencies, defaults, products, glCodes, departments, costCentres, vatRates, units, paymentMeans] =
+  const [headers, lineRows, types, suppliers, customers, currencies, defaults, products, glCodes, departments, costCentres, vatRates, units, paymentMeans] =
     await Promise.all([
       supabase
         .from("transaction_headers")
         .select(
-          `id, transaction_type_id, reference, document_number, transaction_date, due_date, supplier_id, party_name,
+          `id, transaction_type_id, reference, document_number, transaction_date, due_date, supplier_id, customer_id, party_name,
            contact_details, notes, currency_id, exchange_rate, order_number, supplier_reference, supply_date,
            foreign_nett_amount, foreign_vat_amount, foreign_total_amount,
            home_nett_amount, home_vat_amount, home_total_amount, paid_amount,
@@ -126,7 +131,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
            buyer_reference, contract_reference, payment_terms, invoice_period_start, invoice_period_end, payment_means_code,
            status, void_reason,
            flex1, flex2, flex3, flex4, flex5,
-           transaction_types(code, type, document_kind), suppliers(code), currencies(code),
+           transaction_types(code, type, document_kind), suppliers(code), customers(code), currencies(code),
            transaction_vat_breakdown(vat_category, vat_percentage, taxable_amount, vat_amount, exemption_code, exemption_reason)`,
         )
         .eq("organisation_id", organisationId)
@@ -144,11 +149,15 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
         .from("transaction_types")
         .select("id, code, description, last_reference, type, document_kind, flex1_label, flex2_label, flex3_label, flex4_label, flex5_label")
         .eq("organisation_id", organisationId)
-        .eq("type", "Purchases")
         .order("code"),
       supabase
         .from("suppliers")
         .select("id, code, name, contact_details, currency_id")
+        .eq("organisation_id", organisationId)
+        .order("code"),
+      supabase
+        .from("customers")
+        .select("id, code, name, contact_details, currency_id, payment_terms_days, default_buyer_reference")
         .eq("organisation_id", organisationId)
         .order("code"),
       supabase.from("currencies").select("id, code, rate").eq("organisation_id", organisationId).order("code"),
@@ -159,7 +168,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
         .maybeSingle(),
       supabase
         .from("products")
-        .select("id, code, description, purchase_price, purchase_gl_code_id, purchase_vat_code_id, unit_code")
+        .select("id, code, description, purchase_price, sales_price, purchase_gl_code_id, sales_gl_code_id, purchase_vat_code_id, sales_vat_code_id, unit_code")
         .eq("organisation_id", organisationId)
         .order("code"),
       supabase
@@ -183,6 +192,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
     lineRows.error ||
     types.error ||
     suppliers.error ||
+    customers.error ||
     currencies.error ||
     defaults.error ||
     products.error ||
@@ -196,7 +206,39 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
     return { rows: [], choices: emptyChoices, error: "Purchase invoices could not be loaded." };
   }
 
-  const typeIds = new Set((types.data ?? []).flatMap((row) => (typeCode && row.code !== typeCode.trim().toUpperCase() ? [] : [row.id])));
+  const wantedCode = typeCode?.trim().toUpperCase() ?? "";
+  const requestedType = (types.data ?? []).find((row) => row.code === wantedCode);
+  const direction = requestedType?.type === "Sales" ? "Sales" : "Purchases";
+  const typeIds = new Set(
+    (types.data ?? []).flatMap((row) => {
+      if (row.type !== direction) return [];
+      if (wantedCode && row.code !== wantedCode) return [];
+      return [row.id];
+    }),
+  );
+  const postedCreditTotals = new Map<string, number>();
+  const creditLists = new Map<string, PurchaseInvoiceRow["credits"]>();
+  for (const row of headers.data ?? []) {
+    if (!row.preceding_header_id) continue;
+    const kind = embeddedType(row.transaction_types);
+    const credit = {
+      id: row.id,
+      typeCode: kind?.code ?? "",
+      documentNumber: row.document_number ?? (row.reference == null ? "" : String(row.reference)),
+      transactionDate: row.transaction_date,
+      total: formatMoney(row.foreign_total_amount),
+      status: row.status,
+    };
+    const list = creditLists.get(row.preceding_header_id) ?? [];
+    list.push(credit);
+    creditLists.set(row.preceding_header_id, list);
+    if (row.status === "posted" && kind?.document_kind === "credit_note") {
+      postedCreditTotals.set(
+        row.preceding_header_id,
+        (postedCreditTotals.get(row.preceding_header_id) ?? 0) + Number(row.foreign_total_amount),
+      );
+    }
+  }
 
   const linesByHeader = new Map<string, PurchaseInvoiceLine[]>();
   for (const line of lineRows.data ?? []) {
@@ -212,10 +254,12 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
       transactionTypeId: row.transaction_type_id,
       transactionTypeCode: embeddedCode(row.transaction_types),
       reference: row.reference,
+      documentNumber: row.document_number ?? "",
       transactionDate: row.transaction_date,
       dueDate: row.due_date ?? "",
-      supplierId: row.supplier_id,
-      supplierCode: embeddedCode(row.suppliers),
+      supplierId: row.supplier_id ?? "",
+      customerId: row.customer_id ?? "",
+      supplierCode: embeddedCode(row.suppliers) || embeddedCode(row.customers),
       supplierName: row.party_name,
       contactDetails: row.contact_details ?? "",
       notes: row.notes ?? "",
@@ -259,6 +303,8 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
       flex4: row.flex4 ?? "",
       flex5: row.flex5 ?? "",
       lines: linesByHeader.get(row.id) ?? [],
+      credits: creditLists.get(row.id) ?? [],
+      remainingAmount: formatMoney(Math.max(0, Number(row.foreign_total_amount) - (postedCreditTotals.get(row.id) ?? 0))),
     }];
     });
 
@@ -298,8 +344,8 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
     choices: {
       types: (types.data ?? []).flatMap((row) => {
         const documentKind = parseDocumentKind(row.document_kind);
-        if (!documentKind) return [];
-        if (typeCode && row.code !== typeCode.trim().toUpperCase()) return [];
+        if (!documentKind || row.type !== direction) return [];
+        if (wantedCode && row.code !== wantedCode) return [];
         return [
           {
             id: row.id,
@@ -323,7 +369,22 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
         name: row.name,
         contactDetails: row.contact_details ?? "",
         currencyId: row.currency_id,
+        paymentTermsDays: "",
+        buyerReference: "",
       })),
+      customers: (customers.data ?? []).map((row) => ({
+        id: row.id,
+        code: row.code,
+        name: row.name,
+        contactDetails: row.contact_details ?? "",
+        currencyId: row.currency_id,
+        paymentTermsDays: row.payment_terms_days == null ? "" : String(row.payment_terms_days),
+        buyerReference: row.default_buyer_reference ?? "",
+      })),
+      creditNoteTypes: (types.data ?? []).flatMap((row) => {
+        if (row.type !== "Sales" || row.document_kind !== "credit_note") return [];
+        return [{ id: row.id, code: row.code, description: row.description }];
+      }),
       currencies: (currencies.data ?? []).map((row) => ({
         id: row.id,
         code: row.code,
@@ -335,14 +396,17 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
         code: row.code,
         description: row.description,
         purchasePrice: formatProductPrice(row.purchase_price),
+        salesPrice: formatProductPrice(row.sales_price),
         purchaseGlCodeId: row.purchase_gl_code_id,
+        salesGlCodeId: row.sales_gl_code_id,
         purchaseVatCodeId: row.purchase_vat_code_id,
+        salesVatCodeId: row.sales_vat_code_id,
         unitCode: row.unit_code,
       })),
       glCodes: (glCodes.data ?? []).flatMap((row) => {
         const accountType = parseAccountType(row.account_type);
         if (!accountType) return [];
-        return [{ id: row.id, code: row.code, description: `${row.description} (${accountType})` }];
+        return [{ id: row.id, code: row.code, description: `${row.description} (${accountType})`, accountType }];
       }),
       departments: departments.data ?? [],
       costCentres: costCentres.data ?? [],
@@ -363,13 +427,16 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
       }),
       creditInvoices: (headers.data ?? []).flatMap((row) => {
         const kind = embeddedType(row.transaction_types);
-        if (!kind || kind.type !== "Purchases" || kind.document_kind !== "invoice" || row.status !== "posted") return [];
+        if (!kind || kind.type !== direction || kind.document_kind !== "invoice" || row.status !== "posted") return [];
         return [
           {
             id: row.id,
             reference: row.reference,
+            documentNumber: row.document_number ?? "",
             transactionDate: row.transaction_date,
-            supplierId: row.supplier_id,
+            supplierId: row.supplier_id ?? "",
+            customerId: row.customer_id ?? "",
+            currencyId: row.currency_id,
             typeCode: kind.code,
           },
         ];

@@ -8,6 +8,7 @@ import FormModal from "@/components/FormModal";
 import { QuietInput, QuietTextarea } from "@/components/QuietField";
 import UnitSelect from "@/components/UnitSelect";
 import {
+  createCreditNote,
   deletePurchaseInvoice,
   postPurchaseInvoice,
   savePurchaseInvoice,
@@ -15,7 +16,7 @@ import {
   voidPurchaseInvoice,
 } from "@/lib/purchase-invoice-actions";
 import type { PurchaseInvoiceChoices } from "@/lib/purchase-invoice-data";
-import { purchaseReadinessHref } from "@/lib/en16931";
+import { readinessHref } from "@/lib/en16931";
 import { formatInteger, groupThousands, numberValue } from "@/lib/numbers";
 import { formatExchangeRate, parseCurrencyRate } from "@/lib/currencies";
 import {
@@ -40,6 +41,21 @@ function today() {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${date.getFullYear()}-${month}-${day}`;
+}
+
+function addDays(date: string, days: number) {
+  const parsed = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return "";
+  parsed.setDate(parsed.getDate() + days);
+  const month = String(parsed.getMonth() + 1).padStart(2, "0");
+  const day = String(parsed.getDate()).padStart(2, "0");
+  return `${parsed.getFullYear()}-${month}-${day}`;
+}
+
+function termsText(days: number) {
+  if (days === 0) return "Due on receipt";
+  if (days === 1) return "Payment due within 1 day";
+  return `Payment due within ${days} days`;
 }
 
 function FlexField({
@@ -110,6 +126,8 @@ export default function PurchaseInvoiceManager({
   title = "Purchase Invoices",
   summary,
   typeCode,
+  direction = "Purchases",
+  openId,
   canVoid = false,
   canDownload = false,
 }: {
@@ -120,19 +138,49 @@ export default function PurchaseInvoiceManager({
   title?: string;
   summary?: string;
   typeCode?: string;
+  direction?: "Sales" | "Purchases";
+  openId?: string;
   canVoid?: boolean;
   canDownload?: boolean;
 }) {
   const pathname = usePathname();
+  const sales = direction === "Sales";
   const [draft, setDraft] = useState<PurchaseInvoiceRow | "new" | null>(null);
   const [lines, setLines] = useState<PurchaseInvoiceLine[] | null>(null);
   const [lineError, setLineError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [partyFilter, setPartyFilter] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [readinessFilter, setReadinessFilter] = useState("");
 
   useEffect(() => {
     setDraft(null);
     setLines(null);
     setLineError(null);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!openId) return;
+    const row = rows.find((item) => item.id === openId);
+    if (!row) return;
+    setLines(row.lines);
+    setDraft(row);
+  }, [openId, rows]);
+
+  const parties = sales ? choices.customers : choices.suppliers;
+  const visibleRows = rows.filter((row) => {
+    if (statusFilter && row.status !== statusFilter) return false;
+    const partyId = sales ? row.customerId : row.supplierId;
+    if (partyFilter && partyId !== partyFilter) return false;
+    if (fromDate && row.transactionDate < fromDate) return false;
+    if (toDate && row.transactionDate > toDate) return false;
+    if (sales && readinessFilter) {
+      const status = readinessStatus(row.readiness);
+      if (status !== readinessFilter) return false;
+    }
+    return true;
+  });
 
   function edit(row: PurchaseInvoiceRow) {
     setLineError(null);
@@ -161,25 +209,51 @@ export default function PurchaseInvoiceManager({
         </p>
       ) : null}
       <DataGrid
-        rows={rows}
+        rows={visibleRows}
         searchPlaceholder={`Search ${title.toLowerCase()}`}
         searchText={(row) =>
-          `${row.transactionTypeCode} ${row.reference} ${formatInteger(row.reference)} ${row.supplierCode} ${row.supplierName} ${row.orderNumber} ${row.notes} ${statusLabel(row.status)} ${row.voidReason}`
+          `${row.transactionTypeCode} ${row.documentNumber} ${row.reference ?? ""} ${row.supplierCode} ${row.supplierName} ${row.orderNumber} ${row.notes} ${statusLabel(row.status)} ${row.voidReason}`
         }
         emptyLabel={`No ${title.toLowerCase()} yet for this organisation.`}
         minWidth="980px"
         toolbar={
-          <button
-            className={styles.primary}
-            type="button"
-            onClick={() => {
-              setLines([]);
-              setLineError(null);
-              setDraft("new");
-            }}
-          >
-            Add
-          </button>
+          <>
+            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Status">
+              <option value="">Any status</option>
+              <option value="draft">Draft</option>
+              <option value="posted">Posted</option>
+              <option value="void">Void</option>
+            </select>
+            <select value={partyFilter} onChange={(event) => setPartyFilter(event.target.value)} aria-label={sales ? "Customer" : "Supplier"}>
+              <option value="">{sales ? "Any customer" : "Any supplier"}</option>
+              {parties.map((party) => (
+                <option key={party.id} value={party.id}>
+                  {party.code}
+                </option>
+              ))}
+            </select>
+            <input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} aria-label="From date" />
+            <input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} aria-label="To date" />
+            {sales ? (
+              <select value={readinessFilter} onChange={(event) => setReadinessFilter(event.target.value)} aria-label="Readiness">
+                <option value="">Any readiness</option>
+                <option value="error">Errors</option>
+                <option value="warning">Warnings</option>
+                <option value="ready">Ready</option>
+              </select>
+            ) : null}
+            <button
+              className={styles.primary}
+              type="button"
+              onClick={() => {
+                setLines([]);
+                setLineError(null);
+                setDraft("new");
+              }}
+            >
+              Add
+            </button>
+          </>
         }
         columns={[
           {
@@ -191,10 +265,10 @@ export default function PurchaseInvoiceManager({
           },
           {
             key: "reference",
-            label: "Reference",
+            label: "Number",
             mono: true,
-            sortValue: (row) => String(row.reference),
-            render: (row) => (row.reference == null ? "Draft" : formatInteger(row.reference)),
+            sortValue: (row) => row.documentNumber || String(row.reference ?? ""),
+            render: (row) => row.documentNumber || (row.reference == null ? "Draft" : formatInteger(row.reference)),
           },
           {
             key: "status",
@@ -206,7 +280,7 @@ export default function PurchaseInvoiceManager({
             key: "readiness",
             label: "Readiness",
             sortValue: (row) => String(row.readiness.filter((item) => item.severity === "error").length * 100 + row.readiness.length),
-            render: (row) => <ReadinessControl items={row.readiness} />,
+            render: (row) => <ReadinessControl items={row.readiness} direction={direction} />,
           },
           {
             key: "date",
@@ -217,9 +291,16 @@ export default function PurchaseInvoiceManager({
           },
           {
             key: "supplier",
-            label: "Supplier",
+            label: sales ? "Customer" : "Supplier",
             sortValue: (row) => row.supplierName,
             render: (row) => `${row.supplierCode} ${row.supplierName}`,
+          },
+          {
+            key: "due",
+            label: "Due",
+            mono: true,
+            sortValue: (row) => row.dueDate,
+            render: (row) => row.dueDate,
           },
           {
             key: "currency",
@@ -252,6 +333,14 @@ export default function PurchaseInvoiceManager({
             sortValue: (row) => row.paidAmount.replace(/,/g, ""),
             render: (row) => row.paidAmount,
           },
+          {
+            key: "dueAmount",
+            label: "Amount due",
+            mono: true,
+            align: "right",
+            sortValue: (row) => row.amountDue.replace(/,/g, ""),
+            render: (row) => row.amountDue,
+          },
         ]}
         actions={(row) => (
           <>
@@ -277,7 +366,7 @@ export default function PurchaseInvoiceManager({
                     className={styles.quiet}
                     type="submit"
                     onClick={(event) => {
-                      if (!window.confirm(`Remove ${row.transactionTypeCode} ${row.reference}?`)) event.preventDefault();
+                      if (!window.confirm(`Remove ${row.transactionTypeCode} ${row.documentNumber || "draft"}?`)) event.preventDefault();
                     }}
                   >
                     Remove
@@ -301,6 +390,7 @@ export default function PurchaseInvoiceManager({
           lineError={lineError}
           choices={choices}
           typeCode={typeCode}
+          direction={direction}
           canVoid={canVoid}
           canDownload={canDownload}
           onClose={() => setDraft(null)}
@@ -322,19 +412,39 @@ function readinessStatus(items: PurchaseInvoiceRow["readiness"]) {
   return "ready" as const;
 }
 
-function readinessSummary(items: PurchaseInvoiceRow["readiness"]) {
+function readinessSummary(items: PurchaseInvoiceRow["readiness"], direction: "Sales" | "Purchases" = "Purchases") {
   const errors = items.filter((item) => item.severity === "error").length;
   const warnings = items.filter((item) => item.severity === "warning").length;
   if (errors > 0) {
     return `${errors} error${errors === 1 ? "" : "s"}. Posting is blocked until these are fixed.`;
   }
   if (warnings > 0) {
-    return `${warnings} warning${warnings === 1 ? "" : "s"}. A purchase can still be posted.`;
+    return direction === "Sales"
+      ? `${warnings} warning${warnings === 1 ? "" : "s"}.`
+      : `${warnings} warning${warnings === 1 ? "" : "s"}. A purchase can still be posted.`;
   }
   return "Ready. This document has the data needed for an EN 16931 invoice.";
 }
 
-function ReadinessControl({ items }: { items: PurchaseInvoiceRow["readiness"] }) {
+function ReadinessList({ items, direction }: { items: PurchaseInvoiceRow["readiness"]; direction: "Sales" | "Purchases" }) {
+  return (
+    <ul className={styles.readinessList}>
+      {items.map((item, index) => {
+        const href = readinessHref(item.businessTerm, direction);
+        const label = href === "/customers" ? "Open Customers" : href === "/suppliers" ? "Open Suppliers" : "Open Organisations";
+        return (
+          <li key={`${item.ruleId}-${item.businessTerm}-${index}`} className={styles.readinessItem} data-status={item.severity}>
+            <div className={styles.readinessRule}>{item.ruleId}</div>
+            <p>{item.message}</p>
+            {href ? <Link href={href}>{label}</Link> : <p className={styles.panelMeta}>Enter this on the document.</p>}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function ReadinessControl({ items, direction }: { items: PurchaseInvoiceRow["readiness"]; direction: "Sales" | "Purchases" }) {
   const [open, setOpen] = useState(false);
   const status = readinessStatus(items);
 
@@ -352,26 +462,9 @@ function ReadinessControl({ items }: { items: PurchaseInvoiceRow["readiness"] })
         <FormModal title="Readiness" className={styles.readinessDialog} onClose={() => setOpen(false)}>
           <div className={styles.readinessBody}>
             <p className={styles.readinessSummary} data-status={status}>
-              {readinessSummary(items)}
+              {readinessSummary(items, direction)}
             </p>
-            {items.length > 0 ? (
-              <ul className={styles.readinessList}>
-                {items.map((item, index) => {
-                  const href = purchaseReadinessHref(item.businessTerm);
-                  return (
-                    <li key={`${item.ruleId}-${item.businessTerm}-${index}`} className={styles.readinessItem} data-status={item.severity}>
-                      <div className={styles.readinessRule}>{item.ruleId}</div>
-                      <p>{item.message}</p>
-                      {href ? (
-                        <Link href={href}>{href === "/suppliers" ? "Open Suppliers" : "Open Organisations"}</Link>
-                      ) : (
-                        <p className={styles.panelMeta}>Enter this on the document.</p>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : null}
+            {items.length > 0 ? <ReadinessList items={items} direction={direction} /> : null}
           </div>
         </FormModal>
       ) : null}
@@ -386,6 +479,7 @@ function InvoiceForm({
   lineError,
   choices,
   typeCode,
+  direction,
   canVoid,
   canDownload,
   onClose,
@@ -396,10 +490,12 @@ function InvoiceForm({
   lineError: string | null;
   choices: PurchaseInvoiceChoices;
   typeCode?: string;
+  direction: "Sales" | "Purchases";
   canVoid: boolean;
   canDownload: boolean;
   onClose: () => void;
 }) {
+  const sales = direction === "Sales";
   const posted = header?.status === "posted";
   const voided = header?.status === "void";
   const locked = posted || voided;
@@ -411,7 +507,8 @@ function InvoiceForm({
   const [typeId, setTypeId] = useState(header?.transactionTypeId ?? choices.types[0]?.id ?? "");
   const [transactionDate, setTransactionDate] = useState(header?.transactionDate ?? today());
   const [dueDate, setDueDate] = useState(header?.dueDate ?? "");
-  const [supplierId, setSupplierId] = useState(header?.supplierId ?? "");
+  const [supplierId, setSupplierId] = useState(header ? (sales ? header.customerId : header.supplierId) : "");
+  const [termsDays, setTermsDays] = useState<number | null>(null);
   const [supplierName, setSupplierName] = useState(header?.supplierName ?? "");
   const [contactDetails, setContactDetails] = useState(header?.contactDetails ?? "");
   const [notes, setNotes] = useState(header?.notes ?? "");
@@ -456,7 +553,13 @@ function InvoiceForm({
   const homeCurrency = choices.homeCurrencyCode;
   const flexLabels = selectedType?.flexLabels ?? ["", "", "", "", ""];
   const showFlex = flexLabels.some((label) => label.trim());
-  const expenseVat = choices.vatRates.filter((rate) => rate.vatType === "Expense");
+  const lineVat = choices.vatRates.filter((rate) => rate.vatType === (sales ? "Sales" : "Expense"));
+  const glChoices = [...choices.glCodes].sort((left, right) => {
+    if (!sales) return left.code.localeCompare(right.code);
+    const rank = (code: InvoiceCode) => (code.accountType === "Income" ? 0 : 1);
+    return rank(left) - rank(right) || left.code.localeCompare(right.code);
+  });
+  const parties = sales ? choices.customers : choices.suppliers;
   const totals = useMemo(() => {
     if (locked && header) {
       return {
@@ -472,7 +575,7 @@ function InvoiceForm({
     }
     const breakdown = breakdownFromLines(
       invoiceLines.map((line) => {
-        const vat = expenseVat.find((rate) => rate.id === line.vatRateId);
+        const vat = lineVat.find((rate) => rate.id === line.vatRateId);
         return {
           nett: numberValue(line.nettAmount),
           rate: vat ? Number(vat.rate) : 0,
@@ -494,25 +597,34 @@ function InvoiceForm({
       amountDue: roundCents(foreignTotal - numberValue(paidAmount) + numberValue(roundingAmount)),
       breakdown,
     };
-  }, [exchangeRate, expenseVat, header, invoiceLines, locked, paidAmount, roundingAmount]);
+  }, [exchangeRate, lineVat, header, invoiceLines, locked, paidAmount, roundingAmount]);
 
   function chooseSupplier(id: string) {
     setSupplierId(id);
     setPrecedingHeaderId((current) => {
       const invoice = choices.creditInvoices.find((item) => item.id === current);
-      if (invoice && invoice.supplierId !== id) return "";
+      const partyId = sales ? invoice?.customerId : invoice?.supplierId;
+      if (invoice && partyId !== id) return "";
       return current;
     });
-    const supplier = choices.suppliers.find((item) => item.id === id);
+    const supplier = parties.find((item) => item.id === id);
     if (!supplier) {
       setSupplierName("");
       setContactDetails("");
       setCurrencyId("");
       setExchangeRate("");
+      setTermsDays(null);
       return;
     }
     setSupplierName(supplier.name);
     setContactDetails(supplier.contactDetails);
+    const days = supplier.paymentTermsDays === "" ? null : Number(supplier.paymentTermsDays);
+    setTermsDays(Number.isFinite(days) ? days : null);
+    if (sales && days != null && !dueDate) {
+      setDueDate(addDays(transactionDate, days));
+      if (!paymentTerms) setPaymentTerms(termsText(days));
+    }
+    if (sales && supplier.buyerReference && !buyerReference) setBuyerReference(supplier.buyerReference);
     const currency = choices.currencies.find((item) => item.id === supplier.currencyId);
     if (!currency) {
       setCurrencyId("");
@@ -527,14 +639,14 @@ function InvoiceForm({
     setPrecedingHeaderId(id);
     const invoice = choices.creditInvoices.find((item) => item.id === id);
     if (!invoice) return;
-    setPrecedingReference(invoice.reference == null ? "" : String(invoice.reference));
+    setPrecedingReference(invoice.documentNumber || (invoice.reference == null ? "" : String(invoice.reference)));
     setPrecedingDate(invoice.transactionDate);
   }
 
   function saveLine() {
     if (!lineDraft) return;
     const description = lineDraft.description.trim();
-    const vat = expenseVat.find((rate) => rate.id === lineDraft.vatRateId);
+    const vat = lineVat.find((rate) => rate.id === lineDraft.vatRateId);
     const amounts = lineAmounts(lineDraft.quantity, lineDraft.price, lineDraft.discountAmount || "0", vat?.rate ?? null);
     const lineNote = lineDraft.lineNote.trim();
     const sellerItemId = lineDraft.sellerItemId.trim();
@@ -589,15 +701,17 @@ function InvoiceForm({
   }
 
   const blocked =
-    choices.types.length === 0 || choices.suppliers.length === 0 || choices.currencies.length === 0 || lines === null;
+    choices.types.length === 0 || parties.length === 0 || choices.currencies.length === 0 || lines === null;
   const creditNote = selectedType?.documentKind === "credit_note";
   const paymentMeans =
     !paymentMeansCode || choices.paymentMeans.some((means) => means.code === paymentMeansCode)
       ? choices.paymentMeans
       : [{ code: paymentMeansCode, name: paymentMeansCode, common: false }, ...choices.paymentMeans];
-  const creditChoices = choices.creditInvoices.filter(
-    (invoice) => invoice.supplierId === supplierId && invoice.id !== header?.id,
-  );
+  const creditChoices = choices.creditInvoices.filter((invoice) => {
+    const partyId = sales ? invoice.customerId : invoice.supplierId;
+    return partyId === supplierId && invoice.id !== header?.id;
+  });
+  const showCreditNote = sales && selectedType?.documentKind === "invoice" && posted && header;
 
   return (
     <>
@@ -630,12 +744,20 @@ function InvoiceForm({
         ) : null}
         {header ? (
           <div className={styles.readinessBar}>
-            <ReadinessControl items={header.readiness} />
+            {sales ? null : <ReadinessControl items={header.readiness} direction={direction} />}
             {canDownload ? (
               <a className={styles.quiet} href={`/transactions/${header.transactionTypeCode}/${header.id}/en16931`}>
                 Download EN 16931 JSON
               </a>
             ) : null}
+          </div>
+        ) : null}
+        {header && sales ? (
+          <div className={styles.readinessBody}>
+            <p className={styles.readinessSummary} data-status={readinessStatus(header.readiness)}>
+              {readinessSummary(header.readiness, direction)}
+            </p>
+            {header.readiness.length > 0 ? <ReadinessList items={header.readiness} direction={direction} /> : null}
           </div>
         ) : null}
         <div className={styles.invoiceSplit}>
@@ -662,18 +784,34 @@ function InvoiceForm({
           </select>
         </label>
         <label className={styles.field}>
-          Reference
+          Number
           <input
             readOnly
-            value={header ? formatInteger(header.reference) : selectedType ? formatInteger(selectedType.nextReference) : ""}
-            placeholder="Assigned on save"
+            value={
+              header?.documentNumber
+                || (header?.reference == null ? "Draft" : formatInteger(header?.reference))
+            }
+            placeholder={sales ? "Assigned on posting" : "Assigned on save"}
             className={styles.mono}
           />
         </label>
         {showFlex ? <FlexField index={0} label={flexLabels[0]} value={flex[0]} disabled={locked} onChange={setFlex} /> : null}
         <label className={styles.field}>
           Transaction date
-          <QuietInput name="transaction_date" type="date" required disabled={locked} value={transactionDate} onChange={(event) => setTransactionDate(event.target.value)} />
+          <QuietInput
+            name="transaction_date"
+            type="date"
+            required
+            disabled={locked}
+            value={transactionDate}
+            onChange={(event) => {
+              const next = event.target.value;
+              if (termsDays != null && dueDate === addDays(transactionDate, termsDays)) {
+                setDueDate(addDays(next, termsDays));
+              }
+              setTransactionDate(next);
+            }}
+          />
         </label>
         <label className={styles.field}>
           Due date
@@ -681,10 +819,10 @@ function InvoiceForm({
         </label>
         {showFlex ? <FlexField index={1} label={flexLabels[1]} value={flex[1]} disabled={locked} onChange={setFlex} /> : null}
         <label className={styles.field}>
-          Supplier code
-          <select name="supplier_id" required autoComplete="off" value={supplierId} disabled={locked} onChange={(event) => chooseSupplier(event.target.value)}>
-            <option value="">Choose a supplier</option>
-            {choices.suppliers.map((supplier) => (
+          {sales ? "Customer code" : "Supplier code"}
+          <select name={sales ? "customer_id" : "supplier_id"} required autoComplete="off" value={supplierId} disabled={locked} onChange={(event) => chooseSupplier(event.target.value)}>
+            <option value="">{sales ? "Choose a customer" : "Choose a supplier"}</option>
+            {parties.map((supplier) => (
               <option key={supplier.id} value={supplier.id}>
                 {supplier.code} — {supplier.name}
               </option>
@@ -692,13 +830,15 @@ function InvoiceForm({
           </select>
         </label>
         <label className={styles.field}>
-          Supplier name
+          {sales ? "Customer name" : "Supplier name"}
           <QuietInput name="party_name" required maxLength={200} disabled={locked} value={supplierName} onChange={(event) => setSupplierName(event.target.value)} />
         </label>
+        {sales ? null : (
         <label className={styles.field}>
           Supplier invoice no.
           <QuietInput name="supplier_reference" maxLength={60} disabled={locked} value={supplierReference} onChange={(event) => setSupplierReference(event.target.value)} />
         </label>
+        )}
         <label className={styles.field}>
           Supply date
           <QuietInput name="supply_date" type="date" disabled={locked} value={supplyDate} onChange={(event) => setSupplyDate(event.target.value)} />
@@ -710,7 +850,7 @@ function InvoiceForm({
           <input
             readOnly
             value={choices.currencies.find((currency) => currency.id === currencyId)?.code ?? ""}
-            placeholder="From the supplier"
+            placeholder={sales ? "From the customer" : "From the supplier"}
             className={styles.mono}
           />
         </label>
@@ -828,7 +968,7 @@ function InvoiceForm({
               />
             </label>
             <p className={`${styles.panelMeta} ${styles.wide}`}>
-              A credit note needs the invoice it applies to before it can be posted. Choose a posted invoice for this supplier, or type the reference and date.
+              A credit note needs the invoice it applies to before it can be posted. Choose a posted invoice for this {sales ? "customer" : "supplier"}, or type the reference and date.
             </p>
           </>
         ) : null}
@@ -1045,13 +1185,58 @@ function InvoiceForm({
         </div>
         </div>
         {choices.types.length === 0 ? (
-          <p className={`${styles.panelMeta} ${styles.wide}`}>Add a Purchases transaction type before saving an invoice.</p>
+          <p className={`${styles.panelMeta} ${styles.wide}`}>Add a {sales ? "Sales" : "Purchases"} transaction type before saving a document.</p>
         ) : null}
-        {choices.suppliers.length === 0 ? (
-          <p className={`${styles.panelMeta} ${styles.wide}`}>Add a supplier before saving an invoice.</p>
+        {parties.length === 0 ? (
+          <p className={`${styles.panelMeta} ${styles.wide}`}>Add a {sales ? "customer" : "supplier"} before saving a document.</p>
+        ) : null}
+        {showCreditNote ? (
+          <div className={`${styles.wide} ${styles.amountBox}`}>
+            <p>Remaining that can be credited: {header.remainingAmount}</p>
+            {header.credits.length > 0 ? (
+              <ul>
+                {header.credits.map((credit) => (
+                  <li key={credit.id}>
+                    <Link href={`/transactions/${credit.typeCode}?open=${credit.id}`}>
+                      {credit.typeCode} {credit.documentNumber || credit.transactionDate}
+                    </Link>
+                    {" "}· {credit.status} · {credit.total}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className={styles.panelMeta}>No credit notes yet.</p>
+            )}
+            {choices.creditNoteTypes.length === 0 ? (
+              <p className={styles.panelMeta}>
+                This organisation has no sales credit note type. <Link href="/transaction-types">Add one</Link> before raising a credit note.
+              </p>
+            ) : (
+              <form action={createCreditNote}>
+                <input type="hidden" name="id" value={header.id} />
+                {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
+                {choices.creditNoteTypes.length > 1 ? (
+                  <label className={styles.field}>
+                    Credit note type
+                    <select name="credit_type_id" required defaultValue="">
+                      <option value="">Choose a type</option>
+                      {choices.creditNoteTypes.map((type) => (
+                        <option key={type.id} value={type.id}>
+                          {type.code} — {type.description}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : (
+                  <input type="hidden" name="credit_type_id" value={choices.creditNoteTypes[0]?.id ?? ""} />
+                )}
+                <button className={styles.primary} type="submit">Create credit note</button>
+              </form>
+            )}
+          </div>
         ) : null}
       </form>
-      {posted && canVoid ? (
+      {posted && canVoid && !sales ? (
         <form className={styles.voidBar} action={voidPurchaseInvoice} autoComplete="off">
           <input type="hidden" name="id" value={header.id} />
           {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
@@ -1081,10 +1266,11 @@ function InvoiceForm({
         draft={lineDraft}
         products={choices.products}
         units={choices.units}
-        glCodes={choices.glCodes}
+        glCodes={glChoices}
         departments={choices.departments}
         costCentres={choices.costCentres}
-        vatRates={expenseVat}
+        vatRates={lineVat}
+        sales={sales}
         readOnly={locked}
         message={lineMessage}
         onChange={setLineDraft}
@@ -1107,8 +1293,11 @@ function choicesWithCurrent(products: InvoiceProduct[], id: string, code: string
       code: code || id,
       description,
       purchasePrice: "",
+      salesPrice: "",
       purchaseGlCodeId: "",
+      salesGlCodeId: "",
       purchaseVatCodeId: "",
+      salesVatCodeId: "",
       unitCode: "",
     },
     ...products,
@@ -1128,6 +1317,7 @@ function LineEditor({
   departments,
   costCentres,
   vatRates,
+  sales = false,
   readOnly = false,
   message,
   onChange,
@@ -1141,6 +1331,7 @@ function LineEditor({
   departments: InvoiceCode[];
   costCentres: InvoiceCode[];
   vatRates: InvoiceVat[];
+  sales?: boolean;
   readOnly?: boolean;
   message: string | null;
   onChange: (line: PurchaseInvoiceLine) => void;
@@ -1153,10 +1344,10 @@ function LineEditor({
       ...draft,
       productId: id,
       description: product?.description ?? draft.description,
-      price: product?.purchasePrice ?? draft.price,
+      price: (sales ? product?.salesPrice : product?.purchasePrice) ?? draft.price,
       unitCode: product?.unitCode || draft.unitCode || "C62",
-      glCodeId: product?.purchaseGlCodeId ?? draft.glCodeId,
-      vatRateId: product?.purchaseVatCodeId ?? draft.vatRateId,
+      glCodeId: (sales ? product?.salesGlCodeId : product?.purchaseGlCodeId) ?? draft.glCodeId,
+      vatRateId: (sales ? product?.salesVatCodeId : product?.purchaseVatCodeId) ?? draft.vatRateId,
     });
   }
 
@@ -1205,6 +1396,7 @@ function LineEditor({
         Unit
         <UnitSelect units={unitChoices} value={draft.unitCode || "C62"} disabled={readOnly} onChange={(unitCode) => onChange({ ...draft, unitCode })} />
       </label>
+      {sales ? null : (
       <label className={styles.field}>
         Seller item
         <QuietInput
@@ -1215,6 +1407,7 @@ function LineEditor({
           placeholder="Supplier's item code"
         />
       </label>
+      )}
       <label className={`${styles.field} ${styles.wide}`}>
         Line note
         <QuietTextarea

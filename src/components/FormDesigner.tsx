@@ -174,7 +174,7 @@ export default function FormDesigner({
             <button
               className={styles.quiet}
               type="button"
-              onClick={() => setLayout(defaultLayout(type.kind, type.description))}
+              onClick={() => setLayout(defaultLayout(type.kind, type.description, type.documentKind))}
             >
               Standard
             </button>

@@ -341,10 +341,10 @@ For a posted or void document the parties come from the snapshot taken at postin
 | Organisations | `organisations`, `organisation_defaults`, `currencies`, and the logo bucket |
 | Access | `organisation_access`, `profiles` |
 | Customers and suppliers | `customers`, `suppliers`, `currencies` |
-| Transactions menu | `transaction_types`, with a count from `transaction_headers` |
-| Purchase invoice, order, and return pages | `transaction_headers`, `transaction_lines`, plus the lookups above. Drafts can be posted. Owners and admins can void a posted document |
+| Transactions menu | `transaction_types`, with draft, posted, and void counts from `transaction_headers` |
+| Purchase and sales document pages | `transaction_headers`, `transaction_lines`, plus the lookups above. The same form follows the type's direction. Drafts can be posted. Owners and admins can void a posted purchase. A posted sales invoice can raise a credit note |
 | Change history | `audit_log`, for owners and admins |
 | Forms | `transaction_forms` and `transaction_types` |
 | Print and PDF | The saved form, or the standard layout, filled from the organisation, the supplier, and one header with its lines |
 
-Purchase pages share one entry form. The transaction type is fixed on that page, so each type keeps its own reference sequence and flex labels. The supplier is required. Currency is taken from the supplier and shown read-only.
+Purchase and sales pages share one entry form. The transaction type is fixed on that page, so each type keeps its own reference sequence and flex labels. A purchase uses a supplier. A sale uses a customer. Currency is taken from that party and shown read-only. A posted sales invoice lists its credit notes and the amount still available to credit. Sales orders are not entered.

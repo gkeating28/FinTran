@@ -101,7 +101,8 @@ function documentFrom(formData: FormData) {
   const transactionTypeId = parseUuid(text(formData, "transaction_type_id"));
   const transactionDate = parseInvoiceDate(text(formData, "transaction_date"));
   const dueDate = text(formData, "due_date").trim();
-  const supplierId = parseUuid(text(formData, "supplier_id"));
+  const supplierId = text(formData, "supplier_id").trim();
+  const customerId = text(formData, "customer_id").trim();
   const supplierName = text(formData, "party_name").trim();
   const currencyId = parseUuid(text(formData, "currency_id"));
   const exchangeRate = parseExchangeRate(text(formData, "exchange_rate"));
@@ -124,11 +125,13 @@ function documentFrom(formData: FormData) {
   const flex = [1, 2, 3, 4, 5].map((number) => optionalText(text(formData, `flex${number}`), 200));
   const lines = linesFrom(text(formData, "lines"));
 
-  if (!transactionTypeId) return { error: "Choose a Purchases transaction type." } as const;
+  if (!transactionTypeId) return { error: "Choose a transaction type." } as const;
   if (!transactionDate) return { error: "Enter the transaction date." } as const;
   if (dueDate && !parseInvoiceDate(dueDate)) return { error: "Enter a valid due date, or leave it blank." } as const;
-  if (!supplierId) return { error: "Choose a supplier." } as const;
-  if (supplierName.length > 200) return { error: "Supplier name can be up to 200 characters." } as const;
+  if (!supplierId && !customerId) return { error: "Choose a supplier or customer." } as const;
+  if (supplierId && !parseUuid(supplierId)) return { error: "Choose a supplier from this organisation." } as const;
+  if (customerId && !parseUuid(customerId)) return { error: "Choose a customer from this organisation." } as const;
+  if (supplierName.length > 200) return { error: "The name can be up to 200 characters." } as const;
   if (!currencyId) return { error: "Choose a currency." } as const;
   if (!exchangeRate) return { error: "Enter an exchange rate greater than 0." } as const;
   if (!paidAmount) return { error: "Enter a paid amount of 0 or more." } as const;
@@ -188,6 +191,7 @@ function documentFrom(formData: FormData) {
     transactionDate,
     dueDate,
     supplierId,
+    customerId,
     supplierName,
     contactDetails,
     notes,
@@ -242,6 +246,7 @@ export async function savePurchaseInvoice(_state: ActionState, formData: FormDat
       transactionDate: document.transactionDate,
       dueDate: document.dueDate,
       supplierId: document.supplierId,
+      customerId: document.customerId,
       partyName: document.supplierName,
       contactDetails: document.contactDetails,
       notes: document.notes,
@@ -355,6 +360,85 @@ export async function updatePaidAmount(_state: ActionState, formData: FormData):
   revalidatePath("/transactions");
   revalidatePath("/transactions/[code]", "page");
   return { message: "Paid amount saved." };
+}
+
+export async function createCreditNote(formData: FormData) {
+  const invoiceId = parseUuid(text(formData, "id"));
+  const requestedType = text(formData, "credit_type_id").trim();
+  const next = returnPath(formData);
+  if (!invoiceId) redirect(next);
+
+  await currentOrganisation();
+  const workspace = await getWorkspace();
+  if (workspace.status !== "ready") redirect("/login");
+  const supabase = await createClient();
+  const invoice = await supabase
+    .from("transaction_headers")
+    .select(
+      `id, customer_id, currency_id, document_number, reference, transaction_date, exchange_rate,
+       transaction_types(type, document_kind),
+       transaction_lines(line_number, product_id, description, gl_code_id, department_id, cost_centre_id, vat_rate_id, quantity, price, discount_amount, unit_code, line_note)`,
+    )
+    .eq("id", invoiceId)
+    .eq("organisation_id", workspace.current.organisationId)
+    .maybeSingle();
+  if (invoice.error || !invoice.data) {
+    redirect(`${next}?error=${encodeURIComponent("That invoice could not be credited.")}`);
+  }
+  const kind = Array.isArray(invoice.data.transaction_types) ? invoice.data.transaction_types[0] : invoice.data.transaction_types;
+  if (!kind || kind.type !== "Sales" || kind.document_kind !== "invoice") {
+    redirect(`${next}?error=${encodeURIComponent("Only a posted sales invoice can be credited from here.")}`);
+  }
+
+  const types = await supabase
+    .from("transaction_types")
+    .select("id, code, document_kind, type")
+    .eq("organisation_id", workspace.current.organisationId)
+    .eq("type", "Sales")
+    .eq("document_kind", "credit_note")
+    .order("code");
+  const creditTypes = types.data ?? [];
+  if (creditTypes.length === 0) {
+    redirect(`${next}?error=${encodeURIComponent("Add a sales credit note type before raising a credit note.")}`);
+  }
+  const chosen = creditTypes.find((type) => type.id === requestedType) ?? (creditTypes.length === 1 ? creditTypes[0] : null);
+  if (!chosen) {
+    redirect(`${next}?error=${encodeURIComponent("Choose which sales credit note type to use.")}`);
+  }
+
+  const lines = [...(invoice.data.transaction_lines ?? [])].sort((left, right) => left.line_number - right.line_number);
+  const { data, error } = await supabase.rpc("save_document", {
+    p_document: {
+      transactionTypeId: chosen.id,
+      customerId: invoice.data.customer_id,
+      currencyId: invoice.data.currency_id,
+      exchangeRate: invoice.data.exchange_rate,
+      transactionDate: new Date().toISOString().slice(0, 10),
+      precedingHeaderId: invoice.data.id,
+      precedingReference: invoice.data.document_number || (invoice.data.reference == null ? "" : String(invoice.data.reference)),
+      precedingDate: invoice.data.transaction_date,
+      lines: lines.map((line) => ({
+        productId: line.product_id,
+        description: line.description,
+        glCodeId: line.gl_code_id,
+        departmentId: line.department_id,
+        costCentreId: line.cost_centre_id,
+        vatRateId: line.vat_rate_id,
+        quantity: line.quantity,
+        price: line.price,
+        discountAmount: line.discount_amount,
+        unitCode: line.unit_code,
+        lineNote: line.line_note,
+      })),
+    },
+  });
+  if (error || !data) {
+    redirect(`${next}?error=${encodeURIComponent(friendlyError(error, "The credit note could not be created."))}`);
+  }
+
+  revalidatePath("/transactions");
+  revalidatePath("/transactions/[code]", "page");
+  redirect(`/transactions/${chosen.code}?open=${data}`);
 }
 
 export async function deletePurchaseInvoice(formData: FormData) {

@@ -7,9 +7,9 @@ import { getWorkspace } from "@/lib/data";
 import PdfButton from "./PdfButton";
 import PrintButton from "./PrintButton";
 
-function pdfFileName(title: string, reference: string) {
-  const name = `${title} ${reference}`.replace(/[\\/:*?"<>|]+/g, "").replace(/\s+/g, " ").trim();
-  return `${name || "Document"}.pdf`;
+function pdfFileName(stem: string) {
+  const name = stem.replace(/[\\/:*?"<>|]+/g, "").replace(/\s+/g, " ").trim();
+  return `${name || "document"}.pdf`;
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ code: string; id: string }> }) {
@@ -43,7 +43,7 @@ export default async function PrintDocumentPage({ params }: { params: Promise<{ 
         <PrintButton />
         <PdfButton
           pageSize={loaded.view.pageSize}
-          fileName={pdfFileName(loaded.view.title, loaded.view.reference)}
+          fileName={pdfFileName(loaded.view.downloadName)}
         />
       </div>
       <PrintedForm view={loaded.view} />

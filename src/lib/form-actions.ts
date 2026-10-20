@@ -27,7 +27,7 @@ export async function saveTransactionForm(_state: ActionState, formData: FormDat
   } catch {
     return { error: "That form could not be saved." };
   }
-  const layout = parseLayout(parsed, loaded.type.kind, loaded.type.description);
+  const layout = parseLayout(parsed, loaded.type.kind, loaded.type.description, loaded.type.documentKind);
   if (!layout.title.trim()) return { error: "Enter a document title." };
   if (layout.lineColumns.length === 0) return { error: "Choose at least one line column." };
 

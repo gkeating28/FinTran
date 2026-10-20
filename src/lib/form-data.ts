@@ -22,7 +22,7 @@ import { parseTransactionTypeKind, type TransactionTypeKind } from "@/lib/transa
 import { createClient } from "@/lib/supabase/server";
 
 const HEADER_SELECT = `
-  id, status, reference, document_number, transaction_date, due_date, party_name, contact_details,
+  id, status, reference, document_number, transaction_date, due_date, party_name, customer_id, contact_details,
   exchange_rate, order_number, supplier_reference, supply_date, buyer_reference, contract_reference, payment_terms,
   invoice_period_start, invoice_period_end, preceding_reference, preceding_date,
   foreign_nett_amount, foreign_vat_amount, foreign_total_amount, paid_amount,
@@ -30,6 +30,7 @@ const HEADER_SELECT = `
   transaction_vat_breakdown(vat_category, vat_percentage, taxable_amount, vat_amount, exemption_code, exemption_reason),
   currencies(code),
   suppliers(code, name, phone, email, website, address_line1, address_line2, address_line3, city, post_code, county, country_code, contact_details, vat_number, company_number, peppol_scheme, peppol_id, ref_countries(name)),
+  customers(code, name, phone, email, website, address_line1, address_line2, address_line3, city, post_code, county, country_code, contact_details, vat_number, company_number, peppol_scheme, peppol_id, ref_countries(name)),
   transaction_lines(
     line_number, description, quantity, price, discount_amount, nett_amount, vat_amount, vat_percentage, unit_code, line_note,
     products(code, description),
@@ -148,7 +149,9 @@ function organisationFromSnapshot(snapshot: Loose, organisationId: string): Form
     companyNumber: snapshotText(snapshot, "companyNumber"),
     peppolId: [snapshotText(snapshot, "peppolScheme"), snapshotText(snapshot, "peppolId")].filter(Boolean).join(" "),
     country: snapshotText(snapshot, "countryName") || snapshotText(snapshot, "countryCode"),
-    bankingDetails: snapshotText(snapshot, "bankingDetails"),
+    bankingDetails:
+      snapshotText(snapshot, "bankingDetails")
+      || [snapshotText(snapshot, "iban"), snapshotText(snapshot, "bic"), snapshotText(snapshot, "bankAccountName")].filter(Boolean).join("\n"),
     logoUrl: logoPath ? organisationObjectUrl(organisationId, logoPath, logoPath) : null,
   };
 }
@@ -163,6 +166,8 @@ function sourceFromHeader(row: Loose, type: FormType, organisation: FormOrganisa
     ? (row.party_snapshot as Loose)
     : null;
   const supplier = one(row.suppliers as Loose | Loose[] | null);
+  const customer = one(row.customers as Loose | Loose[] | null);
+  const liveParty = type.kind === "Sales" ? customer : supplier;
   const currency = one(row.currencies as { code?: string } | { code?: string }[] | null);
   const rawLines = row.transaction_lines;
   const lineRows = (Array.isArray(rawLines) ? rawLines : rawLines ? [rawLines] : []) as Loose[];
@@ -213,27 +218,27 @@ function sourceFromHeader(row: Loose, type: FormType, organisation: FormOrganisa
           vatNumber: snapshotText(partySnapshot, "vatNumber"),
         }
       : {
-          code: text(supplier?.code),
-          name: text(row.party_name) || text(supplier?.name),
+          code: text(liveParty?.code),
+          name: text(row.party_name) || text(liveParty?.name),
           address: formatPostalAddress({
-            line1: text(supplier?.address_line1),
-            line2: text(supplier?.address_line2),
-            line3: text(supplier?.address_line3),
-            city: text(supplier?.city),
-            county: text(supplier?.county),
-            postCode: text(supplier?.post_code),
-            countryName: text(one(supplier?.ref_countries as { name?: string } | { name?: string }[] | null)?.name) || text(supplier?.country_code),
+            line1: text(liveParty?.address_line1),
+            line2: text(liveParty?.address_line2),
+            line3: text(liveParty?.address_line3),
+            city: text(liveParty?.city),
+            county: text(liveParty?.county),
+            postCode: text(liveParty?.post_code),
+            countryName: text(one(liveParty?.ref_countries as { name?: string } | { name?: string }[] | null)?.name) || text(liveParty?.country_code),
           }),
-          contactDetails: text(row.contact_details) || text(supplier?.contact_details),
-          phone: text(supplier?.phone),
-          email: text(supplier?.email),
-          website: text(supplier?.website),
-          peppolId: [text(supplier?.peppol_scheme), text(supplier?.peppol_id)].filter(Boolean).join(" "),
-          country: text(one(supplier?.ref_countries as { name?: string } | { name?: string }[] | null)?.name) || text(supplier?.country_code),
-          vatNumber: text(supplier?.vat_number),
+          contactDetails: text(row.contact_details) || text(liveParty?.contact_details),
+          phone: text(liveParty?.phone),
+          email: text(liveParty?.email),
+          website: text(liveParty?.website),
+          peppolId: [text(liveParty?.peppol_scheme), text(liveParty?.peppol_id)].filter(Boolean).join(" "),
+          country: text(one(liveParty?.ref_countries as { name?: string } | { name?: string }[] | null)?.name) || text(liveParty?.country_code),
+          vatNumber: text(liveParty?.vat_number),
         },
     header: {
-      reference: text(row.reference) ? formatInteger(text(row.reference)) : "Draft",
+      reference: text(row.reference) ? formatInteger(text(row.reference)) : "",
       documentNumber: text(row.document_number),
       transactionDate: text(row.transaction_date),
       dueDate: text(row.due_date),
@@ -256,6 +261,7 @@ function sourceFromHeader(row: Loose, type: FormType, organisation: FormOrganisa
     lines,
     flexLabels: type.flexLabels,
     numberLabel: documentNumberLabel(type.code, type.description),
+    downloadName: text(row.document_number) || `draft-${text(row.id)}`,
     watermark: status === "void" ? "VOID" : status === "posted" ? null : row.id ? "DRAFT" : null,
     vatBreakdown: (Array.isArray(row.transaction_vat_breakdown) ? row.transaction_vat_breakdown : []).map((item) => ({
       category: text(item.vat_category),
@@ -324,9 +330,9 @@ async function savedLayout(organisationId: string, type: FormType) {
     .eq("organisation_id", organisationId)
     .eq("transaction_type_id", type.id)
     .maybeSingle();
-  if (error) return { layout: defaultLayout(type.kind, type.description), custom: false, error: "The form layout could not be loaded." };
-  if (!data) return { layout: defaultLayout(type.kind, type.description), custom: false, error: null };
-  return { layout: parseLayout(data.layout, type.kind, type.description), custom: true, error: null };
+  if (error) return { layout: defaultLayout(type.kind, type.description, type.documentKind), custom: false, error: "The form layout could not be loaded." };
+  if (!data) return { layout: defaultLayout(type.kind, type.description, type.documentKind), custom: false, error: null };
+  return { layout: parseLayout(data.layout, type.kind, type.description, type.documentKind), custom: true, error: null };
 }
 
 export async function loadFormDesigner(code: string): Promise<{

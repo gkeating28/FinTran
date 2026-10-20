@@ -4,6 +4,7 @@ import styles from "@/components/OpsPage.module.css";
 import { getWorkspace } from "@/lib/data";
 import { formatInteger } from "@/lib/numbers";
 import { listTransactionMenu, type TransactionMenuTile } from "@/lib/transaction-type-data";
+import { documentKindLabel } from "@/lib/transaction-types";
 
 export const metadata = { title: "Transactions" };
 
@@ -58,7 +59,10 @@ function TransactionGroup({ title, tiles }: { title: string; tiles: TransactionM
               <span className={styles.adminTileLabel}>{tile.description}</span>
               <span className={styles.adminTileCount}>{formatInteger(tile.count)}</span>
               <span className={styles.adminTileMeta}>
-                {tile.code} · {tile.count === 1 ? "invoice" : "invoices"}
+                {tile.code} · {documentKindLabel(tile.documentKind)}
+              </span>
+              <span className={styles.adminTileMeta}>
+                {formatInteger(tile.draftCount)} draft · {formatInteger(tile.postedCount)} posted · {formatInteger(tile.voidCount)} void
               </span>
             </a>
           ))}
