@@ -58,8 +58,10 @@ export default function SchemeLookup({
       const top = below ? buttonRect.bottom + 4 : Math.max(limitTop, buttonRect.top - maxHeight - 4);
       const origin = dialog?.getBoundingClientRect();
       const pad = 16;
-      const width = dialog ? Math.max(buttonRect.width, dialog.clientWidth - pad * 2) : Math.max(buttonRect.width, 720);
-      const left = dialog ? pad + dialog.scrollLeft : buttonRect.left;
+      const width = Math.max(buttonRect.width, 280);
+      const left = dialog && origin
+        ? Math.min(Math.max(pad, buttonRect.left - origin.left), Math.max(pad, dialog.clientWidth - width - pad))
+        : buttonRect.left;
       setPlace({
         top: dialog && origin ? top - origin.top + dialog.scrollTop : top,
         left,

@@ -181,7 +181,8 @@ function OrganisationForm({
 
   return (
     <FormModal title={`Edit ${organisation.name}`} onClose={onClose} fillPage>
-      <form className={`${styles.modalForm} ${styles.partyForm}`} action={action} autoComplete="off" noValidate>
+      <div className={styles.modalForm}>
+      <form className={styles.partyForm} action={action} autoComplete="off" noValidate>
         <input type="hidden" name="organisation_id" value={organisation.id} />
         <div className={`${styles.field} ${styles.wide}`}>
           <label htmlFor={logoInputId}>Logo</label>
@@ -375,6 +376,7 @@ function OrganisationForm({
         </div>
       </form>
       {organisation.role === "owner" ? <DeleteOrganisationForm organisation={organisation} /> : null}
+      </div>
     </FormModal>
   );
 }
@@ -384,7 +386,7 @@ function DeleteOrganisationForm({ organisation }: { organisation: OrganisationGr
   const [confirmation, setConfirmation] = useState("");
 
   return (
-    <form className={`${styles.modalForm} ${styles.voidBar}`} action={action} autoComplete="off" noValidate>
+    <form className={styles.voidBar} action={action} autoComplete="off" noValidate>
       <input type="hidden" name="organisationId" value={organisation.id} />
       <input type="hidden" name="organisationName" value={organisation.name} />
       {state.error ? (

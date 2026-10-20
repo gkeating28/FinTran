@@ -492,6 +492,10 @@
   overflow: auto;
 }
 
+.pageDialog .partyForm {
+  align-content: start;
+}
+
 .pageDialog .documentFields {
   flex: 1;
   min-height: 0;
