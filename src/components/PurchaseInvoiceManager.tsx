@@ -744,20 +744,12 @@ function InvoiceForm({
         ) : null}
         {header ? (
           <div className={styles.readinessBar}>
-            {sales ? null : <ReadinessControl items={header.readiness} direction={direction} />}
+            <ReadinessControl items={header.readiness} direction={direction} />
             {canDownload ? (
               <a className={styles.quiet} href={`/transactions/${header.transactionTypeCode}/${header.id}/en16931`}>
                 Download EN 16931 JSON
               </a>
             ) : null}
-          </div>
-        ) : null}
-        {header && sales ? (
-          <div className={styles.readinessBody}>
-            <p className={styles.readinessSummary} data-status={readinessStatus(header.readiness)}>
-              {readinessSummary(header.readiness, direction)}
-            </p>
-            {header.readiness.length > 0 ? <ReadinessList items={header.readiness} direction={direction} /> : null}
           </div>
         ) : null}
         <div className={styles.invoiceSplit}>
