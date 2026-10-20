@@ -60,6 +60,7 @@ export type PurchaseInvoiceRow = {
   invoicePeriodEnd: string;
   paymentMeansCode: string;
   breakdown: VatBreakdownRow[];
+  readiness: ReadinessItem[];
   status: "draft" | "posted" | "void";
   voidReason: string;
   flex1: string;
@@ -128,6 +129,13 @@ export type InvoiceVat = InvoiceCode & {
   vatType: string;
   vatCategory: string;
   exemptionReason: string;
+};
+
+export type ReadinessItem = {
+  ruleId: string;
+  severity: "error" | "warning";
+  businessTerm: string;
+  message: string;
 };
 
 export type VatBreakdownRow = {

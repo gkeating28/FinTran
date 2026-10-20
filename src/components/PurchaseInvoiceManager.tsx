@@ -14,6 +14,7 @@ import {
   voidPurchaseInvoice,
 } from "@/lib/purchase-invoice-actions";
 import type { PurchaseInvoiceChoices } from "@/lib/purchase-invoice-data";
+import { purchaseReadinessHref } from "@/lib/en16931";
 import { formatInteger, groupThousands, numberValue } from "@/lib/numbers";
 import { formatExchangeRate, parseCurrencyRate } from "@/lib/currencies";
 import {
@@ -109,6 +110,7 @@ export default function PurchaseInvoiceManager({
   summary,
   typeCode,
   canVoid = false,
+  canDownload = false,
 }: {
   rows: PurchaseInvoiceRow[];
   choices: PurchaseInvoiceChoices;
@@ -118,6 +120,7 @@ export default function PurchaseInvoiceManager({
   summary?: string;
   typeCode?: string;
   canVoid?: boolean;
+  canDownload?: boolean;
 }) {
   const [draft, setDraft] = useState<PurchaseInvoiceRow | "new" | null>(null);
   const [lines, setLines] = useState<PurchaseInvoiceLine[] | null>(null);
@@ -190,6 +193,12 @@ export default function PurchaseInvoiceManager({
             label: "Status",
             sortValue: (row) => row.status,
             render: (row) => statusLabel(row.status),
+          },
+          {
+            key: "readiness",
+            label: "Readiness",
+            sortValue: (row) => String(row.readiness.filter((item) => item.severity === "error").length * 100 + row.readiness.length),
+            render: (row) => readinessLabel(row.readiness),
           },
           {
             key: "date",
@@ -285,6 +294,7 @@ export default function PurchaseInvoiceManager({
           choices={choices}
           typeCode={typeCode}
           canVoid={canVoid}
+          canDownload={canDownload}
           onClose={() => setDraft(null)}
         />
       ) : null}
@@ -298,6 +308,15 @@ function statusLabel(status: PurchaseInvoiceRow["status"]) {
   return "Draft";
 }
 
+function readinessLabel(items: PurchaseInvoiceRow["readiness"]) {
+  const errors = items.filter((item) => item.severity === "error").length;
+  const warnings = items.filter((item) => item.severity === "warning").length;
+  if (errors === 0 && warnings === 0) return "Ready";
+  return [errors ? `${errors} error${errors === 1 ? "" : "s"}` : "", warnings ? `${warnings} warning${warnings === 1 ? "" : "s"}` : ""]
+    .filter(Boolean)
+    .join(", ");
+}
+
 function InvoiceForm({
   title,
   header,
@@ -306,6 +325,7 @@ function InvoiceForm({
   choices,
   typeCode,
   canVoid,
+  canDownload,
   onClose,
 }: {
   title: string;
@@ -315,6 +335,7 @@ function InvoiceForm({
   choices: PurchaseInvoiceChoices;
   typeCode?: string;
   canVoid: boolean;
+  canDownload: boolean;
   onClose: () => void;
 }) {
   const posted = header?.status === "posted";
@@ -543,6 +564,36 @@ function InvoiceForm({
         {lineError ? (
           <p className={styles.alert} role="alert">
             {lineError}
+          </p>
+        ) : null}
+        {header && header.readiness.length > 0 ? (
+          <div className={`${styles.wide} ${styles.stack}`}>
+            <p className={styles.paneLabel}>Readiness</p>
+            <ul className={styles.stack}>
+              {header.readiness.map((item) => {
+                const href = purchaseReadinessHref(item.businessTerm);
+                return (
+                  <li key={`${item.ruleId}-${item.businessTerm}`}>
+                    <span className={item.severity === "error" ? styles.alert : styles.notice}>
+                      {item.ruleId}: {item.message}
+                    </span>
+                    {href ? (
+                      <>
+                        {" "}
+                        <Link href={href}>Open the record</Link>
+                      </>
+                    ) : (
+                      <span className={styles.panelMeta}> Shown on this document.</span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ) : null}
+        {header && canDownload ? (
+          <p className={styles.panelMeta}>
+            <a href={`/transactions/${header.transactionTypeCode}/${header.id}/en16931`}>Download EN 16931 JSON</a>
           </p>
         ) : null}
         <div className={styles.invoiceSplit}>

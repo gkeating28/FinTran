@@ -205,8 +205,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
     linesByHeader.set(line.header_id, list);
   }
 
-  return {
-    rows: (headers.data ?? []).flatMap((row) => {
+  const rows = (headers.data ?? []).flatMap((row) => {
       if (typeCode && !typeIds.has(row.transaction_type_id)) return [];
       return [{
       id: row.id,
@@ -251,6 +250,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
         vat: Number(item.vat_amount),
         exemption: [item.exemption_code, item.exemption_reason].filter(Boolean).join(" "),
       })),
+      readiness: [],
       status: row.status,
       voidReason: row.void_reason ?? "",
       flex1: row.flex1 ?? "",
@@ -260,7 +260,41 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
       flex5: row.flex5 ?? "",
       lines: linesByHeader.get(row.id) ?? [],
     }];
+    });
+
+  const withReadiness = await Promise.all(
+    rows.map(async (row) => {
+      const result = await supabase.rpc("en16931_readiness", { p_header_id: row.id });
+      if (result.error) {
+        return {
+          ...row,
+          readiness: [
+            {
+              ruleId: "FINTRAN",
+              severity: "warning" as const,
+              businessTerm: "BT-1",
+              message: "Readiness could not be loaded.",
+            },
+          ],
+        };
+      }
+      const readiness = (result.data ?? []).flatMap((item: { rule_id: string; severity: string; business_term: string; message: string }) => {
+        if (item.severity !== "error" && item.severity !== "warning") return [];
+        return [
+          {
+            ruleId: item.rule_id,
+            severity: item.severity,
+            businessTerm: item.business_term,
+            message: item.message,
+          },
+        ];
+      });
+      return { ...row, readiness };
     }),
+  );
+
+  return {
+    rows: withReadiness,
     choices: {
       types: (types.data ?? []).flatMap((row) => {
         const documentKind = parseDocumentKind(row.document_kind);

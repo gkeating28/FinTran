@@ -64,6 +64,7 @@ export default async function TransactionTypePage({
       loadError={listed.error}
       actionError={query.error}
       canVoid={canManage(workspace.current.role)}
+      canDownload={canManage(workspace.current.role)}
     />
   );
 }

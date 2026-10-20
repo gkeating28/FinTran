@@ -2000,6 +2000,19 @@ export type Database = {
         Args: { p_organisation_id: string }
         Returns: undefined
       }
+      en16931_amount: { Args: { p_value: number }; Returns: string }
+      en16931_document: { Args: { p_header_id: string }; Returns: Json }
+      en16931_price: { Args: { p_value: number }; Returns: string }
+      en16931_readiness: {
+        Args: { p_header_id: string }
+        Returns: {
+          business_term: string
+          message: string
+          rule_id: string
+          severity: string
+        }[]
+      }
+      en16931_source: { Args: { p_header_id: string }; Returns: Json }
       grant_organisation_access: {
         Args: { p_email: string; p_organisation_id: string; p_role: string }
         Returns: undefined
