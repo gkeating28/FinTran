@@ -405,13 +405,20 @@
   overflow: auto;
   margin: auto;
   padding: 0;
-  border: 1px solid var(--ops-border);
+  border: 0;
+  outline: none;
   border-radius: var(--ops-radius);
   background: var(--ops-panel);
+  background-clip: padding-box;
   color: var(--ops-text);
   font-family: var(--ops-font);
   font-size: 13px;
   box-shadow: 0 16px 40px rgba(15, 31, 56, 0.18);
+}
+
+.dialog:focus,
+.dialog:focus-visible {
+  outline: none;
 }
 
 .dialog::backdrop {
@@ -424,6 +431,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 14px 16px;
+  border-radius: var(--ops-radius) var(--ops-radius) 0 0;
   background: #16294a;
   color: #f4f7fb;
 }
