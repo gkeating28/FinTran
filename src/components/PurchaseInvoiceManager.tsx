@@ -1143,6 +1143,21 @@ function InvoiceForm({
             className={styles.mono}
           />
         </label>
+        <label className={styles.field}>
+          Paid amount
+          <QuietInput
+            name="paid_amount"
+            required
+            inputMode="decimal"
+            disabled={voided}
+            value={paidAmount}
+            onChange={(event) => setPaidAmount(event.target.value)}
+            onBlur={(event) => {
+              if (parseMoney(event.target.value)) setPaidAmount(formatMoney(event.target.value));
+            }}
+            className={styles.mono}
+          />
+        </label>
         <label className={`${styles.field} ${styles.wide}`}>
           Contact details
           <QuietTextarea name="contact_details" maxLength={500} rows={2} disabled={locked} value={contactDetails} onChange={(event) => setContactDetails(event.target.value)} />
@@ -1150,21 +1165,6 @@ function InvoiceForm({
         </div>
         </div>
         <div className={styles.headerSummary}>
-          <label className={styles.field}>
-            Paid amount
-            <QuietInput
-              name="paid_amount"
-              required
-              inputMode="decimal"
-              disabled={voided}
-              value={paidAmount}
-              onChange={(event) => setPaidAmount(event.target.value)}
-              onBlur={(event) => {
-                if (parseMoney(event.target.value)) setPaidAmount(formatMoney(event.target.value));
-              }}
-              className={styles.mono}
-            />
-          </label>
           <fieldset className={styles.amountBox}>
             <legend>Totals</legend>
             <table>
