@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
 import { QuietInput, QuietTextarea } from "@/components/QuietField";
@@ -56,6 +56,17 @@ function termsText(days: number) {
   if (days === 0) return "Due on receipt";
   if (days === 1) return "Payment due within 1 day";
   return `Payment due within ${days} days`;
+}
+
+const SPLIT_WIDTH_KEY = "fintran.transactionSplitWidth";
+const SPLIT_HANDLE = 10;
+const SPLIT_MIN = 280;
+
+type HeaderTab = "document" | "references" | "payment";
+
+function clampSplit(width: number, container: number) {
+  const max = Math.max(SPLIT_MIN, container - SPLIT_MIN - SPLIT_HANDLE);
+  return Math.round(Math.min(max, Math.max(SPLIT_MIN, width)));
 }
 
 function FlexField({
@@ -538,6 +549,97 @@ function InvoiceForm({
   const [invoiceLines, setInvoiceLines] = useState<PurchaseInvoiceLine[]>(lines ?? []);
   const [lineDraft, setLineDraft] = useState<PurchaseInvoiceLine | null>(null);
   const [lineMessage, setLineMessage] = useState<string | null>(null);
+  const [headerTab, setHeaderTab] = useState<HeaderTab>("document");
+  const [headerWidth, setHeaderWidth] = useState<number | null>(null);
+  const [sideBySide, setSideBySide] = useState(true);
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [voidOpen, setVoidOpen] = useState(false);
+  const [creditOpen, setCreditOpen] = useState(false);
+  const splitRef = useRef<HTMLDivElement>(null);
+  const headerWidthRef = useRef<number | null>(null);
+  const sideBySideRef = useRef(true);
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem(SPLIT_WIDTH_KEY);
+    const value = stored == null ? Number.NaN : Number(stored);
+    if (!Number.isFinite(value)) return;
+    headerWidthRef.current = value;
+    setHeaderWidth(value);
+  }, []);
+
+  useEffect(() => {
+    const node = splitRef.current;
+    if (!node) return;
+    const watch = () => {
+      const wide = node.clientWidth >= 860;
+      if (wide === sideBySideRef.current) return;
+      sideBySideRef.current = wide;
+      setSideBySide(wide);
+    };
+    watch();
+    const observer = new ResizeObserver(watch);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  function paintWidth(width: number) {
+    const node = splitRef.current;
+    if (!node) return;
+    node.style.gridTemplateColumns = `${width}px ${SPLIT_HANDLE}px minmax(0, 1fr)`;
+  }
+
+  function rememberWidth(next: number) {
+    const node = splitRef.current;
+    const width = node ? clampSplit(next, node.clientWidth) : next;
+    headerWidthRef.current = width;
+    paintWidth(width);
+    setHeaderWidth(width);
+    window.localStorage.setItem(SPLIT_WIDTH_KEY, String(width));
+  }
+
+  function dragSplit(event: React.PointerEvent<HTMLButtonElement>) {
+    if (!sideBySideRef.current) return;
+    const node = splitRef.current;
+    if (!node) return;
+    event.preventDefault();
+    const bounds = node.getBoundingClientRect();
+    const origin = headerWidthRef.current ?? (bounds.width - SPLIT_HANDLE) / 2;
+    const startX = event.clientX;
+    const target = event.currentTarget;
+    let latest = origin;
+    let frame = 0;
+    target.setPointerCapture(event.pointerId);
+    const move = (ev: PointerEvent) => {
+      latest = clampSplit(origin + ev.clientX - startX, bounds.width);
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        paintWidth(latest);
+      });
+    };
+    const stop = (ev: PointerEvent) => {
+      if (frame) window.cancelAnimationFrame(frame);
+      latest = clampSplit(origin + ev.clientX - startX, bounds.width);
+      rememberWidth(latest);
+      if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", stop);
+      window.removeEventListener("pointercancel", stop);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", stop);
+    window.addEventListener("pointercancel", stop);
+  }
+
+  function nudgeSplit(event: React.KeyboardEvent<HTMLButtonElement>) {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    const node = splitRef.current;
+    if (!node || !sideBySide) return;
+    event.preventDefault();
+    const current = headerWidthRef.current ?? (node.clientWidth - SPLIT_HANDLE) / 2;
+    const delta = event.key === "ArrowLeft" ? -24 : 24;
+    rememberWidth(current + (event.shiftKey ? delta * 3 : delta));
+  }
 
   useEffect(() => {
     if (lines) setInvoiceLines(lines);
@@ -712,6 +814,25 @@ function InvoiceForm({
     return partyId === supplierId && invoice.id !== header?.id;
   });
   const showCreditNote = sales && selectedType?.documentKind === "invoice" && posted && header;
+  const canVoidDocument = posted && canVoid && !sales;
+  const splitStyle: CSSProperties = sideBySide
+    ? {
+        gridTemplateColumns:
+          headerWidth == null ? "minmax(0, 1fr) 10px minmax(0, 1fr)" : `${headerWidth}px 10px minmax(0, 1fr)`,
+      }
+    : {
+        gridTemplateColumns: "minmax(0, 1fr)",
+        gridTemplateRows: "minmax(0, 1fr) minmax(0, 1fr)",
+      };
+  const splitMax = splitRef.current
+    ? Math.max(SPLIT_MIN, splitRef.current.clientWidth - SPLIT_MIN - SPLIT_HANDLE)
+    : 1200;
+
+  function openPanel(panel: "notes" | "void" | "credit") {
+    setNotesOpen(panel === "notes" ? !notesOpen : false);
+    setVoidOpen(panel === "void" ? !voidOpen : false);
+    setCreditOpen(panel === "credit" ? !creditOpen : false);
+  }
 
   return (
     <>
@@ -752,10 +873,43 @@ function InvoiceForm({
             ) : null}
           </div>
         ) : null}
-        <div className={styles.invoiceSplit}>
+        {choices.types.length === 0 ? (
+          <p className={styles.panelMeta}>Add a {sales ? "Sales" : "Purchases"} transaction type before saving a document.</p>
+        ) : null}
+        {parties.length === 0 ? (
+          <p className={styles.panelMeta}>Add a {sales ? "customer" : "supplier"} before saving a document.</p>
+        ) : null}
+        <div className={`${styles.invoiceSplit} ${sideBySide ? "" : styles.invoiceStacked}`} ref={splitRef} style={splitStyle}>
         <div className={styles.headerPane}>
-        <div className={styles.paneLabel}>Header</div>
-        <div className={showFlex ? styles.invoiceForm : `${styles.invoiceForm} ${styles.invoiceFormPair}`}>
+        <div className={styles.headerTabs} role="tablist" aria-label="Header">
+          {([
+            ["document", "Document"],
+            ["references", "References"],
+            ["payment", "Payment"],
+          ] as const).map(([id, label]) => (
+            <button
+              key={id}
+              className={styles.headerTab}
+              type="button"
+              role="tab"
+              id={`header-tab-${id}`}
+              aria-selected={headerTab === id}
+              aria-controls={`header-panel-${id}`}
+              tabIndex={headerTab === id ? 0 : -1}
+              onClick={() => setHeaderTab(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className={styles.headerBody}>
+        <div
+          className={showFlex ? styles.invoiceForm : `${styles.invoiceForm} ${styles.invoiceFormPair}`}
+          id="header-panel-document"
+          role="tabpanel"
+          aria-labelledby="header-tab-document"
+          hidden={headerTab !== "document"}
+        >
         <label className={styles.field}>
           Transaction type
           {typeLocked ? <input type="hidden" name="transaction_type_id" value={typeId} /> : null}
@@ -825,12 +979,6 @@ function InvoiceForm({
           {sales ? "Customer name" : "Supplier name"}
           <QuietInput name="party_name" required maxLength={200} disabled={locked} value={supplierName} onChange={(event) => setSupplierName(event.target.value)} />
         </label>
-        {sales ? null : (
-        <label className={styles.field}>
-          Supplier invoice no.
-          <QuietInput name="supplier_reference" maxLength={60} disabled={locked} value={supplierReference} onChange={(event) => setSupplierReference(event.target.value)} />
-        </label>
-        )}
         <label className={styles.field}>
           Supply date
           <QuietInput name="supply_date" type="date" disabled={locked} value={supplyDate} onChange={(event) => setSupplyDate(event.target.value)} />
@@ -862,6 +1010,21 @@ function InvoiceForm({
           />
         </label>
         {showFlex ? <FlexField index={3} label={flexLabels[3]} value={flex[3]} disabled={locked} onChange={setFlex} /> : null}
+        {showFlex ? <FlexField index={4} label={flexLabels[4]} value={flex[4]} disabled={locked} onChange={setFlex} /> : null}
+        </div>
+        <div
+          className={showFlex ? styles.invoiceForm : `${styles.invoiceForm} ${styles.invoiceFormPair}`}
+          id="header-panel-references"
+          role="tabpanel"
+          aria-labelledby="header-tab-references"
+          hidden={headerTab !== "references"}
+        >
+        {sales ? null : (
+        <label className={styles.field}>
+          Supplier invoice no.
+          <QuietInput name="supplier_reference" maxLength={60} disabled={locked} value={supplierReference} onChange={(event) => setSupplierReference(event.target.value)} />
+        </label>
+        )}
         <label className={styles.field}>
           Order number
           <QuietInput name="order_number" maxLength={40} disabled={locked} value={orderNumber} onChange={(event) => setOrderNumber(event.target.value)} />
@@ -882,42 +1045,6 @@ function InvoiceForm({
           Period end
           <QuietInput name="invoice_period_end" type="date" disabled={locked} value={invoicePeriodEnd} onChange={(event) => setInvoicePeriodEnd(event.target.value)} />
           <span className={styles.panelMeta}>Enter both dates, or leave both blank.</span>
-        </label>
-        <label className={styles.field}>
-          Payment means
-          <select
-            name="payment_means_code"
-            autoComplete="off"
-            value={paymentMeansCode}
-            disabled={locked}
-            onChange={(event) => setPaymentMeansCode(event.target.value)}
-          >
-            <option value="">No payment means</option>
-            {paymentMeans.some((means) => means.common) ? (
-              <optgroup label="Common">
-                {paymentMeans
-                  .filter((means) => means.common)
-                  .map((means) => (
-                    <option key={means.code} value={means.code}>
-                      {means.code} — {means.name}
-                    </option>
-                  ))}
-              </optgroup>
-            ) : null}
-            <optgroup label="All">
-              {paymentMeans
-                .filter((means) => !means.common)
-                .map((means) => (
-                  <option key={means.code} value={means.code}>
-                    {means.code} — {means.name}
-                  </option>
-                ))}
-            </optgroup>
-          </select>
-        </label>
-        <label className={`${styles.field} ${styles.wide}`}>
-          Payment terms
-          <QuietTextarea name="payment_terms" maxLength={400} rows={2} disabled={locked} value={paymentTerms} onChange={(event) => setPaymentTerms(event.target.value)} />
         </label>
         {creditNote ? (
           <>
@@ -964,6 +1091,50 @@ function InvoiceForm({
             </p>
           </>
         ) : null}
+        </div>
+        <div
+          className={showFlex ? styles.invoiceForm : `${styles.invoiceForm} ${styles.invoiceFormPair}`}
+          id="header-panel-payment"
+          role="tabpanel"
+          aria-labelledby="header-tab-payment"
+          hidden={headerTab !== "payment"}
+        >
+        <label className={styles.field}>
+          Payment means
+          <select
+            name="payment_means_code"
+            autoComplete="off"
+            value={paymentMeansCode}
+            disabled={locked}
+            onChange={(event) => setPaymentMeansCode(event.target.value)}
+          >
+            <option value="">No payment means</option>
+            {paymentMeans.some((means) => means.common) ? (
+              <optgroup label="Common">
+                {paymentMeans
+                  .filter((means) => means.common)
+                  .map((means) => (
+                    <option key={means.code} value={means.code}>
+                      {means.code} — {means.name}
+                    </option>
+                  ))}
+              </optgroup>
+            ) : null}
+            <optgroup label="All">
+              {paymentMeans
+                .filter((means) => !means.common)
+                .map((means) => (
+                  <option key={means.code} value={means.code}>
+                    {means.code} — {means.name}
+                  </option>
+                ))}
+            </optgroup>
+          </select>
+        </label>
+        <label className={`${styles.field} ${styles.wide}`}>
+          Payment terms
+          <QuietTextarea name="payment_terms" maxLength={400} rows={2} disabled={locked} value={paymentTerms} onChange={(event) => setPaymentTerms(event.target.value)} />
+        </label>
         <label className={styles.field}>
           Rounding
           <QuietInput
@@ -994,14 +1165,9 @@ function InvoiceForm({
             className={styles.mono}
           />
         </label>
-        {showFlex ? <FlexField index={4} label={flexLabels[4]} value={flex[4]} disabled={locked} onChange={setFlex} /> : null}
         <label className={`${styles.field} ${styles.wide}`}>
           Contact details
           <QuietTextarea name="contact_details" maxLength={500} rows={2} disabled={locked} value={contactDetails} onChange={(event) => setContactDetails(event.target.value)} />
-        </label>
-        <label className={`${styles.field} ${styles.wide}`}>
-          Notes
-          <QuietTextarea name="notes" maxLength={4000} rows={2} disabled={locked} value={notes} onChange={(event) => setNotes(event.target.value)} />
         </label>
         <fieldset className={`${styles.wide} ${styles.amountBox}`}>
           <legend>Totals</legend>
@@ -1059,6 +1225,20 @@ function InvoiceForm({
         </fieldset>
         </div>
         </div>
+        </div>
+        <button
+          className={styles.splitHandle}
+          type="button"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize header and lines"
+          aria-valuemin={SPLIT_MIN}
+          aria-valuemax={splitMax}
+          aria-valuenow={headerWidth ?? Math.round(splitMax / 2)}
+          tabIndex={sideBySide ? 0 : -1}
+          onPointerDown={dragSplit}
+          onKeyDown={nudgeSplit}
+        />
         <div className={styles.linesPane}>
           <div className={styles.gridToolbar}>
             <span className={styles.paneLabel}>
@@ -1176,80 +1356,111 @@ function InvoiceForm({
           )}
         </div>
         </div>
-        {choices.types.length === 0 ? (
-          <p className={`${styles.panelMeta} ${styles.wide}`}>Add a {sales ? "Sales" : "Purchases"} transaction type before saving a document.</p>
-        ) : null}
-        {parties.length === 0 ? (
-          <p className={`${styles.panelMeta} ${styles.wide}`}>Add a {sales ? "customer" : "supplier"} before saving a document.</p>
-        ) : null}
-        {showCreditNote ? (
-          <div className={`${styles.wide} ${styles.amountBox}`}>
-            <p>Remaining that can be credited: {header.remainingAmount}</p>
-            {header.credits.length > 0 ? (
-              <ul>
-                {header.credits.map((credit) => (
-                  <li key={credit.id}>
-                    <Link href={`/transactions/${credit.typeCode}?open=${credit.id}`}>
-                      {credit.typeCode} {credit.documentNumber || credit.transactionDate}
-                    </Link>
-                    {" "}· {credit.status} · {credit.total}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className={styles.panelMeta}>No credit notes yet.</p>
-            )}
-            {choices.creditNoteTypes.length === 0 ? (
-              <p className={styles.panelMeta}>
-                This organisation has no sales credit note type. <Link href="/transaction-types">Add one</Link> before raising a credit note.
-              </p>
-            ) : (
-              <form action={createCreditNote}>
-                <input type="hidden" name="id" value={header.id} />
-                {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
-                {choices.creditNoteTypes.length > 1 ? (
-                  <label className={styles.field}>
-                    Credit note type
-                    <select name="credit_type_id" required defaultValue="">
-                      <option value="">Choose a type</option>
-                      {choices.creditNoteTypes.map((type) => (
-                        <option key={type.id} value={type.id}>
-                          {type.code} — {type.description}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ) : (
-                  <input type="hidden" name="credit_type_id" value={choices.creditNoteTypes[0]?.id ?? ""} />
-                )}
-                <button className={styles.primary} type="submit">Create credit note</button>
-              </form>
-            )}
+        {notesOpen ? (
+          <div className={styles.sideSheet} role="dialog" aria-label="Notes">
+            <div className={styles.sideSheetHead}>
+              <strong>Notes</strong>
+              <button className={styles.quiet} type="button" onClick={() => setNotesOpen(false)}>Close</button>
+            </div>
+            <label className={styles.field}>
+              Notes
+              <QuietTextarea name="notes" maxLength={4000} rows={6} disabled={locked} value={notes} onChange={(event) => setNotes(event.target.value)} />
+            </label>
           </div>
-        ) : null}
+        ) : (
+          <input type="hidden" name="notes" value={notes} />
+        )}
       </form>
-      {posted && canVoid && !sales ? (
-        <form className={styles.voidBar} action={voidPurchaseInvoice} autoComplete="off">
+      {voidOpen && canVoidDocument && header ? (
+        <form className={styles.sideSheet} action={voidPurchaseInvoice} autoComplete="off">
+          <div className={styles.sideSheetHead}>
+            <strong>Void document</strong>
+            <button className={styles.quiet} type="button" onClick={() => setVoidOpen(false)}>Close</button>
+          </div>
           <input type="hidden" name="id" value={header.id} />
           {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
           <label className={styles.field}>
             Void reason
             <QuietInput name="reason" required maxLength={500} placeholder="Why this document is being voided" />
           </label>
-          <button className={styles.quiet} type="submit">
-            Void
-          </button>
+          <button className={styles.primary} type="submit">Void</button>
         </form>
       ) : null}
+      {creditOpen && showCreditNote && header ? (
+        <div className={styles.sideSheet} role="dialog" aria-label="Credit notes">
+          <div className={styles.sideSheetHead}>
+            <strong>Credit notes</strong>
+            <button className={styles.quiet} type="button" onClick={() => setCreditOpen(false)}>Close</button>
+          </div>
+          <p>Remaining that can be credited: {header.remainingAmount}</p>
+          {header.credits.length > 0 ? (
+            <ul>
+              {header.credits.map((credit) => (
+                <li key={credit.id}>
+                  <Link href={`/transactions/${credit.typeCode}?open=${credit.id}`}>
+                    {credit.typeCode} {credit.documentNumber || credit.transactionDate}
+                  </Link>
+                  {" "}· {credit.status} · {credit.total}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className={styles.panelMeta}>No credit notes yet.</p>
+          )}
+          {choices.creditNoteTypes.length === 0 ? (
+            <p className={styles.panelMeta}>
+              This organisation has no sales credit note type. <Link href="/transaction-types">Add one</Link> before raising a credit note.
+            </p>
+          ) : (
+            <form action={createCreditNote}>
+              <input type="hidden" name="id" value={header.id} />
+              {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
+              {choices.creditNoteTypes.length > 1 ? (
+                <label className={styles.field}>
+                  Credit note type
+                  <select name="credit_type_id" required defaultValue="">
+                    <option value="">Choose a type</option>
+                    {choices.creditNoteTypes.map((type) => (
+                      <option key={type.id} value={type.id}>
+                        {type.code} — {type.description}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                <input type="hidden" name="credit_type_id" value={choices.creditNoteTypes[0]?.id ?? ""} />
+              )}
+              <button className={styles.primary} type="submit">Create credit note</button>
+            </form>
+          )}
+        </div>
+      ) : null}
       <div className={styles.modalActions}>
-        <button className={styles.quiet} type="button" onClick={onClose}>
-          {locked && !posted ? "Close" : "Cancel"}
-        </button>
-        {voided ? null : (
-          <button className={styles.primary} type="submit" form="purchase-document" disabled={pending || (!posted && (blocked || !supplierId))}>
-            {pending ? "Saving…" : posted ? "Save paid amount" : "Save"}
+        <div className={styles.actionCluster}>
+          <button className={notesOpen ? styles.primary : styles.quiet} type="button" aria-expanded={notesOpen} onClick={() => openPanel("notes")}>
+            {notes.trim() ? "Notes" : "Add note"}
           </button>
-        )}
+          {canVoidDocument ? (
+            <button className={styles.quiet} type="button" aria-expanded={voidOpen} onClick={() => openPanel("void")}>
+              Void
+            </button>
+          ) : null}
+          {showCreditNote ? (
+            <button className={styles.quiet} type="button" aria-expanded={creditOpen} onClick={() => openPanel("credit")}>
+              Credit notes
+            </button>
+          ) : null}
+        </div>
+        <div className={styles.actionCluster}>
+          <button className={styles.quiet} type="button" onClick={onClose}>
+            {locked && !posted ? "Close" : "Cancel"}
+          </button>
+          {voided ? null : (
+            <button className={styles.primary} type="submit" form="purchase-document" disabled={pending || (!posted && (blocked || !supplierId))}>
+              {pending ? "Saving…" : posted ? "Save paid amount" : "Save"}
+            </button>
+          )}
+        </div>
       </div>
       </div>
     </FormModal>

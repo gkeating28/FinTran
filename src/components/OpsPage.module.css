@@ -488,6 +488,7 @@
   border: 0;
   border-radius: 0;
   box-shadow: none;
+  overflow: hidden;
 }
 
 .pageDialog:not([open]) {
@@ -495,9 +496,11 @@
 }
 
 .pageDialog > .modalForm {
+  position: relative;
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  height: 100%;
+  overflow: hidden;
 }
 
 .pageDialog .partyForm {
@@ -512,17 +515,46 @@
 .pageDialog .invoiceSplit {
   flex: 1;
   min-height: 0;
+  overflow: hidden;
 }
 
 .pageDialog .linesPane {
   max-height: none;
 }
 
+.pageDialog .modalActions {
+  flex: none;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px solid var(--ops-border-soft);
+}
+
 .invoiceSplit {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) 10px minmax(0, 1fr);
   align-items: stretch;
+  min-height: 0;
+}
+
+.splitHandle {
+  width: 10px;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--ops-border);
+  border-right: 1px solid transparent;
+  background: transparent;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.splitHandle:hover,
+.splitHandle:focus-visible {
+  background: #d7e2f1;
+  outline: none;
+}
+
+.invoiceStacked .splitHandle {
+  display: none;
 }
 
 .paneLabel {
@@ -572,7 +604,74 @@
 }
 
 .headerPane {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding-right: 12px;
+}
+
+.headerTabs {
+  display: flex;
+  flex: none;
+  gap: 4px;
+  border-bottom: 1px solid var(--ops-border);
+}
+
+.headerTab {
+  height: 36px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--ops-text-2);
+  font: inherit;
+  font-weight: 700;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.headerTab[aria-selected="true"] {
+  color: var(--ops-accent);
+  border-bottom-color: var(--ops-accent);
+}
+
+.headerBody {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding-top: 12px;
+}
+
+.actionCluster {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sideSheet {
+  position: absolute;
+  z-index: 4;
+  right: 16px;
+  bottom: 62px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(440px, calc(100% - 32px));
+  max-height: min(420px, calc(100% - 96px));
+  overflow: auto;
+  padding: 14px;
+  border: 1px solid var(--ops-border);
+  border-radius: var(--ops-radius);
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(15, 31, 56, 0.16);
+}
+
+.sideSheetHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .headerPane > .paneLabel,
@@ -590,8 +689,18 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  border-left: 1px solid var(--ops-border);
-  padding-left: 20px;
+  padding-left: 12px;
+}
+
+.invoiceStacked .linesPane {
+  padding-left: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--ops-border);
+}
+
+.invoiceStacked .headerPane {
+  padding-right: 0;
+  border-bottom: 0;
 }
 
 .linesPane .gridToolbar {
@@ -599,19 +708,6 @@
   padding-right: 0;
 }
 
-@media (max-width: 1100px) {
-  .invoiceSplit {
-    grid-template-columns: 1fr;
-  }
-
-  .linesPane {
-    border-left: 0;
-    border-top: 1px solid var(--ops-border);
-    padding-left: 0;
-    padding-top: 12px;
-    max-height: 480px;
-  }
-}
 
 .lineDialog {
   width: min(720px, calc(100vw - 32px));
