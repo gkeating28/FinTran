@@ -1292,9 +1292,24 @@ a.quiet {
 
 .readinessBar {
   display: flex;
+  flex: none;
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
+  margin-left: auto;
+}
+
+.statusRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 34px;
+}
+
+.statusRow .notice,
+.statusRow .alert {
+  flex: 1;
+  margin: 0;
 }
 
 .readinessButton {
