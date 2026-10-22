@@ -504,7 +504,33 @@
 }
 
 .pageDialog .partyForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.partyFields {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
   align-content: start;
+}
+
+.partyFields .field,
+.partyFields .fieldPair {
+  min-width: 0;
+}
+
+.pageDialog .partyForm .modalActions {
+  flex: none;
+  justify-content: flex-end;
+  padding-top: 8px;
+  border-top: 1px solid var(--ops-border-soft);
 }
 
 .pageDialog .documentFields {
@@ -1158,7 +1184,7 @@
 }
 
 @media (max-width: 560px) {
-  .partyForm {
+  .partyFields {
     grid-template-columns: 1fr;
   }
 }
