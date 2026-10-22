@@ -904,7 +904,7 @@ function InvoiceForm({
         </div>
         <div className={styles.headerBody}>
         <div
-          className={showFlex ? styles.invoiceForm : `${styles.invoiceForm} ${styles.invoiceFormPair}`}
+          className={`${styles.invoiceForm} ${styles.headerFields}`}
           id="header-panel-document"
           role="tabpanel"
           aria-labelledby="header-tab-document"
@@ -979,6 +979,12 @@ function InvoiceForm({
           {sales ? "Customer name" : "Supplier name"}
           <QuietInput name="party_name" required maxLength={200} disabled={locked} value={supplierName} onChange={(event) => setSupplierName(event.target.value)} />
         </label>
+        {sales ? null : (
+          <label className={styles.field}>
+            Supplier invoice no.
+            <QuietInput name="supplier_reference" maxLength={60} disabled={locked} value={supplierReference} onChange={(event) => setSupplierReference(event.target.value)} />
+          </label>
+        )}
         <label className={styles.field}>
           Supply date
           <QuietInput name="supply_date" type="date" disabled={locked} value={supplyDate} onChange={(event) => setSupplyDate(event.target.value)} />
@@ -1013,18 +1019,12 @@ function InvoiceForm({
         {showFlex ? <FlexField index={4} label={flexLabels[4]} value={flex[4]} disabled={locked} onChange={setFlex} /> : null}
         </div>
         <div
-          className={showFlex ? styles.invoiceForm : `${styles.invoiceForm} ${styles.invoiceFormPair}`}
+          className={`${styles.invoiceForm} ${styles.headerFields}`}
           id="header-panel-references"
           role="tabpanel"
           aria-labelledby="header-tab-references"
           hidden={headerTab !== "references"}
         >
-        {sales ? null : (
-        <label className={styles.field}>
-          Supplier invoice no.
-          <QuietInput name="supplier_reference" maxLength={60} disabled={locked} value={supplierReference} onChange={(event) => setSupplierReference(event.target.value)} />
-        </label>
-        )}
         <label className={styles.field}>
           Order number
           <QuietInput name="order_number" maxLength={40} disabled={locked} value={orderNumber} onChange={(event) => setOrderNumber(event.target.value)} />
@@ -1093,7 +1093,7 @@ function InvoiceForm({
         ) : null}
         </div>
         <div
-          className={showFlex ? styles.invoiceForm : `${styles.invoiceForm} ${styles.invoiceFormPair}`}
+          className={`${styles.invoiceForm} ${styles.headerFields}`}
           id="header-panel-payment"
           role="tabpanel"
           aria-labelledby="header-tab-payment"
@@ -1146,21 +1146,6 @@ function InvoiceForm({
             onChange={(event) => setRoundingAmount(event.target.value)}
             onBlur={(event) => {
               if (parseMoney(event.target.value)) setRoundingAmount(formatMoney(event.target.value));
-            }}
-            className={styles.mono}
-          />
-        </label>
-        <label className={styles.field}>
-          Paid amount
-          <QuietInput
-            name="paid_amount"
-            required
-            inputMode="decimal"
-            disabled={voided}
-            value={paidAmount}
-            onChange={(event) => setPaidAmount(event.target.value)}
-            onBlur={(event) => {
-              if (parseMoney(event.target.value)) setPaidAmount(formatMoney(event.target.value));
             }}
             className={styles.mono}
           />
@@ -1225,6 +1210,35 @@ function InvoiceForm({
         </fieldset>
         </div>
         </div>
+        <div className={styles.headerSummary}>
+          <div className={styles.summaryFigure}>
+            Nett
+            <strong>{formatMoney(totals.foreignNett)} {supplierCurrency}</strong>
+          </div>
+          <div className={styles.summaryFigure}>
+            VAT
+            <strong>{formatMoney(totals.foreignVat)} {supplierCurrency}</strong>
+          </div>
+          <div className={styles.summaryFigure}>
+            Amount due
+            <strong>{formatMoney(totals.amountDue)} {supplierCurrency}</strong>
+          </div>
+          <label className={styles.field}>
+            Paid amount
+            <QuietInput
+              name="paid_amount"
+              required
+              inputMode="decimal"
+              disabled={voided}
+              value={paidAmount}
+              onChange={(event) => setPaidAmount(event.target.value)}
+              onBlur={(event) => {
+                if (parseMoney(event.target.value)) setPaidAmount(formatMoney(event.target.value));
+              }}
+              className={styles.mono}
+            />
+          </label>
+        </div>
         </div>
         <button
           className={styles.splitHandle}
@@ -1262,7 +1276,6 @@ function InvoiceForm({
             <p className={styles.empty}>Loading lines…</p>
           ) : (
             <div className={styles.lineScroll}>
-              <div className={styles.lineTitleOffset} />
               <table className={styles.lineTable}>
                 <thead>
                   <tr>
