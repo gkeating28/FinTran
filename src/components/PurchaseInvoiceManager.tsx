@@ -62,7 +62,7 @@ const SPLIT_WIDTH_KEY = "fintran.transactionSplitWidth";
 const SPLIT_HANDLE = 10;
 const SPLIT_MIN = 280;
 
-type HeaderTab = "document" | "references" | "payment";
+type HeaderTab = "document" | "payment";
 
 function clampSplit(width: number, container: number) {
   const max = Math.max(SPLIT_MIN, container - SPLIT_MIN - SPLIT_HANDLE);
@@ -552,7 +552,6 @@ function InvoiceForm({
   const [headerTab, setHeaderTab] = useState<HeaderTab>("document");
   const [headerWidth, setHeaderWidth] = useState<number | null>(null);
   const [sideBySide, setSideBySide] = useState(true);
-  const [notesOpen, setNotesOpen] = useState(false);
   const [voidOpen, setVoidOpen] = useState(false);
   const [creditOpen, setCreditOpen] = useState(false);
   const splitRef = useRef<HTMLDivElement>(null);
@@ -828,8 +827,7 @@ function InvoiceForm({
     ? Math.max(SPLIT_MIN, splitRef.current.clientWidth - SPLIT_MIN - SPLIT_HANDLE)
     : 1200;
 
-  function openPanel(panel: "notes" | "void" | "credit") {
-    setNotesOpen(panel === "notes" ? !notesOpen : false);
+  function openPanel(panel: "void" | "credit") {
     setVoidOpen(panel === "void" ? !voidOpen : false);
     setCreditOpen(panel === "credit" ? !creditOpen : false);
   }
@@ -884,7 +882,6 @@ function InvoiceForm({
         <div className={styles.headerTabs} role="tablist" aria-label="Header">
           {([
             ["document", "Document"],
-            ["references", "References"],
             ["payment", "Payment"],
           ] as const).map(([id, label]) => (
             <button
@@ -904,7 +901,7 @@ function InvoiceForm({
         </div>
         <div className={styles.headerBody}>
         <div
-          className={showFlex ? styles.invoiceForm : `${styles.invoiceForm} ${styles.invoiceFormPair}`}
+          className={`${styles.invoiceForm} ${styles.headerFields}`}
           id="header-panel-document"
           role="tabpanel"
           aria-labelledby="header-tab-document"
@@ -979,6 +976,12 @@ function InvoiceForm({
           {sales ? "Customer name" : "Supplier name"}
           <QuietInput name="party_name" required maxLength={200} disabled={locked} value={supplierName} onChange={(event) => setSupplierName(event.target.value)} />
         </label>
+        {sales ? null : (
+          <label className={styles.field}>
+            Supplier invoice no.
+            <QuietInput name="supplier_reference" maxLength={60} disabled={locked} value={supplierReference} onChange={(event) => setSupplierReference(event.target.value)} />
+          </label>
+        )}
         <label className={styles.field}>
           Supply date
           <QuietInput name="supply_date" type="date" disabled={locked} value={supplyDate} onChange={(event) => setSupplyDate(event.target.value)} />
@@ -1011,20 +1014,6 @@ function InvoiceForm({
         </label>
         {showFlex ? <FlexField index={3} label={flexLabels[3]} value={flex[3]} disabled={locked} onChange={setFlex} /> : null}
         {showFlex ? <FlexField index={4} label={flexLabels[4]} value={flex[4]} disabled={locked} onChange={setFlex} /> : null}
-        </div>
-        <div
-          className={showFlex ? styles.invoiceForm : `${styles.invoiceForm} ${styles.invoiceFormPair}`}
-          id="header-panel-references"
-          role="tabpanel"
-          aria-labelledby="header-tab-references"
-          hidden={headerTab !== "references"}
-        >
-        {sales ? null : (
-        <label className={styles.field}>
-          Supplier invoice no.
-          <QuietInput name="supplier_reference" maxLength={60} disabled={locked} value={supplierReference} onChange={(event) => setSupplierReference(event.target.value)} />
-        </label>
-        )}
         <label className={styles.field}>
           Order number
           <QuietInput name="order_number" maxLength={40} disabled={locked} value={orderNumber} onChange={(event) => setOrderNumber(event.target.value)} />
@@ -1091,9 +1080,13 @@ function InvoiceForm({
             </p>
           </>
         ) : null}
+        <label className={`${styles.field} ${styles.wide}`}>
+          Notes
+          <QuietTextarea name="notes" maxLength={4000} rows={2} disabled={locked} value={notes} onChange={(event) => setNotes(event.target.value)} />
+        </label>
         </div>
         <div
-          className={showFlex ? styles.invoiceForm : `${styles.invoiceForm} ${styles.invoiceFormPair}`}
+          className={`${styles.invoiceForm} ${styles.headerFields}`}
           id="header-panel-payment"
           role="tabpanel"
           aria-labelledby="header-tab-payment"
@@ -1150,80 +1143,82 @@ function InvoiceForm({
             className={styles.mono}
           />
         </label>
-        <label className={styles.field}>
-          Paid amount
-          <QuietInput
-            name="paid_amount"
-            required
-            inputMode="decimal"
-            disabled={voided}
-            value={paidAmount}
-            onChange={(event) => setPaidAmount(event.target.value)}
-            onBlur={(event) => {
-              if (parseMoney(event.target.value)) setPaidAmount(formatMoney(event.target.value));
-            }}
-            className={styles.mono}
-          />
-        </label>
         <label className={`${styles.field} ${styles.wide}`}>
           Contact details
           <QuietTextarea name="contact_details" maxLength={500} rows={2} disabled={locked} value={contactDetails} onChange={(event) => setContactDetails(event.target.value)} />
         </label>
-        <fieldset className={`${styles.wide} ${styles.amountBox}`}>
-          <legend>Totals</legend>
-          <table>
-            <thead>
-              <tr>
-                <th />
-                <th>Nett</th>
-                <th>VAT</th>
-                <th>Gross</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <th>{supplierCurrency || "—"}</th>
-                <td className={styles.mono}>{formatMoney(totals.foreignNett)}</td>
-                <td className={styles.mono}>{formatMoney(totals.foreignVat)}</td>
-                <td className={styles.mono}>{formatMoney(totals.foreignTotal)}</td>
-              </tr>
-              {supplierCurrency.toUpperCase() === homeCurrency.toUpperCase() ? null : (
-                <tr>
-                  <th>{homeCurrency || "—"}</th>
-                  <td className={styles.mono}>{formatMoney(totals.homeNett)}</td>
-                  <td className={styles.mono}>{formatMoney(totals.homeVat)}</td>
-                  <td className={styles.mono}>{formatMoney(totals.homeTotal)}</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-          <p className={styles.panelMeta}>Amount due {formatMoney(totals.amountDue)}</p>
-          {totals.breakdown.length ? (
+        </div>
+        </div>
+        <div className={styles.headerSummary}>
+          <label className={styles.field}>
+            Paid amount
+            <QuietInput
+              name="paid_amount"
+              required
+              inputMode="decimal"
+              disabled={voided}
+              value={paidAmount}
+              onChange={(event) => setPaidAmount(event.target.value)}
+              onBlur={(event) => {
+                if (parseMoney(event.target.value)) setPaidAmount(formatMoney(event.target.value));
+              }}
+              className={styles.mono}
+            />
+          </label>
+          <fieldset className={styles.amountBox}>
+            <legend>Totals</legend>
             <table>
               <thead>
                 <tr>
-                  <th>Category</th>
-                  <th>Rate</th>
-                  <th>Taxable</th>
+                  <th />
+                  <th>Nett</th>
                   <th>VAT</th>
-                  <th>Exemption</th>
+                  <th>Gross</th>
                 </tr>
               </thead>
               <tbody>
-                {totals.breakdown.map((row) => (
-                  <tr key={`${row.category}-${row.rate}`}>
-                    <td className={styles.mono}>{row.category}</td>
-                    <td className={styles.mono}>{row.rate.toFixed(2)}%</td>
-                    <td className={styles.mono}>{formatMoney(row.taxable)}</td>
-                    <td className={styles.mono}>{formatMoney(row.vat)}</td>
-                    <td>{row.exemption || "—"}</td>
+                <tr>
+                  <th>{supplierCurrency || "—"}</th>
+                  <td className={styles.mono}>{formatMoney(totals.foreignNett)}</td>
+                  <td className={styles.mono}>{formatMoney(totals.foreignVat)}</td>
+                  <td className={styles.mono}>{formatMoney(totals.foreignTotal)}</td>
+                </tr>
+                {supplierCurrency.toUpperCase() === homeCurrency.toUpperCase() ? null : (
+                  <tr>
+                    <th>{homeCurrency || "—"}</th>
+                    <td className={styles.mono}>{formatMoney(totals.homeNett)}</td>
+                    <td className={styles.mono}>{formatMoney(totals.homeVat)}</td>
+                    <td className={styles.mono}>{formatMoney(totals.homeTotal)}</td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
-          ) : null}
-        </fieldset>
-        </div>
+            <p className={styles.panelMeta}>Amount due {formatMoney(totals.amountDue)}</p>
+            {totals.breakdown.length ? (
+              <table className={styles.vatBreakdown}>
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Rate</th>
+                    <th>Taxable</th>
+                    <th>VAT</th>
+                    <th>Exemption</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {totals.breakdown.map((row) => (
+                    <tr key={`${row.category}-${row.rate}`}>
+                      <td className={styles.mono}>{row.category}</td>
+                      <td className={styles.mono}>{row.rate.toFixed(2)}%</td>
+                      <td className={styles.mono}>{formatMoney(row.taxable)}</td>
+                      <td className={styles.mono}>{formatMoney(row.vat)}</td>
+                      <td>{row.exemption || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : null}
+          </fieldset>
         </div>
         </div>
         <button
@@ -1262,7 +1257,6 @@ function InvoiceForm({
             <p className={styles.empty}>Loading lines…</p>
           ) : (
             <div className={styles.lineScroll}>
-              <div className={styles.lineTitleOffset} />
               <table className={styles.lineTable}>
                 <thead>
                   <tr>
@@ -1356,20 +1350,6 @@ function InvoiceForm({
           )}
         </div>
         </div>
-        {notesOpen ? (
-          <div className={styles.sideSheet} role="dialog" aria-label="Notes">
-            <div className={styles.sideSheetHead}>
-              <strong>Notes</strong>
-              <button className={styles.quiet} type="button" onClick={() => setNotesOpen(false)}>Close</button>
-            </div>
-            <label className={styles.field}>
-              Notes
-              <QuietTextarea name="notes" maxLength={4000} rows={6} disabled={locked} value={notes} onChange={(event) => setNotes(event.target.value)} />
-            </label>
-          </div>
-        ) : (
-          <input type="hidden" name="notes" value={notes} />
-        )}
       </form>
       {voidOpen && canVoidDocument && header ? (
         <form className={styles.sideSheet} action={voidPurchaseInvoice} autoComplete="off">
@@ -1437,9 +1417,6 @@ function InvoiceForm({
       ) : null}
       <div className={styles.modalActions}>
         <div className={styles.actionCluster}>
-          <button className={notesOpen ? styles.primary : styles.quiet} type="button" aria-expanded={notesOpen} onClick={() => openPanel("notes")}>
-            {notes.trim() ? "Notes" : "Add note"}
-          </button>
           {canVoidDocument ? (
             <button className={styles.quiet} type="button" aria-expanded={voidOpen} onClick={() => openPanel("void")}>
               Void
