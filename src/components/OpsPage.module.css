@@ -652,10 +652,9 @@
 }
 
 .fieldPair {
-  grid-column: 1 / -1;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px 16px;
+  gap: 12px 10px;
   min-width: 0;
 }
 
