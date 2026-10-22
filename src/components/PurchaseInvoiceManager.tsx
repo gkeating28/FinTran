@@ -62,7 +62,7 @@ const SPLIT_WIDTH_KEY = "fintran.transactionSplitWidth";
 const SPLIT_HANDLE = 10;
 const SPLIT_MIN = 280;
 
-type HeaderTab = "document" | "payment";
+type HeaderTab = "document" | "notes" | "payment";
 
 function clampSplit(width: number, container: number) {
   const max = Math.max(SPLIT_MIN, container - SPLIT_MIN - SPLIT_HANDLE);
@@ -845,34 +845,30 @@ function InvoiceForm({
       <form id="purchase-document" className={styles.documentFields} action={action} autoComplete="off" noValidate>
         {header ? <input type="hidden" name="id" value={header.id} /> : null}
         {locked ? null : <input type="hidden" name="lines" value={JSON.stringify(invoiceLines)} />}
-        {posted ? (
-          <p className={styles.notice}>Posted. The document is read-only, except the paid amount.</p>
-        ) : null}
-        {voided ? (
-          <p className={styles.alert} role="status">
-            Void{header?.voidReason ? ` — ${header.voidReason}` : ""}. This document cannot be changed.
-          </p>
-        ) : null}
         {state.error ? (
-          <p className={styles.alert} role="alert">
-            {state.error}
-          </p>
+          <p className={styles.alert} role="alert">{state.error}</p>
+        ) : lineError ? (
+          <p className={styles.alert} role="alert">{lineError}</p>
         ) : null}
-        {lineError ? (
-          <p className={styles.alert} role="alert">
-            {lineError}
-          </p>
-        ) : null}
-        {header ? (
-          <div className={styles.readinessBar}>
-            <ReadinessControl items={header.readiness} direction={direction} />
-            {canDownload ? (
-              <a className={styles.quiet} href={`/transactions/${header.transactionTypeCode}/${header.id}/en16931`}>
-                Download EN 16931 JSON
-              </a>
-            ) : null}
-          </div>
-        ) : null}
+        <div className={styles.statusRow}>
+          {posted ? (
+            <p className={styles.notice}>Posted. The document is read-only, except the paid amount.</p>
+          ) : voided ? (
+            <p className={styles.alert} role="status">
+              Void{header?.voidReason ? ` — ${header.voidReason}` : ""}. This document cannot be changed.
+            </p>
+          ) : <span />}
+          {header ? (
+            <div className={styles.readinessBar}>
+              <ReadinessControl items={header.readiness} direction={direction} />
+              {canDownload ? (
+                <a className={styles.quiet} href={`/transactions/${header.transactionTypeCode}/${header.id}/en16931`}>
+                  Download EN 16931 JSON
+                </a>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
         {choices.types.length === 0 ? (
           <p className={styles.panelMeta}>Add a {sales ? "Sales" : "Purchases"} transaction type before saving a document.</p>
         ) : null}
@@ -884,6 +880,7 @@ function InvoiceForm({
         <div className={styles.headerTabs} role="tablist" aria-label="Header">
           {([
             ["document", "Document"],
+            ["notes", "Notes"],
             ["payment", "Payment"],
           ] as const).map(([id, label]) => (
             <button
@@ -1076,10 +1073,18 @@ function InvoiceForm({
             </p>
           </>
         ) : null}
-        <label className={`${styles.field} ${styles.wide}`}>
-          Notes
-          <QuietTextarea name="notes" maxLength={4000} rows={2} disabled={locked} value={notes} onChange={(event) => setNotes(event.target.value)} />
-        </label>
+        </div>
+        <div
+          className={`${styles.invoiceForm} ${styles.headerFields}`}
+          id="header-panel-notes"
+          role="tabpanel"
+          aria-labelledby="header-tab-notes"
+          hidden={headerTab !== "notes"}
+        >
+          <label className={`${styles.field} ${styles.wide}`}>
+            Notes
+            <QuietTextarea name="notes" maxLength={4000} rows={8} disabled={locked} value={notes} onChange={(event) => setNotes(event.target.value)} />
+          </label>
         </div>
         <div
           className={`${styles.invoiceForm} ${styles.headerFields}`}
