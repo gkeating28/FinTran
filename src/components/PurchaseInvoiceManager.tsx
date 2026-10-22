@@ -654,6 +654,7 @@ function InvoiceForm({
   const homeCurrency = choices.homeCurrencyCode;
   const flexLabels = selectedType?.flexLabels ?? ["", "", "", "", ""];
   const grnIndex = flexLabels.findIndex((label) => label.trim().toUpperCase() === "GRN");
+  const otherRefIndex = flexLabels.findIndex((label) => label.trim().toLowerCase() === "other reference");
   const showFlex = flexLabels.some((label) => label.trim());
   const lineVat = choices.vatRates.filter((rate) => rate.vatType === (sales ? "Sales" : "Expense"));
   const glChoices = [...choices.glCodes].sort((left, right) => {
@@ -908,25 +909,7 @@ function InvoiceForm({
           aria-labelledby="header-tab-document"
           hidden={headerTab !== "document"}
         >
-        <label className={styles.field}>
-          Transaction type
-          {typeLocked ? <input type="hidden" name="transaction_type_id" value={typeId} /> : null}
-          <select
-            name={typeLocked ? undefined : "transaction_type_id"}
-            required
-            autoComplete="off"
-            value={typeId}
-            disabled={typeLocked || locked}
-            onChange={(event) => setTypeId(event.target.value)}
-          >
-            <option value="">Choose a type</option>
-            {choices.types.map((type) => (
-              <option key={type.id} value={type.id}>
-                {type.code} — {type.description}
-              </option>
-            ))}
-          </select>
-        </label>
+        <input type="hidden" name="transaction_type_id" value={typeId} />
         <label className={styles.field}>
           Number
           <input
@@ -939,31 +922,9 @@ function InvoiceForm({
             className={styles.mono}
           />
         </label>
-        {showFlex && grnIndex !== 0 ? <FlexField index={0} label={flexLabels[0]} value={flex[0]} disabled={locked} onChange={setFlex} /> : null}
-        <div className={styles.fieldPair}>
-        <label className={styles.field}>
-          Transaction date
-          <QuietInput
-            name="transaction_date"
-            type="date"
-            required
-            disabled={locked}
-            value={transactionDate}
-            onChange={(event) => {
-              const next = event.target.value;
-              if (termsDays != null && dueDate === addDays(transactionDate, termsDays)) {
-                setDueDate(addDays(next, termsDays));
-              }
-              setTransactionDate(next);
-            }}
-          />
-        </label>
-        <label className={styles.field}>
-          Due date
-          <QuietInput name="due_date" type="date" disabled={locked} value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
-        </label>
-        </div>
-        {showFlex && grnIndex !== 1 ? <FlexField index={1} label={flexLabels[1]} value={flex[1]} disabled={locked} onChange={setFlex} /> : null}
+        {showFlex && otherRefIndex >= 0 ? (
+          <FlexField index={otherRefIndex} label={flexLabels[otherRefIndex]} value={flex[otherRefIndex]} disabled={locked} onChange={setFlex} />
+        ) : <span />}
         <label className={styles.field}>
           {sales ? "Customer code" : "Supplier code"}
           <select name={sales ? "customer_id" : "supplier_id"} required autoComplete="off" value={supplierId} disabled={locked} onChange={(event) => chooseSupplier(event.target.value)}>
@@ -979,20 +940,6 @@ function InvoiceForm({
           {sales ? "Customer name" : "Supplier name"}
           <QuietInput name="party_name" required maxLength={200} disabled={locked} value={supplierName} onChange={(event) => setSupplierName(event.target.value)} />
         </label>
-        {sales ? null : (
-          <label className={styles.field}>
-            Supplier invoice no.
-            <QuietInput name="supplier_reference" maxLength={60} disabled={locked} value={supplierReference} onChange={(event) => setSupplierReference(event.target.value)} />
-          </label>
-        )}
-        <div className={styles.fieldPair}>
-          <label className={styles.field}>
-            Supply date
-            <QuietInput name="supply_date" type="date" disabled={locked} value={supplyDate} onChange={(event) => setSupplyDate(event.target.value)} />
-          </label>
-          {showFlex && grnIndex >= 0 ? <FlexField index={grnIndex} label={flexLabels[grnIndex]} value={flex[grnIndex]} disabled={locked} onChange={setFlex} /> : null}
-        </div>
-        {showFlex && grnIndex !== 2 ? <FlexField index={2} label={flexLabels[2]} value={flex[2]} disabled={locked} onChange={setFlex} /> : null}
         <div className={styles.fieldPair}>
           <label className={styles.field}>
             Currency
@@ -1020,8 +967,42 @@ function InvoiceForm({
             />
           </label>
         </div>
-        {showFlex && grnIndex !== 3 ? <FlexField index={3} label={flexLabels[3]} value={flex[3]} disabled={locked} onChange={setFlex} /> : null}
-        {showFlex && grnIndex !== 4 ? <FlexField index={4} label={flexLabels[4]} value={flex[4]} disabled={locked} onChange={setFlex} /> : null}
+        <div className={styles.fieldPair}>
+          <label className={styles.field}>
+            Transaction date
+            <QuietInput
+              name="transaction_date"
+              type="date"
+              required
+              disabled={locked}
+              value={transactionDate}
+              onChange={(event) => {
+                const next = event.target.value;
+                if (termsDays != null && dueDate === addDays(transactionDate, termsDays)) {
+                  setDueDate(addDays(next, termsDays));
+                }
+                setTransactionDate(next);
+              }}
+            />
+          </label>
+          <label className={styles.field}>
+            Due date
+            <QuietInput name="due_date" type="date" disabled={locked} value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
+          </label>
+        </div>
+        {sales ? <span /> : (
+          <label className={styles.field}>
+            Supplier invoice no.
+            <QuietInput name="supplier_reference" maxLength={60} disabled={locked} value={supplierReference} onChange={(event) => setSupplierReference(event.target.value)} />
+          </label>
+        )}
+        <div className={styles.fieldPair}>
+          <label className={styles.field}>
+            Supply date
+            <QuietInput name="supply_date" type="date" disabled={locked} value={supplyDate} onChange={(event) => setSupplyDate(event.target.value)} />
+          </label>
+          {showFlex && grnIndex >= 0 ? <FlexField index={grnIndex} label={flexLabels[grnIndex]} value={flex[grnIndex]} disabled={locked} onChange={setFlex} /> : null}
+        </div>
         <label className={styles.field}>
           Order number
           <QuietInput name="order_number" maxLength={40} disabled={locked} value={orderNumber} onChange={(event) => setOrderNumber(event.target.value)} />
@@ -1045,6 +1026,11 @@ function InvoiceForm({
           </label>
           <span className={`${styles.panelMeta} ${styles.wide}`}>Enter both dates, or leave both blank.</span>
         </div>
+        {showFlex ? flexLabels.map((label, index) => (
+          index === grnIndex || index === otherRefIndex || !label.trim() ? null : (
+            <FlexField key={index} index={index} label={label} value={flex[index]} disabled={locked} onChange={setFlex} />
+          )
+        )) : null}
         {creditNote ? (
           <>
             <label className={`${styles.field} ${styles.wide}`}>
