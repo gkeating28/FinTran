@@ -206,21 +206,7 @@ function PartyForm({
             {state.error}
           </p>
         ) : null}
-        <label className={styles.field}>
-          Code
-          <QuietInput
-            name="code"
-            required
-            maxLength={20}
-            autoComplete="off"
-            autoFocus
-            value={code}
-            onChange={(event) => setCode(event.target.value)}
-            placeholder="1000"
-            className={styles.mono}
-            style={{ textTransform: "uppercase" }}
-          />
-        </label>
+        <div className={styles.partyFields}>
         <label className={styles.field}>
           Name
           <QuietInput
@@ -232,92 +218,6 @@ function PartyForm({
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="Northwind Traders"
-          />
-        </label>
-        <label className={styles.field}>
-          Currency
-          <select
-            name="currency_id"
-            required
-            autoComplete="off"
-            value={currencyId}
-            onChange={(event) => setCurrencyId(event.target.value)}
-            disabled={currencies.length === 0}
-          >
-            <option value="" disabled>
-              Choose a currency
-            </option>
-            {currencies.map((currency) => (
-              <option key={currency.id} value={currency.id}>
-                {currency.code}
-              </option>
-            ))}
-          </select>
-          {currencies.length === 0 ? (
-            <span className={styles.panelMeta}>Add a currency for this organisation before saving.</span>
-          ) : null}
-        </label>
-        <label className={styles.field}>
-          VAT number
-          <QuietInput
-            name="vat_number"
-            maxLength={16}
-            autoComplete="off"
-            spellCheck={false}
-            value={vatNumber}
-            onChange={(event) => setVatNumber(event.target.value)}
-            placeholder="IE1234567T"
-            className={styles.mono}
-          />
-          <span className={styles.panelMeta}>Country prefix and number, for example IE1234567T.</span>
-        </label>
-        <label className={styles.field}>
-          Company number
-          <QuietInput
-            name="company_number"
-            maxLength={40}
-            autoComplete="off"
-            spellCheck={false}
-            value={companyNumber}
-            onChange={(event) => setCompanyNumber(event.target.value)}
-            className={styles.mono}
-          />
-        </label>
-        <label className={styles.field}>
-          Payment terms (days)
-          <QuietInput
-            name="payment_terms_days"
-            inputMode="numeric"
-            maxLength={3}
-            autoComplete="off"
-            value={paymentTermsDays}
-            onChange={(event) => setPaymentTermsDays(event.target.value)}
-            placeholder="30"
-          />
-        </label>
-        {kind === "customers" ? (
-          <label className={styles.field}>
-            Buyer reference
-            <QuietInput
-              name="default_buyer_reference"
-              maxLength={100}
-              autoComplete="off"
-              spellCheck={false}
-              value={defaultBuyerReference}
-              onChange={(event) => setDefaultBuyerReference(event.target.value)}
-            />
-          </label>
-        ) : null}
-        <label className={styles.field}>
-          Phone
-          <QuietInput
-            name="phone"
-            maxLength={40}
-            autoComplete="off"
-            spellCheck={false}
-            value={phone}
-            onChange={(event) => setPhone(event.target.value)}
-            placeholder="+353 1 555 0100"
           />
         </label>
         <label className={styles.field}>
@@ -334,6 +234,115 @@ function PartyForm({
             placeholder="accounts@northwind.example"
           />
         </label>
+        <div className={styles.fieldPair}>
+          <label className={styles.field}>
+            Code
+            <QuietInput
+              name="code"
+              required
+              maxLength={20}
+              autoComplete="off"
+              autoFocus
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+              placeholder="1000"
+              className={styles.mono}
+              style={{ textTransform: "uppercase" }}
+            />
+          </label>
+          <label className={styles.field}>
+            Currency
+            <select
+              name="currency_id"
+              required
+              autoComplete="off"
+              value={currencyId}
+              onChange={(event) => setCurrencyId(event.target.value)}
+              disabled={currencies.length === 0}
+            >
+              <option value="" disabled>
+                Choose a currency
+              </option>
+              {currencies.map((currency) => (
+                <option key={currency.id} value={currency.id}>
+                  {currency.code}
+                </option>
+              ))}
+            </select>
+            {currencies.length === 0 ? (
+              <span className={styles.panelMeta}>Add a currency for this organisation before saving.</span>
+            ) : null}
+          </label>
+        </div>
+        <div className={styles.fieldPair}>
+          <label className={styles.field}>
+            VAT number
+            <QuietInput
+              name="vat_number"
+              maxLength={16}
+              autoComplete="off"
+              spellCheck={false}
+              value={vatNumber}
+              onChange={(event) => setVatNumber(event.target.value)}
+              placeholder="IE1234567T"
+              className={styles.mono}
+            />
+          </label>
+          <label className={styles.field}>
+            Company number
+            <QuietInput
+              name="company_number"
+              maxLength={40}
+              autoComplete="off"
+              spellCheck={false}
+              value={companyNumber}
+              onChange={(event) => setCompanyNumber(event.target.value)}
+              className={styles.mono}
+            />
+          </label>
+        </div>
+        <div className={styles.fieldPair}>
+          <label className={styles.field}>
+            Payment terms (days)
+            <QuietInput
+              name="payment_terms_days"
+              inputMode="numeric"
+              maxLength={3}
+              autoComplete="off"
+              value={paymentTermsDays}
+              onChange={(event) => setPaymentTermsDays(event.target.value)}
+              placeholder="30"
+            />
+          </label>
+          <label className={styles.field}>
+            Phone
+            <QuietInput
+              name="phone"
+              maxLength={40}
+              autoComplete="off"
+              spellCheck={false}
+              value={phone}
+              onChange={(event) => setPhone(event.target.value)}
+              placeholder="+353 1 555 0100"
+            />
+          </label>
+        </div>
+        <div className={styles.fieldPair}>
+          <label className={styles.field}>
+            Post code
+            <QuietInput name="post_code" maxLength={20} autoComplete="off" spellCheck={false} value={postCode} onChange={(event) => setPostCode(event.target.value)} className={styles.mono} />
+          </label>
+          <label className={styles.field}>
+            Country
+            <select name="country_code" autoComplete="off" value={countryCode} onChange={(event) => setCountryCode(event.target.value)}>
+              {orderedCountries.map((country) => (
+                <option key={country.code} value={country.code}>
+                  {country.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
         <label className={styles.field}>
           Website
           <QuietInput
@@ -346,18 +355,31 @@ function PartyForm({
             placeholder="https://northwind.example"
           />
         </label>
-        <label className={`${styles.field} ${styles.wide}`}>
+        {kind === "customers" ? (
+          <label className={styles.field}>
+            Buyer reference
+            <QuietInput
+              name="default_buyer_reference"
+              maxLength={100}
+              autoComplete="off"
+              spellCheck={false}
+              value={defaultBuyerReference}
+              onChange={(event) => setDefaultBuyerReference(event.target.value)}
+            />
+          </label>
+        ) : <span />}
+        <label className={styles.field}>
           <span>
             Address line 1
             {row?.addressNeedsReview ? <span className={styles.reviewBadge}>Needs review</span> : null}
           </span>
           <QuietInput name="address_line1" maxLength={100} autoComplete="off" spellCheck={false} value={addressLine1} onChange={(event) => setAddressLine1(event.target.value)} />
         </label>
-        <label className={`${styles.field} ${styles.wide}`}>
+        <label className={styles.field}>
           Address line 2
           <QuietInput name="address_line2" maxLength={100} autoComplete="off" spellCheck={false} value={addressLine2} onChange={(event) => setAddressLine2(event.target.value)} />
         </label>
-        <label className={`${styles.field} ${styles.wide}`}>
+        <label className={styles.field}>
           Address line 3
           <QuietInput name="address_line3" maxLength={100} autoComplete="off" spellCheck={false} value={addressLine3} onChange={(event) => setAddressLine3(event.target.value)} />
         </label>
@@ -366,37 +388,25 @@ function PartyForm({
           <QuietInput name="city" maxLength={60} autoComplete="off" spellCheck={false} value={city} onChange={(event) => setCity(event.target.value)} />
         </label>
         <label className={styles.field}>
-          Post code
-          <QuietInput name="post_code" maxLength={20} autoComplete="off" spellCheck={false} value={postCode} onChange={(event) => setPostCode(event.target.value)} className={styles.mono} />
-        </label>
-        <label className={styles.field}>
           County
           <QuietInput name="county" maxLength={60} autoComplete="off" spellCheck={false} value={county} onChange={(event) => setCounty(event.target.value)} />
         </label>
+        <div className={styles.fieldPair}>
+          <label className={styles.field}>
+            Peppol scheme
+            <SchemeLookup schemes={schemes} value={peppolScheme} onChange={setPeppolScheme} />
+          </label>
+          <label className={styles.field}>
+            Peppol ID
+            <QuietInput name="peppol_id" maxLength={100} autoComplete="off" spellCheck={false} value={peppolId} onChange={(event) => setPeppolId(event.target.value)} className={styles.mono} />
+          </label>
+        </div>
         <label className={styles.field}>
-          Country
-          <select name="country_code" autoComplete="off" value={countryCode} onChange={(event) => setCountryCode(event.target.value)}>
-            {orderedCountries.map((country) => (
-              <option key={country.code} value={country.code}>
-                {country.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={styles.field}>
-          Peppol scheme
-          <SchemeLookup schemes={schemes} value={peppolScheme} onChange={setPeppolScheme} />
-        </label>
-        <label className={styles.field}>
-          Peppol ID
-          <QuietInput name="peppol_id" maxLength={100} autoComplete="off" spellCheck={false} value={peppolId} onChange={(event) => setPeppolId(event.target.value)} className={styles.mono} />
-        </label>
-        <label className={`${styles.field} ${styles.wide}`}>
           Contact details
           <QuietTextarea
             name="contact_details"
             maxLength={500}
-            rows={3}
+            rows={2}
             autoComplete="off"
             spellCheck={false}
             value={contactDetails}
@@ -404,12 +414,12 @@ function PartyForm({
             placeholder="Accounts, Jane Murphy"
           />
         </label>
-        <label className={`${styles.field} ${styles.wide}`}>
+        <label className={styles.field}>
           Notes
           <QuietTextarea
             name="notes"
             maxLength={4000}
-            rows={3}
+            rows={2}
             autoComplete="off"
             spellCheck={false}
             value={notes}
@@ -417,6 +427,7 @@ function PartyForm({
             placeholder="Delivery notes or anything else to keep with this record."
           />
         </label>
+        </div>
         <div className={styles.modalActions}>
           <button className={styles.quiet} type="button" onClick={onClose}>
             Cancel
