@@ -653,6 +653,7 @@ function InvoiceForm({
   const supplierCurrency = choices.currencies.find((currency) => currency.id === currencyId)?.code ?? "";
   const homeCurrency = choices.homeCurrencyCode;
   const flexLabels = selectedType?.flexLabels ?? ["", "", "", "", ""];
+  const grnIndex = flexLabels.findIndex((label) => label.trim().toUpperCase() === "GRN");
   const showFlex = flexLabels.some((label) => label.trim());
   const lineVat = choices.vatRates.filter((rate) => rate.vatType === (sales ? "Sales" : "Expense"));
   const glChoices = [...choices.glCodes].sort((left, right) => {
@@ -938,7 +939,8 @@ function InvoiceForm({
             className={styles.mono}
           />
         </label>
-        {showFlex ? <FlexField index={0} label={flexLabels[0]} value={flex[0]} disabled={locked} onChange={setFlex} /> : null}
+        {showFlex && grnIndex !== 0 ? <FlexField index={0} label={flexLabels[0]} value={flex[0]} disabled={locked} onChange={setFlex} /> : null}
+        <div className={styles.fieldPair}>
         <label className={styles.field}>
           Transaction date
           <QuietInput
@@ -960,7 +962,8 @@ function InvoiceForm({
           Due date
           <QuietInput name="due_date" type="date" disabled={locked} value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
         </label>
-        {showFlex ? <FlexField index={1} label={flexLabels[1]} value={flex[1]} disabled={locked} onChange={setFlex} /> : null}
+        </div>
+        {showFlex && grnIndex !== 1 ? <FlexField index={1} label={flexLabels[1]} value={flex[1]} disabled={locked} onChange={setFlex} /> : null}
         <label className={styles.field}>
           {sales ? "Customer code" : "Supplier code"}
           <select name={sales ? "customer_id" : "supplier_id"} required autoComplete="off" value={supplierId} disabled={locked} onChange={(event) => chooseSupplier(event.target.value)}>
@@ -982,11 +985,14 @@ function InvoiceForm({
             <QuietInput name="supplier_reference" maxLength={60} disabled={locked} value={supplierReference} onChange={(event) => setSupplierReference(event.target.value)} />
           </label>
         )}
-        <label className={styles.field}>
-          Supply date
-          <QuietInput name="supply_date" type="date" disabled={locked} value={supplyDate} onChange={(event) => setSupplyDate(event.target.value)} />
-        </label>
-        {showFlex ? <FlexField index={2} label={flexLabels[2]} value={flex[2]} disabled={locked} onChange={setFlex} /> : null}
+        <div className={styles.fieldPair}>
+          <label className={styles.field}>
+            Supply date
+            <QuietInput name="supply_date" type="date" disabled={locked} value={supplyDate} onChange={(event) => setSupplyDate(event.target.value)} />
+          </label>
+          {showFlex && grnIndex >= 0 ? <FlexField index={grnIndex} label={flexLabels[grnIndex]} value={flex[grnIndex]} disabled={locked} onChange={setFlex} /> : null}
+        </div>
+        {showFlex && grnIndex !== 2 ? <FlexField index={2} label={flexLabels[2]} value={flex[2]} disabled={locked} onChange={setFlex} /> : null}
         <div className={styles.fieldPair}>
           <label className={styles.field}>
             Currency
@@ -1014,8 +1020,8 @@ function InvoiceForm({
             />
           </label>
         </div>
-        {showFlex ? <FlexField index={3} label={flexLabels[3]} value={flex[3]} disabled={locked} onChange={setFlex} /> : null}
-        {showFlex ? <FlexField index={4} label={flexLabels[4]} value={flex[4]} disabled={locked} onChange={setFlex} /> : null}
+        {showFlex && grnIndex !== 3 ? <FlexField index={3} label={flexLabels[3]} value={flex[3]} disabled={locked} onChange={setFlex} /> : null}
+        {showFlex && grnIndex !== 4 ? <FlexField index={4} label={flexLabels[4]} value={flex[4]} disabled={locked} onChange={setFlex} /> : null}
         <label className={styles.field}>
           Order number
           <QuietInput name="order_number" maxLength={40} disabled={locked} value={orderNumber} onChange={(event) => setOrderNumber(event.target.value)} />
