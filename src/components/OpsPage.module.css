@@ -651,6 +651,18 @@
   min-width: 0;
 }
 
+.fieldPair {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+  min-width: 0;
+}
+
+.fieldPair .wide {
+  grid-column: 1 / -1;
+}
+
 .headerSummary {
   flex: none;
   display: flex;

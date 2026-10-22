@@ -987,31 +987,33 @@ function InvoiceForm({
           <QuietInput name="supply_date" type="date" disabled={locked} value={supplyDate} onChange={(event) => setSupplyDate(event.target.value)} />
         </label>
         {showFlex ? <FlexField index={2} label={flexLabels[2]} value={flex[2]} disabled={locked} onChange={setFlex} /> : null}
-        <label className={styles.field}>
-          Currency
-          <input type="hidden" name="currency_id" value={currencyId} />
-          <input
-            readOnly
-            value={choices.currencies.find((currency) => currency.id === currencyId)?.code ?? ""}
-            placeholder={sales ? "From the customer" : "From the supplier"}
-            className={styles.mono}
-          />
-        </label>
-        <label className={styles.field}>
-          Exchange rate
-          <QuietInput
-            name="exchange_rate"
-            required
-            inputMode="decimal"
-            disabled={locked}
-            value={exchangeRate}
-            onChange={(event) => setExchangeRate(event.target.value)}
-            onBlur={(event) => {
-              if (parseCurrencyRate(event.target.value)) setExchangeRate(formatExchangeRate(event.target.value));
-            }}
-            className={styles.mono}
-          />
-        </label>
+        <div className={styles.fieldPair}>
+          <label className={styles.field}>
+            Currency
+            <input type="hidden" name="currency_id" value={currencyId} />
+            <input
+              readOnly
+              value={choices.currencies.find((currency) => currency.id === currencyId)?.code ?? ""}
+              placeholder={sales ? "From the customer" : "From the supplier"}
+              className={styles.mono}
+            />
+          </label>
+          <label className={styles.field}>
+            Exchange rate
+            <QuietInput
+              name="exchange_rate"
+              required
+              inputMode="decimal"
+              disabled={locked}
+              value={exchangeRate}
+              onChange={(event) => setExchangeRate(event.target.value)}
+              onBlur={(event) => {
+                if (parseCurrencyRate(event.target.value)) setExchangeRate(formatExchangeRate(event.target.value));
+              }}
+              className={styles.mono}
+            />
+          </label>
+        </div>
         {showFlex ? <FlexField index={3} label={flexLabels[3]} value={flex[3]} disabled={locked} onChange={setFlex} /> : null}
         {showFlex ? <FlexField index={4} label={flexLabels[4]} value={flex[4]} disabled={locked} onChange={setFlex} /> : null}
         <label className={styles.field}>
@@ -1026,15 +1028,17 @@ function InvoiceForm({
           Contract reference
           <QuietInput name="contract_reference" maxLength={60} disabled={locked} value={contractReference} onChange={(event) => setContractReference(event.target.value)} />
         </label>
-        <label className={styles.field}>
-          Period start
-          <QuietInput name="invoice_period_start" type="date" disabled={locked} value={invoicePeriodStart} onChange={(event) => setInvoicePeriodStart(event.target.value)} />
-        </label>
-        <label className={styles.field}>
-          Period end
-          <QuietInput name="invoice_period_end" type="date" disabled={locked} value={invoicePeriodEnd} onChange={(event) => setInvoicePeriodEnd(event.target.value)} />
-          <span className={styles.panelMeta}>Enter both dates, or leave both blank.</span>
-        </label>
+        <div className={styles.fieldPair}>
+          <label className={styles.field}>
+            Period start
+            <QuietInput name="invoice_period_start" type="date" disabled={locked} value={invoicePeriodStart} onChange={(event) => setInvoicePeriodStart(event.target.value)} />
+          </label>
+          <label className={styles.field}>
+            Period end
+            <QuietInput name="invoice_period_end" type="date" disabled={locked} value={invoicePeriodEnd} onChange={(event) => setInvoicePeriodEnd(event.target.value)} />
+          </label>
+          <span className={`${styles.panelMeta} ${styles.wide}`}>Enter both dates, or leave both blank.</span>
+        </div>
         {creditNote ? (
           <>
             <label className={`${styles.field} ${styles.wide}`}>
@@ -1143,6 +1147,21 @@ function InvoiceForm({
             className={styles.mono}
           />
         </label>
+        <label className={styles.field}>
+          Paid amount
+          <QuietInput
+            name="paid_amount"
+            required
+            inputMode="decimal"
+            disabled={voided}
+            value={paidAmount}
+            onChange={(event) => setPaidAmount(event.target.value)}
+            onBlur={(event) => {
+              if (parseMoney(event.target.value)) setPaidAmount(formatMoney(event.target.value));
+            }}
+            className={styles.mono}
+          />
+        </label>
         <label className={`${styles.field} ${styles.wide}`}>
           Contact details
           <QuietTextarea name="contact_details" maxLength={500} rows={2} disabled={locked} value={contactDetails} onChange={(event) => setContactDetails(event.target.value)} />
@@ -1150,21 +1169,6 @@ function InvoiceForm({
         </div>
         </div>
         <div className={styles.headerSummary}>
-          <label className={styles.field}>
-            Paid amount
-            <QuietInput
-              name="paid_amount"
-              required
-              inputMode="decimal"
-              disabled={voided}
-              value={paidAmount}
-              onChange={(event) => setPaidAmount(event.target.value)}
-              onBlur={(event) => {
-                if (parseMoney(event.target.value)) setPaidAmount(formatMoney(event.target.value));
-              }}
-              className={styles.mono}
-            />
-          </label>
           <fieldset className={styles.amountBox}>
             <legend>Totals</legend>
             <table>
