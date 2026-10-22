@@ -556,11 +556,15 @@ function InvoiceForm({
   const [voidOpen, setVoidOpen] = useState(false);
   const [creditOpen, setCreditOpen] = useState(false);
   const splitRef = useRef<HTMLDivElement>(null);
+  const headerWidthRef = useRef<number | null>(null);
+  const sideBySideRef = useRef(true);
 
   useEffect(() => {
     const stored = window.localStorage.getItem(SPLIT_WIDTH_KEY);
     const value = stored == null ? Number.NaN : Number(stored);
-    if (Number.isFinite(value)) setHeaderWidth(value);
+    if (!Number.isFinite(value)) return;
+    headerWidthRef.current = value;
+    setHeaderWidth(value);
   }, []);
 
   useEffect(() => {
@@ -568,12 +572,9 @@ function InvoiceForm({
     if (!node) return;
     const watch = () => {
       const wide = node.clientWidth >= 860;
+      if (wide === sideBySideRef.current) return;
+      sideBySideRef.current = wide;
       setSideBySide(wide);
-      if (!wide) return;
-      setHeaderWidth((current) => {
-        if (current == null) return current;
-        return clampSplit(current, node.clientWidth);
-      });
     };
     watch();
     const observer = new ResizeObserver(watch);
@@ -581,29 +582,46 @@ function InvoiceForm({
     return () => observer.disconnect();
   }, []);
 
+  function paintWidth(width: number) {
+    const node = splitRef.current;
+    if (!node) return;
+    node.style.gridTemplateColumns = `${width}px ${SPLIT_HANDLE}px minmax(0, 1fr)`;
+  }
+
   function rememberWidth(next: number) {
     const node = splitRef.current;
     const width = node ? clampSplit(next, node.clientWidth) : next;
+    headerWidthRef.current = width;
+    paintWidth(width);
     setHeaderWidth(width);
     window.localStorage.setItem(SPLIT_WIDTH_KEY, String(width));
   }
 
   function dragSplit(event: React.PointerEvent<HTMLButtonElement>) {
-    if (!sideBySide) return;
+    if (!sideBySideRef.current) return;
     const node = splitRef.current;
     if (!node) return;
     event.preventDefault();
     const bounds = node.getBoundingClientRect();
-    const origin = headerWidth ?? (bounds.width - SPLIT_HANDLE) / 2;
+    const origin = headerWidthRef.current ?? (bounds.width - SPLIT_HANDLE) / 2;
     const startX = event.clientX;
     const target = event.currentTarget;
+    let latest = origin;
+    let frame = 0;
     target.setPointerCapture(event.pointerId);
     const move = (ev: PointerEvent) => {
-      setHeaderWidth(clampSplit(origin + ev.clientX - startX, bounds.width));
+      latest = clampSplit(origin + ev.clientX - startX, bounds.width);
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        paintWidth(latest);
+      });
     };
     const stop = (ev: PointerEvent) => {
-      rememberWidth(origin + ev.clientX - startX);
-      target.releasePointerCapture(event.pointerId);
+      if (frame) window.cancelAnimationFrame(frame);
+      latest = clampSplit(origin + ev.clientX - startX, bounds.width);
+      rememberWidth(latest);
+      if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId);
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", stop);
       window.removeEventListener("pointercancel", stop);
@@ -618,7 +636,7 @@ function InvoiceForm({
     const node = splitRef.current;
     if (!node || !sideBySide) return;
     event.preventDefault();
-    const current = headerWidth ?? (node.clientWidth - SPLIT_HANDLE) / 2;
+    const current = headerWidthRef.current ?? (node.clientWidth - SPLIT_HANDLE) / 2;
     const delta = event.key === "ArrowLeft" ? -24 : 24;
     rememberWidth(current + (event.shiftKey ? delta * 3 : delta));
   }
