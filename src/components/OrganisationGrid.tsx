@@ -160,6 +160,7 @@ function OrganisationForm({
   const [removeLogo, setRemoveLogo] = useState(false);
   const [logoError, setLogoError] = useState<string | null>(null);
   const logoInputId = useId();
+  const formId = useId();
   const preview = filePreview ?? (removeLogo ? null : organisation.logoUrl);
 
   useEffect(() => {
@@ -189,243 +190,316 @@ function OrganisationForm({
     if (state.message) onClose();
   }, [state.message, onClose]);
 
+  const homeCurrencyNote = organisation.hasDocuments
+    ? "The home currency cannot be changed once documents exist."
+    : "Exchange rates are relative to the home currency. Check the other currencies after you change it.";
+
   return (
     <FormModal title={`Edit ${organisation.name}`} onClose={onClose} fillPage>
-      <div className={styles.modalForm}>
-      <form className={styles.partyForm} action={action} autoComplete="off" noValidate>
-        <input type="hidden" name="organisation_id" value={organisation.id} />
-        <div className={`${styles.field} ${styles.wide}`}>
-          <label htmlFor={logoInputId}>Logo</label>
-          <div className={styles.logoControl}>
-            {preview ? (
-              <img src={preview} alt="" className={styles.logoPreview} />
-            ) : (
-              <span className={styles.logoEmpty}>No logo</span>
-            )}
-            <div className={styles.logoChoices}>
-              <input
-                id={logoInputId}
-                className={styles.logoInput}
-                type="file"
-                name="logo"
-                accept={ORGANISATION_LOGO_ACCEPT}
-                onChange={onLogoFile}
-              />
-              <p className={styles.panelMeta}>PNG, JPEG, WebP, or GIF. Up to 2 MB.</p>
-              {logoError ? (
-                <p className={styles.alert} role="alert">
-                  {logoError}
-                </p>
-              ) : null}
-              {organisation.logoUrl ? (
-                <label className={styles.logoRemove}>
-                  <input
-                    type="checkbox"
-                    name="remove_logo"
-                    value="1"
-                    checked={removeLogo}
-                    onChange={(event) => {
-                      setRemoveLogo(event.target.checked);
-                      if (event.target.checked) {
-                        const input = document.getElementById(logoInputId);
-                        if (input instanceof HTMLInputElement) input.value = "";
-                        setFilePreview((current) => {
-                          if (current) URL.revokeObjectURL(current);
-                          return null;
-                        });
-                        setLogoError(null);
-                      }
-                    }}
-                  />
-                  Remove logo
-                </label>
-              ) : null}
-            </div>
-          </div>
-        </div>
+      <div className={`${styles.modalForm} ${styles.partyForm}`}>
         {state.error ? (
           <p className={styles.alert} role="alert">
             {state.error}
           </p>
         ) : null}
-        <label className={`${styles.field} ${styles.wide}`}>
-          Home currency
-          <select
-            name={organisation.hasDocuments ? undefined : "home_currency_id"}
-            required
-            autoComplete="off"
-            value={homeCurrency}
-            onChange={(event) => setHomeCurrency(event.target.value)}
-            disabled={organisation.currencies.length === 0 || organisation.hasDocuments}
-          >
-            <option value="" disabled>
-              Choose a home currency
-            </option>
-            {organisation.currencies.map((currency) => (
-              <option key={currency.id} value={currency.id}>
-                {currencyLabel(currency)}
-              </option>
-            ))}
-          </select>
-          {organisation.hasDocuments ? <input type="hidden" name="home_currency_id" value={organisation.homeCurrencyId ?? ""} /> : null}
-        </label>
-        {organisation.hasDocuments ? (
-          <p className={`${styles.panelMeta} ${styles.wide}`}>The home currency cannot be changed once documents exist.</p>
-        ) : (
-          <p className={`${styles.panelMeta} ${styles.wide}`}>
-            Exchange rates are relative to the home currency. Check the other currencies after you change it.
-          </p>
-        )}
-        {organisation.currencies.length === 0 ? (
-          <p className={`${styles.panelMeta} ${styles.wide}`}>Add a currency for this organisation before choosing a home currency.</p>
-        ) : null}
-        <label className={styles.field}>
-          Contact name
-          <QuietInput name="contact_name" maxLength={200} value={contactName} onChange={(event) => setContactName(event.target.value)} />
-        </label>
-        <label className={styles.field}>
-          Contact email
-          <QuietInput
-            name="contact_email"
-            type="text"
-            inputMode="email"
-            maxLength={200}
-            value={contactEmail}
-            onChange={(event) => setContactEmail(event.target.value)}
-          />
-        </label>
-        <label className={styles.field}>
-          Phone number
-          <QuietInput name="phone" maxLength={40} value={phone} onChange={(event) => setPhone(event.target.value)} />
-        </label>
-        <label className={styles.field}>
-          Web URL
-          <QuietInput name="website" maxLength={200} value={website} onChange={(event) => setWebsite(event.target.value)} placeholder="https://example.com" />
-        </label>
-        <label className={styles.field}>
-          VAT registration number
-          <QuietInput name="vat_number" maxLength={16} value={vatNumber} onChange={(event) => setVatNumber(event.target.value)} placeholder="IE1234567T" className={styles.mono} />
-          <span className={styles.panelMeta}>Country prefix and number, for example IE1234567T.</span>
-        </label>
-        <label className={styles.field}>
-          Company reg. number
-          <QuietInput name="company_number" maxLength={40} value={companyNumber} onChange={(event) => setCompanyNumber(event.target.value)} className={styles.mono} />
-        </label>
-        <div className={styles.addressColumns}>
-          <label className={styles.field}>
-            <span>
-              Address line 1
-              {organisation.profile.addressNeedsReview ? <span className={styles.reviewBadge}>Needs review</span> : null}
-            </span>
-            <QuietInput name="address_line1" maxLength={100} value={addressLine1} onChange={(event) => setAddressLine1(event.target.value)} />
-          </label>
-          <label className={styles.field}>
-            Address line 2
-            <QuietInput name="address_line2" maxLength={100} value={addressLine2} onChange={(event) => setAddressLine2(event.target.value)} />
-          </label>
-          <label className={styles.field}>
-            Address line 3
-            <QuietInput name="address_line3" maxLength={100} value={addressLine3} onChange={(event) => setAddressLine3(event.target.value)} />
-          </label>
-          <label className={styles.field}>
-            City
-            <QuietInput name="city" maxLength={60} value={city} onChange={(event) => setCity(event.target.value)} />
-          </label>
-          <label className={styles.field}>
-            Post code
-            <QuietInput name="post_code" maxLength={20} value={postCode} onChange={(event) => setPostCode(event.target.value)} className={styles.mono} />
-          </label>
-          <label className={styles.field}>
-            County
-            <QuietInput name="county" maxLength={60} value={county} onChange={(event) => setCounty(event.target.value)} />
-          </label>
-          <label className={styles.field}>
-            Country
-            <select name="country_code" autoComplete="off" value={countryCode} onChange={(event) => setCountryCode(event.target.value)}>
-              {orderedCountries.map((country) => (
-                <option key={country.code} value={country.code}>
-                  {country.name}
+        <div className={`${styles.partyFields} ${styles.wide}`}>
+          <form id={formId} className={styles.displayContents} action={action} autoComplete="off" noValidate>
+            <label className={styles.field}>
+              Contact name
+              <QuietInput
+                name="contact_name"
+                maxLength={200}
+                autoFocus
+                value={contactName}
+                onChange={(event) => setContactName(event.target.value)}
+              />
+            </label>
+            <label className={styles.field}>
+              Contact email
+              <QuietInput
+                name="contact_email"
+                type="text"
+                inputMode="email"
+                maxLength={200}
+                value={contactEmail}
+                onChange={(event) => setContactEmail(event.target.value)}
+              />
+            </label>
+            <div className={styles.field}>
+              <label htmlFor={logoInputId}>Logo</label>
+              <div className={styles.logoControl}>
+                {preview ? (
+                  <img src={preview} alt="" className={styles.logoPreview} />
+                ) : (
+                  <span className={styles.logoEmpty}>No logo</span>
+                )}
+                <div className={styles.logoChoices}>
+                  <input
+                    id={logoInputId}
+                    className={styles.logoInput}
+                    type="file"
+                    name="logo"
+                    accept={ORGANISATION_LOGO_ACCEPT}
+                    onChange={onLogoFile}
+                  />
+                  <span className={styles.panelMeta}>PNG, JPEG, WebP, or GIF. Up to 2 MB.</span>
+                  {logoError ? (
+                    <p className={styles.alert} role="alert">
+                      {logoError}
+                    </p>
+                  ) : null}
+                  {organisation.logoUrl ? (
+                    <label className={styles.logoRemove}>
+                      <input
+                        type="checkbox"
+                        name="remove_logo"
+                        value="1"
+                        checked={removeLogo}
+                        onChange={(event) => {
+                          setRemoveLogo(event.target.checked);
+                          if (event.target.checked) {
+                            const input = document.getElementById(logoInputId);
+                            if (input instanceof HTMLInputElement) input.value = "";
+                            setFilePreview((current) => {
+                              if (current) URL.revokeObjectURL(current);
+                              return null;
+                            });
+                            setLogoError(null);
+                          }
+                        }}
+                      />
+                      Remove logo
+                    </label>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+            <label className={styles.field}>
+              Home currency
+              <select
+                name={organisation.hasDocuments ? undefined : "home_currency_id"}
+                required
+                autoComplete="off"
+                value={homeCurrency}
+                onChange={(event) => setHomeCurrency(event.target.value)}
+                disabled={organisation.currencies.length === 0 || organisation.hasDocuments}
+              >
+                <option value="" disabled>
+                  Choose a home currency
                 </option>
-              ))}
-            </select>
-          </label>
+                {organisation.currencies.map((currency) => (
+                  <option key={currency.id} value={currency.id}>
+                    {currencyLabel(currency)}
+                  </option>
+                ))}
+              </select>
+              {organisation.hasDocuments ? <input type="hidden" name="home_currency_id" value={organisation.homeCurrencyId ?? ""} /> : null}
+              <span className={styles.panelMeta}>{homeCurrencyNote}</span>
+              {organisation.currencies.length === 0 ? (
+                <span className={styles.panelMeta}>Add a currency for this organisation before choosing a home currency.</span>
+              ) : null}
+            </label>
+            <label className={styles.field}>
+              Phone
+              <QuietInput
+                name="phone"
+                maxLength={40}
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                placeholder="+353 1 555 0100"
+              />
+            </label>
+            <label className={styles.field}>
+              Website
+              <QuietInput
+                name="website"
+                maxLength={200}
+                value={website}
+                onChange={(event) => setWebsite(event.target.value)}
+                placeholder="https://example.com"
+              />
+            </label>
+            <div className={styles.fieldPair}>
+              <label className={styles.field}>
+                VAT number
+                <QuietInput
+                  name="vat_number"
+                  maxLength={16}
+                  value={vatNumber}
+                  onChange={(event) => setVatNumber(event.target.value)}
+                  placeholder="IE1234567T"
+                  className={styles.mono}
+                />
+              </label>
+              <label className={styles.field}>
+                Company number
+                <QuietInput
+                  name="company_number"
+                  maxLength={40}
+                  value={companyNumber}
+                  onChange={(event) => setCompanyNumber(event.target.value)}
+                  className={styles.mono}
+                />
+              </label>
+              <span className={`${styles.panelMeta} ${styles.wide}`}>Country prefix and number, for example IE1234567T.</span>
+            </div>
+            <div className={styles.fieldPair}>
+              <label className={styles.field}>
+                Post code
+                <QuietInput
+                  name="post_code"
+                  maxLength={20}
+                  value={postCode}
+                  onChange={(event) => setPostCode(event.target.value)}
+                  className={styles.mono}
+                />
+              </label>
+              <label className={styles.field}>
+                Country
+                <select name="country_code" autoComplete="off" value={countryCode} onChange={(event) => setCountryCode(event.target.value)}>
+                  {orderedCountries.map((country) => (
+                    <option key={country.code} value={country.code}>
+                      {country.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <label className={styles.field}>
+              <span>
+                Address line 1
+                {organisation.profile.addressNeedsReview ? <span className={styles.reviewBadge}>Needs review</span> : null}
+              </span>
+              <QuietInput name="address_line1" maxLength={100} value={addressLine1} onChange={(event) => setAddressLine1(event.target.value)} />
+            </label>
+            <label className={styles.field}>
+              Address line 2
+              <QuietInput name="address_line2" maxLength={100} value={addressLine2} onChange={(event) => setAddressLine2(event.target.value)} />
+            </label>
+            <label className={styles.field}>
+              Address line 3
+              <QuietInput name="address_line3" maxLength={100} value={addressLine3} onChange={(event) => setAddressLine3(event.target.value)} />
+            </label>
+            <label className={styles.field}>
+              City
+              <QuietInput name="city" maxLength={60} value={city} onChange={(event) => setCity(event.target.value)} />
+            </label>
+            <label className={styles.field}>
+              County
+              <QuietInput name="county" maxLength={60} value={county} onChange={(event) => setCounty(event.target.value)} />
+            </label>
+            <div className={styles.fieldPair}>
+              <label className={styles.field}>
+                Peppol scheme
+                <SchemeLookup schemes={schemes} value={peppolScheme} onChange={setPeppolScheme} />
+              </label>
+              <label className={styles.field}>
+                Peppol ID
+                <QuietInput
+                  name="peppol_id"
+                  maxLength={100}
+                  value={peppolId}
+                  onChange={(event) => setPeppolId(event.target.value)}
+                  className={styles.mono}
+                />
+              </label>
+            </div>
+            <label className={styles.field}>
+              IBAN
+              <QuietInput
+                name="iban"
+                maxLength={42}
+                value={iban}
+                onChange={(event) => setIban(event.target.value)}
+                placeholder="IE29AIBK93115212345678"
+                className={styles.mono}
+              />
+            </label>
+            <label className={styles.field}>
+              BIC
+              <QuietInput
+                name="bic"
+                maxLength={11}
+                value={bic}
+                onChange={(event) => setBic(event.target.value)}
+                placeholder="AIBKIE2D"
+                className={styles.mono}
+              />
+            </label>
+            <label className={styles.field}>
+              Account name
+              <QuietInput
+                name="bank_account_name"
+                maxLength={100}
+                value={bankAccountName}
+                onChange={(event) => setBankAccountName(event.target.value)}
+              />
+            </label>
+            <label className={styles.field}>
+              Lock date
+              <QuietInput name="lock_date" type="date" value={lockDate} onChange={(event) => setLockDate(event.target.value)} />
+              <span className={styles.panelMeta}>Documents on or before this date cannot be entered, posted, voided, or removed.</span>
+            </label>
+            <label className={styles.field}>
+              Inbound invoice type
+              <select
+                name="inbound_invoice_type_id"
+                value={inboundInvoiceTypeId}
+                onChange={(event) => setInboundInvoiceTypeId(event.target.value)}
+              >
+                <option value="">Not set</option>
+                {invoiceTypes.map((type) => (
+                  <option key={type.id} value={type.id}>
+                    {type.code} {type.description}
+                  </option>
+                ))}
+              </select>
+              <span className={styles.panelMeta}>Purchases invoice type used when a received e-invoice is imported.</span>
+            </label>
+            <label className={styles.field}>
+              Inbound credit note type
+              <select
+                name="inbound_credit_note_type_id"
+                value={inboundCreditNoteTypeId}
+                onChange={(event) => setInboundCreditNoteTypeId(event.target.value)}
+              >
+                <option value="">Not set</option>
+                {creditTypes.map((type) => (
+                  <option key={type.id} value={type.id}>
+                    {type.code} {type.description}
+                  </option>
+                ))}
+              </select>
+              <span className={styles.panelMeta}>Purchases credit note type used when a received e-credit note is imported.</span>
+            </label>
+            <label className={`${styles.field} ${styles.wide}`}>
+              Banking details
+              <QuietTextarea
+                name="banking_details"
+                maxLength={1000}
+                rows={3}
+                value={bankingDetails}
+                onChange={(event) => setBankingDetails(event.target.value)}
+              />
+              <span className={styles.panelMeta}>Printed as written. IBAN, BIC, and account name are stored separately.</span>
+            </label>
+            <input type="hidden" name="organisation_id" value={organisation.id} />
+          </form>
+          {organisation.role === "owner" ? <DeleteOrganisationForm organisation={organisation} /> : null}
         </div>
-        <label className={styles.field}>
-          Peppol scheme
-          <SchemeLookup schemes={schemes} value={peppolScheme} onChange={setPeppolScheme} />
-        </label>
-        <label className={styles.field}>
-          Peppol ID
-          <QuietInput name="peppol_id" maxLength={100} value={peppolId} onChange={(event) => setPeppolId(event.target.value)} className={styles.mono} />
-        </label>
-        <label className={styles.field}>
-          IBAN
-          <QuietInput name="iban" maxLength={42} value={iban} onChange={(event) => setIban(event.target.value)} placeholder="IE29AIBK93115212345678" className={styles.mono} />
-        </label>
-        <label className={styles.field}>
-          BIC
-          <QuietInput name="bic" maxLength={11} value={bic} onChange={(event) => setBic(event.target.value)} placeholder="AIBKIE2D" className={styles.mono} />
-        </label>
-        <label className={`${styles.field} ${styles.wide}`}>
-          Account name
-          <QuietInput name="bank_account_name" maxLength={100} value={bankAccountName} onChange={(event) => setBankAccountName(event.target.value)} />
-        </label>
-        <label className={`${styles.field} ${styles.wide}`}>
-          Banking details
-          <QuietTextarea name="banking_details" maxLength={1000} rows={4} value={bankingDetails} onChange={(event) => setBankingDetails(event.target.value)} />
-          <span className={styles.panelMeta}>Printed as written. IBAN, BIC, and account name are stored separately.</span>
-        </label>
-        <label className={styles.field}>
-          Inbound invoice type
-          <select
-            name="inbound_invoice_type_id"
-            value={inboundInvoiceTypeId}
-            onChange={(event) => setInboundInvoiceTypeId(event.target.value)}
-          >
-            <option value="">Not set</option>
-            {invoiceTypes.map((type) => (
-              <option key={type.id} value={type.id}>
-                {type.code} {type.description}
-              </option>
-            ))}
-          </select>
-          <span className={styles.panelMeta}>Purchases invoice type used when a received e-invoice is imported.</span>
-        </label>
-        <label className={styles.field}>
-          Inbound credit note type
-          <select
-            name="inbound_credit_note_type_id"
-            value={inboundCreditNoteTypeId}
-            onChange={(event) => setInboundCreditNoteTypeId(event.target.value)}
-          >
-            <option value="">Not set</option>
-            {creditTypes.map((type) => (
-              <option key={type.id} value={type.id}>
-                {type.code} {type.description}
-              </option>
-            ))}
-          </select>
-          <span className={styles.panelMeta}>Purchases credit note type used when a received e-credit note is imported.</span>
-        </label>
-        <label className={styles.field}>
-          Lock date
-          <QuietInput name="lock_date" type="date" value={lockDate} onChange={(event) => setLockDate(event.target.value)} />
-          <span className={styles.panelMeta}>Documents on or before this date cannot be entered, posted, voided, or removed.</span>
-        </label>
-        <div className={`${styles.modalActions} ${styles.wide}`}>
+        <div className={styles.modalActions}>
           <button className={styles.quiet} type="button" onClick={onClose}>
             Cancel
           </button>
           <button
             className={styles.primary}
             type="submit"
+            form={formId}
             disabled={pending || organisation.currencies.length === 0}
           >
             {pending ? "Saving…" : "Save"}
           </button>
         </div>
-      </form>
-      {organisation.role === "owner" ? <DeleteOrganisationForm organisation={organisation} /> : null}
       </div>
     </FormModal>
   );
@@ -436,7 +510,7 @@ function DeleteOrganisationForm({ organisation }: { organisation: OrganisationGr
   const [confirmation, setConfirmation] = useState("");
 
   return (
-    <form className={styles.voidBar} action={action} autoComplete="off" noValidate>
+    <form className={`${styles.voidBar} ${styles.wide}`} action={action} autoComplete="off" noValidate>
       <input type="hidden" name="organisationId" value={organisation.id} />
       <input type="hidden" name="organisationName" value={organisation.name} />
       {state.error ? (
