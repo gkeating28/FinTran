@@ -62,7 +62,7 @@ export default async function EDocumentPage({ params }: { params: Promise<{ id: 
           {row.amount_due != null ? ` · due ${row.amount_due}` : ""}
         </p>
       </div>
-      <div className={styles.readinessBar}>
+      <div className={styles.statusRow}>
         <a className={styles.quiet} href={`/api/einvoice/${row.id}/xml`}>
           Download XML
         </a>

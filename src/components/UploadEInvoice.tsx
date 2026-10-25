@@ -4,35 +4,48 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import styles from "@/components/OpsPage.module.css";
 
-export function UploadEInvoice() {
+export function UploadEInvoice({ onError }: { onError?: (message: string | null) => void }) {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [fileName, setFileName] = useState("");
 
   return (
     <form
-      className={styles.readinessBar}
+      className={styles.uploadRow}
       onSubmit={async (event) => {
         event.preventDefault();
-        const form = new FormData(event.currentTarget);
+        const form = event.currentTarget;
+        const file = new FormData(form).get("file");
+        if (!(file instanceof File) || file.size === 0) {
+          onError?.("Choose a UBL file.");
+          return;
+        }
         setPending(true);
-        setError(null);
-        const response = await fetch("/api/einvoice/inbound", { method: "POST", body: form });
+        onError?.(null);
+        const response = await fetch("/api/einvoice/inbound", { method: "POST", body: new FormData(form) });
         const body = (await response.json()) as { id?: string; error?: string };
         setPending(false);
         if (!response.ok || !body.id) {
-          setError(body.error ?? "The file could not be received.");
+          onError?.(body.error ?? "The file could not be received.");
           return;
         }
         router.push(`/e-documents/${body.id}`);
         router.refresh();
       }}
     >
-      <input name="file" type="file" accept=".xml,text/xml,application/xml" required />
+      <label className={styles.quiet}>
+        {fileName || "Choose XML"}
+        <input
+          className={styles.fileInput}
+          name="file"
+          type="file"
+          accept=".xml,text/xml,application/xml"
+          onChange={(event) => setFileName(event.target.files?.[0]?.name ?? "")}
+        />
+      </label>
       <button className={styles.primary} type="submit" disabled={pending}>
-        {pending ? "Checking…" : "Upload UBL"}
+        {pending ? "Checking…" : "Upload"}
       </button>
-      {error ? <span className={styles.alert}>{error}</span> : null}
     </form>
   );
 }
