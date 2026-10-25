@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import OrganisationGrid from "@/components/OrganisationGrid";
 import styles from "@/components/OpsPage.module.css";
-import { emptyOrganisationProfile, listDefaultsByOrganisation } from "@/lib/currency-data";
+import { emptyOrganisationProfile, listDefaultsByOrganisation, listIsoCurrencies } from "@/lib/currency-data";
 import { getWorkspace } from "@/lib/data";
 import { listCodeLists } from "@/lib/reference-data";
 
@@ -14,9 +14,10 @@ export default async function OrganisationsPage() {
 
   const { current, memberships } = workspace;
   const organisations = memberships.filter((membership) => membership.tenantId === current.tenantId);
-  const [{ byOrganisation, error }, codes] = await Promise.all([
+  const [{ byOrganisation, error }, codes, currencies] = await Promise.all([
     listDefaultsByOrganisation(organisations.map((organisation) => organisation.organisationId)),
     listCodeLists(),
+    listIsoCurrencies(),
   ]);
 
   return (
@@ -38,6 +39,7 @@ export default async function OrganisationsPage() {
         canAdd={organisations.some((organisation) => organisation.role === "owner")}
         countries={codes.countries}
         schemes={codes.schemes}
+        currencies={currencies}
         rows={organisations.map((organisation) => {
           const defaults = byOrganisation[organisation.organisationId];
           return {
@@ -49,6 +51,7 @@ export default async function OrganisationsPage() {
             currencies: defaults?.currencies ?? [],
             profile: defaults?.profile ?? emptyOrganisationProfile,
             logoUrl: defaults?.logoUrl ?? null,
+            hasDocuments: defaults?.hasDocuments ?? false,
           };
         })}
       />

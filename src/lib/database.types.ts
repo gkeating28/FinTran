@@ -1998,11 +1998,11 @@ export type Database = {
     }
     Functions: {
       create_organisation: {
-        Args: { organisation_name: string; p_tenant_id: string }
+        Args: { organisation_name: string; p_home_currency?: string; p_tenant_id: string }
         Returns: string
       }
       create_tenant: {
-        Args: { organisation_name: string; tenant_name: string }
+        Args: { organisation_name: string; p_home_currency?: string; tenant_name: string }
         Returns: Json
       }
       delete_organisation: {

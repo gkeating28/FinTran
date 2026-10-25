@@ -29,6 +29,12 @@ export function parseProductPrice(value: string) {
   return trimmed;
 }
 
+export function parseAmount(value: string) {
+  const trimmed = plainDecimal(value);
+  if (!/^\d{1,16}(?:\.\d{1,2})?$/.test(trimmed)) return null;
+  return trimmed;
+}
+
 export function formatProductPrice(value: string | number | null) {
   if (value == null || value === "") return "";
   const text = plainDecimal(value);

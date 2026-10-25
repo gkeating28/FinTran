@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { CreateTenantForm } from "@/components/Forms";
 import styles from "@/components/OpsPage.module.css";
+import { listIsoCurrencies } from "@/lib/currency-data";
 import { getWorkspace, listOrganisationMembers } from "@/lib/data";
 import { roleLabel } from "@/lib/types";
 
@@ -12,6 +13,7 @@ export default async function HomePage() {
   if (workspace.status === "error") return null;
 
   if (workspace.status === "needs-tenant") {
+    const currencies = await listIsoCurrencies();
     return (
       <section className={styles.stack}>
         <div>
@@ -24,7 +26,7 @@ export default async function HomePage() {
         <div className={styles.panel}>
           <div className={styles.panelHead}>
             <span>New tenant</span>
-            <CreateTenantForm />
+            <CreateTenantForm currencies={currencies} />
           </div>
           <p className={styles.empty}>
             The tenant and its first organisation are created together. You can add more organisations

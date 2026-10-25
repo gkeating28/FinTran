@@ -25,7 +25,8 @@ select public.grant_organisation_access(current_setting('test.org')::uuid, 'admi
 select public.grant_organisation_access(current_setting('test.org')::uuid, 'member-phase4@fintran.test', 'member');
 
 insert into public.currencies (tenant_id, organisation_id, code, name, rate)
-values (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'EUR', 'Euro', 1);
+values (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'EUR', 'Euro', 1)
+on conflict (organisation_id, code) do nothing;
 insert into public.suppliers (tenant_id, organisation_id, code, name, currency_id)
 select current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'VOD', 'Vodafone', id
 from public.currencies where organisation_id = current_setting('test.org')::uuid;

@@ -28,6 +28,7 @@ export type OrganisationGridRow = {
   currencies: CurrencyChoice[];
   profile: OrganisationProfile;
   logoUrl: string | null;
+  hasDocuments: boolean;
 };
 
 export default function OrganisationGrid({
@@ -36,12 +37,14 @@ export default function OrganisationGrid({
   canAdd,
   countries,
   schemes,
+  currencies,
 }: {
   rows: OrganisationGridRow[];
   tenantId: string;
   canAdd: boolean;
   countries: CodeName[];
   schemes: CodeName[];
+  currencies: { code: string; name: string }[];
 }) {
   const [editing, setEditing] = useState<OrganisationGridRow | null>(null);
 
@@ -52,7 +55,7 @@ export default function OrganisationGrid({
         searchPlaceholder="Search organisations"
         searchText={(row) => `${row.name} ${row.slug} ${roleLabel(row.role)} ${homeLabel(row)}`}
         emptyLabel="No organisations in this tenant."
-        toolbar={canAdd ? <CreateOrganisationForm tenantId={tenantId} /> : null}
+        toolbar={canAdd ? <CreateOrganisationForm tenantId={tenantId} currencies={currencies} /> : null}
         columns={[
           {
             key: "name",
@@ -241,12 +244,12 @@ function OrganisationForm({
         <label className={`${styles.field} ${styles.wide}`}>
           Home currency
           <select
-            name="home_currency_id"
+            name={organisation.hasDocuments ? undefined : "home_currency_id"}
             required
             autoComplete="off"
             value={homeCurrency}
             onChange={(event) => setHomeCurrency(event.target.value)}
-            disabled={organisation.currencies.length === 0}
+            disabled={organisation.currencies.length === 0 || organisation.hasDocuments}
           >
             <option value="" disabled>
               Choose a home currency
@@ -257,7 +260,15 @@ function OrganisationForm({
               </option>
             ))}
           </select>
+          {organisation.hasDocuments ? <input type="hidden" name="home_currency_id" value={organisation.homeCurrencyId ?? ""} /> : null}
         </label>
+        {organisation.hasDocuments ? (
+          <p className={`${styles.panelMeta} ${styles.wide}`}>The home currency cannot be changed once documents exist.</p>
+        ) : (
+          <p className={`${styles.panelMeta} ${styles.wide}`}>
+            Exchange rates are relative to the home currency. Check the other currencies after you change it.
+          </p>
+        )}
         {organisation.currencies.length === 0 ? (
           <p className={`${styles.panelMeta} ${styles.wide}`}>Add a currency for this organisation before choosing a home currency.</p>
         ) : null}

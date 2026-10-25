@@ -9,7 +9,8 @@ set local role authenticated;
 select set_config('test.org', (public.create_tenant('Phase Six Books', 'Phase Six Office'))->>'organisation_id', true);
 select set_config('test.tenant', (select tenant_id::text from public.organisations where id = current_setting('test.org')::uuid), true);
 insert into public.currencies (tenant_id, organisation_id, code, name, rate)
-values (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'EUR', 'Euro', 1);
+values (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'EUR', 'Euro', 1)
+on conflict (organisation_id, code) do nothing;
 update public.organisation_defaults
 set address_line1 = 'Dock 1', city = 'Dublin', vat_number = 'IE1234567T',
     peppol_scheme = '9935', peppol_id = 'IE1234567T', iban = 'IE29AIBK93115212345678'

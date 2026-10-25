@@ -15,7 +15,8 @@ select set_config('test.tenant2', (select tenant_id::text from public.organisati
 insert into public.currencies (tenant_id, organisation_id, code, name, rate)
 values
   (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'EUR', 'Euro', 1),
-  (current_setting('test.tenant2')::uuid, current_setting('test.org2')::uuid, 'EUR', 'Euro', 1);
+  (current_setting('test.tenant2')::uuid, current_setting('test.org2')::uuid, 'EUR', 'Euro', 1)
+on conflict (organisation_id, code) do nothing;
 insert into public.suppliers (tenant_id, organisation_id, code, name, currency_id)
 select current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'VOD', 'Vodafone', id
 from public.currencies where organisation_id = current_setting('test.org')::uuid;

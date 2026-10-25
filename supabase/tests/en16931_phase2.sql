@@ -49,7 +49,8 @@ select set_config('test.org', (public.create_tenant('Phase Two Books', 'Phase Tw
 select set_config('test.tenant', (select tenant_id::text from public.organisations where id = current_setting('test.org')::uuid), true);
 
 insert into public.currencies (tenant_id, organisation_id, code, name, rate)
-values (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'EUR', 'Euro', 1);
+values (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'EUR', 'Euro', 1)
+on conflict (organisation_id, code) do nothing;
 
 do $$
 declare
@@ -63,7 +64,8 @@ begin
 
   begin
     insert into public.currencies (tenant_id, organisation_id, code, name, rate, iso_code)
-    values (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'EURO', 'Euro again', 1, 'EUR');
+    values (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'EURO', 'Euro again', 1, 'EUR')
+on conflict (organisation_id, code) do nothing;
     raise exception 'phase 2: a second EUR ISO code was saved';
   exception
     when unique_violation then null;

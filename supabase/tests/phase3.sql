@@ -20,7 +20,8 @@ select set_config('test.org2', public.create_organisation(current_setting('test.
 insert into public.currencies (tenant_id, organisation_id, code, name, rate)
 values
   (current_setting('test.tenant')::uuid, current_setting('test.org1')::uuid, 'EUR', 'Euro', 1),
-  (current_setting('test.tenant')::uuid, current_setting('test.org2')::uuid, 'EUR', 'Euro', 1);
+  (current_setting('test.tenant')::uuid, current_setting('test.org2')::uuid, 'EUR', 'Euro', 1)
+on conflict (organisation_id, code) do nothing;
 insert into public.gl_codes (tenant_id, organisation_id, code, description, account_type)
 values (current_setting('test.tenant')::uuid, current_setting('test.org2')::uuid, '6000', 'Other expense', 'Expense');
 insert into public.departments (tenant_id, organisation_id, code, description)
@@ -120,6 +121,11 @@ begin
     raise exception 'phase 3: home currency accepted another organisation currency';
   exception
     when foreign_key_violation then null;
+    when others then
+      if sqlerrm not like '%Home currency must belong to this organisation%'
+         and sqlerrm not like '%home currency cannot be changed%' then
+        raise;
+      end if;
   end;
 
   insert into public.transaction_lines (

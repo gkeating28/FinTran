@@ -32,6 +32,26 @@ function Status({ state }: { state: ActionState }) {
   return null;
 }
 
+type IsoCurrency = { code: string; name: string };
+
+function HomeCurrencyField({ currencies }: { currencies: IsoCurrency[] }) {
+  const choices = currencies.some((currency) => currency.code === "EUR")
+    ? currencies
+    : [{ code: "EUR", name: "Euro" }, ...currencies];
+  return (
+    <label className={ops.field}>
+      Home currency
+      <select name="homeCurrency" defaultValue="EUR" required>
+        {choices.map((currency) => (
+          <option key={currency.code} value={currency.code}>
+            {currency.code} — {currency.name}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 export function SignInForm({ initialError }: { initialError?: string }) {
   const [state, action, pending] = useActionState(signIn, {
     error: initialError,
@@ -93,7 +113,7 @@ export function SignUpForm() {
   );
 }
 
-export function CreateTenantForm() {
+export function CreateTenantForm({ currencies }: { currencies: IsoCurrency[] }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -103,14 +123,14 @@ export function CreateTenantForm() {
       </button>
       {open ? (
         <FormModal title="Create tenant" onClose={() => setOpen(false)}>
-          <TenantFields />
+          <TenantFields currencies={currencies} />
         </FormModal>
       ) : null}
     </span>
   );
 }
 
-function TenantFields() {
+function TenantFields({ currencies }: { currencies: IsoCurrency[] }) {
   const [state, action, pending] = useActionState(createTenant, {});
 
   return (
@@ -124,6 +144,7 @@ function TenantFields() {
         First organisation
         <QuietInput name="organisationName" required minLength={2} maxLength={80} placeholder="Northwind Ltd" />
       </label>
+      <HomeCurrencyField currencies={currencies} />
       <div className={ops.modalActions}>
         <button className={ops.primary} type="submit" disabled={pending}>
           {pending ? "Creating…" : "Create tenant"}
@@ -133,7 +154,13 @@ function TenantFields() {
   );
 }
 
-export function CreateOrganisationForm({ tenantId }: { tenantId: string }) {
+export function CreateOrganisationForm({
+  tenantId,
+  currencies,
+}: {
+  tenantId: string;
+  currencies: IsoCurrency[];
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -143,14 +170,14 @@ export function CreateOrganisationForm({ tenantId }: { tenantId: string }) {
       </button>
       {open ? (
         <FormModal title="Add organisation" onClose={() => setOpen(false)}>
-          <OrganisationFields tenantId={tenantId} />
+          <OrganisationFields tenantId={tenantId} currencies={currencies} />
         </FormModal>
       ) : null}
     </span>
   );
 }
 
-function OrganisationFields({ tenantId }: { tenantId: string }) {
+function OrganisationFields({ tenantId, currencies }: { tenantId: string; currencies: IsoCurrency[] }) {
   const [state, action, pending] = useActionState(createOrganisation, {});
 
   return (
@@ -161,6 +188,7 @@ function OrganisationFields({ tenantId }: { tenantId: string }) {
         Organisation
         <QuietInput name="organisationName" required minLength={2} maxLength={80} autoFocus placeholder="Harbour Trading" />
       </label>
+      <HomeCurrencyField currencies={currencies} />
       <div className={ops.modalActions}>
         <button className={ops.primary} type="submit" disabled={pending}>
           {pending ? "Adding…" : "Add organisation"}

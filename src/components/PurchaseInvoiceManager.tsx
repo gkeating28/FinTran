@@ -18,6 +18,7 @@ import {
 import type { PurchaseInvoiceChoices } from "@/lib/purchase-invoice-data";
 import { readinessHref } from "@/lib/en16931";
 import { formatInteger, groupThousands, numberValue } from "@/lib/numbers";
+import { parseAmount } from "@/lib/products";
 import { formatExchangeRate, parseCurrencyRate } from "@/lib/currencies";
 import {
   breakdownFromLines,
@@ -770,6 +771,10 @@ function InvoiceForm({
       setLineMessage("Choose a unit.");
       return;
     }
+    if (parseAmount(lineDraft.discountAmount || "0") === null) {
+      setLineMessage("Amounts can have at most 2 decimal places.");
+      return;
+    }
     if (!amounts) {
       setLineMessage("Enter a quantity greater than 0 and a price of 0 or more.");
       return;
@@ -1154,7 +1159,7 @@ function InvoiceForm({
             value={paidAmount}
             onChange={(event) => setPaidAmount(event.target.value)}
             onBlur={(event) => {
-              if (parseMoney(event.target.value)) setPaidAmount(formatMoney(event.target.value));
+              if (parseAmount(event.target.value || "0")) setPaidAmount(formatMoney(event.target.value || "0"));
             }}
             className={styles.mono}
           />
@@ -1686,7 +1691,7 @@ function LineEditor({
           disabled={readOnly}
           onChange={(event) => onChange({ ...draft, discountAmount: event.target.value })}
           onBlur={(event) => {
-            if (parseMoney(event.target.value || "0")) onChange({ ...draft, discountAmount: formatMoney(event.target.value || "0") });
+            if (parseAmount(event.target.value || "0")) onChange({ ...draft, discountAmount: formatMoney(event.target.value || "0") });
           }}
         />
       </label>

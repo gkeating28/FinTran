@@ -96,7 +96,14 @@ export type OrganisationDefaultSet = {
   currencies: CurrencyChoice[];
   profile: OrganisationProfile;
   logoUrl: string | null;
+  hasDocuments: boolean;
 };
+
+export async function listIsoCurrencies(): Promise<{ code: string; name: string }[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("ref_currencies").select("code, name").eq("active", true).order("name");
+  return data ?? [];
+}
 
 export async function listDefaultsByOrganisation(organisationIds: string[]): Promise<{
   byOrganisation: Record<string, OrganisationDefaultSet>;
@@ -109,6 +116,7 @@ export async function listDefaultsByOrganisation(organisationIds: string[]): Pro
       currencies: [],
       profile: { ...emptyOrganisationProfile },
       logoUrl: null,
+      hasDocuments: false,
     };
   }
   if (organisationIds.length === 0) return { byOrganisation, error: null };
@@ -117,7 +125,7 @@ export async function listDefaultsByOrganisation(organisationIds: string[]): Pro
   if (workspace.status !== "ready") return { byOrganisation, error: null };
 
   const supabase = await createClient();
-  const [currencies, defaults] = await Promise.all([
+  const [currencies, defaults, documents] = await Promise.all([
     supabase
       .from("currencies")
       .select("id, code, name, organisation_id")
@@ -129,9 +137,18 @@ export async function listDefaultsByOrganisation(organisationIds: string[]): Pro
         "organisation_id, home_currency_id, address_line1, address_line2, address_line3, city, post_code, county, country_code, address_needs_review, contact_name, contact_email, website, phone, vat_number, company_number, peppol_scheme, peppol_id, iban, bic, bank_account_name, banking_details, lock_date, logo_path, updated_at",
       )
       .in("organisation_id", organisationIds),
+    Promise.all(
+      organisationIds.map(async (organisationId) => {
+        const result = await supabase
+          .from("transaction_headers")
+          .select("id", { count: "exact", head: true })
+          .eq("organisation_id", organisationId);
+        return { organisationId, count: result.count, error: result.error };
+      }),
+    ),
   ]);
 
-  if (currencies.error || defaults.error) {
+  if (currencies.error || defaults.error || documents.some((result) => result.error)) {
     return { byOrganisation, error: "Organisation defaults could not be loaded." };
   }
 
@@ -170,6 +187,10 @@ export async function listDefaultsByOrganisation(organisationIds: string[]): Pro
       lockDate: row.lock_date ?? "",
     };
     set.logoUrl = row.logo_path ? organisationLogoUrl(row.organisation_id, row.updated_at) : null;
+  }
+  for (const result of documents) {
+    const set = byOrganisation[result.organisationId];
+    if (set) set.hasDocuments = (result.count ?? 0) > 0;
   }
 
   return { byOrganisation, error: null };

@@ -68,8 +68,8 @@ Sign-in is Supabase Auth. `public.profiles` is one row per user. Its `id` is the
 
 These four tables are not written with ordinary inserts from the app. Owners and admins call security-definer functions:
 
-- `create_tenant(tenant_name, organisation_name)` creates the tenant, its first organisation, the defaults row, and owner access for the caller.
-- `create_organisation(tenant_id, organisation_name)` adds another organisation in a tenant the caller manages.
+- `create_tenant(tenant_name, organisation_name, p_home_currency default 'EUR')` creates the tenant, its first organisation, a home currency at rate 1, the defaults row, and owner access for the caller.
+- `create_organisation(tenant_id, organisation_name, p_home_currency default 'EUR')` adds another organisation in a tenant the caller manages, with the same home currency.
 - `grant_organisation_access(organisation_id, email, role)` grants access to someone who already has a profile.
 - `revoke_organisation_access(organisation_id, user_id)` removes that grant.
 
@@ -93,13 +93,13 @@ Exceptions:
 
 ## Organisation defaults and currencies
 
-Creating an organisation inserts one `organisation_defaults` row.
+Creating an organisation inserts its home currency at rate 1, then one `organisation_defaults` row. The home currency is required. It cannot be deleted while it is the home currency, its rate cannot move away from 1, and it cannot be changed once the organisation has any document. Until then, changing it sets the new home currency's rate to 1. The other rates stay as they were and should be checked, because they are relative to the home currency.
 
 | Column | Meaning |
 | --- | --- |
 | `organisation_id` | Primary key, and the organisation |
 | `tenant_id` | Must match that organisation |
-| `home_currency_id` | The organisation's home currency. Must be one of its `currencies` |
+| `home_currency_id` | Required. The organisation's home currency, one of its `currencies`, always at rate 1 |
 | `address_line1`, `address_line2`, `address_line3` | Up to 100 characters each. EN 16931 BT-35, BT-36, and BT-162 |
 | `city` | Up to 60. BT-37 |
 | `post_code` | Up to 20, stored in capitals with internal spaces collapsed. BT-38 |
@@ -112,7 +112,7 @@ Creating an organisation inserts one `organisation_defaults` row.
 | `phone` | Up to 40, digits and `+(). -` |
 | `vat_number` | A country prefix from the country list, including `EL`, then 2 to 13 letters or digits. Example: `IE1234567T`. BT-31 |
 | `company_number` | Up to 40, starting with a letter or digit. BT-30 |
-| `peppol_scheme`, `peppol_id` | Both set, or both empty. The scheme is an EAS code. Irish VAT electronic addresses use `9935`. BT-34 |
+| `peppol_scheme`, `peppol_id` | Both set, or both empty. The scheme is an EAS code. The ID is 1 to 100 letters, digits, or `. - _ :`, with no spaces, and is kept in the case it was entered. Scheme `0088` is 13 digits and `0060` is 9 digits. An organisation's scheme and ID are unique across every tenant, compared in lower case. Irish VAT electronic addresses use `9935`. BT-34 |
 | `iban` | Checked with the ISO 13616 mod-97 rule and stored without spaces. BT-84 |
 | `bic` | 8 or 11 characters. BT-86 |
 | `bank_account_name` | Up to 100. BT-85 |
@@ -120,7 +120,13 @@ Creating an organisation inserts one `organisation_defaults` row.
 | `logo_path` | Null, or `{organisation_id}/logo` |
 | `updated_at` | Set on every change |
 
-Customers and suppliers use the same address, VAT, company number, and Peppol columns. On a sales document those are the buyer (BT-47 to BT-55). On a purchase document the supplier columns are the seller. Peppol IDs are unique per organisation for customers, and separately for suppliers. Several records can have no Peppol ID.
+Customers and suppliers use the same address, VAT, company number, and Peppol columns. On a sales document those are the buyer (BT-47 to BT-55). On a purchase document the supplier columns are the seller. Peppol IDs are unique per organisation for customers, and separately for suppliers. A customer or supplier may use the same Peppol ID as a FinTran organisation. Several records can have no Peppol ID.
+
+A tenant can be deleted only when it has no documents. `transaction_headers.tenant_id` and `transaction_lines.tenant_id` are `ON DELETE RESTRICT`. Setup rows still cascade with the tenant. There is no API for deleting a tenant.
+
+Posted and void documents must have a document number, issuer snapshot, party snapshot, and `posted_at`. A draft must not have posting or snapshot data. A void document must have `voided_at` and `void_reason`, and only a void document may have those. `posted_by` and `voided_by` may be null after the profile is deleted.
+
+Document nett, VAT, total, paid, and discount amounts are `numeric(18,2)`. Prices and quantities stay at 4 decimal places, and exchange rates at 8. `save_document` refuses a paid amount or discount with more than 2 decimal places.
 
 Blank text is stored as null.
 

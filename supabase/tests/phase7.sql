@@ -10,7 +10,8 @@ set local role authenticated;
 select set_config('test.org', (public.create_tenant('Phase Seven Books', 'Phase Seven Office'))->>'organisation_id', true);
 select set_config('test.tenant', (select tenant_id::text from public.organisations where id = current_setting('test.org')::uuid), true);
 insert into public.currencies (tenant_id, organisation_id, code, name, rate)
-values (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'EUR', 'Euro', 1);
+values (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'EUR', 'Euro', 1)
+on conflict (organisation_id, code) do nothing;
 insert into public.suppliers (tenant_id, organisation_id, code, name, currency_id)
 select current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'VOD', 'Vodafone', id
 from public.currencies where organisation_id = current_setting('test.org')::uuid;

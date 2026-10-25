@@ -13,6 +13,7 @@ import {
   type PurchaseInvoiceLine,
 } from "@/lib/purchase-invoices";
 import { ORGANISATION_LOGO_BUCKET, organisationSnapshotPath } from "@/lib/organisation-logo";
+import { parseAmount } from "@/lib/products";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionState } from "@/lib/types";
 
@@ -106,7 +107,7 @@ function documentFrom(formData: FormData) {
   const supplierName = text(formData, "party_name").trim();
   const currencyId = parseUuid(text(formData, "currency_id"));
   const exchangeRate = parseExchangeRate(text(formData, "exchange_rate"));
-  const paidAmount = parseMoney(text(formData, "paid_amount") || "0");
+  const paidAmount = parseAmount(text(formData, "paid_amount") || "0");
   const roundingAmount = parseMoney(text(formData, "rounding_amount") || "0");
   const contactDetails = optionalText(text(formData, "contact_details"), 500);
   const notes = optionalText(text(formData, "notes"), 4000);
@@ -134,7 +135,7 @@ function documentFrom(formData: FormData) {
   if (supplierName.length > 200) return { error: "The name can be up to 200 characters." } as const;
   if (!currencyId) return { error: "Choose a currency." } as const;
   if (!exchangeRate) return { error: "Enter an exchange rate greater than 0." } as const;
-  if (!paidAmount) return { error: "Enter a paid amount of 0 or more." } as const;
+  if (paidAmount === null) return { error: "Amounts can have at most 2 decimal places." } as const;
   if (!roundingAmount) return { error: "Enter a rounding amount of 0 or more." } as const;
   if (contactDetails === undefined) return { error: "Contact details can be up to 500 characters." } as const;
   if (notes === undefined) return { error: "Notes can be up to 4000 characters." } as const;
@@ -165,14 +166,14 @@ function documentFrom(formData: FormData) {
   for (const line of lines) {
     const quantity = parseMoney(line.quantity);
     const price = parseMoney(line.price);
-    const discount = parseMoney(line.discountAmount || "0");
+    const discount = parseAmount(line.discountAmount || "0");
     const description = line.description.trim();
     if (!description || description.length > 200) {
       return { error: "Each line needs a description up to 200 characters." } as const;
     }
     if (!quantity || !(Number(quantity) > 0)) return { error: "Each line needs a quantity greater than 0." } as const;
     if (!price) return { error: "Each line needs a price of 0 or more." } as const;
-    if (!discount) return { error: "Each line needs a discount of 0 or more." } as const;
+    if (discount === null) return { error: "Amounts can have at most 2 decimal places." } as const;
     const unitCode = line.unitCode.trim().toUpperCase();
     if (unitCode && !/^[A-Z0-9]{2,3}$/.test(unitCode)) return { error: "Choose a unit." } as const;
     if (line.lineNote.trim().length > 400) return { error: "A line note can be up to 400 characters." } as const;
@@ -225,7 +226,7 @@ function documentFrom(formData: FormData) {
       vatRateId: line.vatRateId.trim(),
       quantity: parseMoney(line.quantity),
       price: parseMoney(line.price),
-      discountAmount: parseMoney(line.discountAmount || "0"),
+      discountAmount: parseAmount(line.discountAmount || "0"),
       unitCode: line.unitCode.trim().toUpperCase(),
       lineNote: line.lineNote.trim(),
       sellerItemId: line.sellerItemId.trim(),
@@ -340,9 +341,9 @@ export async function voidPurchaseInvoice(formData: FormData) {
 
 export async function updatePaidAmount(_state: ActionState, formData: FormData): Promise<ActionState> {
   const id = parseUuid(text(formData, "id"));
-  const paidAmount = parseMoney(text(formData, "paid_amount"));
+  const paidAmount = parseAmount(text(formData, "paid_amount"));
   if (!id) return { error: "Choose a document." };
-  if (paidAmount === null) return { error: "Enter a paid amount of zero or more." };
+  if (paidAmount === null) return { error: "Amounts can have at most 2 decimal places." };
 
   const workspace = await getWorkspace();
   if (workspace.status === "signed-out") redirect("/login");

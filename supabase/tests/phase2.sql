@@ -36,7 +36,8 @@ values
 insert into public.gl_codes (tenant_id, organisation_id, code, description, account_type)
 values (current_setting('test.tenant')::uuid, current_setting('test.org1')::uuid, '5000', 'Sales', 'Income');
 insert into public.currencies (tenant_id, organisation_id, code, name, rate)
-values (current_setting('test.tenant')::uuid, current_setting('test.org1')::uuid, 'EUR', 'Euro', 1);
+values (current_setting('test.tenant')::uuid, current_setting('test.org1')::uuid, 'EUR', 'Euro', 1)
+on conflict (organisation_id, code) do nothing;
 insert into public.transaction_types (tenant_id, organisation_id, code, description, last_reference, type)
 values (current_setting('test.tenant')::uuid, current_setting('test.org1')::uuid, 'PI', 'Purchase invoice', 0, 'Purchases');
 insert into public.suppliers (tenant_id, organisation_id, code, name, currency_id)

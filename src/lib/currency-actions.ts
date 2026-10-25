@@ -62,6 +62,12 @@ function friendlyError(error: { code?: string; message: string } | null, fallbac
   }
   if (error.code === "23514" && error.message.includes("logo_path")) return ORGANISATION_LOGO_ERROR;
   if (error.code === "23514") return "Start the code with a letter or number. Then use letters, numbers, dots, or hyphens, up to 20 characters, and a name up to 80 characters.";
+  if (error.code === "P0001" && error.message.includes("cannot be changed once documents exist")) {
+    return "The home currency cannot be changed once documents exist.";
+  }
+  if (error.code === "P0001" && error.message.includes("rate must stay at 1")) {
+    return "The home currency rate must stay at 1.";
+  }
   if (error.code === "P0001" && error.message.includes("Home currency")) {
     return "Choose a currency from this organisation.";
   }

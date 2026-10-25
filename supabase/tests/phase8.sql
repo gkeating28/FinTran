@@ -15,7 +15,8 @@ select set_config('test.tenant', (select tenant_id::text from public.organisatio
 select public.grant_organisation_access(current_setting('test.org')::uuid, 'admin-phase8@fintran.test', 'admin');
 select set_config('test.empty', public.create_organisation(current_setting('test.tenant')::uuid, 'Phase Eight Empty')::text, true);
 insert into public.currencies (tenant_id, organisation_id, code, name, rate)
-values (current_setting('test.tenant')::uuid, current_setting('test.empty')::uuid, 'EUR', 'Euro', 1);
+values (current_setting('test.tenant')::uuid, current_setting('test.empty')::uuid, 'EUR', 'Euro', 1)
+on conflict (organisation_id, code) do nothing;
 
 select public.delete_organisation(current_setting('test.empty')::uuid);
 do $$
@@ -30,7 +31,8 @@ end;
 $$;
 
 insert into public.currencies (tenant_id, organisation_id, code, name, rate)
-values (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'EUR', 'Euro', 1);
+values (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'EUR', 'Euro', 1)
+on conflict (organisation_id, code) do nothing;
 insert into public.suppliers (tenant_id, organisation_id, code, name, currency_id)
 select current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'VOD', 'Vodafone', id
 from public.currencies where organisation_id = current_setting('test.org')::uuid;

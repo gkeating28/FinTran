@@ -10,7 +10,8 @@ select set_config('test.tenant', (select tenant_id::text from public.organisatio
 insert into public.currencies (tenant_id, organisation_id, code, name, rate)
 values
   (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'EUR', 'Euro', 1),
-  (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'USD', 'US dollar', 1.1);
+  (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'USD', 'US dollar', 1.1)
+on conflict (organisation_id, code) do nothing;
 insert into public.gl_codes (tenant_id, organisation_id, code, description, account_type)
 values
   (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '4000', 'Sales', 'Income'),

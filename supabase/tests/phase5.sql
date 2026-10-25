@@ -16,7 +16,8 @@ select set_config('test.org', (public.create_tenant('Phase Five Books', 'Phase F
 select set_config('test.tenant', (select tenant_id::text from public.organisations where id = current_setting('test.org')::uuid), true);
 
 insert into public.currencies (tenant_id, organisation_id, code, name, rate)
-values (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'EUR', 'Euro', 1);
+values (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'EUR', 'Euro', 1)
+on conflict (organisation_id, code) do nothing;
 insert into public.vat_rates (tenant_id, organisation_id, code, description, rate, vat_type, vat_category)
 values (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'P23', 'Purchase VAT', 23, 'Expense', 'S');
 insert into public.suppliers (tenant_id, organisation_id, code, name, currency_id, address_line1, vat_number)

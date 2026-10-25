@@ -101,10 +101,12 @@ export async function selectOrganisation(formData: FormData) {
 export async function createTenant(_state: ActionState, formData: FormData): Promise<ActionState> {
   const tenantName = text(formData, "tenantName");
   const organisationName = text(formData, "organisationName");
+  const homeCurrency = text(formData, "homeCurrency").toUpperCase() || "EUR";
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("create_tenant", {
     tenant_name: tenantName,
     organisation_name: organisationName,
+    p_home_currency: homeCurrency,
   });
 
   if (error) return failure(error, "The tenant could not be created.");
@@ -125,10 +127,12 @@ export async function createOrganisation(
 ): Promise<ActionState> {
   const tenantId = text(formData, "tenantId");
   const organisationName = text(formData, "organisationName");
+  const homeCurrency = text(formData, "homeCurrency").toUpperCase() || "EUR";
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("create_organisation", {
     p_tenant_id: tenantId,
     organisation_name: organisationName,
+    p_home_currency: homeCurrency,
   });
 
   if (error) return failure(error, "The organisation could not be created.");
