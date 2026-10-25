@@ -1,0 +1,6 @@
+3.0.21
+Peppol BIS Billing 3.0, May 2026 documentation release.
+Schematron sources taken from OpenPeppol/peppol-bis-invoice-3 master on 25 October 2026.
+CEN-EN16931-UBL.sch is the TC434 artefact shipped in that repository.
+GitHub had not tagged 3.0.21; the newest tag was v3.0.20 (November 2025 release).
+The May 2026 rules on https://docs.peppol.eu/poacc/billing/3.0/ match this master snapshot.

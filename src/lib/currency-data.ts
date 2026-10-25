@@ -67,6 +67,13 @@ export type OrganisationProfile = {
   lockDate: string;
 };
 
+export type InboundTypeChoice = {
+  id: string;
+  code: string;
+  description: string;
+  documentKind: "invoice" | "credit_note";
+};
+
 export const emptyOrganisationProfile: OrganisationProfile = {
   addressLine1: "",
   addressLine2: "",
@@ -97,6 +104,9 @@ export type OrganisationDefaultSet = {
   profile: OrganisationProfile;
   logoUrl: string | null;
   hasDocuments: boolean;
+  inboundInvoiceTypeId: string | null;
+  inboundCreditNoteTypeId: string | null;
+  purchaseTypes: InboundTypeChoice[];
 };
 
 export async function listIsoCurrencies(): Promise<{ code: string; name: string }[]> {
@@ -117,6 +127,9 @@ export async function listDefaultsByOrganisation(organisationIds: string[]): Pro
       profile: { ...emptyOrganisationProfile },
       logoUrl: null,
       hasDocuments: false,
+      inboundInvoiceTypeId: null,
+      inboundCreditNoteTypeId: null,
+      purchaseTypes: [],
     };
   }
   if (organisationIds.length === 0) return { byOrganisation, error: null };
@@ -125,7 +138,7 @@ export async function listDefaultsByOrganisation(organisationIds: string[]): Pro
   if (workspace.status !== "ready") return { byOrganisation, error: null };
 
   const supabase = await createClient();
-  const [currencies, defaults, documents] = await Promise.all([
+  const [currencies, defaults, documents, purchaseTypes] = await Promise.all([
     supabase
       .from("currencies")
       .select("id, code, name, organisation_id")
@@ -134,7 +147,7 @@ export async function listDefaultsByOrganisation(organisationIds: string[]): Pro
     supabase
       .from("organisation_defaults")
       .select(
-        "organisation_id, home_currency_id, address_line1, address_line2, address_line3, city, post_code, county, country_code, address_needs_review, contact_name, contact_email, website, phone, vat_number, company_number, peppol_scheme, peppol_id, iban, bic, bank_account_name, banking_details, lock_date, logo_path, updated_at",
+        "organisation_id, home_currency_id, address_line1, address_line2, address_line3, city, post_code, county, country_code, address_needs_review, contact_name, contact_email, website, phone, vat_number, company_number, peppol_scheme, peppol_id, iban, bic, bank_account_name, banking_details, lock_date, logo_path, updated_at, inbound_invoice_type_id, inbound_credit_note_type_id",
       )
       .in("organisation_id", organisationIds),
     Promise.all(
@@ -146,9 +159,16 @@ export async function listDefaultsByOrganisation(organisationIds: string[]): Pro
         return { organisationId, count: result.count, error: result.error };
       }),
     ),
+    supabase
+      .from("transaction_types")
+      .select("id, organisation_id, code, description, document_kind")
+      .in("organisation_id", organisationIds)
+      .eq("type", "Purchases")
+      .in("document_kind", ["invoice", "credit_note"])
+      .order("code"),
   ]);
 
-  if (currencies.error || defaults.error || documents.some((result) => result.error)) {
+  if (currencies.error || defaults.error || purchaseTypes.error || documents.some((result) => result.error)) {
     return { byOrganisation, error: "Organisation defaults could not be loaded." };
   }
 
@@ -187,6 +207,18 @@ export async function listDefaultsByOrganisation(organisationIds: string[]): Pro
       lockDate: row.lock_date ?? "",
     };
     set.logoUrl = row.logo_path ? organisationLogoUrl(row.organisation_id, row.updated_at) : null;
+    set.inboundInvoiceTypeId = row.inbound_invoice_type_id;
+    set.inboundCreditNoteTypeId = row.inbound_credit_note_type_id;
+  }
+  for (const row of purchaseTypes.data ?? []) {
+    const set = byOrganisation[row.organisation_id];
+    if (!set || (row.document_kind !== "invoice" && row.document_kind !== "credit_note")) continue;
+    set.purchaseTypes.push({
+      id: row.id,
+      code: row.code,
+      description: row.description,
+      documentKind: row.document_kind,
+    });
   }
   for (const result of documents) {
     const set = byOrganisation[result.organisationId];

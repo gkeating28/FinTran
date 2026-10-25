@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useActionState, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import DataGrid from "@/components/DataGrid";
+import { EInvoicePanel } from "@/components/EInvoicePanel";
 import FormModal from "@/components/FormModal";
 import { QuietInput, QuietTextarea } from "@/components/QuietField";
 import UnitSelect from "@/components/UnitSelect";
@@ -874,6 +875,17 @@ function InvoiceForm({
             </div>
           ) : null}
         </div>
+        {header ? (
+          <EInvoicePanel
+            headerId={header.id}
+            sales={sales}
+            posted={posted}
+            documentKind={selectedType?.documentKind ?? ""}
+            foreignNett={header.foreignNettAmount}
+            foreignVat={header.foreignVatAmount}
+            foreignTotal={header.foreignTotalAmount}
+          />
+        ) : null}
         {choices.types.length === 0 ? (
           <p className={styles.panelMeta}>Add a {sales ? "Sales" : "Purchases"} transaction type before saving a document.</p>
         ) : null}

@@ -19,6 +19,7 @@ const NAV: NavItem[] = [
   { href: "/transactions", label: "Transactions", icon: <LedgerIcon />, section: "workspace" },
   { href: "/customers", label: "Customers", icon: <CustomerIcon />, section: "workspace" },
   { href: "/suppliers", label: "Suppliers", icon: <SupplierIcon />, section: "workspace" },
+  { href: "/e-documents", label: "E-documents", icon: <LedgerIcon />, section: "workspace" },
   { href: "/admin", label: "Admin", icon: <AdminIcon />, section: "admin" },
 ];
 

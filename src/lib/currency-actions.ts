@@ -237,6 +237,10 @@ function profileFrom(formData: FormData) {
   if (bankAccountName === undefined) return { error: "Account name can be up to 100 characters." } as const;
   if (bankingDetails === undefined) return { error: "Banking details can be up to 1000 characters." } as const;
   if (lockDate === undefined) return { error: "Use a lock date, or leave it blank." } as const;
+  const inboundInvoiceTypeId = optionalUuid(text(formData, "inbound_invoice_type_id"));
+  const inboundCreditNoteTypeId = optionalUuid(text(formData, "inbound_credit_note_type_id"));
+  if (inboundInvoiceTypeId === undefined) return { error: "Choose a Purchases invoice type." } as const;
+  if (inboundCreditNoteTypeId === undefined) return { error: "Choose a Purchases credit note type." } as const;
   return {
     address_line1: address.line1 || null,
     address_line2: address.line2 || null,
@@ -259,7 +263,15 @@ function profileFrom(formData: FormData) {
     bank_account_name: bankAccountName,
     banking_details: bankingDetails,
     lock_date: lockDate,
+    inbound_invoice_type_id: inboundInvoiceTypeId,
+    inbound_credit_note_type_id: inboundCreditNoteTypeId,
   } as const;
+}
+
+function optionalUuid(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed) ? trimmed : undefined;
 }
 
 async function logoChange(

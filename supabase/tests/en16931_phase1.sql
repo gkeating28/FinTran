@@ -35,8 +35,14 @@ begin
   ) then
     raise exception 'phase 1: EL VAT prefix is missing';
   end if;
-  if (select count(*) from public.ref_countries where vat_prefix_only) <> 1 then
-    raise exception 'phase 1: only EL should be a VAT prefix';
+  if not exists (
+    select 1 from public.ref_countries
+    where code = 'XI' and vat_prefix_only and active
+  ) then
+    raise exception 'phase 1: XI VAT prefix is missing';
+  end if;
+  if (select count(*) from public.ref_countries where vat_prefix_only) <> 2 then
+    raise exception 'phase 1: only EL and XI should be VAT prefixes';
   end if;
 
   select count(*) into v_count from public.ref_currencies;

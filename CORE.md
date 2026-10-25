@@ -336,6 +336,8 @@ If no row has been saved, printing uses this standard layout. The VAT summary an
 
 For a posted or void document the parties come from the snapshot taken at posting. A later change to the supplier or customer does not change that JSON.
 
+Posted sales invoices and credit notes can be stored as UBL e-documents. Orders are not exported. The XML is generated on the server from `en16931_document`, checked with the CEN EN 16931 Schematron and then the Peppol BIS Billing 3.0.21 Schematron, and kept in `e_documents` with its SHA-256. XSD checking is not wired in; a file is still refused when it has a `DOCTYPE`, an external entity, a CII root, or a root that is not a UBL 2.1 Invoice or CreditNote. A received UBL file is uploaded on the E-documents screen. It is stored only when the buyer Peppol ID, or the buyer VAT number when the organisation has no Peppol ID, matches that organisation. A valid received file can be imported as a Purchases draft, using the invoice and credit note types chosen on the organisation screen. Posting that draft is refused while its nett, VAT, or total differs from the e-invoice. The posted sales document shows the e-invoice status, its validation summary, a download, and regenerate when no valid file is stored. An imported purchase shows a link to the e-document and the totals comparison. The signing key lives in Supabase Vault as `einvoice_hmac_k1` and in Vercel as `EINVOICE_HMAC_KEY` with `EINVOICE_HMAC_KEY_ID=k1`. To rotate it, add `einvoice_hmac_k2`, point Vercel at `k2`, and remove `k1` after a day. The key is never stored in the repository.
+
 `en16931_readiness(header id)` lists gaps as `error` or `warning`. Sales errors stop posting. Purchase gaps stay warnings, apart from the credit-note rule that already requires the preceding invoice. The document page and the document list show a Readiness button. It is red when there is an error, orange when there are only warnings, and green when the document is ready. The button opens the gaps. A party gap links to Suppliers or Organisations. A document field stays on the form. Owners and admins can download the JSON.
 
 ## What the screens do
@@ -348,7 +350,8 @@ For a posted or void document the parties come from the snapshot taken at postin
 | Access | `organisation_access`, `profiles` |
 | Customers and suppliers | `customers`, `suppliers`, `currencies` |
 | Transactions menu | `transaction_types`, with draft, posted, and void counts from `transaction_headers` |
-| Purchase and sales document pages | `transaction_headers`, `transaction_lines`, plus the lookups above. The same form follows the type's direction. Drafts can be posted. Owners and admins can void a posted purchase. A posted sales invoice can raise a credit note |
+| Purchase and sales document pages | `transaction_headers`, `transaction_lines`, plus the lookups above. The same form follows the type's direction. Drafts can be posted. Owners and admins can void a posted purchase. A posted sales invoice can raise a credit note. A posted sales invoice or credit note also shows its e-invoice |
+| E-documents | `e_documents`, `e_document_contents`, `e_document_validation_results`, `e_document_events`. Received and sent lists can be filtered by status, party, date, and number |
 | Change history | `audit_log`, for owners and admins |
 | Forms | `transaction_forms` and `transaction_types` |
 | Print and PDF | The saved form, or the standard layout, filled from the organisation, the supplier, and one header with its lines |

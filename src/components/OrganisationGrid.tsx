@@ -8,7 +8,7 @@ import { QuietInput, QuietTextarea } from "@/components/QuietField";
 import SchemeLookup from "@/components/SchemeLookup";
 import { deleteOrganisation } from "@/lib/actions";
 import { updateOrganisationDefaults } from "@/lib/currency-actions";
-import type { OrganisationProfile } from "@/lib/currency-data";
+import type { InboundTypeChoice, OrganisationProfile } from "@/lib/currency-data";
 import { currencyLabel, type CurrencyChoice } from "@/lib/currencies";
 import { countryChoices, type CodeName } from "@/lib/code-lists";
 import {
@@ -29,6 +29,9 @@ export type OrganisationGridRow = {
   profile: OrganisationProfile;
   logoUrl: string | null;
   hasDocuments: boolean;
+  inboundInvoiceTypeId: string | null;
+  inboundCreditNoteTypeId: string | null;
+  purchaseTypes: InboundTypeChoice[];
 };
 
 export default function OrganisationGrid({
@@ -149,6 +152,10 @@ function OrganisationForm({
   const [bankingDetails, setBankingDetails] = useState(organisation.profile.bankingDetails);
   const orderedCountries = countryChoices(countries);
   const [lockDate, setLockDate] = useState(organisation.profile.lockDate);
+  const [inboundInvoiceTypeId, setInboundInvoiceTypeId] = useState(organisation.inboundInvoiceTypeId ?? "");
+  const [inboundCreditNoteTypeId, setInboundCreditNoteTypeId] = useState(organisation.inboundCreditNoteTypeId ?? "");
+  const invoiceTypes = organisation.purchaseTypes.filter((type) => type.documentKind === "invoice");
+  const creditTypes = organisation.purchaseTypes.filter((type) => type.documentKind === "credit_note");
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [removeLogo, setRemoveLogo] = useState(false);
   const [logoError, setLogoError] = useState<string | null>(null);
@@ -367,6 +374,38 @@ function OrganisationForm({
           Banking details
           <QuietTextarea name="banking_details" maxLength={1000} rows={4} value={bankingDetails} onChange={(event) => setBankingDetails(event.target.value)} />
           <span className={styles.panelMeta}>Printed as written. IBAN, BIC, and account name are stored separately.</span>
+        </label>
+        <label className={styles.field}>
+          Inbound invoice type
+          <select
+            name="inbound_invoice_type_id"
+            value={inboundInvoiceTypeId}
+            onChange={(event) => setInboundInvoiceTypeId(event.target.value)}
+          >
+            <option value="">Not set</option>
+            {invoiceTypes.map((type) => (
+              <option key={type.id} value={type.id}>
+                {type.code} {type.description}
+              </option>
+            ))}
+          </select>
+          <span className={styles.panelMeta}>Purchases invoice type used when a received e-invoice is imported.</span>
+        </label>
+        <label className={styles.field}>
+          Inbound credit note type
+          <select
+            name="inbound_credit_note_type_id"
+            value={inboundCreditNoteTypeId}
+            onChange={(event) => setInboundCreditNoteTypeId(event.target.value)}
+          >
+            <option value="">Not set</option>
+            {creditTypes.map((type) => (
+              <option key={type.id} value={type.id}>
+                {type.code} {type.description}
+              </option>
+            ))}
+          </select>
+          <span className={styles.panelMeta}>Purchases credit note type used when a received e-credit note is imported.</span>
         </label>
         <label className={styles.field}>
           Lock date

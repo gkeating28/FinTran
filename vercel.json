@@ -1,3 +1,9 @@
 {
-  "regions": ["lhr1"]
+  "regions": ["lhr1"],
+  "functions": {
+    "src/app/api/einvoice/**/route.ts": {
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  }
 }

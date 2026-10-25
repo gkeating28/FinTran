@@ -316,6 +316,23 @@ export async function postPurchaseInvoice(formData: FormData) {
     redirect(`${next}?error=${encodeURIComponent(friendlyError(error, "That document could not be posted."))}`);
   }
 
+  const posted = await supabase
+    .from("transaction_headers")
+    .select("transaction_types(type, document_kind)")
+    .eq("id", id)
+    .maybeSingle();
+  const kind = posted.data?.transaction_types as { type?: string; document_kind?: string } | { type?: string; document_kind?: string }[] | null;
+  const typeRow = Array.isArray(kind) ? kind[0] : kind;
+  if (typeRow?.type === "Sales" && (typeRow.document_kind === "invoice" || typeRow.document_kind === "credit_note")) {
+    try {
+      const { createOutbound } = await import("@/lib/einvoice/store");
+      await createOutbound(supabase, id, workspace.current.organisationId);
+    } catch (generationError) {
+      const message = generationError instanceof Error ? generationError.message : "The e-invoice could not be generated.";
+      redirect(`${next}?error=${encodeURIComponent(`Posted, but the e-invoice was not stored. ${message}`)}`);
+    }
+  }
+
   revalidatePath("/transactions");
   revalidatePath("/transactions/[code]", "page");
   redirect(next);

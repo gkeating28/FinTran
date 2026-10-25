@@ -26,7 +26,8 @@ export default async function OrganisationsPage() {
         <h1 className={styles.heading}>Organisations</h1>
         <p className={styles.lede}>
           These are the organisations in {current.tenantName} that you can open. Edit an organisation
-          to set its logo, home currency, address, contact, registration, and banking details.
+          to set its logo, home currency, address, contact, registration, banking details, and the
+          Purchases types used when a received e-invoice is imported.
         </p>
       </div>
       {error || codes.error ? (
@@ -52,6 +53,9 @@ export default async function OrganisationsPage() {
             profile: defaults?.profile ?? emptyOrganisationProfile,
             logoUrl: defaults?.logoUrl ?? null,
             hasDocuments: defaults?.hasDocuments ?? false,
+            inboundInvoiceTypeId: defaults?.inboundInvoiceTypeId ?? null,
+            inboundCreditNoteTypeId: defaults?.inboundCreditNoteTypeId ?? null,
+            purchaseTypes: defaults?.purchaseTypes ?? [],
           };
         })}
       />

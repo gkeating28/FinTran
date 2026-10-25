@@ -566,6 +566,8 @@ export type Database = {
           created_by: string | null
           home_currency_id: string | null
           iban: string | null
+          inbound_credit_note_type_id: string | null
+          inbound_invoice_type_id: string | null
           lock_date: string | null
           logo_path: string | null
           organisation_id: string
@@ -596,6 +598,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           home_currency_id?: string | null
+          inbound_credit_note_type_id?: string | null
+          inbound_invoice_type_id?: string | null
           iban?: string | null
           lock_date?: string | null
           logo_path?: string | null
@@ -627,6 +631,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           home_currency_id?: string | null
+          inbound_credit_note_type_id?: string | null
+          inbound_invoice_type_id?: string | null
           iban?: string | null
           lock_date?: string | null
           logo_path?: string | null
@@ -1567,7 +1573,6 @@ export type Database = {
           price: number
           product_id: string | null
           quantity: number
-          reference: number | null
           seller_item_id: string | null
           tenant_id: string
           transaction_type_id: string
@@ -1598,7 +1603,6 @@ export type Database = {
           price: number
           product_id?: string | null
           quantity: number
-          reference?: number | null
           seller_item_id?: string | null
           tenant_id: string
           transaction_type_id: string
@@ -1629,7 +1633,6 @@ export type Database = {
           price?: number
           product_id?: string | null
           quantity?: number
-          reference?: number | null
           seller_item_id?: string | null
           tenant_id?: string
           transaction_type_id?: string
@@ -2010,7 +2013,14 @@ export type Database = {
         Returns: undefined
       }
       en16931_amount: { Args: { p_value: number }; Returns: string }
+      e_document_xml: { Args: { p_id: string }; Returns: string }
       en16931_document: { Args: { p_header_id: string }; Returns: Json }
+      import_e_document: { Args: { p_choices: Json; p_id: string }; Returns: string }
+      reject_e_document: { Args: { p_id: string; p_reason: string }; Returns: undefined }
+      store_e_document: {
+        Args: { p_envelope: Json; p_signature: string; p_xml: string }
+        Returns: string
+      }
       en16931_price: { Args: { p_value: number }; Returns: string }
       en16931_readiness: {
         Args: { p_header_id: string }
@@ -2043,6 +2053,8 @@ export type Database = {
     Enums: {
       document_kind: "invoice" | "credit_note" | "order"
       document_status: "draft" | "posted" | "void"
+      e_document_direction: "outbound" | "inbound"
+      e_document_status: "generated" | "received" | "invalid" | "valid" | "duplicate" | "imported" | "rejected"
       numbering_rule: "on_insert" | "on_post"
     }
     CompositeTypes: {

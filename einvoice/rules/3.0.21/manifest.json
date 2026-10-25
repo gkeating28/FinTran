@@ -1,0 +1,15 @@
+{
+  "version": "3.0.21",
+  "layers": [
+    {
+      "layer": "en16931",
+      "source": "source/CEN-EN16931-UBL.sch",
+      "sef": "cen.sef.json"
+    },
+    {
+      "layer": "peppol",
+      "source": "source/PEPPOL-EN16931-UBL.sch",
+      "sef": "peppol.sef.json"
+    }
+  ]
+}
