@@ -556,6 +556,45 @@
   grid-column: 1 / -1;
 }
 
+.partyFields.orgFields {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.partyFields.orgFields .span2,
+.partyFields.orgFields .addressBlock {
+  grid-column: span 2;
+}
+
+.partyFields.orgFields .span3 {
+  grid-column: span 3;
+}
+
+.addressBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  align-self: start;
+}
+
+.sectionLabel {
+  margin: 8px 0 0;
+  color: var(--ops-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.actionStart {
+  margin-right: auto;
+}
+
+.quiet.dangerQuiet {
+  color: var(--ops-warn);
+  border-color: #f3c7b4;
+}
+
 .pageDialog .partyForm .modalActions {
   flex: none;
   justify-content: flex-end;
@@ -1208,9 +1247,26 @@
   border-radius: var(--ops-radius);
 }
 
+@media (max-width: 860px) {
+  .partyFields.orgFields {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .partyFields.orgFields .span3 {
+    grid-column: span 2;
+  }
+}
+
 @media (max-width: 560px) {
-  .partyFields {
+  .partyFields,
+  .partyFields.orgFields {
     grid-template-columns: 1fr;
+  }
+
+  .partyFields.orgFields .span2,
+  .partyFields.orgFields .span3,
+  .partyFields.orgFields .addressBlock {
+    grid-column: auto;
   }
 }
 

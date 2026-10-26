@@ -2012,6 +2012,10 @@ export type Database = {
         Args: { p_organisation_id: string }
         Returns: undefined
       }
+      rename_organisation: {
+        Args: { p_name: string; p_organisation_id: string }
+        Returns: undefined
+      }
       en16931_amount: { Args: { p_value: number }; Returns: string }
       e_document_xml: { Args: { p_id: string }; Returns: string }
       en16931_document: { Args: { p_header_id: string }; Returns: Json }
