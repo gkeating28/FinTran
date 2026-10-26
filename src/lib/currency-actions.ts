@@ -315,9 +315,13 @@ export async function updateOrganisationDefaults(
 ): Promise<ActionState> {
   const organisation = organisationId(text(formData, "organisation_id").trim());
   const homeCurrencyId = organisationId(text(formData, "home_currency_id").trim());
+  const organisationName = text(formData, "organisation_name").trim();
   const profile = profileFrom(formData);
   if (!organisation) return { error: "Choose an organisation." };
   if (!homeCurrencyId) return { error: "Choose a home currency." };
+  if (organisationName.length < 2 || organisationName.length > 80) {
+    return { error: "Organisation name must be between 2 and 80 characters." };
+  }
   if ("error" in profile) return { error: profile.error };
 
   const workspace = await getWorkspace();
@@ -341,6 +345,14 @@ export async function updateOrganisationDefaults(
     .select("organisation_id");
 
   if (error) return { error: friendlyError(error, "That organisation could not be saved.") };
+
+  if (organisationName !== membership.organisationName) {
+    const renamed = await supabase.rpc("rename_organisation", {
+      p_organisation_id: membership.organisationId,
+      p_name: organisationName,
+    });
+    if (renamed.error) return { error: friendlyError(renamed.error, "The organisation name could not be saved.") };
+  }
 
   if (!data?.length) {
     const inserted = await supabase.from("organisation_defaults").insert({
