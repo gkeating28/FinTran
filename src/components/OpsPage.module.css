@@ -355,14 +355,22 @@
 
 .voidBar {
   display: flex;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 8px 12px;
   align-items: end;
-  padding-top: 4px;
+  margin-top: 4px;
+  padding-top: 12px;
   border-top: 1px solid var(--ops-border-soft);
 }
 
 .voidBar .field {
   flex: 1;
+  min-width: min(100%, 240px);
+}
+
+.voidBar > .alert {
+  flex: 1 0 100%;
+  margin: 0;
 }
 
 .actions {
@@ -506,9 +514,14 @@
 .pageDialog .partyForm {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   gap: 12px;
   min-height: 0;
   overflow: hidden;
+}
+
+.displayContents {
+  display: contents;
 }
 
 .partyFields {
@@ -534,8 +547,13 @@
 }
 
 .partyFields .field,
-.partyFields .fieldPair {
+.partyFields .fieldPair,
+.partyFields .wide {
   min-width: 0;
+}
+
+.partyFields .wide {
+  grid-column: 1 / -1;
 }
 
 .pageDialog .partyForm .modalActions {
@@ -963,21 +981,8 @@
 
 .partyForm .wide,
 .partyForm .modalActions,
-.partyForm .alert,
-.partyForm .addressColumns {
+.partyForm .alert {
   grid-column: 1 / -1;
-}
-
-.addressColumns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px 16px;
-}
-
-@media (max-width: 640px) {
-  .addressColumns {
-    grid-template-columns: 1fr;
-  }
 }
 
 .partyForm .field input,
@@ -1126,16 +1131,22 @@
 
 .logoControl {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  align-items: flex-start;
   gap: 12px;
   min-width: 0;
 }
 
 .logoChoices {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 6px;
   min-width: 0;
+}
+
+.logoChoices .alert {
+  margin: 0;
 }
 
 .logoPreview,
@@ -1162,6 +1173,8 @@
 
 .field input.logoInput {
   height: auto;
+  width: 100%;
+  max-width: 100%;
   min-height: 34px;
   padding: 6px 0;
   border: 0;
