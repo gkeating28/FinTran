@@ -16,6 +16,7 @@ import {
   updatePaidAmount,
   voidPurchaseInvoice,
 } from "@/lib/purchase-invoice-actions";
+import { loadTransactionReadiness } from "@/lib/readiness-actions";
 import type { PurchaseInvoiceChoices } from "@/lib/purchase-invoice-data";
 import { readinessHref } from "@/lib/en16931";
 import { formatInteger, groupThousands, numberValue } from "@/lib/numbers";
@@ -34,6 +35,7 @@ import {
   type InvoiceVat,
   type PurchaseInvoiceLine,
   type PurchaseInvoiceRow,
+  type ReadinessItem,
 } from "@/lib/purchase-invoices";
 import styles from "@/components/OpsPage.module.css";
 import type { ActionState } from "@/lib/types";
@@ -166,6 +168,22 @@ export default function PurchaseInvoiceManager({
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [readinessFilter, setReadinessFilter] = useState("");
+  const [loadedReadiness, setLoadedReadiness] = useState<{ key: string; value: Record<string, ReadinessItem[]> } | null>(null);
+  const readinessKey = rows.map((row) => row.id).join("\0");
+  const readinessById = loadedReadiness?.key === readinessKey ? loadedReadiness.value : rows.length === 0 ? {} : null;
+
+  useEffect(() => {
+    if (rows.length === 0) return;
+    let cancelled = false;
+    const ids = rows.map((row) => row.id);
+    const key = ids.join("\0");
+    loadTransactionReadiness(ids).then((result) => {
+      if (!cancelled) setLoadedReadiness({ key, value: result });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [rows]);
 
   useEffect(() => {
     setDraft(null);
@@ -182,7 +200,10 @@ export default function PurchaseInvoiceManager({
   }, [openId, rows]);
 
   const parties = sales ? choices.customers : choices.suppliers;
-  const visibleRows = rows.filter((row) => {
+  const listedRows = readinessById
+    ? rows.map((row) => ({ ...row, readiness: readinessById[row.id] ?? row.readiness }))
+    : rows;
+  const visibleRows = listedRows.filter((row) => {
     if (statusFilter && row.status !== statusFilter) return false;
     const partyId = sales ? row.customerId : row.supplierId;
     if (partyFilter && partyId !== partyFilter) return false;
@@ -293,7 +314,9 @@ export default function PurchaseInvoiceManager({
             key: "readiness",
             label: "Readiness",
             sortValue: (row) => String(row.readiness.filter((item) => item.severity === "error").length * 100 + row.readiness.length),
-            render: (row) => <ReadinessControl items={row.readiness} direction={direction} />,
+            render: (row) => (
+              <ReadinessControl items={row.readiness} direction={direction} pending={readinessById == null} />
+            ),
           },
           {
             key: "date",
@@ -457,9 +480,17 @@ function ReadinessList({ items, direction }: { items: PurchaseInvoiceRow["readin
   );
 }
 
-function ReadinessControl({ items, direction }: { items: PurchaseInvoiceRow["readiness"]; direction: "Sales" | "Purchases" }) {
+function ReadinessControl({
+  items,
+  direction,
+  pending = false,
+}: {
+  items: PurchaseInvoiceRow["readiness"];
+  direction: "Sales" | "Purchases";
+  pending?: boolean;
+}) {
   const [open, setOpen] = useState(false);
-  const status = readinessStatus(items);
+  const status = pending ? "pending" : readinessStatus(items);
 
   return (
     <>
@@ -467,6 +498,7 @@ function ReadinessControl({ items, direction }: { items: PurchaseInvoiceRow["rea
         className={styles.readinessButton}
         data-status={status}
         type="button"
+        disabled={pending}
         onClick={() => setOpen(true)}
       >
         Readiness
@@ -1255,7 +1287,7 @@ function InvoiceForm({
         <div className={styles.linesPane}>
           <div className={styles.gridToolbar}>
             <span className={styles.paneLabel}>
-              Lines{lines === null ? "" : ` (${invoiceLines.length})`}
+              Lines ({invoiceLines.length})
               {locked && invoiceLines.length > 0 ? <span className={styles.lineHint}>Select a line to see its details.</span> : null}
             </span>
             {locked ? null : (
@@ -1271,9 +1303,6 @@ function InvoiceForm({
               </button>
             )}
           </div>
-          {lines === null ? (
-            <p className={styles.empty}>Loading lines…</p>
-          ) : (
             <div className={styles.lineScroll}>
               <table className={styles.lineTable}>
                 <thead>
@@ -1365,7 +1394,6 @@ function InvoiceForm({
                 </tfoot>
               </table>
             </div>
-          )}
         </div>
         </div>
       </form>

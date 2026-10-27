@@ -1470,6 +1470,12 @@ label.quiet {
   background: #16794c;
 }
 
+.readinessButton[data-status="pending"] {
+  background: #e7ebf0;
+  color: var(--ops-text-2);
+  cursor: default;
+}
+
 .readinessButton:hover {
   filter: brightness(0.92);
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, type ReactNode } from "react";
 import { useSetFormChrome } from "@/components/FormChrome";
 import styles from "@/components/OpsPage.module.css";
 
@@ -33,7 +33,7 @@ export default function FormModal({
     return () => setFormChrome(null);
   }, [fillPage, setFormChrome, title, titleId]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog || dialog.open) return;
     if (fillPage) dialog.show();
@@ -44,7 +44,7 @@ export default function FormModal({
     };
   }, [fillPage]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!fillPage) return;
     const dialog = dialogRef.current;
     const page = document.querySelector("[data-app-page]");
