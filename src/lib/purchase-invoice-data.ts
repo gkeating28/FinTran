@@ -308,39 +308,8 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
     }];
     });
 
-  const withReadiness = await Promise.all(
-    rows.map(async (row) => {
-      const result = await supabase.rpc("en16931_readiness", { p_header_id: row.id });
-      if (result.error) {
-        return {
-          ...row,
-          readiness: [
-            {
-              ruleId: "FINTRAN",
-              severity: "warning" as const,
-              businessTerm: "BT-1",
-              message: "Readiness could not be loaded.",
-            },
-          ],
-        };
-      }
-      const readiness = (result.data ?? []).flatMap((item: { rule_id: string; severity: string; business_term: string; message: string }) => {
-        if (item.severity !== "error" && item.severity !== "warning") return [];
-        return [
-          {
-            ruleId: item.rule_id,
-            severity: item.severity,
-            businessTerm: item.business_term,
-            message: item.message,
-          },
-        ];
-      });
-      return { ...row, readiness };
-    }),
-  );
-
   return {
-    rows: withReadiness,
+    rows,
     choices: {
       types: (types.data ?? []).flatMap((row) => {
         const documentKind = parseDocumentKind(row.document_kind);

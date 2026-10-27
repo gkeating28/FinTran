@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import styles from "@/components/OpsPage.module.css";
@@ -52,7 +53,7 @@ function TransactionGroup({ title, tiles }: { title: string; tiles: TransactionM
       ) : (
         <div className={styles.adminGrid}>
           {tiles.map((tile) => (
-            <a key={tile.id} href={`/transactions/${tile.code}`} className={styles.adminTile}>
+            <Link key={tile.id} href={`/transactions/${tile.code}`} className={styles.adminTile}>
               <span className={styles.adminTileIcon}>
                 <DocumentIcon />
               </span>
@@ -64,7 +65,7 @@ function TransactionGroup({ title, tiles }: { title: string; tiles: TransactionM
               <span className={styles.adminTileMeta}>
                 {formatInteger(tile.draftCount)} draft · {formatInteger(tile.postedCount)} posted · {formatInteger(tile.voidCount)} void
               </span>
-            </a>
+            </Link>
           ))}
         </div>
       )}

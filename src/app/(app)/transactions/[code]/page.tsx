@@ -24,7 +24,10 @@ export default async function TransactionTypePage({
   if (workspace.status !== "ready") redirect("/");
 
   const [{ code }, query] = await Promise.all([params, searchParams]);
-  const { tile, error } = await getTransactionTypeByCode(code);
+  const [{ tile, error }, listed] = await Promise.all([
+    getTransactionTypeByCode(code),
+    listPurchaseInvoices(code),
+  ]);
   if (error) {
     return (
       <section className={styles.stack}>
@@ -36,8 +39,6 @@ export default async function TransactionTypePage({
     );
   }
   if (!tile) notFound();
-
-  const listed = await listPurchaseInvoices(tile.code);
 
   return (
     <PurchaseInvoiceManager
