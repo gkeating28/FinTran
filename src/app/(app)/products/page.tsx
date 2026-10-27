@@ -32,6 +32,7 @@ export default async function ProductsPage({
       loadError={loadError || null}
       actionError={params.error}
       canEdit={canManage(workspace.current.role)}
+      organisationName={workspace.current.organisationName}
     />
   );
 }

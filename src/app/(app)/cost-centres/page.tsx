@@ -25,6 +25,7 @@ export default async function CostCentresPage({
       loadError={error}
       actionError={params.error}
       canEdit={canManage(workspace.current.role)}
+      organisationName={workspace.current.organisationName}
     />
   );
 }

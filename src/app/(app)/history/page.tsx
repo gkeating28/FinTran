@@ -16,7 +16,7 @@ export default async function HistoryPage() {
     return (
       <section className={styles.stack}>
         <h1 className={styles.heading}>Change history</h1>
-        <p className={styles.lede}>Owners and admins can read the change history for this organisation.</p>
+        <p className={styles.lede}>Owners and admins can read the change history for {workspace.current.organisationName}.</p>
       </section>
     );
   }
@@ -28,8 +28,7 @@ export default async function HistoryPage() {
       <div>
         <h1 className={styles.heading}>Change history</h1>
         <p className={styles.lede}>
-          Recent changes in {workspace.current.organisationName}. Amount-only recalculations on documents are not
-          listed.
+          Recent changes in {workspace.current.organisationName}.
         </p>
       </div>
       {error ? (

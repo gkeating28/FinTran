@@ -25,11 +25,13 @@ export default function TransactionTypeManager({
   loadError,
   actionError,
   canEdit = true,
+  organisationName,
 }: {
   rows: TransactionTypeRow[];
   loadError: string | null;
   actionError?: string;
   canEdit?: boolean;
+  organisationName: string;
 }) {
   const [draft, setDraft] = useState<TransactionTypeRow | "new" | null>(null);
 
@@ -37,12 +39,7 @@ export default function TransactionTypeManager({
     <section className={styles.stack}>
       <div>
         <h1 className={styles.heading}>Transaction types</h1>
-        <p className={styles.lede}>
-          Transaction types for this organisation. Each is an invoice, a credit note, or an order,
-          and is either Sales or Purchases. The kind cannot change after a document has been
-          entered. Last reference starts at 0 for every type, so the next number is 1. Name up to
-          five flex fields. A blank label hides that field on the transaction.
-        </p>
+        <p className={styles.lede}>Transaction types for {organisationName}.</p>
       </div>
       {loadError ? (
         <p className={styles.alert} role="alert">

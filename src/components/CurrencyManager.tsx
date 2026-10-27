@@ -16,12 +16,14 @@ export default function CurrencyManager({
   loadError,
   actionError,
   canEdit = true,
+  organisationName,
 }: {
   rows: CurrencyRow[];
   isoCurrencies: CodeName[];
   loadError: string | null;
   actionError?: string;
   canEdit?: boolean;
+  organisationName: string;
 }) {
   const [draft, setDraft] = useState<CurrencyRow | "new" | null>(null);
 
@@ -29,10 +31,7 @@ export default function CurrencyManager({
     <section className={styles.stack}>
       <div>
         <h1 className={styles.heading}>Currencies</h1>
-        <p className={styles.lede}>
-          Currencies for this organisation. Each has a code, a name, and a rate against the home
-          currency. The home currency is set when you edit the organisation.
-        </p>
+        <p className={styles.lede}>Currencies for {organisationName}.</p>
       </div>
       {loadError ? (
         <p className={styles.alert} role="alert">

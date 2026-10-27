@@ -26,8 +26,7 @@ export default async function AccessPage({
       <div>
         <h1 className={styles.heading}>Access</h1>
         <p className={styles.lede}>
-          People listed here can open {current.organisationName}. Someone must already have a
-          FinTran account before you can grant them access.
+          People listed here can open {current.organisationName}.
         </p>
       </div>
       {error ? (

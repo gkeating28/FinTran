@@ -63,7 +63,7 @@ export default async function EDocumentsPage({
       <div>
         <h1 className={styles.heading}>E-documents</h1>
         <p className={styles.lede}>
-          Received files are uploaded here. Sent files are generated when a sales invoice or credit note is posted.
+          Received and sent e-documents for {workspace.current.organisationName}.
         </p>
       </div>
       {query.error || error ? (

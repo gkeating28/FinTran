@@ -140,6 +140,7 @@ export default function PurchaseInvoiceManager({
   actionError,
   title = "Purchase Invoices",
   summary,
+  organisationName,
   typeCode,
   direction = "Purchases",
   openId,
@@ -152,6 +153,7 @@ export default function PurchaseInvoiceManager({
   actionError?: string;
   title?: string;
   summary?: string;
+  organisationName?: string;
   typeCode?: string;
   direction?: "Sales" | "Purchases";
   openId?: string;
@@ -227,8 +229,7 @@ export default function PurchaseInvoiceManager({
       <div>
         <h1 className={styles.heading}>{title}</h1>
         <p className={styles.lede}>
-          {summary ??
-            `${title} for this organisation. The reference comes from the transaction type, and the next number is one more than its last reference. Amounts in the home currency are the foreign amounts divided by the exchange rate.`}{" "}
+          {summary ?? `${title} for ${organisationName ?? "this organisation"}.`}{" "}
           {typeCode ? <Link href={`/forms/${typeCode}`}>Design the printed form.</Link> : null}
         </p>
       </div>

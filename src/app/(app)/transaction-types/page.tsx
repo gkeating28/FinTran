@@ -24,6 +24,7 @@ export default async function TransactionTypesPage({
       loadError={error}
       actionError={params.error}
       canEdit={canManage(workspace.current.role)}
+      organisationName={workspace.current.organisationName}
     />
   );
 }

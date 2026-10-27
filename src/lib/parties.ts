@@ -39,19 +39,17 @@ export type PartyCurrency = {
 
 export const PARTY_META: Record<
   PartyKind,
-  { path: string; title: string; singular: string; lede: string }
+  { path: string; title: string; singular: string }
 > = {
   customers: {
     path: "/customers",
     title: "Customers",
     singular: "customer",
-    lede: "Customers for this organisation. Each has a code, name, currency, and contact details, plus a free-text note.",
   },
   suppliers: {
     path: "/suppliers",
     title: "Suppliers",
     singular: "supplier",
-    lede: "Suppliers for this organisation. Each has a code, name, currency, and contact details, plus a free-text note.",
   },
 };
 

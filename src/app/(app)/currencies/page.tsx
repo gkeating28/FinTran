@@ -27,6 +27,7 @@ export default async function CurrenciesPage({
       loadError={error ?? codes.error}
       actionError={params.error}
       canEdit={canManage(workspace.current.role)}
+      organisationName={workspace.current.organisationName}
     />
   );
 }

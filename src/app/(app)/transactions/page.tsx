@@ -21,7 +21,7 @@ export default async function TransactionsPage() {
       <div>
         <h1 className={styles.heading}>Transactions</h1>
         <p className={styles.lede}>
-          Transactions for {workspace.current.organisationName}. Each tile opens that transaction type.
+          Transactions for {workspace.current.organisationName}.
         </p>
       </div>
       {error ? (

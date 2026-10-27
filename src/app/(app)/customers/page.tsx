@@ -27,6 +27,7 @@ export default async function CustomersPage({
       countries={codes.countries}
       schemes={codes.schemes}
       homeCurrencyId={homeCurrencyId}
+      organisationName={workspace.current.organisationName}
       loadError={error ?? codes.error}
       actionError={params.error}
     />
