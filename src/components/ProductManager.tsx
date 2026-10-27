@@ -20,6 +20,7 @@ export default function ProductManager({
   loadError,
   actionError,
   canEdit = true,
+  organisationName,
 }: {
   rows: ProductRow[];
   glCodes: ReferenceRow[];
@@ -28,6 +29,7 @@ export default function ProductManager({
   loadError: string | null;
   actionError?: string;
   canEdit?: boolean;
+  organisationName: string;
 }) {
   const [draft, setDraft] = useState<ProductRow | "new" | null>(null);
 
@@ -35,11 +37,7 @@ export default function ProductManager({
     <section className={styles.stack}>
       <div>
         <h1 className={styles.heading}>Products</h1>
-        <p className={styles.lede}>
-          Products for this organisation. Each product has a unit, starting from C62, one. Purchase
-          GL codes are Expense accounts and purchase VAT codes are Expense rates. Sales GL codes
-          are Income accounts and sales VAT codes are Sales rates.
-        </p>
+        <p className={styles.lede}>Products for {organisationName}.</p>
       </div>
       {loadError ? (
         <p className={styles.alert} role="alert">

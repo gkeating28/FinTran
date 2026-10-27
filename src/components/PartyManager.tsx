@@ -19,6 +19,7 @@ export default function PartyManager({
   countries,
   schemes,
   homeCurrencyId,
+  organisationName,
   loadError,
   actionError,
 }: {
@@ -28,6 +29,7 @@ export default function PartyManager({
   countries: CodeName[];
   schemes: CodeName[];
   homeCurrencyId: string | null;
+  organisationName: string;
   loadError: string | null;
   actionError?: string;
 }) {
@@ -39,7 +41,7 @@ export default function PartyManager({
     <section className={styles.stack}>
       <div>
         <h1 className={styles.heading}>{meta.title}</h1>
-        <p className={styles.lede}>{meta.lede}</p>
+        <p className={styles.lede}>{meta.title} for {organisationName}.</p>
       </div>
       {loadError ? (
         <p className={styles.alert} role="alert">

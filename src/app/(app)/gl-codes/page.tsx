@@ -25,6 +25,7 @@ export default async function GlCodesPage({
       loadError={error}
       actionError={params.error}
       canEdit={canManage(workspace.current.role)}
+      organisationName={workspace.current.organisationName}
     />
   );
 }

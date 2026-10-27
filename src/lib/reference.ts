@@ -44,31 +44,31 @@ export type VatexChoice = {
 
 export const REFERENCE_META: Record<
   ReferenceKind,
-  { path: string; title: string; singular: string; lede: string }
+  { path: string; title: string; singular: string; intro: string }
 > = {
   gl_codes: {
     path: "/gl-codes",
     title: "GL codes",
     singular: "GL code",
-    lede: "General ledger codes for this organisation. Each code is letters and numbers, with a description and a required account type.",
+    intro: "General ledger codes",
   },
   departments: {
     path: "/departments",
     title: "Departments",
     singular: "department",
-    lede: "Departments for this organisation. Each one has a code and a description, and belongs only to the organisation you have open.",
+    intro: "Departments",
   },
   cost_centres: {
     path: "/cost-centres",
     title: "Cost centres",
     singular: "cost centre",
-    lede: "Cost centres for this organisation. Each one has a code and a description, and belongs only to the organisation you have open.",
+    intro: "Cost centres",
   },
   vat_rates: {
     path: "/vat-rates",
     title: "VAT rates",
     singular: "VAT rate",
-    lede: "VAT rates for this organisation. Each one has a code, a percentage, a Sales or Expense type, and an EN 16931 category.",
+    intro: "VAT rates",
   },
 };
 

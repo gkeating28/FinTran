@@ -41,8 +41,7 @@ export default async function FormDesignerPage({ params }: { params: Promise<{ c
         </p>
         <h1 className={styles.heading}>{loaded.type.description} form</h1>
         <p className={styles.lede}>
-          The printed page for {loaded.type.description} in {workspace.current.organisationName}. Choose the
-          organisation, bill-to, document, and line details, then save.
+          The printed page for {loaded.type.description} in {workspace.current.organisationName}.
         </p>
       </div>
       <FormDesigner

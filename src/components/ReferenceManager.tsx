@@ -25,6 +25,7 @@ export default function ReferenceManager({
   loadError,
   actionError,
   canEdit = true,
+  organisationName,
   vatCategories = [],
   exemptions = [],
 }: {
@@ -33,6 +34,7 @@ export default function ReferenceManager({
   loadError: string | null;
   actionError?: string;
   canEdit?: boolean;
+  organisationName: string;
   vatCategories?: VatCategoryChoice[];
   exemptions?: VatexChoice[];
 }) {
@@ -44,7 +46,7 @@ export default function ReferenceManager({
     <section className={styles.stack}>
       <div>
         <h1 className={styles.heading}>{meta.title}</h1>
-        <p className={styles.lede}>{meta.lede}</p>
+        <p className={styles.lede}>{meta.intro} for {organisationName}.</p>
       </div>
       {loadError ? (
         <p className={styles.alert} role="alert">

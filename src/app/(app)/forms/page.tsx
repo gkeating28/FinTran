@@ -18,8 +18,7 @@ export default async function FormsPage() {
       <div>
         <h1 className={styles.heading}>Forms</h1>
         <p className={styles.lede}>
-          Printable layouts for {workspace.current.organisationName}. Each transaction type can have its own
-          form, using the organisation, the supplier or customer, and the document.
+          Printable layouts for {workspace.current.organisationName}.
         </p>
       </div>
       {error ? (

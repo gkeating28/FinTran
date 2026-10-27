@@ -43,13 +43,7 @@ export default async function TransactionTypePage({
   return (
     <PurchaseInvoiceManager
       title={tile.description}
-      summary={
-        tile.documentKind === "order" && tile.type === "Sales"
-          ? `${tile.code} is numbered when it is posted. The currency comes from the customer. An order is stored and printed here, and it is not exported as an EN 16931 invoice.`
-          : tile.type === "Sales"
-            ? `${tile.code} is numbered when it is posted. The currency comes from the customer. Amounts in the home currency are the foreign amounts divided by the exchange rate.`
-            : `The reference for ${tile.code} comes from this type, and the next number is one more than its last reference. Amounts in the home currency are the foreign amounts divided by the exchange rate.`
-      }
+      summary={`${tile.description} for ${workspace.current.organisationName}.`}
       typeCode={tile.code}
       direction={tile.type}
       rows={listed.rows}

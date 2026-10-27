@@ -25,9 +25,7 @@ export default async function OrganisationsPage() {
       <div>
         <h1 className={styles.heading}>Organisations</h1>
         <p className={styles.lede}>
-          These are the organisations in {current.tenantName} that you can open. Edit an organisation
-          to set its logo, home currency, address, contact, registration, banking details, and the
-          Purchases types used when a received e-invoice is imported.
+          These are the organisations in {current.tenantName} that you can open.
         </p>
       </div>
       {error || codes.error ? (

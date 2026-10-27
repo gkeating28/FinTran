@@ -38,7 +38,7 @@ export default async function AdminPage() {
       <div>
         <h1 className={styles.heading}>Admin</h1>
         <p className={styles.lede}>
-          Setup for {current.organisationName}. Each tile opens that list.
+          Setup for {current.organisationName}.
         </p>
       </div>
       {totals.error ? (

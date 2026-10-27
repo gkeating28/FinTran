@@ -26,6 +26,7 @@ export default async function VatRatesPage({
       loadError={error ?? vatLists.error}
       actionError={params.error}
       canEdit={canManage(workspace.current.role)}
+      organisationName={workspace.current.organisationName}
       vatCategories={vatLists.categories}
       exemptions={vatLists.exemptions}
     />
