@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { CodeField } from "@/components/CodeField";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
 import { QuietInput } from "@/components/QuietField";
@@ -59,6 +60,8 @@ export default function ReferenceManager({
         </p>
       ) : null}
       <DataGrid
+        form={meta.path.slice(1)}
+        onOpen={(row) => setDraft(row)}
         rows={rows}
         searchPlaceholder={`Search ${meta.title.toLowerCase()}`}
         searchText={(row) =>
@@ -140,7 +143,11 @@ export default function ReferenceManager({
                   </form>
                 </>
               )
-            : undefined
+            : (row) => (
+                <button className={styles.quiet} type="button" onClick={() => setDraft(row)}>
+                  View
+                </button>
+              )
         }
       />
       {draft ? (
@@ -150,6 +157,7 @@ export default function ReferenceManager({
           row={draft === "new" ? null : draft}
           vatCategories={vatCategories}
           exemptions={exemptions}
+          readOnly={!canEdit}
           onClose={() => setDraft(null)}
         />
       ) : null}
@@ -162,12 +170,14 @@ function ReferenceForm({
   row,
   vatCategories,
   exemptions,
+  readOnly = false,
   onClose,
 }: {
   kind: ReferenceKind;
   row: ReferenceRow | null;
   vatCategories: VatCategoryChoice[];
   exemptions: VatexChoice[];
+  readOnly?: boolean;
   onClose: () => void;
 }) {
   const meta = REFERENCE_META[kind];
@@ -187,29 +197,15 @@ function ReferenceForm({
   }, [state.message, onClose]);
 
   return (
-    <FormModal title={row ? `Edit ${meta.singular}` : `Add ${meta.singular}`} onClose={onClose}>
-      <form className={styles.modalForm} action={action} autoComplete="off" noValidate>
+    <FormModal title={readOnly ? `View ${meta.singular}` : row ? `Edit ${meta.singular}` : `Add ${meta.singular}`} onClose={onClose}>
+      <form className={`${styles.modalForm}${readOnly ? ` ${styles.formReadOnly}` : ""}`} action={action} autoComplete="off" noValidate>
         {row ? <input type="hidden" name="id" value={row.id} /> : null}
         {state.error ? (
           <p className={styles.alert} role="alert">
             {state.error}
           </p>
         ) : null}
-        <label className={styles.field}>
-          Code
-          <QuietInput
-            name="code"
-            required
-            maxLength={20}
-            autoComplete="off"
-            autoFocus
-            value={code}
-            onChange={(event) => setCode(event.target.value)}
-            placeholder="1000"
-            className={styles.mono}
-            style={{ textTransform: "uppercase" }}
-          />
-        </label>
+        <CodeField locked={Boolean(row)} value={code} onChange={setCode} maxLength={20} placeholder="1000" autoFocus={!row} />
         <label className={styles.field}>
           Description
           <QuietInput
@@ -217,7 +213,7 @@ function ReferenceForm({
             required
             maxLength={200}
             autoComplete="off"
-            spellCheck={false}
+            spellCheck
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             placeholder={kind === "vat_rates" ? "Standard rate" : "Sales income"}
@@ -301,7 +297,7 @@ function ReferenceForm({
                 name="exemption_reason"
                 maxLength={200}
                 autoComplete="off"
-                spellCheck={false}
+                spellCheck
                 value={exemptionReason}
                 onChange={(event) => setExemptionReason(event.target.value)}
               />
@@ -331,11 +327,13 @@ function ReferenceForm({
         ) : null}
         <div className={styles.modalActions}>
           <button className={styles.quiet} type="button" onClick={onClose}>
-            Cancel
+            {readOnly ? "Close" : "Cancel"}
           </button>
-          <button className={styles.primary} type="submit" disabled={pending}>
-            {pending ? "Saving…" : "Save"}
-          </button>
+          {readOnly ? null : (
+            <button className={styles.primary} type="submit" disabled={pending}>
+              {pending ? "Saving…" : "Save"}
+            </button>
+          )}
         </div>
       </form>
     </FormModal>

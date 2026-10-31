@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { CodeField } from "@/components/CodeField";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
 import SchemeLookup from "@/components/SchemeLookup";
@@ -54,6 +55,8 @@ export default function PartyManager({
         </p>
       ) : null}
       <DataGrid
+        form={kind}
+        onOpen={setDraft}
         rows={rows}
         searchPlaceholder={`Search ${meta.title.toLowerCase()}`}
         searchText={(row) =>
@@ -237,21 +240,7 @@ function PartyForm({
           />
         </label>
         <div className={styles.fieldPair}>
-          <label className={styles.field}>
-            Code
-            <QuietInput
-              name="code"
-              required
-              maxLength={20}
-              autoComplete="off"
-              autoFocus
-              value={code}
-              onChange={(event) => setCode(event.target.value)}
-              placeholder="1000"
-              className={styles.mono}
-              style={{ textTransform: "uppercase" }}
-            />
-          </label>
+          <CodeField locked={Boolean(row)} value={code} onChange={setCode} maxLength={20} placeholder="1000" autoFocus={!row} />
           <label className={styles.field}>
             Currency
             <select
@@ -410,7 +399,7 @@ function PartyForm({
             maxLength={500}
             rows={2}
             autoComplete="off"
-            spellCheck={false}
+            spellCheck
             value={contactDetails}
             onChange={(event) => setContactDetails(event.target.value)}
             placeholder="Accounts, Jane Murphy"
@@ -423,7 +412,7 @@ function PartyForm({
             maxLength={4000}
             rows={2}
             autoComplete="off"
-            spellCheck={false}
+            spellCheck
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
             placeholder="Delivery notes or anything else to keep with this record."

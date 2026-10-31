@@ -6,6 +6,7 @@ import type { AuditEntry } from "@/lib/audit-data";
 export default function HistoryGrid({ rows }: { rows: AuditEntry[] }) {
   return (
     <DataGrid
+      form="history"
       rows={rows}
       searchPlaceholder="Search changes"
       searchText={(row) => `${row.tableName} ${row.action} ${row.who} ${row.summary}`}

@@ -1,7 +1,11 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
+import GridPager from "@/components/GridPager";
+import { useGridPageSize } from "@/components/useGridPageSize";
+import { gridPageSlice, pageIndexForSize, type GridPageSize } from "@/lib/grid-page";
 import { formatInteger } from "@/lib/numbers";
+import { clickOpensRow } from "@/lib/row-click";
 import styles from "@/components/OpsPage.module.css";
 
 export type GridColumn<T> = {
@@ -14,32 +18,37 @@ export type GridColumn<T> = {
   width?: string;
 };
 
-const PAGE_SIZE = 10;
-
 export default function DataGrid<T extends { id: string }>({
   rows,
   columns,
   searchText,
   searchPlaceholder,
   emptyLabel,
+  form,
   toolbar,
   actions,
   actionsWidth,
   minWidth,
+  onOpen,
+  rowOpens,
 }: {
   rows: T[];
   columns: GridColumn<T>[];
   searchText: (row: T) => string;
   searchPlaceholder: string;
   emptyLabel: string;
+  form: string;
   toolbar?: ReactNode;
   actions?: (row: T) => ReactNode;
   actionsWidth?: string;
   minWidth?: string;
+  onOpen?: (row: T) => void;
+  rowOpens?: (row: T) => boolean;
 }) {
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState(columns[0]?.key ?? "");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [pageSize, setPageSize] = useGridPageSize(form);
   const [pageIndex, setPageIndex] = useState(0);
 
   const filtered = useMemo(() => {
@@ -59,12 +68,13 @@ export default function DataGrid<T extends { id: string }>({
     });
   }, [columns, query, rows, searchText, sortDirection, sortKey]);
 
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const page = Math.min(pageIndex, pageCount - 1);
-  const start = page * PAGE_SIZE;
-  const visible = filtered.slice(start, start + PAGE_SIZE);
-  const from = filtered.length === 0 ? 0 : start + 1;
-  const to = Math.min(filtered.length, start + PAGE_SIZE);
+  const paged = gridPageSlice(filtered, pageIndex, pageSize);
+  const { page, pageCount, rows: visible, from, to } = paged;
+
+  function changePageSize(next: GridPageSize) {
+    setPageIndex(pageIndexForSize(page, pageSize, filtered.length, next));
+    setPageSize(next);
+  }
 
   function sortBy(key: string) {
     setPageIndex(0);
@@ -136,52 +146,52 @@ export default function DataGrid<T extends { id: string }>({
               </td>
             </tr>
           ) : (
-            visible.map((row) => (
-              <tr key={row.id}>
-                {columns.map((column) => (
-                  <td
-                    key={column.key}
-                    className={
-                      [column.mono ? styles.mono : "", column.align === "right" ? styles.numeric : ""]
-                        .filter(Boolean)
-                        .join(" ") || undefined
-                    }
-                  >
-                    {column.render(row)}
-                  </td>
-                ))}
-                {actions ? <td className={styles.actionsCell}><div className={styles.actions}>{actions(row)}</div></td> : null}
-              </tr>
-            ))
+            visible.map((row) => {
+              const opens = Boolean(onOpen) && (rowOpens?.(row) ?? true);
+              return (
+                <tr
+                  key={row.id}
+                  className={opens ? styles.rowClick : undefined}
+                  onClick={
+                    opens
+                      ? (event) => {
+                          if (!clickOpensRow(event.target)) return;
+                          onOpen?.(row);
+                        }
+                      : undefined
+                  }
+                >
+                  {columns.map((column) => (
+                    <td
+                      key={column.key}
+                      className={
+                        [column.mono ? styles.mono : "", column.align === "right" ? styles.numeric : ""]
+                          .filter(Boolean)
+                          .join(" ") || undefined
+                      }
+                    >
+                      {column.render(row)}
+                    </td>
+                  ))}
+                  {actions ? <td className={styles.actionsCell}><div className={styles.actions}>{actions(row)}</div></td> : null}
+                </tr>
+              );
+            })
           )}
         </tbody>
       </table>
-      <div className={styles.gridFooter}>
-        <span>
-          {formatInteger(from)}–{formatInteger(to)} of {formatInteger(filtered.length)}
-        </span>
-        <div className={styles.pager}>
-          <button
-            className={styles.quiet}
-            type="button"
-            disabled={page === 0}
-            onClick={() => setPageIndex(page - 1)}
-          >
-            Previous
-          </button>
-          <span>
-            Page {formatInteger(page + 1)} of {formatInteger(pageCount)}
-          </span>
-          <button
-            className={styles.quiet}
-            type="button"
-            disabled={page >= pageCount - 1}
-            onClick={() => setPageIndex(page + 1)}
-          >
-            Next
-          </button>
-        </div>
-      </div>
+      <GridPager
+        page={page}
+        pageCount={pageCount}
+        pageSize={pageSize}
+        onPage={setPageIndex}
+        onPageSize={changePageSize}
+        summary={
+          filtered.length === 0
+            ? "No rows"
+            : `Showing ${formatInteger(from)} to ${formatInteger(to)} of ${formatInteger(filtered.length)}`
+        }
+      />
     </div>
   );
 }

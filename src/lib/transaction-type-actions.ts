@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getWorkspace, ORGANISATION_COOKIE } from "@/lib/data";
+import { codeChangeError, friendlyCodeChange } from "@/lib/immutable-code";
 import { parseDescription, parseReferenceCode } from "@/lib/reference";
 import {
   parseDocumentKind,
@@ -20,6 +21,8 @@ function text(formData: FormData, name: string) {
 }
 
 function friendlyError(error: { code?: string; message: string } | null, fallback: string) {
+  const locked = friendlyCodeChange(error);
+  if (locked) return locked;
   if (!error) return fallback;
   if (error.code === "23505") return "That code is already used in this organisation.";
   if (error.code === "23503" && error.message.includes("transaction_")) {
@@ -141,10 +144,19 @@ export async function updateTransactionType(
 
   const current = await currentOrganisation();
   const supabase = await createClient();
+  const locked = await codeChangeError(
+    supabase,
+    "transaction_types",
+    id,
+    current.organisationId,
+    fields.code,
+    "That transaction type could not be updated.",
+  );
+  if (locked) return { error: locked };
+
   const { error } = await supabase
     .from("transaction_types")
     .update({
-      code: fields.code,
       description: fields.description,
       type: fields.type,
       document_kind: fields.documentKind,

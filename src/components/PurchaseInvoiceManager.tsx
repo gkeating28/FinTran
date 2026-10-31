@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useActionState, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import DataGrid from "@/components/DataGrid";
+import GridPager from "@/components/GridPager";
+import { useGridPageSize } from "@/components/useGridPageSize";
 import { EInvoicePanel } from "@/components/EInvoicePanel";
 import FormModal from "@/components/FormModal";
 import { QuietInput, QuietTextarea } from "@/components/QuietField";
@@ -19,7 +21,9 @@ import {
 import { loadTransactionReadiness } from "@/lib/readiness-actions";
 import type { PurchaseInvoiceChoices } from "@/lib/purchase-invoice-data";
 import { readinessHref } from "@/lib/en16931";
+import { gridPageSlice, pageIndexForSize, type GridPageSize } from "@/lib/grid-page";
 import { formatInteger, groupThousands, numberValue } from "@/lib/numbers";
+import { clickOpensRow } from "@/lib/row-click";
 import { parseAmount } from "@/lib/products";
 import { formatExchangeRate, parseCurrencyRate } from "@/lib/currencies";
 import {
@@ -244,6 +248,8 @@ export default function PurchaseInvoiceManager({
         </p>
       ) : null}
       <DataGrid
+        form={typeCode ? `transactions/${typeCode}` : "transactions"}
+        onOpen={edit}
         rows={visibleRows}
         searchPlaceholder={`Search ${title.toLowerCase()}`}
         searchText={(row) =>
@@ -582,6 +588,8 @@ function InvoiceForm({
     header?.flex5 ?? "",
   ]);
   const [invoiceLines, setInvoiceLines] = useState<PurchaseInvoiceLine[]>(lines ?? []);
+  const [linePageSize, setLinePageSize] = useGridPageSize(`transactions/${typeCode ?? "document"}/lines`, "all");
+  const [linePageIndex, setLinePageIndex] = useState(0);
   const [lineDraft, setLineDraft] = useState<PurchaseInvoiceLine | null>(null);
   const [lineMessage, setLineMessage] = useState<string | null>(null);
   const [headerTab, setHeaderTab] = useState<HeaderTab>("document");
@@ -838,6 +846,9 @@ function InvoiceForm({
         line.lineNumber === lineDraft.lineNumber ? { ...next, lineNumber: line.lineNumber } : line,
       );
     });
+    if (!lineDraft.lineNumber && linePageSize !== "all") {
+      setLinePageIndex(Math.max(0, Math.ceil((invoiceLines.length + 1) / linePageSize) - 1));
+    }
     setLineDraft(null);
     setLineMessage(null);
   }
@@ -867,6 +878,12 @@ function InvoiceForm({
   const splitMax = splitRef.current
     ? Math.max(SPLIT_MIN, splitRef.current.clientWidth - SPLIT_MIN - SPLIT_HANDLE)
     : 1200;
+  const linePage = gridPageSlice(invoiceLines, linePageIndex, linePageSize);
+
+  function changeLinePageSize(next: GridPageSize) {
+    setLinePageIndex(pageIndexForSize(linePage.page, linePageSize, invoiceLines.length, next));
+    setLinePageSize(next);
+  }
 
   function openPanel(panel: "void" | "credit") {
     setVoidOpen(panel === "void" ? !voidOpen : false);
@@ -1133,7 +1150,7 @@ function InvoiceForm({
         >
           <label className={`${styles.field} ${styles.wide}`}>
             Notes
-            <QuietTextarea name="notes" maxLength={4000} rows={8} disabled={locked} value={notes} onChange={(event) => setNotes(event.target.value)} />
+            <QuietTextarea name="notes" maxLength={4000} rows={8} spellCheck disabled={locked} value={notes} onChange={(event) => setNotes(event.target.value)} />
           </label>
         </div>
         <div
@@ -1177,7 +1194,7 @@ function InvoiceForm({
         </label>
         <label className={`${styles.field} ${styles.wide}`}>
           Payment terms
-          <QuietTextarea name="payment_terms" maxLength={400} rows={2} disabled={locked} value={paymentTerms} onChange={(event) => setPaymentTerms(event.target.value)} />
+          <QuietTextarea name="payment_terms" maxLength={400} rows={2} spellCheck disabled={locked} value={paymentTerms} onChange={(event) => setPaymentTerms(event.target.value)} />
         </label>
         <label className={styles.field}>
           Rounding
@@ -1211,7 +1228,7 @@ function InvoiceForm({
         </label>
         <label className={`${styles.field} ${styles.wide}`}>
           Contact details
-          <QuietTextarea name="contact_details" maxLength={500} rows={2} disabled={locked} value={contactDetails} onChange={(event) => setContactDetails(event.target.value)} />
+          <QuietTextarea name="contact_details" maxLength={500} rows={2} spellCheck disabled={locked} value={contactDetails} onChange={(event) => setContactDetails(event.target.value)} />
         </label>
         </div>
         </div>
@@ -1326,21 +1343,18 @@ function InvoiceForm({
                       <td colSpan={locked ? 9 : 10}>No lines yet.</td>
                     </tr>
                   ) : (
-                    invoiceLines.map((line) => (
+                    linePage.rows.map((line) => (
                       <tr
                         key={line.lineNumber}
-                        className={locked ? styles.lineClick : undefined}
+                        className={styles.lineClick}
                         tabIndex={locked ? 0 : undefined}
                         role={locked ? "button" : undefined}
                         aria-label={locked ? `View line ${line.lineNumber}` : undefined}
-                        onClick={
-                          locked
-                            ? () => {
-                                setLineMessage(null);
-                                setLineDraft(line);
-                              }
-                            : undefined
-                        }
+                        onClick={(event) => {
+                          if (!clickOpensRow(event.target)) return;
+                          setLineMessage(null);
+                          setLineDraft(line);
+                        }}
                         onKeyDown={
                           locked
                             ? (event) => {
@@ -1395,6 +1409,19 @@ function InvoiceForm({
                 </tfoot>
               </table>
             </div>
+            <GridPager
+              className={styles.linePager}
+              page={linePage.page}
+              pageCount={linePage.pageCount}
+              pageSize={linePageSize}
+              onPage={setLinePageIndex}
+              onPageSize={changeLinePageSize}
+              summary={
+                invoiceLines.length === 0
+                  ? "No lines"
+                  : `Showing ${formatInteger(linePage.from)} to ${formatInteger(linePage.to)} of ${formatInteger(invoiceLines.length)}`
+              }
+            />
         </div>
         </div>
       </form>
@@ -1410,7 +1437,7 @@ function InvoiceForm({
             Void reason
             <QuietInput name="reason" required maxLength={500} placeholder="Why this document is being voided" />
           </label>
-          <button className={styles.primary} type="submit">Void</button>
+          <button className={styles.danger} type="submit">Void</button>
         </form>
       ) : null}
       {creditOpen && showCreditNote && header ? (
@@ -1617,7 +1644,7 @@ function LineEditor({
       </label>
       <label className={styles.field}>
         Description
-        <QuietInput value={draft.description} maxLength={200} disabled={readOnly} onChange={(event) => onChange({ ...draft, description: event.target.value })} />
+        <QuietInput value={draft.description} maxLength={200} spellCheck disabled={readOnly} onChange={(event) => onChange({ ...draft, description: event.target.value })} />
       </label>
       <label className={styles.field}>
         Unit
@@ -1641,6 +1668,7 @@ function LineEditor({
           value={draft.lineNote}
           maxLength={400}
           rows={2}
+          spellCheck
           disabled={readOnly}
           onChange={(event) => onChange({ ...draft, lineNote: event.target.value })}
         />

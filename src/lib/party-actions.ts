@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getWorkspace, ORGANISATION_COOKIE } from "@/lib/data";
+import { codeChangeError, friendlyCodeChange } from "@/lib/immutable-code";
 import { PARTY_META, parseParty, type PartyFields, type PartyKind } from "@/lib/parties";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionState } from "@/lib/types";
@@ -13,6 +14,8 @@ function text(formData: FormData, name: string) {
 }
 
 function friendlyError(error: { code?: string; message: string } | null, fallback: string) {
+  const locked = friendlyCodeChange(error);
+  if (locked) return locked;
   if (!error) return fallback;
   if (error.code === "23505") return "That code is already used in this organisation.";
   if (error.code === "23503" && error.message.includes("transaction_headers")) {
@@ -90,9 +93,9 @@ function fieldsFrom(formData: FormData) {
   });
 }
 
-function rowFrom(kind: PartyKind, fields: PartyFields) {
+function rowFrom(kind: PartyKind, fields: PartyFields, includeCode = true) {
   return {
-    code: fields.code,
+    ...(includeCode ? { code: fields.code } : {}),
     name: fields.name,
     currency_id: fields.currencyId,
     phone: fields.phone,
@@ -152,9 +155,19 @@ export async function updateParty(
 
   const current = await currentOrganisation();
   const supabase = await createClient();
+  const locked = await codeChangeError(
+    supabase,
+    kind,
+    id,
+    current.organisationId,
+    fields.code,
+    "That record could not be updated.",
+  );
+  if (locked) return { error: locked };
+
   const { error } = await supabase
     .from(kind)
-    .update(rowFrom(kind, fields))
+    .update(rowFrom(kind, fields, false))
     .eq("id", id)
     .eq("organisation_id", current.organisationId);
 

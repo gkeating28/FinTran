@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getWorkspace, ORGANISATION_COOKIE } from "@/lib/data";
+import { codeChangeError, friendlyCodeChange } from "@/lib/immutable-code";
 import {
   parseAccountType,
   parseDescription,
@@ -23,6 +24,8 @@ function text(formData: FormData, name: string) {
 }
 
 function friendlyError(error: { code?: string; message: string } | null, fallback: string) {
+  const locked = friendlyCodeChange(error);
+  if (locked) return locked;
   if (!error) return fallback;
   if (error.code === "23505") return "That code is already used in this organisation.";
   if (error.code === "23503" && error.message.includes("transaction_lines")) {
@@ -174,10 +177,19 @@ export async function updateReference(
 
   const current = await currentOrganisation();
   const supabase = await createClient();
+  const locked = await codeChangeError(
+    supabase,
+    kind,
+    id,
+    current.organisationId,
+    code,
+    "That code could not be updated.",
+  );
+  if (locked) return { error: locked };
+
   const { error } = await supabase
     .from(kind)
     .update({
-      code,
       description,
       ...(accountType ? { account_type: accountType } : {}),
       ...(vat.rate && vat.vatType

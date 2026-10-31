@@ -54,6 +54,8 @@ export default function OrganisationGrid({
   return (
     <div>
       <DataGrid
+        form="organisations"
+        onOpen={setEditing}
         rows={rows}
         searchPlaceholder="Search organisations"
         searchText={(row) => `${row.name} ${row.slug} ${roleLabel(row.role)} ${homeLabel(row)}`}
@@ -98,16 +100,21 @@ export default function OrganisationGrid({
             render: (row) => homeLabel(row),
           },
         ]}
-        actions={(row) =>
-          canManage(row.role) ? (
-            <button className={styles.quiet} type="button" onClick={() => setEditing(row)}>
-              Edit
-            </button>
-          ) : null
-        }
+        actions={(row) => (
+          <button className={styles.quiet} type="button" onClick={() => setEditing(row)}>
+            {canManage(row.role) ? "Edit" : "View"}
+          </button>
+        )}
       />
       {editing ? (
-        <OrganisationForm key={editing.id} organisation={editing} countries={countries} schemes={schemes} onClose={() => setEditing(null)} />
+        <OrganisationForm
+          key={editing.id}
+          organisation={editing}
+          countries={countries}
+          schemes={schemes}
+          readOnly={!canManage(editing.role)}
+          onClose={() => setEditing(null)}
+        />
       ) : null}
     </div>
   );
@@ -122,11 +129,13 @@ function OrganisationForm({
   organisation,
   countries,
   schemes,
+  readOnly = false,
   onClose,
 }: {
   organisation: OrganisationGridRow;
   countries: CodeName[];
   schemes: CodeName[];
+  readOnly?: boolean;
   onClose: () => void;
 }) {
   const [state, action, pending] = useActionState(updateOrganisationDefaults, {} as ActionState);
@@ -197,8 +206,8 @@ function OrganisationForm({
     : "Exchange rates are relative to the home currency. Check the other currencies after you change it.";
 
   return (
-    <FormModal title={`Edit ${organisation.name}`} onClose={onClose} fillPage>
-      <div className={`${styles.modalForm} ${styles.partyForm}`}>
+    <FormModal title={readOnly ? `View ${organisation.name}` : `Edit ${organisation.name}`} onClose={onClose} fillPage>
+      <div className={`${styles.modalForm} ${styles.partyForm}${readOnly ? ` ${styles.formReadOnly}` : ""}`}>
         {state.error ? (
           <p className={styles.alert} role="alert">
             {state.error}
@@ -213,7 +222,7 @@ function OrganisationForm({
                 required
                 minLength={2}
                 maxLength={80}
-                autoFocus
+                autoFocus={!readOnly}
                 value={organisationName}
                 onChange={(event) => setOrganisationName(event.target.value)}
               />
@@ -389,6 +398,7 @@ function OrganisationForm({
                 name="banking_details"
                 maxLength={1000}
                 rows={3}
+                spellCheck
                 value={bankingDetails}
                 onChange={(event) => setBankingDetails(event.target.value)}
               />
@@ -509,9 +519,9 @@ function OrganisationForm({
         </div>
         {confirmDelete ? <DeleteOrganisationForm organisation={organisation} onClose={() => setConfirmDelete(false)} /> : null}
         <div className={styles.modalActions}>
-          {organisation.role === "owner" && !confirmDelete ? (
+          {!readOnly && organisation.role === "owner" && !confirmDelete ? (
             <button
-              className={`${styles.quiet} ${styles.dangerQuiet} ${styles.actionStart}`}
+              className={`${styles.danger} ${styles.actionStart}`}
               type="button"
               onClick={() => setConfirmDelete(true)}
             >
@@ -519,16 +529,18 @@ function OrganisationForm({
             </button>
           ) : null}
           <button className={styles.quiet} type="button" onClick={onClose}>
-            Cancel
+            {readOnly ? "Close" : "Cancel"}
           </button>
-          <button
-            className={styles.primary}
-            type="submit"
-            form={formId}
-            disabled={pending || organisation.currencies.length === 0}
-          >
-            {pending ? "Saving…" : "Save"}
-          </button>
+          {readOnly ? null : (
+            <button
+              className={styles.primary}
+              type="submit"
+              form={formId}
+              disabled={pending || organisation.currencies.length === 0}
+            >
+              {pending ? "Saving…" : "Save"}
+            </button>
+          )}
         </div>
       </div>
     </FormModal>
@@ -567,7 +579,7 @@ function DeleteOrganisationForm({
       <button className={styles.quiet} type="button" onClick={onClose}>
         Close
       </button>
-      <button className={`${styles.quiet} ${styles.dangerQuiet}`} type="submit" disabled={pending || confirmation !== organisation.name}>
+      <button className={styles.danger} type="submit" disabled={pending || confirmation !== organisation.name}>
         {pending ? "Deleting…" : "Delete"}
       </button>
     </form>

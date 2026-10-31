@@ -29,7 +29,7 @@
 }
 
 .back {
-  border: 1px solid #c5cad3;
+  border: 1px solid #dde1e8;
   background: #fff;
   color: #3a4356;
 }
@@ -37,7 +37,7 @@
 .print,
 .pdf {
   border: 0;
-  background: #16294a;
+  background: #2c4c78;
   color: #fff;
 }
 
