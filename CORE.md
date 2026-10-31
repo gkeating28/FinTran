@@ -29,6 +29,8 @@ tenant
 
 Almost every business table carries both `tenant_id` and `organisation_id`. A trigger checks that the organisation belongs to that tenant, and blocks a row from being moved to another organisation. Codes are uppercased and trimmed in those triggers. A code is unique inside one organisation, not across the whole database.
 
+A code is chosen when the row is created. After that save, the code is read-only. This covers GL codes, departments, cost centres, VAT rates, customers, suppliers, products, currencies, and transaction types. The edit form shows the saved code and does not accept a new one. An update leaves the code out. Postgres rejects a change.
+
 Where a code is used by another row, the foreign key is `ON DELETE RESTRICT`. You cannot remove a currency, GL code, VAT rate, product, supplier, or transaction type that is still referenced. Deleting an organisation deletes the rows that belong only to it (`ON DELETE CASCADE`).
 
 ## Reference code lists
@@ -132,7 +134,7 @@ Blank text is stored as null.
 
 A free-text address that was already stored was split on line breaks into lines 1 to 3. Further lines were joined into line 3, the country was set to `IE`, and the address was marked for review. A blank address was left blank. A VAT number that already had a known prefix was kept. An Irish number without a prefix was given `IE`. Any other old VAT number was cleared, written to the audit log, and the address was marked for review.
 
-`currencies.iso_code` is the ISO 4217 code, linked to `ref_currencies`, and unique inside the organisation. It is filled from the currency code when that code is already an ISO code. `currencies.rate` is how many units of that currency equal one unit of the home currency. The home currency's own rate is 1. A rate is greater than 0 and has up to 8 decimal places. On a document, the same convention is stored as `exchange_rate`: home amount = foreign amount ÷ rate.
+`currencies.code` is read-only after the currency is saved. `currencies.iso_code` is the ISO 4217 code, linked to `ref_currencies`, and unique inside the organisation. It is filled from the currency code when that code is already an ISO code. `currencies.rate` is how many units of that currency equal one unit of the home currency. The home currency's own rate is 1. A rate is greater than 0 and has up to 8 decimal places. On a document, the same convention is stored as `exchange_rate`: home amount = foreign amount ÷ rate.
 
 Printing still uses one Address field. For a draft it joins the structured lines, city, county, post code, and country. A posted or void document keeps the single address string already stored on its snapshot.
 
@@ -140,7 +142,7 @@ The logo file is not in the table. It is an object in the private Storage bucket
 
 ## Account structure
 
-These tables are the lists under Admin. Each has `tenant_id`, `organisation_id`, `code`, and `description` (description 1–200). `code` matches `^[A-Z0-9]{1,20}$`, except products, which allow 30 characters. `(organisation_id, code)` is unique.
+These tables are the lists under Admin. Each has `tenant_id`, `organisation_id`, `code`, and `description` (description 1–200). `code` matches `^[A-Z0-9]{1,20}$`, except products, which allow 30 characters. `(organisation_id, code)` is unique. The code cannot be changed after the row is saved.
 
 ### `gl_codes`
 
@@ -188,7 +190,7 @@ Both have the same shape.
 
 | Column | Meaning |
 | --- | --- |
-| `code`, `name` | Code as above. Name 1–200 |
+| `code`, `name` | Code as above, and read-only after the row is saved. Name 1–200 |
 | `currency_id` | Required. One of this organisation's currencies |
 | `phone`, `email`, `website`, `address` | Optional, with the same checks as the organisation profile |
 | `contact_details` | Optional, up to 500 |
@@ -206,7 +208,7 @@ A new sales draft copies blank fields from its customer. A blank buyer reference
 
 | Column | Meaning |
 | --- | --- |
-| `code`, `description` | The short code shown in menus, and the name used as the page title |
+| `code`, `description` | The short code shown in menus, read-only after the row is saved, and the name used as the page title |
 | `document_kind` | Invoice, credit note, or order. A description containing “order” was set to order. The kind cannot change after a document has been entered |
 | `last_reference` | The last number issued for this type. New types are forced to 0 |
 | `flex1_label` … `flex5_label` | Optional labels, up to 80 characters. A blank label hides that flex field on the document |
