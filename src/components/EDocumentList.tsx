@@ -53,6 +53,8 @@ export function EDocumentList({
         </p>
       ) : null}
       <DataGrid
+        form={direction === "inbound" ? "e-documents/received" : "e-documents/sent"}
+        onOpen={(row) => router.push(`/e-documents/${row.id}`)}
         rows={visible}
         searchPlaceholder="Search e-documents"
         searchText={(row) => `${row.documentNumber} ${row.party} ${row.status} ${row.issueDate} ${row.total}`}

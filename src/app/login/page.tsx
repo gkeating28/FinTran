@@ -20,9 +20,9 @@ export default async function LoginPage({
     <main className={styles.page}>
       <section className={styles.card}>
         <div className={styles.brand}>
-          <div className={styles.mark}>F</div>
+          <img src="/qula-logo.png" alt="" width={40} height={40} className={styles.brandMark} />
           <div>
-            <strong>FinTran</strong>
+            <strong>Qula</strong>
             <span>TRANSACTIONS</span>
           </div>
         </div>

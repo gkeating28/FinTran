@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type InputHTMLAttributes, type TextareaHTMLAttributes } from "react";
+import SpellingNote from "@/components/SpellingNote";
 
 const quiet = {
   autoComplete: "one-time-code",
@@ -13,36 +14,70 @@ const quiet = {
   "data-form-type": "other",
 } as const;
 
-export function QuietInput(props: InputHTMLAttributes<HTMLInputElement>) {
+export function QuietInput({
+  readOnly = false,
+  spellCheck = false,
+  value,
+  disabled,
+  onFocus,
+  onPointerDown,
+  ...props
+}: InputHTMLAttributes<HTMLInputElement>) {
   const [editable, setEditable] = useState(false);
+  const locked = Boolean(readOnly);
 
   return (
-    <input
-      {...props}
-      {...quiet}
-      readOnly={!editable}
-      onPointerDown={() => setEditable(true)}
-      onFocus={(event) => {
-        setEditable(true);
-        props.onFocus?.(event);
-      }}
-    />
+    <>
+      <input
+        {...props}
+        {...quiet}
+        value={value}
+        disabled={disabled}
+        readOnly={locked || !editable}
+        onPointerDown={(event) => {
+          if (!locked) setEditable(true);
+          onPointerDown?.(event);
+        }}
+        onFocus={(event) => {
+          if (!locked) setEditable(true);
+          onFocus?.(event);
+        }}
+      />
+      {spellCheck && !locked && !disabled ? <SpellingNote text={String(value ?? "")} /> : null}
+    </>
   );
 }
 
-export function QuietTextarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+export function QuietTextarea({
+  readOnly = false,
+  spellCheck = false,
+  value,
+  disabled,
+  onFocus,
+  onPointerDown,
+  ...props
+}: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   const [editable, setEditable] = useState(false);
+  const locked = Boolean(readOnly);
 
   return (
-    <textarea
-      {...props}
-      {...quiet}
-      readOnly={!editable}
-      onPointerDown={() => setEditable(true)}
-      onFocus={(event) => {
-        setEditable(true);
-        props.onFocus?.(event);
-      }}
-    />
+    <>
+      <textarea
+        {...props}
+        {...quiet}
+        value={value}
+        disabled={disabled}
+        readOnly={locked || !editable}
+        onPointerDown={(event) => {
+          if (!locked) setEditable(true);
+          onPointerDown?.(event);
+        }}
+        onFocus={(event) => {
+          if (!locked) setEditable(true);
+          onFocus?.(event);
+        }}
+      />
+      {spellCheck && !locked && !disabled ? <SpellingNote text={String(value ?? "")} /> : null}
+    </>
   );
 }

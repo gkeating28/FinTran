@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getWorkspace, ORGANISATION_COOKIE } from "@/lib/data";
+import { codeChangeError, friendlyCodeChange } from "@/lib/immutable-code";
 import { listReference } from "@/lib/reference-data";
 import { parseDescription } from "@/lib/reference";
 import { parseProductCode, parseProductPrice } from "@/lib/products";
@@ -15,6 +16,8 @@ function text(formData: FormData, name: string) {
 }
 
 function friendlyError(error: { code?: string; message: string } | null, fallback: string) {
+  const locked = friendlyCodeChange(error);
+  if (locked) return locked;
   if (!error) return fallback;
   if (error.code === "23505") return "That code is already used in this organisation.";
   if (error.code === "23503" && error.message.includes("unit_code")) return "Choose a unit.";
@@ -170,10 +173,19 @@ export async function updateProduct(_state: ActionState, formData: FormData): Pr
 
   const current = await currentOrganisation();
   const supabase = await createClient();
+  const locked = await codeChangeError(
+    supabase,
+    "products",
+    id,
+    current.organisationId,
+    fields.code,
+    "That product could not be updated.",
+  );
+  if (locked) return { error: locked };
+
   const { error } = await supabase
     .from("products")
     .update({
-      code: fields.code,
       description: fields.description,
       unit_code: fields.unitCode,
       purchase_price: fields.purchasePrice,

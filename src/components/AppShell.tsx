@@ -22,7 +22,7 @@ export default function AppShell({
       <FormChromeProvider>
         <div className={styles.main}>
           <AppTitleBar
-            organisationName={current?.organisationName ?? "FinTran"}
+            organisationName={current?.organisationName ?? "Qula"}
             setup={!current}
           />
           <div className={styles.page} data-app-page="">

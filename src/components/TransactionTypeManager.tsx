@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { CodeField } from "@/components/CodeField";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
 import { QuietInput } from "@/components/QuietField";
@@ -52,6 +53,8 @@ export default function TransactionTypeManager({
         </p>
       ) : null}
       <DataGrid
+        form="transaction-types"
+        onOpen={(row) => setDraft(row)}
         rows={rows}
         searchPlaceholder="Search transaction types"
         searchText={(row) => `${row.code} ${row.description} ${row.type} ${documentKindLabel(row.documentKind)} ${row.lastReference} ${row.flexLabels.join(" ")}`}
@@ -138,13 +141,18 @@ export default function TransactionTypeManager({
                   </form>
                 </>
               )
-            : undefined
+            : (row) => (
+                <button className={styles.quiet} type="button" onClick={() => setDraft(row)}>
+                  View
+                </button>
+              )
         }
       />
       {draft ? (
         <TransactionTypeForm
           key={draft === "new" ? "new" : draft.id}
           row={draft === "new" ? null : draft}
+          readOnly={!canEdit}
           onClose={() => setDraft(null)}
         />
       ) : null}
@@ -154,9 +162,11 @@ export default function TransactionTypeManager({
 
 function TransactionTypeForm({
   row,
+  readOnly = false,
   onClose,
 }: {
   row: TransactionTypeRow | null;
+  readOnly?: boolean;
   onClose: () => void;
 }) {
   const save = row ? updateTransactionType : createTransactionType;
@@ -175,34 +185,22 @@ function TransactionTypeForm({
   }, [state.message, onClose]);
 
   return (
-    <FormModal title={row ? "Edit transaction type" : "Add transaction type"} onClose={onClose} className={styles.partyDialog}>
-      <form className={styles.modalForm} action={action} autoComplete="off" noValidate>
+    <FormModal title={readOnly ? "View transaction type" : row ? "Edit transaction type" : "Add transaction type"} onClose={onClose} className={styles.partyDialog}>
+      <form className={`${styles.modalForm}${readOnly ? ` ${styles.formReadOnly}` : ""}`} action={action} autoComplete="off" noValidate>
         {row ? <input type="hidden" name="id" value={row.id} /> : null}
         {state.error ? (
           <p className={styles.alert} role="alert">
             {state.error}
           </p>
         ) : null}
-        <label className={styles.field}>
-          Code
-          <QuietInput
-            name="code"
-            required
-            maxLength={20}
-            autoFocus
-            value={code}
-            onChange={(event) => setCode(event.target.value)}
-            placeholder="SI"
-            className={styles.mono}
-            style={{ textTransform: "uppercase" }}
-          />
-        </label>
+        <CodeField locked={Boolean(row)} value={code} onChange={setCode} maxLength={20} placeholder="SI" autoFocus={!row} />
         <label className={styles.field}>
           Description
           <QuietInput
             name="description"
             required
             maxLength={200}
+            spellCheck
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             placeholder="Sales invoice"
@@ -290,11 +288,13 @@ function TransactionTypeForm({
         </p>
         <div className={styles.modalActions}>
           <button className={styles.quiet} type="button" onClick={onClose}>
-            Cancel
+            {readOnly ? "Close" : "Cancel"}
           </button>
-          <button className={styles.primary} type="submit" disabled={pending}>
-            {pending ? "Saving…" : "Save"}
-          </button>
+          {readOnly ? null : (
+            <button className={styles.primary} type="submit" disabled={pending}>
+              {pending ? "Saving…" : "Save"}
+            </button>
+          )}
         </div>
       </form>
     </FormModal>

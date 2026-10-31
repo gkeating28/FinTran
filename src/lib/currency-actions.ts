@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { parseBic, parseIban, parsePeppol, parsePostalAddress, parseVatNumber } from "@/lib/address";
 import { parseCurrencyCode, parseCurrencyName, parseCurrencyRate } from "@/lib/currencies";
 import { getWorkspace, ORGANISATION_COOKIE } from "@/lib/data";
+import { codeChangeError, friendlyCodeChange } from "@/lib/immutable-code";
 import {
   logoContentType,
   ORGANISATION_LOGO_BUCKET,
@@ -20,6 +21,8 @@ function text(formData: FormData, name: string) {
 }
 
 function friendlyError(error: { code?: string; message: string } | null, fallback: string) {
+  const locked = friendlyCodeChange(error);
+  if (locked) return locked;
   if (!error) return fallback;
   if (error.code === "23505" && error.message.includes("iso_code")) {
     return "That ISO currency is already used in this organisation.";
@@ -148,9 +151,19 @@ export async function updateCurrency(_state: ActionState, formData: FormData): P
 
   const current = await currentOrganisation();
   const supabase = await createClient();
+  const locked = await codeChangeError(
+    supabase,
+    "currencies",
+    id,
+    current.organisationId,
+    fields.code,
+    "That currency could not be updated.",
+  );
+  if (locked) return { error: locked };
+
   const { error } = await supabase
     .from("currencies")
-    .update({ code: fields.code, name: fields.name, rate: fields.rate, iso_code: fields.iso_code })
+    .update({ name: fields.name, rate: fields.rate, iso_code: fields.iso_code })
     .eq("id", id)
     .eq("organisation_id", current.organisationId);
 

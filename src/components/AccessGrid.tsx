@@ -27,6 +27,7 @@ export default function AccessGrid({
 }) {
   return (
     <DataGrid
+      form="access"
       rows={rows}
       searchPlaceholder="Search people"
       searchText={(row) => `${row.name} ${row.email} ${roleLabel(row.role)}`}

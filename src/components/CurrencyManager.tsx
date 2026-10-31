@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { CodeField } from "@/components/CodeField";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
 import { QuietInput } from "@/components/QuietField";
@@ -44,6 +45,8 @@ export default function CurrencyManager({
         </p>
       ) : null}
       <DataGrid
+        form="currencies"
+        onOpen={(row) => setDraft(row)}
         rows={rows}
         searchPlaceholder="Search currencies"
         searchText={(row) => `${row.code} ${row.isoCode} ${row.name} ${row.rate} ${row.home ? "home" : ""}`}
@@ -111,7 +114,11 @@ export default function CurrencyManager({
                   </form>
                 </>
               )
-            : undefined
+            : (row) => (
+                <button className={styles.quiet} type="button" onClick={() => setDraft(row)}>
+                  View
+                </button>
+              )
         }
       />
       {draft ? (
@@ -119,6 +126,7 @@ export default function CurrencyManager({
           key={draft === "new" ? "new" : draft.id}
           row={draft === "new" ? null : draft}
           isoCurrencies={isoCurrencies}
+          readOnly={!canEdit}
           onClose={() => setDraft(null)}
         />
       ) : null}
@@ -129,10 +137,12 @@ export default function CurrencyManager({
 function CurrencyForm({
   row,
   isoCurrencies,
+  readOnly = false,
   onClose,
 }: {
   row: CurrencyRow | null;
   isoCurrencies: CodeName[];
+  readOnly?: boolean;
   onClose: () => void;
 }) {
   const save = row ? updateCurrency : createCurrency;
@@ -147,29 +157,15 @@ function CurrencyForm({
   }, [state.message, onClose]);
 
   return (
-    <FormModal title={row ? "Edit currency" : "Add currency"} onClose={onClose}>
-      <form className={styles.modalForm} action={action} autoComplete="off" noValidate>
+    <FormModal title={readOnly ? "View currency" : row ? "Edit currency" : "Add currency"} onClose={onClose}>
+      <form className={`${styles.modalForm}${readOnly ? ` ${styles.formReadOnly}` : ""}`} action={action} autoComplete="off" noValidate>
         {row ? <input type="hidden" name="id" value={row.id} /> : null}
         {state.error ? (
           <p className={styles.alert} role="alert">
             {state.error}
           </p>
         ) : null}
-        <label className={styles.field}>
-          Code
-          <QuietInput
-            name="code"
-            required
-            maxLength={20}
-            autoComplete="off"
-            autoFocus
-            value={code}
-            onChange={(event) => setCode(event.target.value)}
-            placeholder="EUR"
-            className={styles.mono}
-            style={{ textTransform: "uppercase" }}
-          />
-        </label>
+        <CodeField locked={Boolean(row)} value={code} onChange={setCode} maxLength={20} placeholder="EUR" autoFocus={!row} />
         <label className={styles.field}>
           Name
           <QuietInput
@@ -213,11 +209,13 @@ function CurrencyForm({
         </label>
         <div className={styles.modalActions}>
           <button className={styles.quiet} type="button" onClick={onClose}>
-            Cancel
+            {readOnly ? "Close" : "Cancel"}
           </button>
-          <button className={styles.primary} type="submit" disabled={pending}>
-            {pending ? "Saving…" : "Save"}
-          </button>
+          {readOnly ? null : (
+            <button className={styles.primary} type="submit" disabled={pending}>
+              {pending ? "Saving…" : "Save"}
+            </button>
+          )}
         </div>
       </form>
     </FormModal>

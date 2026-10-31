@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { CodeField } from "@/components/CodeField";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
 import { QuietInput } from "@/components/QuietField";
@@ -50,6 +51,8 @@ export default function ProductManager({
         </p>
       ) : null}
       <DataGrid
+        form="products"
+        onOpen={(row) => setDraft(row)}
         rows={rows}
         searchPlaceholder="Search products"
         searchText={(row) =>
@@ -151,7 +154,11 @@ export default function ProductManager({
                   </form>
                 </>
               )
-            : undefined
+            : (row) => (
+                <button className={styles.quiet} type="button" onClick={() => setDraft(row)}>
+                  View
+                </button>
+              )
         }
       />
       {draft ? (
@@ -161,6 +168,7 @@ export default function ProductManager({
           glCodes={glCodes}
           vatRates={vatRates}
           units={units}
+          readOnly={!canEdit}
           onClose={() => setDraft(null)}
         />
       ) : null}
@@ -280,12 +288,14 @@ function ProductForm({
   glCodes,
   vatRates,
   units,
+  readOnly = false,
   onClose,
 }: {
   row: ProductRow | null;
   glCodes: ReferenceRow[];
   vatRates: ReferenceRow[];
   units: UnitChoice[];
+  readOnly?: boolean;
   onClose: () => void;
 }) {
   const [availableGlCodes, setAvailableGlCodes] = useState(glCodes);
@@ -363,34 +373,22 @@ function ProductForm({
   const blocked = !choicesReady || missing.length > 0;
 
   return (
-    <FormModal title={row ? "Edit product" : "Add product"} onClose={onClose} className={styles.partyDialog}>
-      <form className={`${styles.modalForm} ${styles.partyForm}`} action={action} autoComplete="off" noValidate>
+    <FormModal title={readOnly ? "View product" : row ? "Edit product" : "Add product"} onClose={onClose} className={styles.partyDialog}>
+      <form className={`${styles.modalForm} ${styles.partyForm}${readOnly ? ` ${styles.formReadOnly}` : ""}`} action={action} autoComplete="off" noValidate>
         {row ? <input type="hidden" name="id" value={row.id} /> : null}
         {state.error ? (
           <p className={styles.alert} role="alert">
             {state.error}
           </p>
         ) : null}
-        <label className={styles.field}>
-          Code
-          <QuietInput
-            name="code"
-            required
-            maxLength={30}
-            autoFocus
-            value={code}
-            onChange={(event) => setCode(event.target.value)}
-            placeholder="WIDGET"
-            className={styles.mono}
-            style={{ textTransform: "uppercase" }}
-          />
-        </label>
+        <CodeField locked={Boolean(row)} value={code} onChange={setCode} maxLength={30} placeholder="WIDGET" autoFocus={!row} />
         <label className={styles.field}>
           Description
           <QuietInput
             name="description"
             required
             maxLength={200}
+            spellCheck
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             placeholder="Blue notebook"
@@ -481,11 +479,13 @@ function ProductForm({
         {blocked ? <p className={`${styles.panelMeta} ${styles.wide}`}>{missing.join(" ")}</p> : null}
         <div className={styles.modalActions}>
           <button className={styles.quiet} type="button" onClick={onClose}>
-            Cancel
+            {readOnly ? "Close" : "Cancel"}
           </button>
-          <button className={styles.primary} type="submit" disabled={pending || blocked}>
-            {pending ? "Saving…" : "Save"}
-          </button>
+          {readOnly ? null : (
+            <button className={styles.primary} type="submit" disabled={pending || blocked}>
+              {pending ? "Saving…" : "Save"}
+            </button>
+          )}
         </div>
       </form>
     </FormModal>

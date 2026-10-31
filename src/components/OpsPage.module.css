@@ -10,6 +10,7 @@
   --ops-muted: #8891a0;
   --ops-accent: #2c4c78;
   --ops-warn: #c2410c;
+  --ops-danger: #b42318;
   --ops-ok: #217a56;
   --ops-radius: 3px;
   --ops-font: var(--font-public-sans), system-ui, sans-serif;
@@ -281,6 +282,14 @@
   border-bottom: 0;
 }
 
+.rowClick {
+  cursor: pointer;
+}
+
+.rowClick:hover td {
+  background: #eef3f8;
+}
+
 .gridToolbar {
   display: flex;
   align-items: center;
@@ -295,8 +304,9 @@
   width: min(280px, 100%);
 }
 
-.search input {
-  width: 100%;
+.search input,
+.gridToolbar select,
+.gridToolbar input[type="date"] {
   height: 34px;
   border: 1px solid var(--ops-border);
   border-radius: var(--ops-radius);
@@ -305,6 +315,10 @@
   font-weight: 500;
   color: var(--ops-text);
   background: #fff;
+}
+
+.search input {
+  width: 100%;
 }
 
 .sortButton {
@@ -384,18 +398,135 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 10px 14px;
+  gap: 12px 20px;
+  flex-wrap: wrap;
+  min-height: 52px;
+  padding: 8px 14px;
   border-top: 1px solid var(--ops-border-soft);
   background: var(--ops-panel-muted);
   color: var(--ops-text-2);
   font-size: 12.5px;
+  font-weight: 600;
+}
+
+.rowsPerPage {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ops-text-2);
+  white-space: nowrap;
+}
+
+.rowsButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 72px;
+  height: 34px;
+  padding: 0 8px 0 12px;
+  border: 1px solid var(--ops-border);
+  border-radius: var(--ops-radius);
+  background: #fff;
+  color: var(--ops-text);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.rowsButton:hover {
+  border-color: var(--ops-accent);
+}
+
+.rowsChevron {
+  display: inline-flex;
+  color: var(--ops-muted);
+}
+
+.rowsMenu {
+  position: fixed;
+  z-index: 80;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 6px;
+  border: 1px solid var(--ops-border);
+  border-radius: var(--ops-radius);
+  background: #fff;
+  color: var(--ops-text);
+  font-family: var(--font-public-sans), system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 12px 28px rgba(15, 31, 56, 0.16);
+}
+
+.rowsOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--ops-radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rowsOption:hover,
+.rowsOption[data-active="true"] {
+  background: #eef3f8;
+}
+
+.rowsCheck {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  color: var(--ops-accent);
 }
 
 .pager {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 14px;
+  margin-left: auto;
+  color: var(--ops-text-2);
+  white-space: nowrap;
+}
+
+.pageButtons {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pageButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--ops-border);
+  border-radius: var(--ops-radius);
+  background: #fff;
+  color: var(--ops-text-2);
+  cursor: pointer;
+}
+
+.pageButton:hover:not(:disabled) {
+  background: #eef3f8;
+  color: var(--ops-text);
+}
+
+.pageButton:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 .empty {
@@ -863,6 +994,13 @@
   padding-right: 0;
 }
 
+.linePager {
+  flex: none;
+  padding-left: 0;
+  padding-right: 12px;
+  border-radius: 0;
+}
+
 
 .lineDialog {
   width: min(720px, calc(100vw - 32px));
@@ -1029,6 +1167,14 @@
 .partyForm .field textarea,
 .partyForm .lookupButton {
   width: 100%;
+}
+
+.formReadOnly input:not([type="hidden"]),
+.formReadOnly select,
+.formReadOnly textarea,
+.formReadOnly .lookupButton {
+  pointer-events: none;
+  background: var(--ops-panel-muted);
 }
 
 .lookup {
@@ -1330,14 +1476,20 @@
 
 .field input:disabled,
 .field select:disabled,
-.field textarea:disabled {
+.field textarea:disabled,
+.field input.locked {
   color: var(--ops-text);
   background: var(--ops-panel-muted);
   opacity: 1;
 }
 
+.field input.locked {
+  cursor: default;
+}
+
 .primary,
-.quiet {
+.quiet,
+.danger {
   height: 34px;
   border-radius: var(--ops-radius);
   font: inherit;
@@ -1353,9 +1505,17 @@
   padding: 0 14px;
 }
 
-.primary:disabled {
+.primary:disabled,
+.danger:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+.danger {
+  border: 0;
+  background: var(--ops-danger);
+  color: #fff;
+  padding: 0 14px;
 }
 
 .quiet {
@@ -1423,6 +1583,27 @@ label.quiet {
   color: var(--ops-ok);
   border-color: #b7dfc8;
   background: #f3fbf6;
+}
+
+.spelling {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  color: var(--ops-warn);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.spelling button {
+  margin-left: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ops-accent);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .readinessBar {
@@ -1575,6 +1756,11 @@ label.quiet {
   .gridToolbar,
   .gridFooter {
     flex-wrap: wrap;
+  }
+
+  .pager {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .search {
