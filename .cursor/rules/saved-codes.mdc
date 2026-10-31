@@ -1,0 +1,6 @@
+---
+description: Saved master codes are read-only
+alwaysApply: true
+---
+
+A saved master code is read-only. GL codes, departments, cost centres, VAT rates, customers, suppliers, products, currencies, and transaction types take their code when the row is created. After that save, the edit form shows the code and does not accept a new one. Do not add a way to change a saved code. Updates leave the code out, and Postgres rejects a rename.
