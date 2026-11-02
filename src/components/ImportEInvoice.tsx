@@ -182,20 +182,13 @@ export function ImportEInvoice({
 
   function openEditor(line: Record<string, unknown>) {
     const number = String(line["BT-126"] ?? "");
-    const item = semanticRecord(line["BG-31"]);
-    const sellerItem = semanticText(item?.["BT-155"]);
-    const category = semanticText(semanticRecord(line["BG-30"])?.["BT-151"]);
-    const rate = semanticText(semanticRecord(line["BG-30"])?.["BT-152"]);
-    const selectedLine = choice(number, sellerItem);
+    const sellerItem = semanticAt(line, "BG-31", "BT-155");
     setLineMessage(null);
     setOpenLine({
       number,
       sellerItem,
-      description: semanticText(item?.["BT-153"]) || "Item",
-      quantity: semanticText(line["BT-129"]),
-      price: semanticAt(line, "BG-29", "BT-146"),
-      vatText: [category, rate].filter(Boolean).join(" "),
-      ...selectedLine,
+      source: line,
+      ...choice(number, sellerItem),
     });
   }
 
@@ -370,7 +363,7 @@ export function ImportEInvoice({
                 return (
                   <tr key={number} className={styles.lineClick} onClick={(event) => { if (clickOpensRow(event.target)) openEditor(line); }}>
                     <td className={styles.mono}>{number}</td>
-                    <td>{semanticText(item?.["BT-153"]) || "Item"}</td>
+                    <td>{semanticText(item?.["BT-154"]) || semanticText(item?.["BT-153"]) || "Item"}</td>
                     <td className={`${styles.mono} ${styles.num}`}>{semanticText(line["BT-129"]) || "—"}</td>
                     <td className={`${styles.mono} ${styles.num}`}>{semanticAt(line, "BG-29", "BT-146") || "—"}</td>
                     <td className={styles.mono}>{namedCode(glCodes, selectedLine.glCodeId)}</td>
@@ -416,11 +409,36 @@ export function ImportEInvoice({
 type OpenLine = LineChoice & {
   number: string;
   sellerItem: string;
-  description: string;
-  quantity: string;
-  price: string;
-  vatText: string;
+  source: Record<string, unknown>;
 };
+
+function lineFacts(line: Record<string, unknown>) {
+  const item = semanticRecord(line["BG-31"]);
+  const tax = semanticRecord(line["BG-30"]);
+  const price = semanticRecord(line["BG-29"]);
+  const facts = [
+    { label: "Item name", value: semanticText(item?.["BT-153"]), wide: true },
+    { label: "Description", value: semanticText(item?.["BT-154"]), wide: true },
+    { label: "Seller's item", value: semanticText(item?.["BT-155"]) },
+    { label: "Note", value: semanticText(line["BT-127"]), wide: true },
+    { label: "Quantity", value: semanticText(line["BT-129"]) },
+    { label: "Unit", value: semanticText(line["BT-130"]) },
+    { label: "Price", value: semanticText(price?.["BT-146"]) },
+    { label: "Base quantity", value: semanticText(price?.["BT-149"]) },
+    { label: "Line amount", value: semanticText(line["BT-131"]) },
+    { label: "VAT category", value: semanticText(tax?.["BT-151"]) },
+    { label: "VAT rate", value: semanticText(tax?.["BT-152"]) },
+  ];
+  const allowances = Array.isArray(line["BG-27"]) ? line["BG-27"] : [];
+  allowances.forEach((entry, index) => {
+    const allowance = semanticRecord(entry);
+    facts.push(
+      { label: `Allowance ${index + 1}`, value: semanticText(allowance?.["BT-136"]), wide: false },
+      { label: `Allowance reason ${index + 1}`, value: semanticText(allowance?.["BT-140"]), wide: false },
+    );
+  });
+  return facts;
+}
 
 function namedCode(rows: Named[], id: string) {
   return rows.find((row) => row.id === id)?.code || "—";
@@ -467,10 +485,13 @@ function LineCoding({
             {message}
           </p>
         ) : null}
-        <p className={`${styles.panelMeta} ${styles.wide}`}>
-          {line.description}. Qty {line.quantity || "—"} · Price {line.price || "—"}
-          {line.vatText ? ` · VAT ${line.vatText}` : ""}
-        </p>
+        {lineFacts(line.source).map((fact) => (
+          <label key={fact.label} className={fact.wide ? `${styles.field} ${styles.wide}` : styles.field}>
+            {fact.label}
+            <input readOnly value={fact.value} className={styles.mono} />
+          </label>
+        ))}
+        <p className={`${styles.sectionLabel} ${styles.wide}`}>For this organisation</p>
         <label className={styles.field}>
           VAT code
           <select autoComplete="off" value={line.vatRateId} onChange={(event) => onChange({ ...line, vatRateId: event.target.value })}>

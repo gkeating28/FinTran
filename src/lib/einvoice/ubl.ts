@@ -396,9 +396,12 @@ export function parseUbl(xml: string): RecordJson {
       };
     }
     const sellerItem = childText(child(itemNode, "SellersItemIdentification"), "ID");
-    if (childText(itemNode, "Name") || sellerItem) {
+    const itemName = childText(itemNode, "Name");
+    const itemDescription = childText(itemNode, "Description");
+    if (itemName || itemDescription || sellerItem) {
       lineJson["BG-31"] = {
-        ...(childText(itemNode, "Name") ? { "BT-153": childText(itemNode, "Name") } : {}),
+        ...(itemName ? { "BT-153": itemName } : {}),
+        ...(itemDescription ? { "BT-154": itemDescription } : {}),
         ...(sellerItem ? { "BT-155": sellerItem } : {}),
       };
     }

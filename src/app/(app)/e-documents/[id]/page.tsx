@@ -6,6 +6,7 @@ import { RegenerateEInvoice } from "@/components/RegenerateEInvoice";
 import { RejectEInvoice } from "@/components/RejectEInvoice";
 import styles from "@/components/OpsPage.module.css";
 import { getWorkspace } from "@/lib/data";
+import { parseUbl } from "@/lib/einvoice/ubl";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "E-document" };
@@ -62,6 +63,19 @@ export default async function EDocumentPage({ params }: { params: Promise<{ id: 
           .eq("status", "valid")
       : null;
   const failures = (results ?? []) as { layer: string; rule_id: string; severity: string; message: string }[];
+  const importing = row.direction === "inbound" && row.status === "valid";
+  let semantic = row.semantic;
+  if (importing) {
+    const content = await supabase.from("e_document_contents").select("xml").eq("e_document_id", row.id).maybeSingle();
+    const xml = (content.data as { xml?: string } | null)?.xml;
+    if (xml) {
+      try {
+        semantic = parseUbl(xml) as Record<string, unknown>;
+      } catch {
+        semantic = row.semantic;
+      }
+    }
+  }
 
   return (
     <section className={styles.stack}>
@@ -87,9 +101,9 @@ export default async function EDocumentPage({ params }: { params: Promise<{ id: 
         {row.direction === "inbound" && (row.status === "valid" || row.status === "invalid") ? <RejectEInvoice id={row.id} /> : null}
       </div>
       {row.rejection_reason ? <p className={styles.alert}>{row.rejection_reason}</p> : null}
-      <EDocumentBody semantic={row.semantic} hideLines={row.direction === "inbound" && row.status === "valid"} />
-      {row.direction === "inbound" && row.status === "valid" ? (
-        <ImportEInvoice id={row.id} semantic={row.semantic} organisationId={workspace.current.organisationId} />
+      <EDocumentBody semantic={semantic} hideLines={importing} />
+      {importing ? (
+        <ImportEInvoice id={row.id} semantic={semantic} organisationId={workspace.current.organisationId} />
       ) : null}
       <div className={styles.recordPair}>
         <div>
