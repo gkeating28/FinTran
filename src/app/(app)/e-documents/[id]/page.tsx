@@ -52,6 +52,7 @@ export default async function EDocumentPage({ params }: { params: Promise<{ id: 
     semantic: Record<string, unknown> | null;
     header_id: string | null;
     rules_version: string | null;
+    ubl_root: string;
   };
   const outboundValid =
     row.direction === "outbound" && row.header_id
@@ -75,6 +76,60 @@ export default async function EDocumentPage({ params }: { params: Promise<{ id: 
         semantic = row.semantic;
       }
     }
+  }
+
+  if (importing) {
+    const creditNote = row.ubl_root === "CreditNote";
+    const defaults = await supabase
+      .from("organisation_defaults")
+      .select("home_currency_id, inbound_invoice_type_id, inbound_credit_note_type_id")
+      .eq("organisation_id", workspace.current.organisationId)
+      .maybeSingle();
+    const defaultsRow = defaults.data as {
+      home_currency_id: string | null;
+      inbound_invoice_type_id: string | null;
+      inbound_credit_note_type_id: string | null;
+    } | null;
+    const typeId = creditNote ? defaultsRow?.inbound_credit_note_type_id : defaultsRow?.inbound_invoice_type_id;
+    const typeResult = typeId
+      ? await supabase
+          .from("transaction_types")
+          .select("description, flex1_label, flex2_label, flex3_label, flex4_label, flex5_label")
+          .eq("id", typeId)
+          .maybeSingle()
+      : null;
+    const typeRow = typeResult?.data as {
+      description: string;
+      flex1_label: string | null;
+      flex2_label: string | null;
+      flex3_label: string | null;
+      flex4_label: string | null;
+      flex5_label: string | null;
+    } | null;
+    return (
+      <ImportEInvoice
+        id={row.id}
+        semantic={semantic}
+        organisationId={workspace.current.organisationId}
+        documentNumber={row.document_number ?? ""}
+        creditNote={creditNote}
+        documentTitle={typeRow?.description ?? ""}
+        flexLabels={[
+          typeRow?.flex1_label ?? "",
+          typeRow?.flex2_label ?? "",
+          typeRow?.flex3_label ?? "",
+          typeRow?.flex4_label ?? "",
+          typeRow?.flex5_label ?? "",
+        ]}
+        homeCurrencyId={defaultsRow?.home_currency_id ?? ""}
+        missingType={!typeRow}
+        failures={failures.map((failure) => ({
+          ruleId: failure.rule_id,
+          severity: failure.severity,
+          message: failure.message,
+        }))}
+      />
+    );
   }
 
   return (
@@ -101,10 +156,7 @@ export default async function EDocumentPage({ params }: { params: Promise<{ id: 
         {row.direction === "inbound" && (row.status === "valid" || row.status === "invalid") ? <RejectEInvoice id={row.id} /> : null}
       </div>
       {row.rejection_reason ? <p className={styles.alert}>{row.rejection_reason}</p> : null}
-      {importing ? null : <EDocumentBody semantic={semantic} />}
-      {importing ? (
-        <ImportEInvoice id={row.id} semantic={semantic} organisationId={workspace.current.organisationId} />
-      ) : null}
+      <EDocumentBody semantic={semantic} />
       <div className={styles.recordPair}>
         <div>
           <h2 className={styles.heading}>Validation</h2>

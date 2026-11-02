@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import FormModal from "@/components/FormModal";
 import styles from "@/components/OpsPage.module.css";
 import { createClient } from "@/lib/supabase/client";
 
-export function RejectEInvoice({ id }: { id: string }) {
+export function RejectEInvoice({ id, className }: { id: string; className?: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
@@ -14,10 +15,11 @@ export function RejectEInvoice({ id }: { id: string }) {
 
   return (
     <>
-      <button className={styles.danger} type="button" onClick={() => { setError(null); setOpen(true); }}>
+      <button className={className ?? styles.danger} type="button" onClick={() => { setError(null); setOpen(true); }}>
         Reject
       </button>
-      {open ? (
+      {open
+        ? createPortal(
         <FormModal title="Reject e-invoice" onClose={() => setOpen(false)} className={styles.lineDialog}>
           <form
             className={`${styles.modalForm} ${styles.partyForm}`}
@@ -52,8 +54,10 @@ export function RejectEInvoice({ id }: { id: string }) {
               </button>
             </div>
           </form>
-        </FormModal>
-      ) : null}
+        </FormModal>,
+          document.querySelector("[data-app-page]") ?? document.body,
+        )
+        : null}
     </>
   );
 }
