@@ -17,7 +17,7 @@ export default async function TransactionTypePage({
   searchParams,
 }: {
   params: Promise<{ code: string }>;
-  searchParams: Promise<{ error?: string; open?: string }>;
+  searchParams: Promise<{ error?: string; open?: string; ask?: string }>;
 }) {
   const workspace = await getWorkspace();
   if (workspace.status === "signed-out") redirect("/login");
@@ -51,6 +51,7 @@ export default async function TransactionTypePage({
       loadError={listed.error}
       actionError={query.error}
       openId={query.open}
+      openStamp={query.ask}
       canVoid={canManage(workspace.current.role) && tile.type === "Purchases"}
       canDownload={canManage(workspace.current.role) && tile.documentKind !== "order"}
     />
