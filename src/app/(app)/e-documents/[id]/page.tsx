@@ -12,6 +12,18 @@ export const metadata = { title: "E-document" };
 
 const LAYERS = ["xsd", "en16931", "peppol", "national"] as const;
 
+function formatWhen(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en-IE", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Dublin",
+  }).format(date);
+}
+
 export default async function EDocumentPage({ params }: { params: Promise<{ id: string }> }) {
   const workspace = await getWorkspace();
   if (workspace.status === "signed-out") redirect("/login");
@@ -79,41 +91,49 @@ export default async function EDocumentPage({ params }: { params: Promise<{ id: 
       {row.direction === "inbound" && row.status === "valid" ? (
         <ImportEInvoice id={row.id} semantic={row.semantic} organisationId={workspace.current.organisationId} />
       ) : null}
-      <div>
-        <h2 className={styles.heading}>Validation</h2>
-        <p className={styles.panelMeta}>Rules {row.rules_version ?? "—"}.</p>
-        {failures.length === 0 ? (
-          <p className={styles.panelMeta}>No rule failures.</p>
-        ) : (
-          LAYERS.map((layer) => {
-            const group = failures
-              .filter((result) => result.layer === layer)
-              .sort((left, right) => (left.severity === right.severity ? 0 : left.severity === "fatal" ? -1 : 1));
-            if (group.length === 0) return null;
-            return (
-              <div key={layer}>
-                <h3 className={styles.heading}>{layer}</h3>
-                <ul>
-                  {group.map((result) => (
-                    <li key={`${result.layer}-${result.rule_id}-${result.message}`}>
-                      {result.severity} {result.rule_id}: {result.message}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })
-        )}
-      </div>
-      <div>
-        <h2 className={styles.heading}>History</h2>
-        <ul>
-          {(events as { at: string; from_status: string | null; to_status: string }[] | null)?.map((event) => (
-            <li key={event.at}>
-              {event.from_status ?? "new"} → {event.to_status}
-            </li>
-          ))}
-        </ul>
+      <div className={styles.recordPair}>
+        <div>
+          <h2 className={styles.heading}>Validation</h2>
+          <p className={styles.panelMeta}>Rules {row.rules_version ?? "—"}.</p>
+          {failures.length === 0 ? (
+            <p className={styles.panelMeta}>No rule failures.</p>
+          ) : (
+            LAYERS.map((layer) => {
+              const group = failures
+                .filter((result) => result.layer === layer)
+                .sort((left, right) => (left.severity === right.severity ? 0 : left.severity === "fatal" ? -1 : 1));
+              if (group.length === 0) return null;
+              return (
+                <div key={layer}>
+                  <h3 className={styles.sectionLabel}>{layer}</h3>
+                  <ul className={styles.metaList}>
+                    {group.map((result) => (
+                      <li key={`${result.layer}-${result.rule_id}-${result.message}`}>
+                        <span>{result.severity}</span>
+                        <span>
+                          {result.rule_id}: {result.message}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })
+          )}
+        </div>
+        <div>
+          <h2 className={styles.heading}>History</h2>
+          <ul className={styles.metaList}>
+            {(events as { at: string; from_status: string | null; to_status: string }[] | null)?.map((event) => (
+              <li key={event.at}>
+                <span>{formatWhen(event.at)}</span>
+                <span>
+                  {event.from_status ?? "new"} → {event.to_status}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </section>
   );

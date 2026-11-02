@@ -44,17 +44,16 @@ export function ImportEInvoice({
   const [supplierId, setSupplierId] = useState("");
   const [createSupplier, setCreateSupplier] = useState(false);
   const [code, setCode] = useState("");
-  const [name, setName] = useState("");
+  const seller = semanticRecord(semantic?.["BG-4"]);
+  const sellerName = semanticText(seller?.["BT-27"]);
+  const [name, setName] = useState(sellerName);
   const [choices, setChoices] = useState<Record<string, LineChoice>>({});
-  const [memory, setMemory] = useState<Memory>({});
-  const [previousIban, setPreviousIban] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState<{ supplierId: string; memory: Memory; previousIban: string | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const lines = Array.isArray(semantic?.["BG-25"]) ? (semantic["BG-25"] as Record<string, unknown>[]) : [];
   const unsupported = Array.isArray(semantic?._unsupported) ? (semantic._unsupported as string[]) : [];
-  const seller = semanticRecord(semantic?.["BG-4"]);
   const sellerVat = semanticText(seller?.["BT-31"]);
   const endpoint = sellerEndpoint(semantic);
-  const sellerName = semanticText(seller?.["BT-27"]);
   const currencyCode = semanticText(semantic?.["BT-5"]);
   const iban = sellerIban(semantic);
   const address = [
@@ -93,29 +92,25 @@ export function ImportEInvoice({
   const invoiceCurrency = currencies.find((currency) => currency.iso_code === currencyCode || currency.code === currencyCode);
   const currencyBlocked = !createSupplier && Boolean(selected) && selected?.currency_id !== invoiceCurrency?.id;
   const effectiveSupplierId = createSupplier ? "" : supplierId || matched?.id || "";
+  const memory = loaded?.supplierId === effectiveSupplierId ? loaded.memory : {};
+  const previousIban = loaded?.supplierId === effectiveSupplierId ? loaded.previousIban : null;
 
   useEffect(() => {
-    setName(sellerName);
-  }, [sellerName]);
-
-  useEffect(() => {
-    if (!effectiveSupplierId) {
-      setMemory({});
-      setPreviousIban(null);
-      return;
-    }
+    if (!effectiveSupplierId) return;
+    const supplier = effectiveSupplierId;
+    let cancelled = false;
     const supabase = createClient();
     void supabase
       .from("transaction_headers")
       .select("id, created_at")
       .eq("organisation_id", organisationId)
-      .eq("supplier_id", effectiveSupplierId)
+      .eq("supplier_id", supplier)
       .then(async ({ data }) => {
+        if (cancelled) return;
         const headers = (data ?? []) as { id: string; created_at: string }[];
         const headerIds = headers.map((row) => row.id);
         if (headerIds.length === 0) {
-          setMemory({});
-          setPreviousIban(null);
+          setLoaded({ supplierId: supplier, memory: {}, previousIban: null });
           return;
         }
         const documentResult = await supabase
@@ -126,6 +121,7 @@ export function ImportEInvoice({
           .eq("status", "imported")
           .in("header_id", headerIds)
           .order("created_at", { ascending: false });
+        if (cancelled) return;
         const imported = (documentResult.data ?? []) as { semantic?: unknown; header_id: string; created_at: string }[];
         const importedIds = imported.map((row) => row.header_id);
         const newestFirst = new Map(imported.map((row, index) => [row.header_id, index]));
@@ -135,6 +131,7 @@ export function ImportEInvoice({
               .select("seller_item_id, gl_code_id, department_id, cost_centre_id, header_id")
               .in("header_id", importedIds)
           : { data: [] };
+        if (cancelled) return;
         const next: Memory = {};
         const orderedLines = [...(lineResult.data ?? [])].sort(
           (left, right) => (newestFirst.get(String(left.header_id)) ?? 0) - (newestFirst.get(String(right.header_id)) ?? 0),
@@ -148,10 +145,16 @@ export function ImportEInvoice({
             costCentreId: String(line.cost_centre_id ?? ""),
           };
         }
-        setMemory(next);
         const previous = imported[0];
-        setPreviousIban(previous ? sellerIban(previous.semantic) : null);
+        setLoaded({
+          supplierId: supplier,
+          memory: next,
+          previousIban: previous ? sellerIban(previous.semantic) : null,
+        });
       });
+    return () => {
+      cancelled = true;
+    };
   }, [effectiveSupplierId, organisationId]);
 
   function choice(number: string, item: string): LineChoice {
@@ -175,7 +178,7 @@ export function ImportEInvoice({
 
   return (
     <form
-      className={styles.stack}
+      className={styles.importForm}
       onSubmit={async (event) => {
         event.preventDefault();
         if (unsupported.length) {
@@ -222,25 +225,19 @@ export function ImportEInvoice({
         router.refresh();
       }}
     >
-      <h2 className={styles.heading}>Import</h2>
+      <div>
+        <h2 className={styles.heading}>Import</h2>
+        <p className={styles.panelMeta}>
+          {peppolMatch
+            ? `Matched supplier ${peppolMatch.code} ${peppolMatch.name} by Peppol ID.`
+            : matched
+              ? `Matched supplier ${matched.code} ${matched.name} by VAT number.`
+              : "No supplier matched. Create one or choose an existing supplier."}
+        </p>
+      </div>
       {unsupported.length ? (
         <p className={styles.alert}>This e-invoice uses features FinTran cannot import yet: {unsupported.join(", ")}</p>
       ) : null}
-      <p className={styles.panelMeta}>
-        {peppolMatch
-          ? `Matched supplier ${peppolMatch.code} ${peppolMatch.name} by Peppol ID.`
-          : matched
-            ? `Matched supplier ${matched.code} ${matched.name} by VAT number.`
-            : "No supplier matched. Create one or choose an existing supplier."}
-      </p>
-      <p className={styles.panelMeta}>
-        Seller {sellerName || "—"}
-        {sellerVat ? ` · VAT ${sellerVat}` : ""}
-        {endpoint.id ? ` · Peppol ${endpoint.scheme}:${endpoint.id}` : ""}
-        {address ? ` · ${address}` : ""}
-        {currencyCode ? ` · ${currencyCode}` : ""}
-      </p>
-      {iban ? <p className={styles.panelMeta}>Seller IBAN {iban}. This account is shown for checking and is not saved on the supplier.</p> : null}
       {ibanChanged ? (
         <p className={styles.alert}>
           This IBAN differs from the account on the last imported e-invoice from this supplier
@@ -249,33 +246,66 @@ export function ImportEInvoice({
       ) : null}
       {!invoiceCurrency ? <p className={styles.alert}>Add the invoice currency {currencyCode || ""} to this organisation before importing.</p> : null}
       {currencyBlocked ? <p className={styles.alert}>The supplier currency must match the e-invoice currency.</p> : null}
-      <label className={styles.field}>
-        Supplier
-        <select value={supplierId || matched?.id || ""} onChange={(event) => setSupplierId(event.target.value)} disabled={createSupplier}>
-          <option value="">Choose</option>
-          {suppliers.map((supplier) => (
-            <option key={supplier.id} value={supplier.id}>
-              {supplier.code} {supplier.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className={styles.field}>
-        <input type="checkbox" checked={createSupplier} onChange={(event) => setCreateSupplier(event.target.checked)} /> Create supplier
-      </label>
-      {createSupplier ? (
-        <>
-          <label className={styles.field}>
-            Supplier code
-            <input value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} required maxLength={20} />
-          </label>
-          <label className={styles.field}>
-            Supplier name
-            <input value={name} onChange={(event) => setName(event.target.value)} required maxLength={200} />
-          </label>
-          <p className={styles.panelMeta}>The address, VAT number, Peppol ID, and invoice currency are copied from the e-invoice when you confirm.</p>
-        </>
-      ) : null}
+      <dl className={styles.sellerFacts}>
+        <div>
+          <dt>Seller</dt>
+          <dd>{sellerName || "—"}</dd>
+        </div>
+        <div>
+          <dt>VAT</dt>
+          <dd>{sellerVat || "—"}</dd>
+        </div>
+        <div>
+          <dt>Peppol</dt>
+          <dd>{endpoint.id ? `${endpoint.scheme}:${endpoint.id}` : "—"}</dd>
+        </div>
+        <div>
+          <dt>Currency</dt>
+          <dd>{currencyCode || "—"}</dd>
+        </div>
+        <div className={styles.wide}>
+          <dt>Address</dt>
+          <dd>{address || "—"}</dd>
+        </div>
+        {iban ? (
+          <div className={styles.wide}>
+            <dt>IBAN</dt>
+            <dd>{iban}. Shown for checking. Not saved on the supplier.</dd>
+          </div>
+        ) : null}
+      </dl>
+      <div className={styles.importGrid}>
+        <label className={styles.field}>
+          Supplier
+          <select value={supplierId || matched?.id || ""} onChange={(event) => setSupplierId(event.target.value)} disabled={createSupplier}>
+            <option value="">Choose</option>
+            {suppliers.map((supplier) => (
+              <option key={supplier.id} value={supplier.id}>
+                {supplier.code} {supplier.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className={styles.checkLine}>
+          <input type="checkbox" checked={createSupplier} onChange={(event) => setCreateSupplier(event.target.checked)} />
+          Create supplier
+        </label>
+        {createSupplier ? (
+          <>
+            <label className={styles.field}>
+              Supplier code
+              <input value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} required maxLength={20} />
+            </label>
+            <label className={styles.field}>
+              Supplier name
+              <input value={name} onChange={(event) => setName(event.target.value)} required maxLength={200} />
+            </label>
+            <p className={`${styles.panelMeta} ${styles.wide}`}>
+              The address, VAT number, Peppol ID, and invoice currency are copied from the e-invoice when you confirm.
+            </p>
+          </>
+        ) : null}
+      </div>
       {lines.map((line) => {
         const number = String(line["BT-126"] ?? "");
         const item = semanticRecord(line["BG-31"]);
@@ -283,63 +313,72 @@ export function ImportEInvoice({
         const category = semanticText(semanticRecord(line["BG-30"])?.["BT-151"]);
         const rate = semanticText(semanticRecord(line["BG-30"])?.["BT-152"]);
         const selectedLine = choice(number, sellerItem);
+        const description = semanticText(item?.["BT-153"]) || "Item";
         return (
-          <div key={number} className={styles.stack}>
-            <p className={styles.panelMeta}>
-              Line {number}: {semanticText(item?.["BT-153"]) || "Item"}
-              {sellerItem ? ` · item ${sellerItem}` : ""} · qty {semanticText(line["BT-129"])} · price {semanticAt(line, "BG-29", "BT-146")}
-            </p>
-            <label className={styles.field}>
-              VAT ({category} {rate})
-              <select value={selectedLine.vatRateId} onChange={(event) => setChoice(number, sellerItem, { vatRateId: event.target.value })} required>
-                <option value="">Choose</option>
-                {rates.map((entry) => (
-                  <option key={entry.id} value={entry.id}>
-                    {entry.code} {entry.vat_category} {entry.rate}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className={styles.field}>
-              GL code
-              <select value={selectedLine.glCodeId} onChange={(event) => setChoice(number, sellerItem, { glCodeId: event.target.value })}>
-                <option value="">None</option>
-                {glCodes.map((entry) => (
-                  <option key={entry.id} value={entry.id}>
-                    {entry.code} {entry.description}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className={styles.field}>
-              Department
-              <select value={selectedLine.departmentId} onChange={(event) => setChoice(number, sellerItem, { departmentId: event.target.value })}>
-                <option value="">None</option>
-                {departments.map((entry) => (
-                  <option key={entry.id} value={entry.id}>
-                    {entry.code} {entry.description}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className={styles.field}>
-              Cost centre
-              <select value={selectedLine.costCentreId} onChange={(event) => setChoice(number, sellerItem, { costCentreId: event.target.value })}>
-                <option value="">None</option>
-                {costCentres.map((entry) => (
-                  <option key={entry.id} value={entry.id}>
-                    {entry.code} {entry.description}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+          <article key={number} className={styles.lineCard}>
+            <div>
+              <h3 className={styles.lineTitle}>
+                Line {number}. {description}
+              </h3>
+              <p className={styles.lineMeta}>
+                {sellerItem ? `Item ${sellerItem} · ` : ""}
+                Qty {semanticText(line["BT-129"]) || "—"} · Price {semanticAt(line, "BG-29", "BT-146") || "—"}
+                {category || rate ? ` · VAT ${[category, rate].filter(Boolean).join(" ")}` : ""}
+              </p>
+            </div>
+            <div className={styles.lineGrid}>
+              <label className={styles.field}>
+                VAT code
+                <select value={selectedLine.vatRateId} onChange={(event) => setChoice(number, sellerItem, { vatRateId: event.target.value })} required>
+                  <option value="">Choose</option>
+                  {rates.map((entry) => (
+                    <option key={entry.id} value={entry.id}>
+                      {entry.code} {entry.vat_category} {entry.rate}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className={styles.field}>
+                GL code
+                <select value={selectedLine.glCodeId} onChange={(event) => setChoice(number, sellerItem, { glCodeId: event.target.value })}>
+                  <option value="">None</option>
+                  {glCodes.map((entry) => (
+                    <option key={entry.id} value={entry.id}>
+                      {entry.code} {entry.description}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className={styles.field}>
+                Department
+                <select value={selectedLine.departmentId} onChange={(event) => setChoice(number, sellerItem, { departmentId: event.target.value })}>
+                  <option value="">None</option>
+                  {departments.map((entry) => (
+                    <option key={entry.id} value={entry.id}>
+                      {entry.code} {entry.description}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className={styles.field}>
+                Cost centre
+                <select value={selectedLine.costCentreId} onChange={(event) => setChoice(number, sellerItem, { costCentreId: event.target.value })}>
+                  <option value="">None</option>
+                  {costCentres.map((entry) => (
+                    <option key={entry.id} value={entry.id}>
+                      {entry.code} {entry.description}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </article>
         );
       })}
+      {error ? <p className={styles.alert}>{error}</p> : null}
       <button className={styles.primary} type="submit" disabled={unsupported.length > 0 || !invoiceCurrency || currencyBlocked}>
         Import as draft
       </button>
-      {error ? <p className={styles.alert}>{error}</p> : null}
     </form>
   );
 }

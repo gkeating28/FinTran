@@ -12,7 +12,7 @@ export function RejectEInvoice({ id }: { id: string }) {
 
   return (
     <form
-      className={styles.stack}
+      className={styles.importForm}
       onSubmit={async (event) => {
         event.preventDefault();
         const supabase = createClient();
@@ -24,14 +24,16 @@ export function RejectEInvoice({ id }: { id: string }) {
         router.refresh();
       }}
     >
-      <label className={styles.field}>
-        Rejection reason
-        <input value={reason} onChange={(event) => setReason(event.target.value)} required maxLength={500} />
-      </label>
-      <button className={styles.primary} type="submit">
-        Reject
-      </button>
       {error ? <p className={styles.alert}>{error}</p> : null}
+      <div className={styles.rejectRow}>
+        <label className={styles.field}>
+          Rejection reason
+          <input value={reason} onChange={(event) => setReason(event.target.value)} required maxLength={500} />
+        </label>
+        <button className={styles.danger} type="submit">
+          Reject
+        </button>
+      </div>
     </form>
   );
 }
