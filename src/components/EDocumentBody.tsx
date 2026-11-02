@@ -14,7 +14,13 @@ function partyLines(party: Record<string, unknown> | null, addressKey: string) {
   ].filter(Boolean);
 }
 
-export function EDocumentBody({ semantic }: { semantic: Record<string, unknown> | null }) {
+export function EDocumentBody({
+  semantic,
+  hideLines = false,
+}: {
+  semantic: Record<string, unknown> | null;
+  hideLines?: boolean;
+}) {
   if (!semantic) return <p className={styles.panelMeta}>This e-invoice has no stored invoice.</p>;
   const seller = semanticRecord(semantic["BG-4"]);
   const buyer = semanticRecord(semantic["BG-7"]);
@@ -48,41 +54,43 @@ export function EDocumentBody({ semantic }: { semantic: Record<string, unknown> 
           {semanticText(buyer?.["BT-48"]) ? <p>VAT {semanticText(buyer?.["BT-48"])}</p> : null}
         </div>
       </div>
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            <th>Description</th>
-            <th>Qty</th>
-            <th>Price</th>
-            <th>VAT</th>
-          </tr>
-        </thead>
-        <tbody>
-          {lines.length === 0 ? (
+      {hideLines ? null : (
+        <table className={styles.table}>
+          <thead>
             <tr>
-              <td colSpan={4}>No lines.</td>
+              <th>Description</th>
+              <th>Qty</th>
+              <th>Price</th>
+              <th>VAT</th>
             </tr>
-          ) : (
-            lines.map((line) => {
-              const tax = semanticRecord(line["BG-30"]);
-              const item = semanticRecord(line["BG-31"]);
-              const price = semanticRecord(line["BG-29"]);
-              return (
-                <tr key={semanticText(line["BT-126"])}>
-                  <td>{semanticText(item?.["BT-153"]) || "Item"}</td>
-                  <td>
-                    {semanticText(line["BT-129"])} {semanticText(line["BT-130"])}
-                  </td>
-                  <td>{semanticText(price?.["BT-146"])}</td>
-                  <td>
-                    {semanticText(tax?.["BT-151"])} {semanticText(tax?.["BT-152"])}
-                  </td>
-                </tr>
-              );
-            })
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {lines.length === 0 ? (
+              <tr>
+                <td colSpan={4}>No lines.</td>
+              </tr>
+            ) : (
+              lines.map((line) => {
+                const tax = semanticRecord(line["BG-30"]);
+                const item = semanticRecord(line["BG-31"]);
+                const price = semanticRecord(line["BG-29"]);
+                return (
+                  <tr key={semanticText(line["BT-126"])}>
+                    <td>{semanticText(item?.["BT-153"]) || "Item"}</td>
+                    <td>
+                      {semanticText(line["BT-129"])} {semanticText(line["BT-130"])}
+                    </td>
+                    <td>{semanticText(price?.["BT-146"])}</td>
+                    <td>
+                      {semanticText(tax?.["BT-151"])} {semanticText(tax?.["BT-152"])}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      )}
       {taxes.length ? (
         <ul>
           {taxes.map((row) => (
