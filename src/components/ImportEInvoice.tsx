@@ -2,8 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import FormModal from "@/components/FormModal";
 import styles from "@/components/OpsPage.module.css";
 import { sellerEndpoint, sellerIban, semanticAt, semanticRecord, semanticText } from "@/lib/einvoice/semantic-read";
+import { clickOpensRow } from "@/lib/row-click";
 import { createClient } from "@/lib/supabase/client";
 
 type Supplier = {
@@ -175,10 +177,47 @@ export function ImportEInvoice({
   }
 
   const ibanChanged = previousIban !== null && previousIban.replace(/\s/g, "") !== iban.replace(/\s/g, "");
+  const [openLine, setOpenLine] = useState<OpenLine | null>(null);
+  const [lineMessage, setLineMessage] = useState<string | null>(null);
+
+  function openEditor(line: Record<string, unknown>) {
+    const number = String(line["BT-126"] ?? "");
+    const item = semanticRecord(line["BG-31"]);
+    const sellerItem = semanticText(item?.["BT-155"]);
+    const category = semanticText(semanticRecord(line["BG-30"])?.["BT-151"]);
+    const rate = semanticText(semanticRecord(line["BG-30"])?.["BT-152"]);
+    const selectedLine = choice(number, sellerItem);
+    setLineMessage(null);
+    setOpenLine({
+      number,
+      sellerItem,
+      description: semanticText(item?.["BT-153"]) || "Item",
+      quantity: semanticText(line["BT-129"]),
+      price: semanticAt(line, "BG-29", "BT-146"),
+      vatText: [category, rate].filter(Boolean).join(" "),
+      ...selectedLine,
+    });
+  }
+
+  function saveLine() {
+    if (!openLine) return;
+    if (!openLine.vatRateId) {
+      setLineMessage("Choose a VAT code.");
+      return;
+    }
+    setChoice(openLine.number, openLine.sellerItem, {
+      vatRateId: openLine.vatRateId,
+      glCodeId: openLine.glCodeId,
+      departmentId: openLine.departmentId,
+      costCentreId: openLine.costCentreId,
+    });
+    setOpenLine(null);
+  }
 
   return (
+    <>
     <form
-      className={styles.importForm}
+      className={styles.documentFields}
       onSubmit={async (event) => {
         event.preventDefault();
         if (unsupported.length) {
@@ -191,6 +230,14 @@ export function ImportEInvoice({
         }
         if (currencyBlocked) {
           setError("The supplier currency must match the e-invoice currency.");
+          return;
+        }
+        const missingVat = lines.some((line) => {
+          const number = String(line["BT-126"] ?? "");
+          return !choice(number, semanticAt(line, "BG-31", "BT-155")).vatRateId;
+        });
+        if (missingVat) {
+          setError("Choose a VAT code on every line.");
           return;
         }
         const supabase = createClient();
@@ -225,16 +272,13 @@ export function ImportEInvoice({
         router.refresh();
       }}
     >
-      <div>
-        <h2 className={styles.heading}>Import</h2>
-        <p className={styles.panelMeta}>
-          {peppolMatch
-            ? `Matched supplier ${peppolMatch.code} ${peppolMatch.name} by Peppol ID.`
-            : matched
-              ? `Matched supplier ${matched.code} ${matched.name} by VAT number.`
-              : "No supplier matched. Create one or choose an existing supplier."}
-        </p>
-      </div>
+      <p className={styles.panelMeta}>
+        {peppolMatch
+          ? `Matched supplier ${peppolMatch.code} ${peppolMatch.name} by Peppol ID.`
+          : matched
+            ? `Matched supplier ${matched.code} ${matched.name} by VAT number.`
+            : "No supplier matched. Create one or choose an existing supplier."}
+      </p>
       {unsupported.length ? (
         <p className={styles.alert}>This e-invoice uses features FinTran cannot import yet: {unsupported.join(", ")}</p>
       ) : null}
@@ -246,139 +290,240 @@ export function ImportEInvoice({
       ) : null}
       {!invoiceCurrency ? <p className={styles.alert}>Add the invoice currency {currencyCode || ""} to this organisation before importing.</p> : null}
       {currencyBlocked ? <p className={styles.alert}>The supplier currency must match the e-invoice currency.</p> : null}
-      <dl className={styles.sellerFacts}>
-        <div>
-          <dt>Seller</dt>
-          <dd>{sellerName || "—"}</dd>
-        </div>
-        <div>
-          <dt>VAT</dt>
-          <dd>{sellerVat || "—"}</dd>
-        </div>
-        <div>
-          <dt>Peppol</dt>
-          <dd>{endpoint.id ? `${endpoint.scheme}:${endpoint.id}` : "—"}</dd>
-        </div>
-        <div>
-          <dt>Currency</dt>
-          <dd>{currencyCode || "—"}</dd>
-        </div>
-        <div className={styles.wide}>
-          <dt>Address</dt>
-          <dd>{address || "—"}</dd>
-        </div>
-        {iban ? (
-          <div className={styles.wide}>
-            <dt>IBAN</dt>
-            <dd>{iban}. Shown for checking. Not saved on the supplier.</dd>
-          </div>
-        ) : null}
-      </dl>
-      <div className={styles.importGrid}>
+      <div className={`${styles.invoiceForm} ${styles.headerFields}`}>
+        {createSupplier ? (
+          <label className={styles.field}>
+            Supplier code
+            <input value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} required maxLength={20} className={styles.mono} />
+          </label>
+        ) : (
+          <label className={styles.field}>
+            Supplier code
+            <select value={supplierId || matched?.id || ""} onChange={(event) => setSupplierId(event.target.value)}>
+              <option value="">Choose a supplier</option>
+              {suppliers.map((supplier) => (
+                <option key={supplier.id} value={supplier.id}>
+                  {supplier.code} — {supplier.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label className={styles.field}>
-          Supplier
-          <select value={supplierId || matched?.id || ""} onChange={(event) => setSupplierId(event.target.value)} disabled={createSupplier}>
-            <option value="">Choose</option>
-            {suppliers.map((supplier) => (
-              <option key={supplier.id} value={supplier.id}>
-                {supplier.code} {supplier.name}
-              </option>
-            ))}
-          </select>
+          Supplier name
+          <input
+            value={createSupplier ? name : selected?.name || sellerName}
+            readOnly={!createSupplier}
+            required={createSupplier}
+            maxLength={200}
+            onChange={(event) => setName(event.target.value)}
+          />
+        </label>
+        <label className={styles.field}>
+          Currency
+          <input readOnly value={currencyCode} className={styles.mono} />
         </label>
         <label className={styles.checkLine}>
           <input type="checkbox" checked={createSupplier} onChange={(event) => setCreateSupplier(event.target.checked)} />
           Create supplier
         </label>
-        {createSupplier ? (
-          <>
-            <label className={styles.field}>
-              Supplier code
-              <input value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} required maxLength={20} />
-            </label>
-            <label className={styles.field}>
-              Supplier name
-              <input value={name} onChange={(event) => setName(event.target.value)} required maxLength={200} />
-            </label>
-            <p className={`${styles.panelMeta} ${styles.wide}`}>
-              The address, VAT number, Peppol ID, and invoice currency are copied from the e-invoice when you confirm.
-            </p>
-          </>
-        ) : null}
+        <p className={`${styles.panelMeta} ${styles.wide}`}>
+          {address ? `${address}. ` : ""}
+          {sellerVat ? `VAT ${sellerVat}. ` : ""}
+          {endpoint.id ? `Peppol ${endpoint.scheme}:${endpoint.id}. ` : ""}
+          {iban ? `IBAN ${iban} is shown for checking and is not saved. ` : ""}
+          {createSupplier ? "The address, VAT number, Peppol ID, and invoice currency are copied when you import." : ""}
+        </p>
       </div>
-      {lines.map((line) => {
-        const number = String(line["BT-126"] ?? "");
-        const item = semanticRecord(line["BG-31"]);
-        const sellerItem = semanticText(item?.["BT-155"]);
-        const category = semanticText(semanticRecord(line["BG-30"])?.["BT-151"]);
-        const rate = semanticText(semanticRecord(line["BG-30"])?.["BT-152"]);
-        const selectedLine = choice(number, sellerItem);
-        const description = semanticText(item?.["BT-153"]) || "Item";
-        return (
-          <article key={number} className={styles.lineCard}>
-            <div>
-              <h3 className={styles.lineTitle}>
-                Line {number}. {description}
-              </h3>
-              <p className={styles.lineMeta}>
-                {sellerItem ? `Item ${sellerItem} · ` : ""}
-                Qty {semanticText(line["BT-129"]) || "—"} · Price {semanticAt(line, "BG-29", "BT-146") || "—"}
-                {category || rate ? ` · VAT ${[category, rate].filter(Boolean).join(" ")}` : ""}
-              </p>
-            </div>
-            <div className={styles.lineGrid}>
-              <label className={styles.field}>
-                VAT code
-                <select value={selectedLine.vatRateId} onChange={(event) => setChoice(number, sellerItem, { vatRateId: event.target.value })} required>
-                  <option value="">Choose</option>
-                  {rates.map((entry) => (
-                    <option key={entry.id} value={entry.id}>
-                      {entry.code} {entry.vat_category} {entry.rate}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className={styles.field}>
-                GL code
-                <select value={selectedLine.glCodeId} onChange={(event) => setChoice(number, sellerItem, { glCodeId: event.target.value })}>
-                  <option value="">None</option>
-                  {glCodes.map((entry) => (
-                    <option key={entry.id} value={entry.id}>
-                      {entry.code} {entry.description}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className={styles.field}>
-                Department
-                <select value={selectedLine.departmentId} onChange={(event) => setChoice(number, sellerItem, { departmentId: event.target.value })}>
-                  <option value="">None</option>
-                  {departments.map((entry) => (
-                    <option key={entry.id} value={entry.id}>
-                      {entry.code} {entry.description}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className={styles.field}>
-                Cost centre
-                <select value={selectedLine.costCentreId} onChange={(event) => setChoice(number, sellerItem, { costCentreId: event.target.value })}>
-                  <option value="">None</option>
-                  {costCentres.map((entry) => (
-                    <option key={entry.id} value={entry.id}>
-                      {entry.code} {entry.description}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          </article>
-        );
-      })}
+      <div className={styles.gridToolbar}>
+        <span className={styles.paneLabel}>
+          Lines ({lines.length})
+          <span className={styles.lineHint}>Select a line to set its VAT, GL, department, and cost centre.</span>
+        </span>
+      </div>
+      <div className={styles.importLines}>
+        <table className={styles.lineTable}>
+          <thead>
+            <tr>
+              <th>Line</th>
+              <th>Description</th>
+              <th className={styles.num}>Qty</th>
+              <th className={styles.num}>Price</th>
+              <th>GL</th>
+              <th>VAT</th>
+              <th>Department</th>
+              <th>Cost centre</th>
+              <th className={styles.actions}>&nbsp;</th>
+            </tr>
+          </thead>
+          <tbody>
+            {lines.length === 0 ? (
+              <tr>
+                <td colSpan={9}>No lines.</td>
+              </tr>
+            ) : (
+              lines.map((line) => {
+                const number = String(line["BT-126"] ?? "");
+                const item = semanticRecord(line["BG-31"]);
+                const sellerItem = semanticText(item?.["BT-155"]);
+                const selectedLine = choice(number, sellerItem);
+                return (
+                  <tr key={number} className={styles.lineClick} onClick={(event) => { if (clickOpensRow(event.target)) openEditor(line); }}>
+                    <td className={styles.mono}>{number}</td>
+                    <td>{semanticText(item?.["BT-153"]) || "Item"}</td>
+                    <td className={`${styles.mono} ${styles.num}`}>{semanticText(line["BT-129"]) || "—"}</td>
+                    <td className={`${styles.mono} ${styles.num}`}>{semanticAt(line, "BG-29", "BT-146") || "—"}</td>
+                    <td className={styles.mono}>{namedCode(glCodes, selectedLine.glCodeId)}</td>
+                    <td className={styles.mono}>{vatCode(rates, selectedLine.vatRateId)}</td>
+                    <td className={styles.mono}>{namedCode(departments, selectedLine.departmentId)}</td>
+                    <td className={styles.mono}>{namedCode(costCentres, selectedLine.costCentreId)}</td>
+                    <td className={styles.actions}>
+                      <button className={styles.quiet} type="button" onClick={() => openEditor(line)}>
+                        Edit
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
       {error ? <p className={styles.alert}>{error}</p> : null}
-      <button className={styles.primary} type="submit" disabled={unsupported.length > 0 || !invoiceCurrency || currencyBlocked}>
-        Import as draft
-      </button>
+      <div className={styles.modalActions}>
+        <button className={styles.primary} type="submit" disabled={unsupported.length > 0 || !invoiceCurrency || currencyBlocked}>
+          Import as draft
+        </button>
+      </div>
     </form>
+    {openLine ? (
+      <LineCoding
+        line={openLine}
+        message={lineMessage}
+        rates={rates}
+        glCodes={glCodes}
+        departments={departments}
+        costCentres={costCentres}
+        onChange={setOpenLine}
+        onCancel={() => setOpenLine(null)}
+        onSave={saveLine}
+      />
+    ) : null}
+    </>
+  );
+}
+
+type OpenLine = LineChoice & {
+  number: string;
+  sellerItem: string;
+  description: string;
+  quantity: string;
+  price: string;
+  vatText: string;
+};
+
+function namedCode(rows: Named[], id: string) {
+  return rows.find((row) => row.id === id)?.code || "—";
+}
+
+function vatCode(rows: Vat[], id: string) {
+  return rows.find((row) => row.id === id)?.code || "—";
+}
+
+function LineCoding({
+  line,
+  message,
+  rates,
+  glCodes,
+  departments,
+  costCentres,
+  onChange,
+  onSave,
+  onCancel,
+}: {
+  line: OpenLine;
+  message: string | null;
+  rates: Vat[];
+  glCodes: Named[];
+  departments: Named[];
+  costCentres: Named[];
+  onChange: (line: OpenLine) => void;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <FormModal title={`Edit line ${line.number}`} onClose={onCancel} className={styles.lineDialog}>
+      <form
+        className={`${styles.modalForm} ${styles.partyForm}`}
+        autoComplete="off"
+        noValidate
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSave();
+        }}
+      >
+        {message ? (
+          <p className={styles.alert} role="alert">
+            {message}
+          </p>
+        ) : null}
+        <p className={`${styles.panelMeta} ${styles.wide}`}>
+          {line.description}. Qty {line.quantity || "—"} · Price {line.price || "—"}
+          {line.vatText ? ` · VAT ${line.vatText}` : ""}
+        </p>
+        <label className={styles.field}>
+          VAT code
+          <select autoComplete="off" value={line.vatRateId} onChange={(event) => onChange({ ...line, vatRateId: event.target.value })}>
+            <option value="">Choose a VAT code</option>
+            {rates.map((entry) => (
+              <option key={entry.id} value={entry.id}>
+                {entry.code} — {entry.vat_category} {entry.rate}%
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className={styles.field}>
+          GL code
+          <select autoComplete="off" value={line.glCodeId} onChange={(event) => onChange({ ...line, glCodeId: event.target.value })}>
+            <option value="">No GL code</option>
+            {glCodes.map((entry) => (
+              <option key={entry.id} value={entry.id}>
+                {entry.code} — {entry.description}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className={styles.field}>
+          Department code
+          <select autoComplete="off" value={line.departmentId} onChange={(event) => onChange({ ...line, departmentId: event.target.value })}>
+            <option value="">No department</option>
+            {departments.map((entry) => (
+              <option key={entry.id} value={entry.id}>
+                {entry.code} — {entry.description}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className={styles.field}>
+          Cost centre code
+          <select autoComplete="off" value={line.costCentreId} onChange={(event) => onChange({ ...line, costCentreId: event.target.value })}>
+            <option value="">No cost centre</option>
+            {costCentres.map((entry) => (
+              <option key={entry.id} value={entry.id}>
+                {entry.code} — {entry.description}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className={styles.modalActions}>
+          <button className={styles.quiet} type="button" onClick={onCancel}>
+            Cancel
+          </button>
+          <button className={styles.primary} type="submit">
+            Save line
+          </button>
+        </div>
+      </form>
+    </FormModal>
   );
 }
