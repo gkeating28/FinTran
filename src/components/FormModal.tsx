@@ -38,7 +38,11 @@ export default function FormModal({
     if (!dialog || dialog.open) return;
     if (fillPage) dialog.show();
     else dialog.showModal();
-    dialog.querySelector<HTMLElement>("input, select, textarea")?.focus();
+    dialog
+      .querySelector<HTMLElement>(
+        "input:not([type='hidden']):not([readonly]):not(:disabled), select:not(:disabled), textarea:not([readonly]):not(:disabled)",
+      )
+      ?.focus();
     return () => {
       if (dialog.open) dialog.close();
     };
