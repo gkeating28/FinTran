@@ -357,5 +357,8 @@ Posted sales invoices and credit notes can be stored as UBL e-documents. Orders 
 | Change history | `audit_log`, for owners and admins |
 | Forms | `transaction_forms` and `transaction_types` |
 | Print and PDF | The saved form, or the standard layout, filled from the organisation, the supplier, and one header with its lines |
+| Ask Qula | `transaction_headers`, `transaction_types`, `currencies`, and `e_documents` for the open organisation |
+
+Ask Qula is the button at the bottom right. A question is matched by keyword and answered from that organisation's transactions, e-documents, or overdue invoices. It does not use a language model. A transaction card opens that transaction. An e-document card opens that e-document. The conversation stays in the browser, including when the record is opened.
 
 Purchase and sales pages share one entry form. The transaction type is fixed on that page, so each type keeps its own reference sequence and flex labels. A purchase uses a supplier. A sale uses a customer. Currency is taken from that party and shown read-only. A posted sales invoice lists its credit notes and the amount still available to credit. A sales order uses that same form. The transaction type form sets the document number prefix and padding.

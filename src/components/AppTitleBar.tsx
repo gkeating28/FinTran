@@ -23,6 +23,7 @@ const PAGE_LABELS: Record<string, string> = {
   "/access": "Access",
   "/forms": "Forms",
   "/history": "Change history",
+  "/e-documents": "E-documents",
 };
 
 export default function AppTitleBar({
@@ -37,7 +38,13 @@ export default function AppTitleBar({
   const formTitle = useFormChrome();
   const transactionCode = pathname.match(/^\/transactions\/([A-Za-z0-9]+)$/)?.[1];
   const formCode = pathname.match(/^\/forms\/([A-Za-z0-9]+)$/)?.[1];
-  const pageLabel = setup ? "Set up" : transactionCode ? transactionCode.toUpperCase() : (PAGE_LABELS[pathname] ?? "Home");
+  const pageLabel = setup
+    ? "Set up"
+    : transactionCode
+      ? transactionCode.toUpperCase()
+      : pathname.startsWith("/e-documents/")
+        ? "E-document"
+        : (PAGE_LABELS[pathname] ?? "Home");
   const back = previousPage(pathname);
 
   function exit() {

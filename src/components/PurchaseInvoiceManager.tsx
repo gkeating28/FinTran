@@ -148,6 +148,7 @@ export default function PurchaseInvoiceManager({
   typeCode,
   direction = "Purchases",
   openId,
+  openStamp,
   canVoid = false,
   canDownload = false,
 }: {
@@ -161,6 +162,7 @@ export default function PurchaseInvoiceManager({
   typeCode?: string;
   direction?: "Sales" | "Purchases";
   openId?: string;
+  openStamp?: string;
   canVoid?: boolean;
   canDownload?: boolean;
 }) {
@@ -203,7 +205,7 @@ export default function PurchaseInvoiceManager({
     if (!row) return;
     setLines(row.lines);
     setDraft(row);
-  }, [openId, rows]);
+  }, [openId, openStamp, rows]);
 
   const parties = sales ? choices.customers : choices.suppliers;
   const listedRows = readinessById
