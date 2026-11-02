@@ -804,6 +804,19 @@
   grid-column: 1 / -1;
 }
 
+.invoiceForm .checkLine {
+  align-self: end;
+}
+
+.invoiceForm .field input,
+.invoiceForm .field select {
+  width: 100%;
+}
+
+.importLines {
+  overflow-x: auto;
+}
+
 .invoiceForm .field {
   min-width: 0;
 }

@@ -84,10 +84,10 @@ export default async function EDocumentPage({ params }: { params: Promise<{ id: 
         {row.direction === "outbound" && row.header_id && (outboundValid?.count ?? 0) === 0 ? (
           <RegenerateEInvoice headerId={row.header_id} />
         ) : null}
+        {row.direction === "inbound" && (row.status === "valid" || row.status === "invalid") ? <RejectEInvoice id={row.id} /> : null}
       </div>
       {row.rejection_reason ? <p className={styles.alert}>{row.rejection_reason}</p> : null}
       <EDocumentBody semantic={row.semantic} />
-      {row.direction === "inbound" && (row.status === "valid" || row.status === "invalid") ? <RejectEInvoice id={row.id} /> : null}
       {row.direction === "inbound" && row.status === "valid" ? (
         <ImportEInvoice id={row.id} semantic={row.semantic} organisationId={workspace.current.organisationId} />
       ) : null}
