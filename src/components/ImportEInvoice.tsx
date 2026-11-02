@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { EDocumentBody } from "@/components/EDocumentBody";
 import FormModal from "@/components/FormModal";
 import styles from "@/components/OpsPage.module.css";
 import { sellerEndpoint, sellerIban, semanticAt, semanticRecord, semanticText } from "@/lib/einvoice/semantic-read";
@@ -265,13 +266,6 @@ export function ImportEInvoice({
         router.refresh();
       }}
     >
-      <p className={styles.panelMeta}>
-        {peppolMatch
-          ? `Matched supplier ${peppolMatch.code} ${peppolMatch.name} by Peppol ID.`
-          : matched
-            ? `Matched supplier ${matched.code} ${matched.name} by VAT number.`
-            : "No supplier matched. Create one or choose an existing supplier."}
-      </p>
       {unsupported.length ? (
         <p className={styles.alert}>This e-invoice uses features FinTran cannot import yet: {unsupported.join(", ")}</p>
       ) : null}
@@ -283,6 +277,18 @@ export function ImportEInvoice({
       ) : null}
       {!invoiceCurrency ? <p className={styles.alert}>Add the invoice currency {currencyCode || ""} to this organisation before importing.</p> : null}
       {currencyBlocked ? <p className={styles.alert}>The supplier currency must match the e-invoice currency.</p> : null}
+      <div className={`${styles.invoiceSplit} ${styles.importSplit}`}>
+      <div className={styles.headerPane}>
+      <div className={styles.paneLabel}>Header</div>
+      <div className={styles.headerBody}>
+      <EDocumentBody semantic={semantic} hideLines embedded />
+      <p className={styles.panelMeta}>
+        {peppolMatch
+          ? `Matched supplier ${peppolMatch.code} ${peppolMatch.name} by Peppol ID.`
+          : matched
+            ? `Matched supplier ${matched.code} ${matched.name} by VAT number.`
+            : "No supplier matched. Create one or choose an existing supplier."}
+      </p>
       <div className={`${styles.invoiceForm} ${styles.headerFields}`}>
         {createSupplier ? (
           <label className={styles.field}>
@@ -328,6 +334,10 @@ export function ImportEInvoice({
           {createSupplier ? "The address, VAT number, Peppol ID, and invoice currency are copied when you import." : ""}
         </p>
       </div>
+      </div>
+      </div>
+      <div className={styles.splitHandle} aria-hidden="true" />
+      <div className={styles.linesPane}>
       <div className={styles.gridToolbar}>
         <span className={styles.paneLabel}>
           Lines ({lines.length})
@@ -381,6 +391,8 @@ export function ImportEInvoice({
             )}
           </tbody>
         </table>
+      </div>
+      </div>
       </div>
       {error ? <p className={styles.alert}>{error}</p> : null}
       <div className={styles.modalActions}>

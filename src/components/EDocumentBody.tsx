@@ -17,9 +17,11 @@ function partyLines(party: Record<string, unknown> | null, addressKey: string) {
 export function EDocumentBody({
   semantic,
   hideLines = false,
+  embedded = false,
 }: {
   semantic: Record<string, unknown> | null;
   hideLines?: boolean;
+  embedded?: boolean;
 }) {
   if (!semantic) return <p className={styles.panelMeta}>This e-invoice has no stored invoice.</p>;
   const seller = semanticRecord(semantic["BG-4"]);
@@ -33,7 +35,7 @@ export function EDocumentBody({
 
   return (
     <div className={styles.stack}>
-      <h2 className={styles.heading}>Invoice</h2>
+      {embedded ? null : <h2 className={styles.heading}>Invoice</h2>}
       <p className={styles.panelMeta}>
         {[semanticText(semantic["BT-1"]), semanticText(semantic["BT-2"]), semanticText(semantic["BT-5"])].filter(Boolean).join(" · ")}
         {semanticText(semantic["BT-9"]) ? ` · due ${semanticText(semantic["BT-9"])}` : ""}

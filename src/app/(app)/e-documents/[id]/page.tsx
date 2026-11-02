@@ -101,7 +101,7 @@ export default async function EDocumentPage({ params }: { params: Promise<{ id: 
         {row.direction === "inbound" && (row.status === "valid" || row.status === "invalid") ? <RejectEInvoice id={row.id} /> : null}
       </div>
       {row.rejection_reason ? <p className={styles.alert}>{row.rejection_reason}</p> : null}
-      <EDocumentBody semantic={semantic} hideLines={importing} />
+      {importing ? null : <EDocumentBody semantic={semantic} />}
       {importing ? (
         <ImportEInvoice id={row.id} semantic={semantic} organisationId={workspace.current.organisationId} />
       ) : null}

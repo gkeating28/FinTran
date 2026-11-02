@@ -817,6 +817,22 @@
   overflow-x: auto;
 }
 
+.importSplit {
+  flex: 1;
+  min-height: min(640px, calc(100vh - 210px));
+}
+
+.importSplit .headerBody {
+  overflow: auto;
+  padding-top: 8px;
+}
+
+.importSplit .importLines {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
 .invoiceForm .field {
   min-width: 0;
 }
@@ -1940,5 +1956,31 @@ label.quiet {
 
   .lineGrid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .importSplit {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+  }
+
+  .importSplit .splitHandle {
+    display: none;
+  }
+
+  .importSplit .linesPane {
+    padding-left: 0;
+    padding-top: 12px;
+    border-top: 1px solid var(--ops-border);
+    overflow: visible;
+  }
+
+  .importSplit .headerPane {
+    padding-right: 0;
+    overflow: visible;
+  }
+
+  .importSplit .headerBody,
+  .importSplit .importLines {
+    overflow: visible;
   }
 }
