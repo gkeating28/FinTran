@@ -1,7 +1,7 @@
 .dock {
   position: fixed;
-  right: 22px;
-  bottom: 148px;
+  right: 20px;
+  bottom: 152px;
   z-index: 40;
   display: flex;
   flex-direction: column;
@@ -13,36 +13,38 @@
 }
 
 .fab {
-  display: grid;
-  place-items: center;
-  width: 56px;
-  height: 56px;
-  padding: 0;
-  border: 1px solid rgba(126, 176, 230, 0.4);
-  border-radius: 50%;
-  background: rgba(27, 58, 96, 0.38);
-  color: #5aa4f0;
-  box-shadow: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--ops-radius, 3px);
+  background: var(--ops-accent, #2c4c78);
+  color: #fff;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  box-shadow: 0 8px 18px rgba(15, 31, 56, 0.18);
   cursor: pointer;
 }
 
 .fab svg {
-  width: 32px;
-  height: 32px;
+  width: 14px;
+  height: 14px;
   fill: currentColor;
 }
 
 .fab:hover,
 .fab[aria-expanded="true"] {
-  background: rgba(27, 58, 96, 0.62);
-  color: #7eb8ff;
+  background: #243f66;
 }
 
 .panel {
   display: flex;
   flex-direction: column;
   width: min(380px, calc(100vw - 24px));
-  max-height: min(560px, calc(100vh - 230px));
+  max-height: min(560px, calc(100vh - 210px));
   border: 1px solid var(--ops-border, #dde1e8);
   border-radius: 6px;
   background: #fff;
