@@ -695,8 +695,11 @@ function InvoiceForm({
 
   const selectedType = choices.types.find((type) => type.id === typeId);
   const typeLocked = Boolean(header) || choices.types.length === 1;
-  const supplierCurrency = choices.currencies.find((currency) => currency.id === currencyId)?.code ?? "";
+  const selectedCurrency = choices.currencies.find((currency) => currency.id === currencyId);
+  const supplierCurrency = selectedCurrency?.code ?? "";
   const homeCurrency = choices.homeCurrencyCode;
+  const sameAsHome = Boolean(supplierCurrency && homeCurrency && supplierCurrency.toUpperCase() === homeCurrency.toUpperCase());
+  const rateValue = sameAsHome ? (formatExchangeRate(selectedCurrency?.rate ?? "1") || "1.0000") : exchangeRate;
   const flexLabels = selectedType?.flexLabels ?? ["", "", "", "", ""];
   const grnIndex = flexLabels.findIndex((label) => label.trim().toUpperCase() === "GRN");
   const otherRefIndex = flexLabels.findIndex((label) => label.trim().toLowerCase() === "other reference");
@@ -739,13 +742,13 @@ function InvoiceForm({
       foreignNett,
       foreignVat,
       foreignTotal,
-      homeNett: toHome(foreignNett, exchangeRate),
-      homeVat: toHome(foreignVat, exchangeRate),
-      homeTotal: toHome(foreignTotal, exchangeRate),
+      homeNett: toHome(foreignNett, rateValue),
+      homeVat: toHome(foreignVat, rateValue),
+      homeTotal: toHome(foreignTotal, rateValue),
       amountDue: roundCents(foreignTotal - numberValue(paidAmount) + numberValue(roundingAmount)),
       breakdown,
     };
-  }, [exchangeRate, lineVat, header, invoiceLines, locked, paidAmount, roundingAmount]);
+  }, [rateValue, lineVat, header, invoiceLines, locked, paidAmount, roundingAmount]);
 
   function chooseSupplier(id: string) {
     setSupplierId(id);
@@ -1015,10 +1018,12 @@ function InvoiceForm({
               name="exchange_rate"
               required
               inputMode="decimal"
+              readOnly={sameAsHome}
               disabled={locked}
-              value={exchangeRate}
+              value={rateValue}
               onChange={(event) => setExchangeRate(event.target.value)}
               onBlur={(event) => {
+                if (sameAsHome) return;
                 if (parseCurrencyRate(event.target.value)) setExchangeRate(formatExchangeRate(event.target.value));
               }}
               className={styles.mono}
