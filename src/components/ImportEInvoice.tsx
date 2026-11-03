@@ -501,6 +501,21 @@ export function ImportEInvoice({
 
   const ibanChanged = previousIban !== null && previousIban.replace(/\s/g, "") !== iban.replace(/\s/g, "");
   const title = documentTitle ? `Import ${documentTitle}` : "Import e-invoice";
+  const statusText = unsupported.length
+    ? `This e-invoice uses features FinTran cannot import yet: ${unsupported.join(", ")}`
+    : missingType
+      ? "Choose the default Purchases document type before importing."
+      : currenciesReady && !invoiceCurrency
+        ? `Add the invoice currency ${currencyCode || ""} to this organisation before importing.`
+        : currencyBlocked
+          ? "The supplier currency must match the e-invoice currency."
+          : ibanChanged
+            ? `This IBAN differs from the account on the last imported e-invoice from this supplier${previousIban ? ` (${previousIban})` : ""}.`
+            : failures.length
+              ? failures.map((failure) => `${failure.severity} ${failure.ruleId}: ${failure.message}`).join(" ")
+              : error
+                ? error
+                : null;
 
   return (
     <>
@@ -572,44 +587,14 @@ export function ImportEInvoice({
               router.refresh();
             }}
           >
-            {unsupported.length ? (
-              <p className={styles.alert} role="alert">
-                This e-invoice uses features FinTran cannot import yet: {unsupported.join(", ")}
-              </p>
-            ) : null}
-            {missingType ? (
-              <p className={styles.alert} role="alert">
-                Choose the default Purchases document type before importing.
-              </p>
-            ) : null}
-            {ibanChanged ? (
-              <p className={styles.alert} role="alert">
-                This IBAN differs from the account on the last imported e-invoice from this supplier
-                {previousIban ? ` (${previousIban})` : ""}.
-              </p>
-            ) : null}
-            {currenciesReady && !invoiceCurrency ? (
-              <p className={styles.alert} role="alert">
-                Add the invoice currency {currencyCode || ""} to this organisation before importing.
-              </p>
-            ) : null}
-            {currencyBlocked ? (
-              <p className={styles.alert} role="alert">
-                The supplier currency must match the e-invoice currency.
-              </p>
-            ) : null}
-            {failures.length ? (
-              <p className={styles.alert} role="alert">
-                {failures.map((failure) => `${failure.severity} ${failure.ruleId}: ${failure.message}`).join(" ")}
-              </p>
-            ) : null}
-            {error ? (
-              <p className={styles.alert} role="alert">
-                {error}
-              </p>
-            ) : null}
             <div className={styles.statusRow}>
-              <p className={styles.notice}>Received and valid. The document is read-only, except the supplier and the line codes.</p>
+              <p
+                className={statusText ? styles.alert : styles.notice}
+                role={statusText ? "alert" : "status"}
+                title={statusText ?? "Received and valid. The document is read-only, except the supplier and the line codes."}
+              >
+                {statusText ?? "Received and valid. The document is read-only, except the supplier and the line codes."}
+              </p>
               <div className={styles.readinessBar}>
                 <a className={styles.quiet} href={`/api/einvoice/${id}/xml`}>
                   Download XML

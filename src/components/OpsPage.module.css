@@ -1649,13 +1649,23 @@ label.quiet {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 34px;
+  height: 42px;
+  flex: none;
 }
 
 .statusRow .notice,
 .statusRow .alert {
   flex: 1;
+  min-width: 0;
   margin: 0;
+  padding: 8px 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.statusRow .readinessBar {
+  flex-wrap: nowrap;
 }
 
 .readinessButton {

@@ -892,6 +892,20 @@ function InvoiceForm({
     setCreditOpen(panel === "credit" ? !creditOpen : false);
   }
 
+  const banner = state.error
+    ? { tone: "alert" as const, text: state.error }
+    : lineError
+      ? { tone: "alert" as const, text: lineError }
+      : voided
+        ? { tone: "alert" as const, text: `Void${header?.voidReason ? ` — ${header.voidReason}` : ""}. This document cannot be changed.` }
+        : posted
+          ? { tone: "notice" as const, text: "Posted. The document is read-only, except the paid amount." }
+          : choices.types.length === 0
+            ? { tone: "alert" as const, text: `Add a ${sales ? "Sales" : "Purchases"} transaction type before saving a document.` }
+            : parties.length === 0
+              ? { tone: "alert" as const, text: `Add a ${sales ? "customer" : "supplier"} before saving a document.` }
+              : null;
+
   return (
     <>
     <FormModal
@@ -903,19 +917,14 @@ function InvoiceForm({
       <form id="purchase-document" className={styles.documentFields} action={action} autoComplete="off" noValidate>
         {header ? <input type="hidden" name="id" value={header.id} /> : null}
         {locked ? null : <input type="hidden" name="lines" value={JSON.stringify(invoiceLines)} />}
-        {state.error ? (
-          <p className={styles.alert} role="alert">{state.error}</p>
-        ) : lineError ? (
-          <p className={styles.alert} role="alert">{lineError}</p>
-        ) : null}
         <div className={styles.statusRow}>
-          {posted ? (
-            <p className={styles.notice}>Posted. The document is read-only, except the paid amount.</p>
-          ) : voided ? (
-            <p className={styles.alert} role="status">
-              Void{header?.voidReason ? ` — ${header.voidReason}` : ""}. This document cannot be changed.
+          {banner ? (
+            <p className={banner.tone === "alert" ? styles.alert : styles.notice} role={banner.tone === "alert" ? "alert" : "status"} title={banner.text}>
+              {banner.text}
             </p>
-          ) : <span />}
+          ) : (
+            <span />
+          )}
           {header ? (
             <div className={styles.readinessBar}>
               <ReadinessControl items={header.readiness} direction={direction} />
@@ -927,23 +936,6 @@ function InvoiceForm({
             </div>
           ) : null}
         </div>
-        {header ? (
-          <EInvoicePanel
-            headerId={header.id}
-            sales={sales}
-            posted={posted}
-            documentKind={selectedType?.documentKind ?? ""}
-            foreignNett={header.foreignNettAmount}
-            foreignVat={header.foreignVatAmount}
-            foreignTotal={header.foreignTotalAmount}
-          />
-        ) : null}
-        {choices.types.length === 0 ? (
-          <p className={styles.panelMeta}>Add a {sales ? "Sales" : "Purchases"} transaction type before saving a document.</p>
-        ) : null}
-        {parties.length === 0 ? (
-          <p className={styles.panelMeta}>Add a {sales ? "customer" : "supplier"} before saving a document.</p>
-        ) : null}
         <div className={`${styles.invoiceSplit} ${sideBySide ? "" : styles.invoiceStacked}`} ref={splitRef} style={splitStyle}>
         <div className={styles.headerPane}>
         <div className={styles.headerTabs} role="tablist" aria-label="Header">
@@ -1141,6 +1133,19 @@ function InvoiceForm({
               A credit note needs the invoice it applies to before it can be posted. Choose a posted invoice for this {sales ? "customer" : "supplier"}, or type the reference and date.
             </p>
           </>
+        ) : null}
+        {header ? (
+          <div className={styles.wide}>
+            <EInvoicePanel
+              headerId={header.id}
+              sales={sales}
+              posted={posted}
+              documentKind={selectedType?.documentKind ?? ""}
+              foreignNett={header.foreignNettAmount}
+              foreignVat={header.foreignVatAmount}
+              foreignTotal={header.foreignTotalAmount}
+            />
+          </div>
         ) : null}
         </div>
         <div
