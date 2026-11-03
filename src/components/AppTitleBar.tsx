@@ -59,7 +59,7 @@ export default function AppTitleBar({
   }
 
   return (
-    <div className={styles.bar}>
+    <div className={styles.bar} data-title-bar="">
       <div className={styles.breadcrumb}>
         <span className={styles.crumbText}>
           Managing: <strong>{organisationName}</strong>
