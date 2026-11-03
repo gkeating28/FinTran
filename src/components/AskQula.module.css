@@ -1,55 +1,60 @@
-.dock {
-  position: fixed;
-  right: 20px;
-  bottom: 152px;
-  z-index: 40;
+.slot {
+  position: relative;
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 10px;
-  max-width: calc(100vw - 24px);
-  font-family: var(--ops-font, var(--font-public-sans), system-ui, sans-serif);
-  color: var(--ops-text, #151b2b);
+  flex-shrink: 0;
 }
 
-.fab {
+.trigger {
+  width: 36px;
+  height: 36px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  height: 34px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: var(--ops-radius, 3px);
-  background: var(--ops-accent, #2c4c78);
-  color: #fff;
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 700;
-  box-shadow: 0 8px 18px rgba(15, 31, 56, 0.18);
+  justify-content: center;
+  padding: 0;
+  border: 1.5px solid #8ec0f5;
+  border-radius: 8px;
+  background: transparent;
+  color: #f4f8ff;
   cursor: pointer;
 }
 
-.fab svg {
-  width: 14px;
-  height: 14px;
-  fill: currentColor;
+.trigger svg {
+  width: 22px;
+  height: 22px;
+  display: block;
 }
 
-.fab:hover,
-.fab[aria-expanded="true"] {
-  background: #243f66;
+.trigger:hover {
+  background: rgba(142, 192, 245, 0.16);
+  border-color: #d7e8ff;
+}
+
+.trigger[aria-expanded="true"] {
+  background: rgba(142, 192, 245, 0.28);
+  border-color: #f4f8ff;
+}
+
+.trigger:focus-visible {
+  outline: 2px solid #d7e8ff;
+  outline-offset: 2px;
 }
 
 .panel {
+  position: absolute;
+  top: calc(100% + 16px);
+  right: 0;
+  z-index: 40;
   display: flex;
   flex-direction: column;
-  width: min(380px, calc(100vw - 24px));
-  max-height: min(560px, calc(100vh - 210px));
+  width: min(380px, calc(100vw - var(--app-sidebar, 232px) - 42px));
+  max-height: min(560px, calc(100vh - 88px));
   border: 1px solid var(--ops-border, #dde1e8);
   border-radius: 6px;
   background: #fff;
   box-shadow: 0 16px 40px rgba(15, 31, 56, 0.18);
   overflow: hidden;
+  font-family: var(--ops-font, var(--font-public-sans), system-ui, sans-serif);
+  color: var(--ops-text, #151b2b);
 }
 
 .panel[hidden] {

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useFormChrome } from "@/components/FormChrome";
@@ -29,9 +30,11 @@ const PAGE_LABELS: Record<string, string> = {
 export default function AppTitleBar({
   organisationName,
   setup = false,
+  toolbar,
 }: {
   organisationName: string;
   setup?: boolean;
+  toolbar?: ReactNode;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -88,6 +91,7 @@ export default function AppTitleBar({
             Back
           </button>
         ) : null}
+        {toolbar}
       </div>
     </div>
   );

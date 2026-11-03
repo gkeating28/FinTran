@@ -95,7 +95,18 @@ export default function AskQula({
   }
 
   return (
-    <div className={styles.dock}>
+    <div className={styles.slot}>
+      <button
+        className={styles.trigger}
+        type="button"
+        aria-expanded={open}
+        aria-controls={panelId}
+        aria-label="Ask Qula"
+        title="Ask Qula"
+        onClick={() => setOpen(!open)}
+      >
+        <Sparkle />
+      </button>
       <section className={styles.panel} id={panelId} role="dialog" aria-labelledby={titleId} hidden={!open}>
         <header className={styles.head}>
           <div>
@@ -169,18 +180,16 @@ export default function AskQula({
           </button>
         </form>
       </section>
-      <button className={styles.fab} type="button" aria-expanded={open} aria-controls={panelId} onClick={() => setOpen(!open)}>
-        <Sparkle />
-        Ask Qula
-      </button>
     </div>
   );
 }
 
 function Sparkle() {
   return (
-    <svg viewBox="0 0 16 16" aria-hidden="true">
-      <path d="M8 1.2c.35 2.5 1.15 3.6 3.6 4-2.45.4-3.25 1.5-3.6 4-.35-2.5-1.15-3.6-3.6-4 2.45-.4 3.25-1.5 3.6-4z" />
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="#f4f8ff" d="M11.1 1.8 13.4 8.1 19.8 10.2 13.4 12.3 11.1 18.6 8.8 12.3 2.4 10.2 8.8 8.1Z" />
+      <path fill="#d5c6ff" d="M17.6 2.2 19 5.2 22 6.4 19 7.6 17.6 10.6 16.2 7.6 13.2 6.4 16.2 5.2Z" />
+      <path fill="#9ecbff" d="M6.2 13.4 7.2 15.6 9.5 16.5 7.2 17.4 6.2 19.6 5.2 17.4 2.9 16.5 5.2 15.6Z" />
     </svg>
   );
 }

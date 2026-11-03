@@ -25,13 +25,17 @@ export default function AppShell({
           <AppTitleBar
             organisationName={current?.organisationName ?? "Qula"}
             setup={!current}
+            toolbar={
+              current ? (
+                <AskQula organisationId={current.organisationId} organisationName={current.organisationName} />
+              ) : null
+            }
           />
           <div className={styles.page} data-app-page="">
             {children}
           </div>
         </div>
       </FormChromeProvider>
-      {current ? <AskQula organisationId={current.organisationId} organisationName={current.organisationName} /> : null}
     </div>
   );
 }
