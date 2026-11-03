@@ -1,0 +1,18 @@
+.control {
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 8px;
+  background: transparent;
+  color: #d5deeb;
+  cursor: pointer;
+}
+
+.control:hover {
+  border-color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.control:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.85);
+  outline-offset: 2px;
+}

@@ -5,7 +5,7 @@ alwaysApply: true
 
 Transaction entry screens use the purchase invoice shell in `src/components/PurchaseInvoiceManager.tsx`. Do not invent a new page layout.
 
-One status row, then the Document, Notes, and Payment tabs. Header fields and totals stay on the left. The line grid stays on the right. The line editor is the existing line dialog. Footer actions keep the destructive action on the left and Cancel and Save on the right. Do not cover those buttons. Ask Qula is the sparkle button at the right of the title bar. The chat slides in from the right. Do not float it over the page or the footer.
+One status row, then the Document, Notes, and Payment tabs. Header fields and totals stay on the left. The line grid stays on the right. The line editor is the existing line dialog. Footer actions keep the destructive action on the left and Cancel and Save on the right. Do not cover those buttons. Ask Qula is the sparkle button at the right of the title bar. The chat slides in from the right. Do not float it over the page or the footer. Buttons and the organisation selector on the navy chrome use `src/components/ChromeControl.module.css`: a 1px white outline, an 8px corner, and a transparent fill.
 
 Use the classes in `src/components/OpsPage.module.css`: `statusRow`, `headerTabs`, `headerFields`, `invoiceSplit`, `amountBox`, `lineTable`, `lineDialog`, `field`, `quiet`, `primary`, `danger`, `modalActions`. Copy an existing control before adding CSS. Add a class only for a control that does not exist yet.
 

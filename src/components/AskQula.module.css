@@ -1,4 +1,5 @@
 .trigger {
+  composes: control from "./ChromeControl.module.css";
   width: 42px;
   height: 42px;
   display: inline-flex;
@@ -6,11 +7,7 @@
   justify-content: center;
   flex-shrink: 0;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.42);
-  border-radius: 8px;
-  background: transparent;
   color: #f4f8ff;
-  cursor: pointer;
   appearance: none;
 }
 
@@ -20,19 +17,10 @@
   display: block;
 }
 
-.trigger:hover {
-  border-color: rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.trigger[aria-expanded="true"] {
+.trigger[aria-expanded="true"],
+.trigger[aria-expanded="true"]:hover {
   border-color: rgba(255, 255, 255, 0.86);
   background: rgba(255, 255, 255, 0.1);
-}
-
-.trigger:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.85);
-  outline-offset: 2px;
 }
 
 .drawer {
