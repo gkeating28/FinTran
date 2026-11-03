@@ -756,10 +756,6 @@
   border-top: 1px solid var(--ops-border-soft);
 }
 
-.pageDialog .importActions {
-  padding-right: 112px;
-}
-
 .invoiceSplit {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 10px minmax(0, 1fr);

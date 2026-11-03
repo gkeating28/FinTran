@@ -169,10 +169,20 @@ export default function AskQula({
           </button>
         </form>
       </section>
-      <button className={styles.fab} type="button" aria-expanded={open} aria-controls={panelId} onClick={() => setOpen(!open)}>
-        Ask Qula
+      <button className={styles.fab} type="button" aria-label="Ask Qula" aria-expanded={open} aria-controls={panelId} onClick={() => setOpen(!open)}>
+        <Sparkle />
       </button>
     </div>
+  );
+}
+
+function Sparkle() {
+  return (
+    <svg viewBox="0 0 32 32" aria-hidden="true">
+      <path d="M12.2 8.2c.7 4.6 2.3 6.6 6.9 7.3-4.6.7-6.2 2.7-6.9 7.3-.7-4.6-2.3-6.6-6.9-7.3 4.6-.7 6.2-2.7 6.9-7.3z" />
+      <path d="M23.4 4.6c.4 2.5 1.3 3.6 3.8 4-2.5.4-3.4 1.5-3.8 4-.4-2.5-1.3-3.6-3.8-4 2.5-.4 3.4-1.5 3.8-4z" />
+      <path d="M24.8 15.2c.28 1.7.9 2.5 2.6 2.8-1.7.3-2.32 1.1-2.6 2.8-.28-1.7-.9-2.5-2.6-2.8 1.7-.3 2.32-1.1 2.6-2.8z" />
+    </svg>
   );
 }
 

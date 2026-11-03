@@ -1,7 +1,7 @@
 .dock {
   position: fixed;
-  right: 20px;
-  bottom: 20px;
+  right: 22px;
+  bottom: 148px;
   z-index: 40;
   display: flex;
   flex-direction: column;
@@ -13,28 +13,36 @@
 }
 
 .fab {
-  height: 44px;
-  padding: 0 16px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--ops-accent, #2c4c78);
-  color: #fff;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  box-shadow: 0 8px 20px rgba(15, 31, 56, 0.22);
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 1px solid rgba(126, 176, 230, 0.4);
+  border-radius: 50%;
+  background: rgba(27, 58, 96, 0.38);
+  color: #5aa4f0;
+  box-shadow: none;
   cursor: pointer;
 }
 
-.fab:hover {
-  background: #243f66;
+.fab svg {
+  width: 32px;
+  height: 32px;
+  fill: currentColor;
+}
+
+.fab:hover,
+.fab[aria-expanded="true"] {
+  background: rgba(27, 58, 96, 0.62);
+  color: #7eb8ff;
 }
 
 .panel {
   display: flex;
   flex-direction: column;
   width: min(380px, calc(100vw - 24px));
-  max-height: min(560px, calc(100vh - 96px));
+  max-height: min(560px, calc(100vh - 230px));
   border: 1px solid var(--ops-border, #dde1e8);
   border-radius: 6px;
   background: #fff;

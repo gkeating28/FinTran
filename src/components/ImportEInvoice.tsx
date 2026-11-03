@@ -1012,7 +1012,7 @@ export function ImportEInvoice({
               </div>
             </div>
           </form>
-          <div className={`${styles.modalActions} ${styles.importActions}`}>
+          <div className={styles.modalActions}>
             <div className={styles.actionCluster}>
               <RejectEInvoice id={id} className={styles.quiet} />
             </div>
