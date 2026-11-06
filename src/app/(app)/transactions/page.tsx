@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import type { ReactNode } from "react";
+import { DocumentIcon } from "@/components/icons";
 import styles from "@/components/OpsPage.module.css";
 import { getWorkspace } from "@/lib/data";
 import { formatInteger } from "@/lib/numbers";
@@ -55,7 +55,7 @@ function TransactionGroup({ title, tiles }: { title: string; tiles: TransactionM
           {tiles.map((tile) => (
             <Link key={tile.id} href={`/transactions/${tile.code}`} className={styles.adminTile}>
               <span className={styles.adminTileIcon}>
-                <DocumentIcon />
+                <DocumentIcon size={22} />
               </span>
               <span className={styles.adminTileLabel}>{tile.description}</span>
               <span className={styles.adminTileCount}>{formatInteger(tile.count)}</span>
@@ -73,30 +73,4 @@ function TransactionGroup({ title, tiles }: { title: string; tiles: TransactionM
   );
 }
 
-function DocumentIcon() {
-  return (
-    <svg
-      width="22"
-      height="22"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <IconPath />
-    </svg>
-  );
-}
 
-function IconPath(): ReactNode {
-  return (
-    <>
-      <path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
-      <path d="M14 3v6h6" />
-      <path d="M9 13h6M9 17h4" />
-    </>
-  );
-}

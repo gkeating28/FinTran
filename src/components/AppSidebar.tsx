@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { AdminIcon, CustomerIcon, DocumentIcon, EDocumentIcon, HomeIcon, SupplierIcon } from "@/components/icons";
 import { useNav } from "@/components/NavState";
 import { selectOrganisation, signOut } from "@/lib/actions";
 import type { Membership, Profile } from "@/lib/types";
@@ -17,81 +18,19 @@ type NavItem = {
 };
 
 const NAV: NavItem[] = [
-  { href: "/", label: "Home", icon: <GridIcon />, section: "workspace" },
-  { href: "/transactions", label: "Transactions", icon: <LedgerIcon />, section: "workspace" },
+  { href: "/", label: "Home", icon: <HomeIcon />, section: "workspace" },
+  { href: "/transactions", label: "Transactions", icon: <DocumentIcon />, section: "workspace" },
   { href: "/customers", label: "Customers", icon: <CustomerIcon />, section: "workspace" },
   { href: "/suppliers", label: "Suppliers", icon: <SupplierIcon />, section: "workspace" },
-  { href: "/e-documents", label: "E-documents", icon: <LedgerIcon />, section: "workspace" },
+  { href: "/e-documents", label: "E-documents", icon: <EDocumentIcon />, section: "workspace" },
   { href: "/admin", label: "Admin", icon: <AdminIcon />, section: "admin" },
 ];
 
-function Icon({ children }: { children: ReactNode }) {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      {children}
-    </svg>
-  );
-}
 
-function GridIcon() {
-  return (
-    <Icon>
-      <rect x="3" y="3" width="7" height="7" rx="1" />
-      <rect x="14" y="3" width="7" height="7" rx="1" />
-      <rect x="3" y="14" width="7" height="7" rx="1" />
-      <rect x="14" y="14" width="7" height="7" rx="1" />
-    </Icon>
-  );
-}
 
-function LedgerIcon() {
-  return (
-    <Icon>
-      <path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
-      <path d="M14 3v6h6" />
-      <path d="M8 13h8M8 17h5" />
-    </Icon>
-  );
-}
 
-function AdminIcon() {
-  return (
-    <Icon>
-      <circle cx="12" cy="12" r="3" />
-      <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" />
-    </Icon>
-  );
-}
 
-function CustomerIcon() {
-  return (
-    <Icon>
-      <circle cx="12" cy="8" r="3" />
-      <path d="M5 19v-1a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v1" />
-    </Icon>
-  );
-}
 
-function SupplierIcon() {
-  return (
-    <Icon>
-      <path d="M3 8h11v7H3z" />
-      <path d="M14 11h4l3 3v1h-7" />
-      <circle cx="7" cy="17.5" r="1.5" />
-      <circle cx="17" cy="17.5" r="1.5" />
-    </Icon>
-  );
-}
 
 export default function AppSidebar({
   profile,

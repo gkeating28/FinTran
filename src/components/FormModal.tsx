@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useLayoutEffect, useRef, type ReactNode } from "react";
 import { useSetFormChrome } from "@/components/FormChrome";
+import { CloseIcon } from "@/components/icons";
 import styles from "@/components/OpsPage.module.css";
 
 export default function FormModal({
@@ -120,7 +121,7 @@ export default function FormModal({
         <div className={styles.dialogHead}>
           <h2 id={titleId}>{title}</h2>
           <button className={styles.dialogClose} type="button" onClick={onClose} aria-label="Close">
-            ×
+            <CloseIcon />
           </button>
         </div>
       )}

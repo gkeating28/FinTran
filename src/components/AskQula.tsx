@@ -4,6 +4,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalSto
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { ASK_SUGGESTIONS, docHref, type AskAnswer, type AskDoc } from "@/lib/ask-qula";
+import { SparkleIcon } from "@/components/icons";
 import styles from "@/components/AskQula.module.css";
 
 type AskMessage = {
@@ -221,22 +222,13 @@ export default function AskQula({
         title="Ask Qula"
         onClick={() => setOpen(!open)}
       >
-        <Sparkle />
+        <SparkleIcon />
       </button>
       {isClient ? createPortal(drawer, document.body) : null}
     </>
   );
 }
 
-function Sparkle() {
-  return (
-    <svg viewBox="1.6 0.8 21.2 19.6" aria-hidden="true">
-      <path fill="#f4f8ff" d="M11.1 1.8 13.4 8.1 19.8 10.2 13.4 12.3 11.1 18.6 8.8 12.3 2.4 10.2 8.8 8.1Z" />
-      <path fill="#d5c6ff" d="M17.6 2.2 19 5.2 22 6.4 19 7.6 17.6 10.6 16.2 7.6 13.2 6.4 16.2 5.2Z" />
-      <path fill="#9ecbff" d="M6.2 13.4 7.2 15.6 9.5 16.5 7.2 17.4 6.2 19.6 5.2 17.4 2.9 16.5 5.2 15.6Z" />
-    </svg>
-  );
-}
 
 function DocCard({ doc, onOpen }: { doc: AskDoc; onOpen: (doc: AskDoc) => void }) {
   const href = docHref(doc);

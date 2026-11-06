@@ -2,20 +2,13 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import GridPager from "@/components/GridPager";
+import { SortIcon } from "@/components/icons";
 import { useGridPageSize } from "@/components/useGridPageSize";
 import { gridPageSlice, pageIndexForSize, type GridPageSize } from "@/lib/grid-page";
 import { formatInteger } from "@/lib/numbers";
 import { clickOpensRow } from "@/lib/row-click";
 import styles from "@/components/OpsPage.module.css";
 
-function SortIcon({ direction }: { direction: "asc" | "desc" | null }) {
-  return (
-    <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor" aria-hidden>
-      <path d="M5 1 9 5.5H1L5 1Z" opacity={direction === "desc" ? 0.3 : 1} />
-      <path d="M5 13 1 8.5h8L5 13Z" opacity={direction === "asc" ? 0.3 : 1} />
-    </svg>
-  );
-}
 
 export type GridColumn<T> = {
   key: string;

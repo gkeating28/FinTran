@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { DocumentIcon } from "@/components/icons";
 import styles from "@/components/OpsPage.module.css";
 import { listFormMenu, type FormMenuTile } from "@/lib/form-data";
 import { getWorkspace } from "@/lib/data";
@@ -50,7 +51,7 @@ function FormGroup({ title, tiles }: { title: string; tiles: FormMenuTile[] }) {
           {tiles.map((tile) => (
             <Link key={tile.id} href={`/forms/${tile.code}`} className={styles.adminTile}>
               <span className={styles.adminTileIcon}>
-                <FormIcon />
+                <DocumentIcon size={22} />
               </span>
               <span className={styles.adminTileLabel}>{tile.description}</span>
               <span className={styles.adminTileCount}>{tile.code}</span>
@@ -63,12 +64,3 @@ function FormGroup({ title, tiles }: { title: string; tiles: FormMenuTile[] }) {
   );
 }
 
-function FormIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
-      <path d="M14 3v6h6" />
-      <path d="M8 13h8M8 17h5" />
-    </svg>
-  );
-}
