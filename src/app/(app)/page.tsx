@@ -75,6 +75,7 @@ export default async function HomePage() {
           <div className={styles.cardValue}>{error ? "—" : members.length}</div>
         </article>
       </div>
+      <p className={styles.lede}>Version check: this page was last updated on 6 November 2026.</p>
     </section>
   );
 }
