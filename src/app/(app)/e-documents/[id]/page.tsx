@@ -123,7 +123,7 @@ export default async function EDocumentPage({ params }: { params: Promise<{ id: 
           typeRow?.flex5_label ?? "",
         ]}
         homeCurrencyId={defaultsRow?.home_currency_id ?? ""}
-        missingType={!typeRow}
+        defaultTypeId={typeId ?? ""}
         failures={failures.map((failure) => ({
           ruleId: failure.rule_id,
           severity: failure.severity,

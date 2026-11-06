@@ -39,6 +39,17 @@ type Memory = Record<string, { glCodeId: string; departmentId: string; costCentr
 type RuleFailure = { ruleId: string; severity: string; message: string };
 type HeaderTab = "document" | "notes" | "payment";
 type FlexLabels = [string, string, string, string, string];
+type PurchaseType = {
+  id: string;
+  code: string;
+  description: string;
+  document_kind: string;
+  flex1_label: string | null;
+  flex2_label: string | null;
+  flex3_label: string | null;
+  flex4_label: string | null;
+  flex5_label: string | null;
+};
 
 const SPLIT_WIDTH_KEY = "fintran.transactionSplitWidth";
 const SPLIT_HANDLE = 10;
@@ -171,7 +182,7 @@ export function ImportEInvoice({
   documentTitle,
   flexLabels,
   homeCurrencyId,
-  missingType,
+  defaultTypeId = "",
   failures,
   canReject = false,
 }: {
@@ -183,7 +194,7 @@ export function ImportEInvoice({
   documentTitle: string;
   flexLabels: FlexLabels;
   homeCurrencyId: string;
-  missingType: boolean;
+  defaultTypeId?: string;
   failures: RuleFailure[];
   canReject?: boolean;
 }) {
@@ -197,6 +208,9 @@ export function ImportEInvoice({
   const [paymentMeans, setPaymentMeans] = useState<Means[]>([]);
   const [units, setUnits] = useState<UnitChoice[]>([]);
   const [supplierId, setSupplierId] = useState("");
+  const [purchaseTypes, setPurchaseTypes] = useState<PurchaseType[]>([]);
+  const [typesReady, setTypesReady] = useState(false);
+  const [typeId, setTypeId] = useState(defaultTypeId);
   const createSupplier = false;
   const [showCreate, setShowCreate] = useState(false);
   const [savePeppol, setSavePeppol] = useState(false);
@@ -234,9 +248,19 @@ export function ImportEInvoice({
   const gross = semanticText(totals?.["BT-112"]);
   const due = semanticText(totals?.["BT-115"]);
   const taxes = semanticRows(semantic?.["BG-23"]);
-  const grnIndex = flexLabels.findIndex((label) => label.trim().toUpperCase() === "GRN");
-  const otherRefIndex = flexLabels.findIndex((label) => label.trim().toLowerCase() === "other reference");
-  const showFlex = flexLabels.some((label) => label.trim());
+  const selectedPurchaseType = purchaseTypes.find((type) => type.id === typeId);
+  const activeFlexLabels: FlexLabels = selectedPurchaseType
+    ? [
+        selectedPurchaseType.flex1_label ?? "",
+        selectedPurchaseType.flex2_label ?? "",
+        selectedPurchaseType.flex3_label ?? "",
+        selectedPurchaseType.flex4_label ?? "",
+        selectedPurchaseType.flex5_label ?? "",
+      ]
+    : flexLabels;
+  const grnIndex = activeFlexLabels.findIndex((label) => label.trim().toUpperCase() === "GRN");
+  const otherRefIndex = activeFlexLabels.findIndex((label) => label.trim().toLowerCase() === "other reference");
+  const showFlex = activeFlexLabels.some((label) => label.trim());
 
   useEffect(() => {
     headerWidthRef.current = storedWidth;
@@ -271,7 +295,8 @@ export function ImportEInvoice({
       supabase.from("currencies").select("id, code, iso_code, rate").eq("organisation_id", organisationId),
       supabase.from("ref_payment_means").select("code, name, common").eq("active", true),
       supabase.from("ref_units").select("code, name, common").eq("active", true),
-    ]).then(([supplierResult, vatResult, glResult, departmentResult, costResult, currencyResult, meansResult, unitResult]) => {
+      supabase.from("transaction_types").select("id, code, description, document_kind, flex1_label, flex2_label, flex3_label, flex4_label, flex5_label").eq("organisation_id", organisationId).eq("type", "Purchases").order("code"),
+    ]).then(([supplierResult, vatResult, glResult, departmentResult, costResult, currencyResult, meansResult, unitResult, typeResult]) => {
       setSuppliers((supplierResult.data ?? []) as Supplier[]);
       setRates((vatResult.data ?? []) as Vat[]);
       setGlCodes((glResult.data ?? []) as Named[]);
@@ -282,8 +307,13 @@ export function ImportEInvoice({
       const means = ((meansResult.data ?? []) as Means[]).slice().sort((left, right) => Number(right.common) - Number(left.common) || left.code.localeCompare(right.code));
       setPaymentMeans(means);
       setUnits(((unitResult.data ?? []) as UnitChoice[]).slice().sort((left, right) => Number(right.common) - Number(left.common) || left.code.localeCompare(right.code)));
+      const wanted = creditNote ? "credit_note" : "invoice";
+      const loadedTypes = ((typeResult.data ?? []) as PurchaseType[]).filter((type) => type.document_kind === wanted);
+      setPurchaseTypes(loadedTypes);
+      setTypeId((current) => current || (loadedTypes.length === 1 ? loadedTypes[0].id : ""));
+      setTypesReady(!typeResult.error);
     });
-  }, [organisationId]);
+  }, [organisationId, creditNote]);
 
   useEffect(() => {
     if (!showCreate || schemes.length > 0) return;
@@ -314,7 +344,7 @@ export function ImportEInvoice({
   const homeCurrency = currencies.find((currency) => currency.id === homeCurrencyId);
   const showHome = Boolean(homeCurrency && currencyLabel && homeCurrency.code.toUpperCase() !== currencyLabel.toUpperCase());
   const supplierReady = createSupplier ? code.trim().length > 0 : Boolean(effectiveSupplierId);
-  const blocked = unsupported.length > 0 || !invoiceCurrency || currencyBlocked || missingType || saving || !supplierReady;
+  const blocked = unsupported.length > 0 || !invoiceCurrency || currencyBlocked || !typeId || saving || !supplierReady;
   const linePage = gridPageSlice(lines, linePageIndex, linePageSize);
   const splitMax = containerWidth ? Math.max(SPLIT_MIN, containerWidth - SPLIT_MIN - SPLIT_HANDLE) : 1200;
   const splitStyle: CSSProperties = sideBySide
@@ -522,11 +552,17 @@ export function ImportEInvoice({
   }
 
   const ibanWarning = ibanChanged(previousIban, iban);
-  const title = documentTitle ? `Import ${documentTitle}` : "Import e-invoice";
+  const title = selectedPurchaseType?.description
+    ? `Import ${selectedPurchaseType.description}`
+    : documentTitle
+      ? `Import ${documentTitle}`
+      : "Import e-invoice";
   const statusText = unsupported.length
     ? `This e-invoice uses features Qula Tran cannot import yet: ${unsupported.join(", ")}`
-    : missingType
-      ? "Choose the default Purchases document type before importing."
+    : typesReady && !typeId
+      ? purchaseTypes.length === 0
+        ? `Add a Purchases ${creditNote ? "credit note" : "invoice"} under Transaction types before importing.`
+        : "Choose a Purchases document type."
       : currenciesReady && !invoiceCurrency
         ? `Add the invoice currency ${currencyCode || ""} to this organisation before importing.`
         : currencyBlocked
@@ -555,8 +591,10 @@ export function ImportEInvoice({
                 setError(`This e-invoice uses features Qula Tran cannot import yet: ${unsupported.join(", ")}`);
                 return;
               }
-              if (missingType) {
-                setError("Choose the default Purchases document type before importing.");
+              if (!typeId) {
+                setError(purchaseTypes.length === 0
+                  ? `Add a Purchases ${creditNote ? "credit note" : "invoice"} under Transaction types before importing.`
+                  : "Choose a Purchases document type.");
                 return;
               }
               if (!invoiceCurrency) {
@@ -590,6 +628,7 @@ export function ImportEInvoice({
                 p_id: id,
                 p_choices: {
                   supplierId: effectiveSupplierId || null,
+                  transactionTypeId: typeId,
                   lines: lines.map((line) => {
                     const number = semanticText(line["BT-126"]);
                     const selectedLine = choiceFor(line);
@@ -621,7 +660,13 @@ export function ImportEInvoice({
                 role={statusText ? "alert" : "status"}
                 title={statusText ?? "Received and valid. The document is read-only, except the supplier and the line codes."}
               >
-                {statusText ?? "Received and valid. The document is read-only, except the supplier and the line codes."}
+                {typesReady && purchaseTypes.length === 0 && !typeId ? (
+                  <>
+                    Add a Purchases {creditNote ? "credit note" : "invoice"} under <a href="/transaction-types">Transaction types</a> before importing.
+                  </>
+                ) : (
+                  statusText ?? "Received and valid. The document is read-only, except the supplier and the line codes."
+                )}
               </p>
               <div className={styles.readinessBar}>
                 <a className={styles.quiet} href={`/api/einvoice/${id}/xml`}>
@@ -664,9 +709,20 @@ export function ImportEInvoice({
                       Number
                       <input readOnly value="Draft" className={styles.mono} />
                     </label>
+                    <label className={styles.field}>
+                      Document type
+                      <select value={typeId} onChange={(event) => setTypeId(event.target.value)} disabled={!typesReady || purchaseTypes.length === 0}>
+                        <option value="">{purchaseTypes.length === 0 && typesReady ? "No Purchases types" : "Choose a type"}</option>
+                        {purchaseTypes.map((type) => (
+                          <option key={type.id} value={type.id}>
+                            {type.code} — {type.description}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                     {showFlex && otherRefIndex >= 0 ? (
                       <label className={styles.field}>
-                        {flexLabels[otherRefIndex]}
+                        {activeFlexLabels[otherRefIndex]}
                         <input value="" disabled />
                       </label>
                     ) : (
@@ -742,7 +798,7 @@ export function ImportEInvoice({
                       </label>
                       {showFlex && grnIndex >= 0 ? (
                         <label className={styles.field}>
-                          {flexLabels[grnIndex]}
+                          {activeFlexLabels[grnIndex]}
                           <input value="" disabled />
                         </label>
                       ) : null}
@@ -771,7 +827,7 @@ export function ImportEInvoice({
                       <span className={`${styles.panelMeta} ${styles.wide}`}>Enter both dates, or leave both blank.</span>
                     </div>
                     {showFlex
-                      ? flexLabels.map((label, index) =>
+                      ? activeFlexLabels.map((label, index) =>
                           index === grnIndex || index === otherRefIndex || !label.trim() ? null : (
                             <label key={`${label}-${index}`} className={styles.field}>
                               {label}
