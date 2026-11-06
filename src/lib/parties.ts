@@ -104,9 +104,11 @@ export function parseParty(input: {
   const code = input.code.trim().toUpperCase();
   const name = input.name.trim();
   const currencyId = input.currencyId.trim();
-  if (!/^[A-Z0-9][A-Z0-9.-]{0,19}$/.test(code) || name.length < 1 || name.length > 200) {
+  if (!/^[A-Z0-9][A-Z0-9.-]{0,19}$/.test(code)) {
     return { error: "Start the code with a letter or number. Then use letters, numbers, dots, or hyphens, up to 20 characters." };
   }
+  if (name.length < 1) return { error: "Enter a name." };
+  if (name.length > 200) return { error: "Name can be up to 200 characters." };
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(currencyId)) {
     return { error: "Choose a currency." };
   }

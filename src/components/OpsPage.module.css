@@ -1483,6 +1483,12 @@
   color: var(--ops-text-2);
 }
 
+.field input::placeholder,
+.field textarea::placeholder {
+  color: var(--ops-muted);
+  font-weight: 500;
+}
+
 .field input,
 .field select,
 .field textarea,

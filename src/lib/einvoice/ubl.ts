@@ -204,7 +204,7 @@ function partySemantic(node: unknown, role: "seller" | "buyer"): RecordJson | nu
   if (county) address["BT-39"] = county;
   if (country) address["BT-40"] = country;
   const result: RecordJson = {};
-  const name = childText(legal, "RegistrationName");
+  const name = childText(legal, "RegistrationName") || childText(child(partyNode, "PartyName"), "Name");
   const company = childText(legal, "CompanyID");
   const identifier = childText(identification, "ID");
   const vat = childText(tax, "CompanyID");

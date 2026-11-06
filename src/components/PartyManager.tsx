@@ -235,7 +235,7 @@ export function PartyForm({
             spellCheck={false}
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder="Northwind Traders"
+            placeholder="Enter the name"
           />
         </label>
         <label className={styles.field}>
