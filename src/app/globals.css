@@ -6,6 +6,10 @@
   --trax-muted: #64748b;
 }
 
+[hidden]:not([hidden="until-found"]) {
+  display: none !important;
+}
+
 html,
 body {
   height: 100%;
