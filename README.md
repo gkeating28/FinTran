@@ -4,7 +4,7 @@ Qula Tran is the shell for defining and managing financial transactions separate
 
 A tenant owns organisations. People sign in and are granted access to particular organisations inside that tenant. Transaction definitions themselves come later; this version holds the account structure and the place those definitions will live.
 
-The screen layout follows the Trax QA metrics shell: a dark sidebar, a title bar, and a light work area. It uses Next.js, React, TypeScript, and Tailwind CSS, with CSS modules for the shell.
+The screen layout follows the Trax QA metrics shell: a dark sidebar, a title bar, and a light work area. It uses Next.js, React, and TypeScript, and styles everything with CSS modules on one set of design tokens in `src/app/globals.css`. There is no Tailwind and no component library. See "UI principles" in `TECHNICAL.md`.
 
 ## Run locally
 

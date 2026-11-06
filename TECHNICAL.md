@@ -30,7 +30,7 @@ Domain rules in more detail, including EN 16931 business-term mapping, are in [C
 | Next.js 16 App Router | Pages, server actions, and route handlers. The session gate is `src/proxy.ts`, which calls `src/lib/supabase/proxy.ts`. |
 | React 19 | Client forms, the title bar, and Ask Qula. |
 | TypeScript | Application code. `src/lib/database.types.ts` is the generated Supabase type for tables and functions that were present when it was last generated. The e-document tables exist in SQL and are used by the app; that generated file lists their functions and enums and does not yet list the four e-document tables. |
-| CSS modules | Screen styling. Tailwind is imported in `src/app/globals.css` and is used only for the document shell (`h-full`, `antialiased`). |
+| CSS modules | All screen styling, on the design tokens in `src/app/globals.css`. There is no Tailwind and no component library. |
 | Supabase Auth | Email sign-in. The browser session is stored in cookies through `@supabase/ssr`. |
 | Postgres | All business rules: codes, totals, numbering, posting, and e-document status. |
 | Supabase Storage | Private bucket `organisation-logos`. |
@@ -44,33 +44,49 @@ Public paths are `/login`, `/signup`, and `/auth`. Every other path redirects to
 
 ## UI principles
 
-The shell is a dark sidebar, a dark title bar, and a light work area.
+The shell is a navy sidebar, a navy title bar, and a light work area. Soft grey page, white panels, 8px corners, one blue accent.
 
-| Token | Value | Use |
-| --- | --- | --- |
-| Sidebar | `#0f1f38`, 232px | Navigation, organisation selector, signed-in person |
-| Title bar | `#16294a`, 60px | Breadcrumb `Managing: {organisation} / {page}` and the right-hand actions |
-| Page | `#eef0f3` | Work area, `[data-app-page]` |
-| Panel | `#ffffff` | Forms, grids, dialogs |
-| Text | `#151b2b`, secondary `#3a4356`, muted `#8891a0` | |
-| Accent | `#2c4c78` | Primary buttons, focus, links |
-| Warn / danger / ok | `#c2410c` / `#b42318` / `#217a56` | |
-| Form radius | 3px | Fields, quiet buttons, grids |
-| Chrome radius | 8px | Buttons and the organisation selector on navy |
-| UI font | Public Sans | Body, fields, buttons |
-| Title font | Plus Jakarta Sans | Page and dialog titles |
-| Mono | IBM Plex Mono | Codes and references |
+Every colour, corner, text size, space, and shadow comes from the tokens at the top of `src/app/globals.css` (`--color-*`, `--chrome-*`, `--radius*`, `--text-*`, `--space-*`, `--shadow-*`, `--control-height`, `--row-height`). Change a value there and the whole app follows. Use the tokens for anything new instead of a hex colour or a pixel radius. A few one-off tints are still literal values (the review badge, the loading skeleton, the lookup field well), and `PrintForm.module.css` keeps its own paper colours on purpose because a printed page does not follow the app theme. Muted text must stay at least 4.5:1 on white.
+
+| Token group | Notes |
+| --- | --- |
+| Surfaces | `--color-page`, `--color-surface`, `--color-surface-muted`, `--color-hover` |
+| Text | `--color-text`, `--color-text-2`, `--color-muted` |
+| Accent and status | `--color-accent` (+ hover and soft), `--color-ok`, `--color-warn`, `--color-danger` (+ soft and border) |
+| Navy chrome | `--chrome-bg` for the sidebar and title bar, with `--chrome-text`, `--chrome-muted`, `--chrome-line`, `--chrome-hover`, `--chrome-focus` |
+| Shape | `--radius-sm` 4px, `--radius` 8px (controls), `--radius-lg` 12px (panels, dialogs) |
+| Type | 12, 13, 14 (base), 16, 20, 24px as `--text-xs` to `--text-2xl` |
+| Controls | `--control-height` 36px, `--row-height` 44px |
+
+Fonts: Public Sans for body, fields, and buttons. Plus Jakarta Sans for page and dialog titles. IBM Plex Mono for codes and references.
+
+### Styling files
+
+CSS Modules cannot refer to a class in another file, so rules that name each other must live together.
+
+| File | Holds |
+| --- | --- |
+| `src/app/globals.css` | Tokens, the document base, `.sr-only`, the default focus ring |
+| `src/components/OpsPage.module.css` | Core: page frame, panels, tables, dialogs, forms, fields, buttons, messages, the transaction shell. Starts with a table of contents. |
+| `Pager`, `Dashboard`, `Lookup`, `Document`, `Skeleton`, `Logo`, `Confirm` `.module.css` | Self-contained pieces. `Document` is shared by the transaction screens and the e-invoice import. |
+| `AppSidebar`, `AppTitleBar`, `ChromeControl`, `AskQula`, `auth`, `PrintForm` `.module.css` | One component each |
+
+Icons are in `src/components/icons.tsx` on one base component. Do not draw an inline `<svg>` in a screen.
+
+Deleting a row asks first through `ConfirmSubmitButton` in `src/components/ConfirmDialog.tsx`. Do not use `window.confirm`.
+
+The keyboard focus ring is the accent colour on light surfaces and white on navy. On a field it is an accent border with a soft ring.
 
 ### Navy chrome
 
-Buttons on the navy title bar and dialog header, and the organisation selector in the sidebar, use `src/components/ChromeControl.module.css`.
+Buttons on the navy title bar, and the organisation selector in the sidebar, use `src/components/ChromeControl.module.css`. Dialogs have a light header with a quiet close button.
 
 - Stroke: `1px solid rgba(255, 255, 255, 0.42)`.
-- Corner: 8px.
+- Corner: `--radius` (8px).
 - Fill: transparent, so the navy shows through. A second fill inside the stroke makes the edge look grainy.
 - Hover: stroke `rgba(255, 255, 255, 0.7)`, fill `rgba(255, 255, 255, 0.06)`.
 - Keyboard focus: 2px white outline, 2px outside the control.
-- Back is 64 by 42px. Ask Qula is 42 by 42px. Dialog close is 32 by 32px. Widths are whole pixels so the stroke sits on the pixel grid.
+- Back is 64 by 40px. Ask Qula is 42 by 42px. Widths are whole pixels so the stroke sits on the pixel grid.
 - Ask Qula is the rightmost title-bar control. Its chat slides in from the right, under the title bar. It does not float over the page footer.
 
 ### Transaction entry
@@ -84,11 +100,11 @@ Every sales and purchase entry screen copies `src/components/PurchaseInvoiceMana
 5. Footer: the destructive action on the left, Cancel and Save on the right.
 6. The form fills `[data-app-page]` through `FormModal` with `fillPage`. The title moves into the title bar. Back closes the form.
 7. Use the classes in `src/components/OpsPage.module.css`: `statusRow`, `headerTabs`, `headerFields`, `invoiceSplit`, `amountBox`, `lineTable`, `lineDialog`, `field`, `quiet`, `primary`, `danger`, `modalActions`. Copy an existing control before adding CSS.
-8. Focused fields draw the accent outline inside the box (`outline-offset: -2px`) so the header pane does not clip it.
+8. Focused fields show an accent border and a soft ring, which stay visible inside the header pane.
 9. The exchange rate is read-only when the supplier or customer currency is the organisation home currency. The field still submits. Posted documents stay locked.
 10. A saved master code is read-only. GL codes, departments, cost centres, VAT rates, customers, suppliers, products, currencies, and transaction types take their code on create. The edit form shows the code and does not accept a new one. Updates omit the code. Postgres rejects a rename.
 
-Form buttons on the light page stay the purchase-invoice set: `quiet` (white, 1px border, 3px corner), `primary` (accent fill), and `danger`.
+Form buttons on the light page stay the purchase-invoice set: `quiet` (white, 1px border), `primary` (accent fill), and `danger`. In a grid row, Edit and View are text buttons in the accent colour and Remove is red.
 
 ### Ask Qula
 
