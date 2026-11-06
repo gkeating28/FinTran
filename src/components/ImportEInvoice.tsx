@@ -17,6 +17,8 @@ import { gridPageSlice, pageIndexForSize, type GridPageSize } from "@/lib/grid-p
 import { formatInteger, groupThousands, numberValue } from "@/lib/numbers";
 import { formatMoney, roundCents, toHome } from "@/lib/purchase-invoices";
 import { clickOpensRow } from "@/lib/row-click";
+import { saveSupplierPeppol } from "@/lib/party-actions";
+import { ibanChanged, paymentTermsDays, suggestSupplierCode } from "@/lib/supplier-from-invoice";
 import { createClient } from "@/lib/supabase/client";
 
 type Supplier = {
@@ -197,6 +199,7 @@ export function ImportEInvoice({
   const [supplierId, setSupplierId] = useState("");
   const createSupplier = false;
   const [showCreate, setShowCreate] = useState(false);
+  const [savePeppol, setSavePeppol] = useState(false);
   const [countries, setCountries] = useState<{ code: string; name: string }[]>([{ code: "IE", name: "Ireland" }]);
   const [schemes, setSchemes] = useState<{ code: string; name: string }[]>([]);
   const [code, setCode] = useState("");
@@ -518,7 +521,7 @@ export function ImportEInvoice({
     setOpenLine(null);
   }
 
-  const ibanChanged = previousIban !== null && previousIban.replace(/\s/g, "") !== iban.replace(/\s/g, "");
+  const ibanWarning = ibanChanged(previousIban, iban);
   const title = documentTitle ? `Import ${documentTitle}` : "Import e-invoice";
   const statusText = unsupported.length
     ? `This e-invoice uses features Qula Tran cannot import yet: ${unsupported.join(", ")}`
@@ -528,7 +531,7 @@ export function ImportEInvoice({
         ? `Add the invoice currency ${currencyCode || ""} to this organisation before importing.`
         : currencyBlocked
           ? "The supplier currency must match the e-invoice currency."
-          : ibanChanged
+          : ibanWarning
             ? `This IBAN differs from the account on the last imported e-invoice from this supplier${previousIban ? ` (${previousIban})` : ""}.`
             : failures.length
               ? failures.map((failure) => `${failure.severity} ${failure.ruleId}: ${failure.message}`).join(" ")
@@ -574,6 +577,14 @@ export function ImportEInvoice({
                 return;
               }
               setSaving(true);
+              if (savePeppol && effectiveSupplierId && endpoint.id) {
+                const saved = await saveSupplierPeppol(effectiveSupplierId, endpoint.scheme, endpoint.id);
+                if (saved.error) {
+                  setSaving(false);
+                  setError(saved.error);
+                  return;
+                }
+              }
               const supabase = createClient();
               const { data, error: imported } = await supabase.rpc("import_e_document", {
                 p_id: id,
@@ -787,8 +798,13 @@ export function ImportEInvoice({
                         : matched
                           ? `Matched supplier ${matched.code} — ${matched.name} by VAT number. `
                           : "No supplier matched. Create one or choose an existing supplier. "}
-                      {createSupplier ? "The address, VAT number, Peppol ID, and invoice currency are copied when you import." : ""}
                     </p>
+                    {vatMatch && !peppolMatch && !vatMatch.peppol_id && endpoint.id ? (
+                      <label className={`${styles.checkLine} ${styles.wide}`}>
+                        <input type="checkbox" checked={savePeppol} onChange={(event) => setSavePeppol(event.target.checked)} />
+                        Save this Peppol ID to the supplier
+                      </label>
+                    ) : null}
                   </div>
                   <div
                     className={`${styles.invoiceForm} ${styles.headerFields}`}
@@ -1053,11 +1069,32 @@ export function ImportEInvoice({
           notice={currencies.some((currency) => currency.iso_code === semanticText(semantic?.["BT-5"]) || currency.code === semanticText(semantic?.["BT-5"])) ? null : `Add the invoice currency ${semanticText(semantic?.["BT-5"])} before saving this supplier.`}
           blockSave={!currencies.some((currency) => currency.iso_code === semanticText(semantic?.["BT-5"]) || currency.code === semanticText(semantic?.["BT-5"]))}
           seed={{
-            code: sellerName.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 10),
+            code: suggestSupplierCode(sellerName, suppliers.map((supplier) => supplier.code)),
             name: sellerName,
-            vatNumber: semanticText(semanticRecord(semantic?.["BG-4"])?.["BT-31"]),
-            companyNumber: semanticText(semanticRecord(semantic?.["BG-4"])?.["BT-30"]),
-            currencyId: currencies.find((currency) => currency.iso_code === semanticText(semantic?.["BT-5"]) || currency.code === semanticText(semantic?.["BT-5"]))?.id ?? "",
+            vatNumber: semanticText(seller?.["BT-31"]),
+            companyNumber: semanticText(seller?.["BT-30"]),
+            peppolScheme: endpoint.scheme,
+            peppolId: endpoint.id,
+            addressLine1: semanticText(semanticRecord(seller?.["BG-5"])?.["BT-35"]),
+            addressLine2: semanticText(semanticRecord(seller?.["BG-5"])?.["BT-36"]),
+            addressLine3: semanticText(semanticRecord(seller?.["BG-5"])?.["BT-162"]),
+            city: semanticText(semanticRecord(seller?.["BG-5"])?.["BT-37"]),
+            postCode: semanticText(semanticRecord(seller?.["BG-5"])?.["BT-38"]),
+            county: semanticText(semanticRecord(seller?.["BG-5"])?.["BT-39"]),
+            countryCode: semanticText(semanticRecord(seller?.["BG-5"])?.["BT-40"]) || "IE",
+            email: semanticText(semanticRecord(seller?.["BG-6"])?.["BT-43"]),
+            phone: semanticText(semanticRecord(seller?.["BG-6"])?.["BT-42"]),
+            paymentTermsDays: paymentTermsDays(semanticText(semantic?.["BT-2"]), semanticText(semantic?.["BT-9"])),
+            currencyId: invoiceCurrency?.id ?? "",
+          }}
+          onSaved={(savedCode) => {
+            const supabase = createClient();
+            void supabase.from("suppliers").select("id, name, code, vat_number, peppol_scheme, peppol_id, currency_id").eq("organisation_id", organisationId).then((result) => {
+              const list = (result.data ?? []) as Supplier[];
+              setSuppliers(list);
+              const created = list.find((supplier) => supplier.code === savedCode);
+              if (created) setSupplierId(created.id);
+            });
           }}
           onClose={() => setShowCreate(false)}
         />

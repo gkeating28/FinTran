@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getWorkspace } from "@/lib/data";
+import { accessErrorResponse, requireCurrentOrganisation } from "@/lib/organisation-guard";
 import { logoContentType, ORGANISATION_LOGO_BUCKET, organisationLogoPath } from "@/lib/organisation-logo";
 import { createClient } from "@/lib/supabase/server";
 
@@ -14,6 +15,13 @@ export async function GET(
   const { organisationId } = await params;
   if (!ORGANISATION_ID.test(organisationId)) return new NextResponse(null, { status: 404 });
 
+  try {
+    await requireCurrentOrganisation();
+  } catch (error) {
+    const denied = accessErrorResponse(error);
+    if (denied) return new NextResponse(denied.message, { status: denied.status });
+    throw error;
+  }
   const workspace = await getWorkspace();
   if (workspace.status !== "ready") return new NextResponse(null, { status: 404 });
   if (!workspace.memberships.some((membership) => membership.organisationId === organisationId)) {

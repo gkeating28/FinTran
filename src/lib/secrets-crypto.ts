@@ -40,3 +40,7 @@ export function decryptSecret(stored: string, organisationId: string, kind: Secr
 export function secretHint(value: string) {
   return value.slice(-4);
 }
+
+export function reencryptSecret(stored: string, organisationId: string, kind: SecretKind) {
+  return encryptSecret(decryptSecret(stored, organisationId, kind), organisationId, kind);
+}

@@ -30,10 +30,12 @@ export async function runAiAnswer(options: {
     const turn = await adapter.complete({ system: ASK_SYSTEM_PROMPT, messages, tools: [...ASK_TOOLS] });
     inputTokens += turn.inputTokens;
     outputTokens += turn.outputTokens;
-    if (turn.toolCalls.length === 0) {
+    const allowed = new Set<string>(ASK_TOOLS.map((tool) => tool.name));
+    const calls = turn.toolCalls.filter((call) => allowed.has(call.name));
+    if (calls.length === 0) {
       return { text: turn.text || "I do not have that data.", cards, toolCalls, inputTokens, outputTokens };
     }
-    for (const call of turn.toolCalls) {
+    for (const call of calls) {
       if (toolCalls >= 8) break;
       toolCalls += 1;
       const result = await runAskTool(options.supabase, options.organisationId, call.name, call.input);

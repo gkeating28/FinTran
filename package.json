@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test src/lib/ask-qula.test.ts src/lib/organisation-guard.test.ts src/lib/secrets.test.ts src/lib/einvoice/canonical.test.ts src/lib/einvoice/ubl.test.ts src/lib/einvoice/xsd.test.ts",
+    "test": "tsx --test src/lib/ask-qula.test.ts src/lib/organisation-guard.test.ts src/lib/secrets.test.ts src/lib/supplier-from-invoice.test.ts src/lib/posted-einvoice.test.ts src/lib/ai/eval.test.ts src/lib/einvoice/canonical.test.ts src/lib/einvoice/ubl.test.ts src/lib/einvoice/xsd.test.ts",
     "db:types": "node scripts/check-db-types.mjs",
     "ask-qula:eval": "tsx scripts/ask-qula-eval.mjs",
     "secrets:rotate": "tsx scripts/secrets-rotate.mjs"

@@ -2066,6 +2066,7 @@ export type Database = {
       organisation_secret_status: { Args: { p_organisation_id: string }; Returns: { kind: string; hint: string | null; updated_at: string; updated_by: string | null }[] }
       organisation_secret_ciphertext: { Args: { p_organisation_id: string; p_kind: string }; Returns: string }
       record_ai_usage: { Args: { p_organisation_id: string; p_provider_code: string; p_model: string; p_input_tokens: number; p_output_tokens: number; p_tool_calls: number; p_outcome: string }; Returns: undefined }
+      ai_usage_allowance: { Args: { p_organisation_id: string }; Returns: { user_hour: number; organisation_month: number }[] }
 
       void_document: {
         Args: { p_header_id: string; p_reason: string }

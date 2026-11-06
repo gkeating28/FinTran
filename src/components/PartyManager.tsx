@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { CodeField } from "@/components/CodeField";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
@@ -160,6 +160,7 @@ export function PartyForm({
   seed = null,
   notice = null,
   blockSave = false,
+  onSaved,
 }: {
   kind: PartyKind;
   row: PartyRow | null;
@@ -171,6 +172,7 @@ export function PartyForm({
   seed?: Partial<PartyRow> | null;
   notice?: string | null;
   blockSave?: boolean;
+  onSaved?: (code: string) => void;
 }) {
   const meta = PARTY_META[kind];
   const save = row ? updateParty.bind(null, kind) : createParty.bind(null, kind);
@@ -200,9 +202,13 @@ export function PartyForm({
   const [peppolId, setPeppolId] = useState(row?.peppolId ?? seed?.peppolId ?? "");
   const orderedCountries = countryChoices(countries);
 
+  const saved = useRef(false);
   useEffect(() => {
-    if (state.message) onClose();
-  }, [state.message, onClose]);
+    if (!state.message || saved.current) return;
+    saved.current = true;
+    onSaved?.(code);
+    onClose();
+  }, [state.message, onClose, onSaved, code]);
 
   return (
     <FormModal

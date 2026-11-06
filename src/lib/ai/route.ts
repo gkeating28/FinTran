@@ -1,6 +1,6 @@
 import { answerQuestion } from "@/lib/ask-qula-data";
 import type { AskAnswer } from "@/lib/ask-qula";
-import { decryptSecret } from "@/lib/secrets-crypto";
+import { getSecret } from "@/lib/secrets";
 import { createClient } from "@/lib/supabase/server";
 import { runAiAnswer } from "./run";
 import type { AiMessage } from "./adapter";
@@ -20,28 +20,16 @@ export async function answerWithAi(organisationId: string, question: string, his
   const row = settings.data as SettingsRow | null;
   if (!row?.enabled || !row.provider_code || !row.model) return null;
 
-  const sinceHour = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-  const monthStart = new Date();
-  monthStart.setUTCDate(1);
-  monthStart.setUTCHours(0, 0, 0, 0);
-  const [hour, month] = await Promise.all([
-    supabase.from("ai_usage").select("id", { count: "exact", head: true }).eq("organisation_id", organisationId).gte("at", sinceHour),
-    supabase.from("ai_usage").select("id", { count: "exact", head: true }).eq("organisation_id", organisationId).gte("at", monthStart.toISOString()),
-  ]);
-  const limited = (hour.count ?? 0) >= row.user_hourly_limit || (row.organisation_monthly_limit != null && (month.count ?? 0) >= row.organisation_monthly_limit);
+  const allowance = await supabase.rpc("ai_usage_allowance", { p_organisation_id: organisationId });
+  const counts = (Array.isArray(allowance.data) ? allowance.data[0] : allowance.data) as { user_hour?: number; organisation_month?: number } | null;
+  const limited = Number(counts?.user_hour ?? 0) >= row.user_hourly_limit || (row.organisation_monthly_limit != null && Number(counts?.organisation_month ?? 0) >= row.organisation_monthly_limit);
   if (limited) {
     await supabase.rpc("record_ai_usage", { p_organisation_id: organisationId, p_provider_code: row.provider_code, p_model: row.model, p_input_tokens: 0, p_output_tokens: 0, p_tool_calls: 0, p_outcome: "limited" });
     return answerQuestion(organisationId, question);
   }
 
-  const cipher = await supabase.rpc("organisation_secret_ciphertext", { p_organisation_id: organisationId, p_kind: "ai_api_key" });
-  if (!cipher.data) return null;
-  let apiKey = "";
-  try {
-    apiKey = decryptSecret(String(cipher.data), organisationId, "ai_api_key");
-  } catch {
-    return null;
-  }
+  const apiKey = await getSecret(organisationId, "ai_api_key");
+  if (!apiKey) return null;
 
   try {
     const answer = await Promise.race([

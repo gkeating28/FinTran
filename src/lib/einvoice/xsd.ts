@@ -27,6 +27,14 @@ function schemaFiles(): XMLFileInfo[] {
   return files;
 }
 
+function locationOf(xml: string, lineNumber: number, raw: string | undefined) {
+  const match = raw?.match(/:(\d+):(\d+)/);
+  if (match) return `line ${match[1]}, column ${match[2]}`;
+  const line = xml.split(/\r?\n/)[lineNumber - 1] ?? "";
+  const column = Math.max(1, line.search(/\S/) + 1);
+  return `line ${lineNumber}, column ${column}`;
+}
+
 export async function validateXsd(xml: string, root: "Invoice" | "CreditNote"): Promise<ValidationFailure[]> {
   const name = root === "CreditNote" ? "UBL-CreditNote-2.1.xsd" : "UBL-Invoice-2.1.xsd";
   const files = schemaFiles();
@@ -44,12 +52,12 @@ export async function validateXsd(xml: string, root: "Invoice" | "CreditNote"): 
   if (result.valid) return [];
   const errors = result.errors.length
     ? result.errors
-    : [{ message: "The file does not match the UBL schema.", loc: null }];
+    : [{ message: "The file does not match the UBL schema.", loc: null, rawMessage: "" }];
   return errors.map((error) => ({
     layer: "xsd" as const,
     ruleId: "XSD",
     severity: "fatal" as const,
-    location: error.loc ? `line ${error.loc.lineNumber}` : null,
+    location: error.loc ? locationOf(xml, error.loc.lineNumber, error.rawMessage) : null,
     message: error.message.slice(0, 2000),
   }));
 }

@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { EDocumentBody } from "@/components/EDocumentBody";
 import { ImportEInvoice } from "@/components/ImportEInvoice";
 import { RegenerateEInvoice } from "@/components/RegenerateEInvoice";
-import { RejectEInvoice } from "@/components/RejectEInvoice";
+import { RejectEInvoice, ReleaseDuplicate } from "@/components/RejectEInvoice";
 import styles from "@/components/OpsPage.module.css";
 import { getWorkspace } from "@/lib/data";
 import { canManage } from "@/lib/types";
@@ -155,6 +155,7 @@ export default async function EDocumentPage({ params }: { params: Promise<{ id: 
         {row.direction === "outbound" && row.header_id && (outboundValid?.count ?? 0) === 0 ? (
           <RegenerateEInvoice headerId={row.header_id} />
         ) : null}
+        {row.direction === "inbound" && row.status === "duplicate" && canManage(workspace.current.role) ? <ReleaseDuplicate id={row.id} /> : null}
         {row.direction === "inbound" && (row.status === "valid" || row.status === "invalid" || row.status === "duplicate") && canManage(workspace.current.role) ? <RejectEInvoice id={row.id} /> : null}
       </div>
       {row.rejection_reason ? <p className={styles.alert}>{row.rejection_reason}</p> : null}

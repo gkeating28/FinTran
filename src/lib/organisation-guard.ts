@@ -7,6 +7,7 @@ import { readClaims } from "@/lib/supabase/claims";
 
 export class OrganisationAccessError extends Error {
   readonly status = 403;
+  digest = "NEXT_HTTP_ERROR_FALLBACK;403";
 
   constructor(message = "You cannot open that organisation.") {
     super(message);
@@ -45,9 +46,11 @@ export async function requireOrganisationMember(organisationId: string, roles?: 
     .maybeSingle();
 
   if (error || !access || !isRole(access.role) || (roles && !roles.includes(access.role))) {
-    throw new OrganisationAccessError(
+    const denied = new OrganisationAccessError(
       roles ? "You cannot change that organisation." : "You cannot open that organisation.",
     );
+    denied.digest = "NEXT_HTTP_ERROR_FALLBACK;403";
+    throw denied;
   }
   return access.role;
 }
@@ -60,9 +63,11 @@ export async function requireCurrentOrganisation(roles?: Role[]): Promise<Member
   const cookieStore = await cookies();
   const selected = cookieStore.get(ORGANISATION_COOKIE)?.value;
   if (selected && !membershipAllows(workspace.memberships, selected, roles)) {
-    throw new OrganisationAccessError(
+    const denied = new OrganisationAccessError(
       roles ? "You cannot change that organisation." : "You cannot open that organisation.",
     );
+    denied.digest = "NEXT_HTTP_ERROR_FALLBACK;403";
+    throw denied;
   }
 
   const current = selected

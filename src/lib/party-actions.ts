@@ -160,6 +160,27 @@ export async function updateParty(
   return { message: "Saved." };
 }
 
+export async function saveSupplierPeppol(supplierId: string, scheme: string, peppolId: string): Promise<ActionState> {
+  const current = await currentOrganisation();
+  const supabase = await createClient();
+  const existing = await supabase
+    .from("suppliers")
+    .select("id, peppol_id")
+    .eq("id", supplierId)
+    .eq("organisation_id", current.organisationId)
+    .maybeSingle();
+  if (!existing.data) return { error: "Choose a supplier." };
+  if (existing.data.peppol_id) return { message: "Saved." };
+  const { error } = await supabase
+    .from("suppliers")
+    .update({ peppol_scheme: scheme || null, peppol_id: peppolId })
+    .eq("id", supplierId)
+    .eq("organisation_id", current.organisationId);
+  if (error) return { error: friendlyError(error, "The Peppol ID could not be saved.") };
+  revalidatePath(PARTY_META.suppliers.path);
+  return { message: "Saved." };
+}
+
 export async function deleteParty(kind: PartyKind, formData: FormData) {
   const path = PARTY_META[kind].path;
   const id = text(formData, "id").trim();
