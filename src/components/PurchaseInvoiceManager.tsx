@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useActionState, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import ConfirmSubmitButton from "@/components/ConfirmDialog";
 import DataGrid from "@/components/DataGrid";
 import GridPager from "@/components/GridPager";
@@ -68,6 +68,24 @@ function termsText(days: number) {
 }
 
 const SPLIT_WIDTH_KEY = "fintran.transactionSplitWidth";
+
+function readStoredSplitWidth(): number | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const stored = window.localStorage.getItem(SPLIT_WIDTH_KEY);
+    const value = stored == null ? Number.NaN : Number(stored);
+    return Number.isFinite(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+const noSubscription = () => () => {};
+
+/** False while the server renders and while the browser hydrates, true afterwards. */
+function useHydrated() {
+  return useSyncExternalStore(noSubscription, () => true, () => false);
+}
 const SPLIT_HANDLE = 10;
 const SPLIT_MIN = 280;
 
@@ -194,19 +212,30 @@ export default function PurchaseInvoiceManager({
     };
   }, [rows]);
 
-  useEffect(() => {
+  // Moving to another page closes any open document.
+  const [seenPath, setSeenPath] = useState(pathname);
+  if (pathname !== seenPath) {
+    setSeenPath(pathname);
     setDraft(null);
     setLines(null);
     setLineError(null);
-  }, [pathname]);
+  }
 
-  useEffect(() => {
-    if (!openId) return;
-    const row = rows.find((item) => item.id === openId);
-    if (!row) return;
-    setLines(row.lines);
-    setDraft(row);
-  }, [openId, openStamp, rows]);
+  // A document named in the address opens once the page is in the browser, and again whenever the
+  // address, the stamp or the rows change.
+  const hydrated = useHydrated();
+  const [seenOpen, setSeenOpen] = useState<{ openId?: string; openStamp?: string; rows: PurchaseInvoiceRow[] } | null>(null);
+  if (
+    hydrated &&
+    (!seenOpen || seenOpen.openId !== openId || seenOpen.openStamp !== openStamp || seenOpen.rows !== rows)
+  ) {
+    setSeenOpen({ openId, openStamp, rows });
+    const row = openId ? rows.find((item) => item.id === openId) : undefined;
+    if (row) {
+      setLines(row.lines);
+      setDraft(row);
+    }
+  }
 
   const parties = sales ? choices.customers : choices.suppliers;
   const listedRows = readinessById
@@ -557,7 +586,7 @@ function InvoiceForm({
   const state = posted ? paidState : saveState;
   const action = posted ? paidAction : saveAction;
   const pending = posted ? paidPending : savePending;
-  const [typeId, setTypeId] = useState(header?.transactionTypeId ?? choices.types[0]?.id ?? "");
+  const [typeId] = useState(header?.transactionTypeId ?? choices.types[0]?.id ?? "");
   const [transactionDate, setTransactionDate] = useState(header?.transactionDate ?? today());
   const [dueDate, setDueDate] = useState(header?.dueDate ?? "");
   const [supplierId, setSupplierId] = useState(header ? (sales ? header.customerId : header.supplierId) : "");
@@ -594,26 +623,20 @@ function InvoiceForm({
   const [lineDraft, setLineDraft] = useState<PurchaseInvoiceLine | null>(null);
   const [lineMessage, setLineMessage] = useState<string | null>(null);
   const [headerTab, setHeaderTab] = useState<HeaderTab>("document");
-  const [headerWidth, setHeaderWidth] = useState<number | null>(null);
+  const [headerWidth, setHeaderWidth] = useState<number | null>(readStoredSplitWidth);
+  const [panelWidth, setPanelWidth] = useState<number | null>(null);
   const [sideBySide, setSideBySide] = useState(true);
   const [voidOpen, setVoidOpen] = useState(false);
   const [creditOpen, setCreditOpen] = useState(false);
   const splitRef = useRef<HTMLDivElement>(null);
-  const headerWidthRef = useRef<number | null>(null);
+  const headerWidthRef = useRef<number | null>(headerWidth);
   const sideBySideRef = useRef(true);
-
-  useEffect(() => {
-    const stored = window.localStorage.getItem(SPLIT_WIDTH_KEY);
-    const value = stored == null ? Number.NaN : Number(stored);
-    if (!Number.isFinite(value)) return;
-    headerWidthRef.current = value;
-    setHeaderWidth(value);
-  }, []);
 
   useEffect(() => {
     const node = splitRef.current;
     if (!node) return;
     const watch = () => {
+      setPanelWidth(node.clientWidth);
       const wide = node.clientWidth >= 860;
       if (wide === sideBySideRef.current) return;
       sideBySideRef.current = wide;
@@ -684,16 +707,18 @@ function InvoiceForm({
     rememberWidth(current + (event.shiftKey ? delta * 3 : delta));
   }
 
-  useEffect(() => {
+  // Lines loaded after the form opened replace the ones shown.
+  const [seenLines, setSeenLines] = useState<PurchaseInvoiceLine[] | null | undefined>(undefined);
+  if (lines !== seenLines) {
+    setSeenLines(lines);
     if (lines) setInvoiceLines(lines);
-  }, [lines]);
+  }
 
   useEffect(() => {
     if (state.message) onClose();
   }, [state.message, onClose]);
 
   const selectedType = choices.types.find((type) => type.id === typeId);
-  const typeLocked = Boolean(header) || choices.types.length === 1;
   const selectedCurrency = choices.currencies.find((currency) => currency.id === currencyId);
   const supplierCurrency = selectedCurrency?.code ?? "";
   const homeCurrency = choices.homeCurrencyCode;
@@ -879,9 +904,7 @@ function InvoiceForm({
         gridTemplateColumns: "minmax(0, 1fr)",
         gridTemplateRows: "minmax(0, 1fr) minmax(0, 1fr)",
       };
-  const splitMax = splitRef.current
-    ? Math.max(SPLIT_MIN, splitRef.current.clientWidth - SPLIT_MIN - SPLIT_HANDLE)
-    : 1200;
+  const splitMax = panelWidth ? Math.max(SPLIT_MIN, panelWidth - SPLIT_MIN - SPLIT_HANDLE) : 1200;
   const linePage = gridPageSlice(invoiceLines, linePageIndex, linePageSize);
 
   function changeLinePageSize(next: GridPageSize) {

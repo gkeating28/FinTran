@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SignInForm } from "@/components/Forms";
@@ -20,7 +21,7 @@ export default async function LoginPage({
     <main className={styles.page}>
       <section className={styles.card}>
         <div className={styles.brand}>
-          <img src="/qula-logo.png" alt="" width={40} height={40} className={styles.brandMark} />
+          <Image src="/qula-logo.png" alt="" width={40} height={40} priority className={styles.brandMark} />
           <div>
             <strong>Qula Tran</strong>
             <span>TRANSACTIONS</span>

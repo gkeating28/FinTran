@@ -27,6 +27,8 @@ export default function SchemeLookup({
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const [place, setPlace] = useState<SchemePlace | null>(null);
+  const [menuRoot, setMenuRoot] = useState<Element | null>(null);
+  const [activeKey, setActiveKey] = useState("|false");
   const rootRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -39,7 +41,13 @@ export default function SchemeLookup({
   const ordered = !needle && selected ? [selected, ...matches.filter((scheme) => scheme.code !== selected.code)] : matches;
   const showNone = !needle || "none".startsWith(needle);
   const options = [...(showNone ? [{ code: "", name: "None" }] : []), ...ordered];
-  const menuRoot = open ? rootRef.current?.closest("dialog") ?? document.body : null;
+
+  // The highlighted option goes back to the top whenever the search text or the menu changes.
+  const nextActiveKey = `${query}|${open}`;
+  if (nextActiveKey !== activeKey) {
+    setActiveKey(nextActiveKey);
+    setActive(0);
+  }
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -89,10 +97,6 @@ export default function SchemeLookup({
     document.addEventListener("mousedown", onPointer);
     return () => document.removeEventListener("mousedown", onPointer);
   }, [open]);
-
-  useEffect(() => {
-    setActive(0);
-  }, [query, open]);
 
   useEffect(() => {
     const option = listRef.current?.querySelector<HTMLElement>("[data-active='true']");
@@ -181,7 +185,11 @@ export default function SchemeLookup({
         className={styles.lookupButton}
         aria-expanded={open}
         aria-haspopup="listbox"
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => {
+          // The menu is drawn inside the surrounding dialog when there is one, so it stays on top of it.
+          setMenuRoot(rootRef.current?.closest("dialog") ?? document.body);
+          setOpen((current) => !current);
+        }}
       >
         <span>{buttonLabel}</span>
       </button>

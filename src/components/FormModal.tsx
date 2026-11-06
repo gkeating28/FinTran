@@ -21,7 +21,9 @@ export default function FormModal({
   const titleId = useId();
   const setFormChrome = useSetFormChrome();
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  useLayoutEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   useEffect(() => {
     if (!fillPage) return;

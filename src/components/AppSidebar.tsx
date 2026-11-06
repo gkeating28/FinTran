@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
@@ -110,7 +111,7 @@ export default function AppSidebar({
       {nav.open ? <button className={styles.scrim} type="button" aria-label="Close menu" onClick={nav.close} /> : null}
       <aside id="app-sidebar" className={nav.open ? `${styles.sidebar} ${styles.sidebarOpen}` : styles.sidebar}>
         <div className={styles.brand}>
-          <img src="/qula-logo.png" alt="" width={48} height={48} className={styles.brandMark} />
+          <Image src="/qula-logo.png" alt="" width={48} height={48} priority className={styles.brandMark} />
           <div>
             <div className={styles.brandName}>Qula Tran</div>
             <div className={styles.brandSub}>TRANSACTIONS</div>
