@@ -25,6 +25,8 @@ const PAGE_LABELS: Record<string, string> = {
   "/forms": "Forms",
   "/history": "Change history",
   "/e-documents": "E-documents",
+  "/ask-qula": "Ask Qula",
+  "/access-point": "Access Point",
 };
 
 export default function AppTitleBar({

@@ -1,9 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getWorkspace, ORGANISATION_COOKIE } from "@/lib/data";
+import { requireCurrentOrganisation } from "@/lib/organisation-guard";
 import { codeChangeError, friendlyCodeChange } from "@/lib/immutable-code";
 import { PARTY_META, parseParty, type PartyFields, type PartyKind } from "@/lib/parties";
 import { createClient } from "@/lib/supabase/server";
@@ -45,24 +44,8 @@ function friendlyError(error: { code?: string; message: string } | null, fallbac
 }
 
 async function currentOrganisation() {
-  const workspace = await getWorkspace();
-  if (workspace.status === "signed-out") redirect("/login");
-  if (workspace.status !== "ready") redirect("/");
-
-  const cookieStore = await cookies();
-  if (cookieStore.get(ORGANISATION_COOKIE)?.value !== workspace.current.organisationId) {
-    cookieStore.set(ORGANISATION_COOKIE, workspace.current.organisationId, {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 365,
-    });
-  }
-
-  return {
-    organisationId: workspace.current.organisationId,
-    tenantId: workspace.current.tenantId,
-  };
+  const current = await requireCurrentOrganisation();
+  return { organisationId: current.organisationId, tenantId: current.tenantId };
 }
 
 function fieldsFrom(formData: FormData) {
@@ -174,6 +157,27 @@ export async function updateParty(
   if (error) return { error: friendlyError(error, "That record could not be updated.") };
 
   revalidatePath(PARTY_META[kind].path);
+  return { message: "Saved." };
+}
+
+export async function saveSupplierPeppol(supplierId: string, scheme: string, peppolId: string): Promise<ActionState> {
+  const current = await currentOrganisation();
+  const supabase = await createClient();
+  const existing = await supabase
+    .from("suppliers")
+    .select("id, peppol_id")
+    .eq("id", supplierId)
+    .eq("organisation_id", current.organisationId)
+    .maybeSingle();
+  if (!existing.data) return { error: "Choose a supplier." };
+  if (existing.data.peppol_id) return { message: "Saved." };
+  const { error } = await supabase
+    .from("suppliers")
+    .update({ peppol_scheme: scheme || null, peppol_id: peppolId })
+    .eq("id", supplierId)
+    .eq("organisation_id", current.organisationId);
+  if (error) return { error: friendlyError(error, "The Peppol ID could not be saved.") };
+  revalidatePath(PARTY_META.suppliers.path);
   return { message: "Saved." };
 }
 

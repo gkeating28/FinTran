@@ -11,11 +11,13 @@ export default function AppShell({
   memberships,
   current,
   children,
+  aiEnabled = false,
 }: {
   profile: Profile;
   memberships: Membership[];
   current: Membership | null;
   children: ReactNode;
+  aiEnabled?: boolean;
 }) {
   return (
     <div className={styles.shell}>
@@ -27,7 +29,7 @@ export default function AppShell({
             setup={!current}
             toolbar={
               current ? (
-                <AskQula organisationId={current.organisationId} organisationName={current.organisationName} />
+                <AskQula organisationId={current.organisationId} organisationName={current.organisationName} aiEnabled={aiEnabled} />
               ) : null
             }
           />

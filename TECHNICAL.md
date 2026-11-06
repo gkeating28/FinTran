@@ -114,6 +114,8 @@ Ask Qula matches keywords. It does not call a language model. A transaction card
 | `/access` | Grants for the open organisation |
 | `/forms`, `/forms/{code}` | Print layout for a transaction type |
 | `/history` | Audit log, owners and admins |
+| `/ask-qula` | Ask Qula provider, model, key, limits, and usage. Owners and admins |
+| `/access-point` | Access Point provider, environment, and status. Owners and admins edit it. Members see the status |
 | `/print/{code}/{id}` | Printable document. Print and PDF. This page is outside the app shell |
 | `/defaults` | Organisation defaults |
 
@@ -126,9 +128,9 @@ These are the route handlers. Writes that belong to a form go through server act
 | Method and path | Auth | Behaviour |
 | --- | --- | --- |
 | `GET /auth/confirm` | Public | Exchanges an email `code`, or verifies `token_hash` and `type`, then redirects to `/`. A bad link redirects to `/login` with an error. |
-| `POST /api/ask-qula` | Member of the named organisation | Body `{ question, organisationId }`. Question length 1–300. Returns `{ intent, text, docs? }`. `intent` is `transactions`, `documents`, `aging`, or `help`. |
+| `POST /api/ask-qula` | Member of the named organisation | Body `{ question, organisationId, history? }`. Question length 1–1,000. Returns `{ intent, text, docs? }`. `intent` is `transactions`, `documents`, `aging`, `help`, or `ai`. A tampered organisation cookie returns 403. |
 | `POST /api/einvoice/inbound` | Signed in, open organisation | Multipart field `file`, a UBL Invoice or CreditNote. Stores it when the buyer Peppol ID, or the buyer VAT number when the organisation has no Peppol ID, matches that organisation. Returns `{ id }`. |
-| `POST /api/einvoice/outbound/{headerId}` | Signed in, open organisation | Builds UBL from `en16931_document`, runs Schematron, and stores the file. Returns `{ id }`. |
+| `POST /api/einvoice/outbound/{headerId}` | Signed in, open organisation | Builds UBL from `en16931_document`, runs the UBL XSD and then Schematron, and stores the file. Returns `{ id }`. |
 | `GET /api/einvoice/{id}/xml` | Signed in | Downloads the stored XML via `e_document_xml`. `Content-Type: application/xml`. |
 | `GET /transactions/{code}/{id}/en16931` | Owner or admin | Downloads `en16931_document` as pretty JSON. |
 | `GET /organisation-logo/{organisationId}` | Member of that organisation | Streams the current logo, or `?object=snapshots/{headerId}` for the copy taken at posting. A missing file is 404, including for a stranger, so the URL does not reveal membership. |
@@ -147,7 +149,8 @@ Server actions run on the server with the user session and return `{ error }` or
 | `reference-actions.ts` | `createReference`, `updateReference`, `deleteReference` | GL codes, departments, cost centres |
 | `currency-actions.ts` | `createCurrency`, `updateCurrency`, `deleteCurrency`, `updateOrganisationDefaults` | Currencies, defaults, logo, and `rename_organisation` |
 | `transaction-type-actions.ts` | `createTransactionType`, `updateTransactionType`, `deleteTransactionType` | Transaction types |
-| `party-actions.ts` | `createParty`, `updateParty`, `deleteParty` | Customers and suppliers |
+| `party-actions.ts` | `createParty`, `updateParty`, `saveSupplierPeppol`, `deleteParty` | Customers and suppliers |
+| `settings-actions.ts` | `saveAiSettings`, `testAiConnection`, `setSecret`, `clearSecret`, `saveAccessPoint`, `testAccessPoint`, `lookupParticipant`, `registerParticipant` | Ask Qula settings, Access Point settings, and encrypted secrets |
 | `product-actions.ts` | `loadProductChoices`, `createProduct`, `updateProduct`, `deleteProduct` | Products |
 | `form-actions.ts` | `saveTransactionForm` | `transaction_forms.layout` |
 | `purchase-invoice-actions.ts` | `savePurchaseInvoice`, `postPurchaseInvoice`, `voidPurchaseInvoice`, `updatePaidAmount`, `createCreditNote`, `deletePurchaseInvoice` | Documents, for both directions |
@@ -183,8 +186,11 @@ These are the `public` functions the app is allowed to call. Arguments match `sr
 | `en16931_price(p_value)` | text | Four decimal places |
 | `store_e_document(p_xml, p_envelope, p_signature)` | uuid | Stores a signed e-document envelope |
 | `e_document_xml(p_id)` | text | Stored XML for a document the caller can see |
-| `import_e_document(p_id, p_choices jsonb)` | uuid | Turns a valid inbound file into a Purchases draft. Amounts come from the stored semantic JSON. `p_choices` carries `supplierId` or `createSupplier` with `supplier.code` and `supplier.name`, plus `lines[]` of `lineNumber`, `vatRateId`, `glCodeId`, `departmentId`, and `costCentreId`. The VAT rate must be Expense and must match the line's category and percentage. |
-| `reject_e_document(p_id, p_reason)` | void | Marks a received document rejected. The reason is required. |
+| `import_e_document(p_id, p_choices jsonb)` | uuid | Turns a valid inbound file into a Purchases draft. Amounts come from the stored semantic JSON. `p_choices` carries `supplierId` and `lines[]` of `lineNumber`, `vatRateId`, `glCodeId`, `departmentId`, and `costCentreId`. `createSupplier` is refused. The VAT rate must be Expense and must match the line's category and percentage. |
+| `reject_e_document(p_id, p_reason)` | void | Marks a received document rejected. Owners and admins only. The reason is required. |
+| `release_duplicate_e_document(p_id, p_reason)` | void | Moves a duplicate to valid. Owners and admins only. The reason is stored on the event. |
+| `set_organisation_secret`, `clear_organisation_secret`, `organisation_secret_status`, `organisation_secret_ciphertext` | | Store and read ciphertext. Status returns the hint, never the value. |
+| `record_ai_usage`, `ai_usage_allowance` | | Record one question and count the caller's hourly use and the organisation's monthly use. |
 
 `private` is not on the API. Triggers and policies use it for tenant checks, code normalisation, totals, numbering, audit, VAT breakdown, snapshots, and e-document status changes.
 
@@ -321,7 +327,7 @@ Ordinary inserts are not granted. Status changes go through `store_e_document`, 
 | `source` | `generated` or `manual_upload` |
 | `ubl_root` | `Invoice` or `CreditNote` |
 | `header_id` | Linked Qula Tran document. One valid outbound file per header. One imported inbound file per header. |
-| `duplicate_of` | Earlier file with the same hash |
+| `duplicate_of` | An earlier inbound file with the same document kind, number, and seller. An identical file is not stored again; its existing id is returned. |
 | `sha256` | 64 hex characters. Unique per organisation and direction. |
 | `byte_size` | 1 to 4 MiB |
 | Party and totals | Sender and receiver scheme and id, document number, issue date, currency, total, amount due, seller and buyer name and VAT |
@@ -329,13 +335,17 @@ Ordinary inserts are not granted. Status changes go through `store_e_document`, 
 | `validator_version`, `rules_version`, `validated_at` | Set together when validation has run |
 | `rejection_reason` | Required when status is `rejected` |
 
-XSD checking is not wired in. A file is still refused when it has a `DOCTYPE`, an external entity, a CII root, or a root that is not a UBL 2.1 Invoice or CreditNote. CEN EN 16931 Schematron runs, then Peppol BIS Billing 3.0.21 Schematron.
+UBL 2.1 XSD runs first. A fatal XSD error is stored with layer `xsd` and Schematron does not run. Otherwise CEN EN 16931 Schematron runs, then Peppol BIS Billing 3.0.21 Schematron. A file is still refused when it has a `DOCTYPE`, an external entity, a CII root, or a root that is not a UBL 2.1 Invoice or CreditNote.
 
 Posting an imported draft is refused when its nett, VAT, or total differs from `semantic` `BG-22` `BT-109`, `BT-110`, and `BT-112`.
 
+### Secrets, Ask Qula, and Access Point
+
+`organisation_secrets` stores AES-256-GCM ciphertext for `ai_api_key`, `ap_api_key`, and `ap_webhook_secret`. The API cannot select the table. `organisation_secret_status` returns the kind, hint, and who changed it. `ai_providers` and `access_point_providers` are read-only reference rows. `ai_settings` and `access_point_settings` are one row per organisation. Members can read them. Owners and admins can change them. `ai_usage` records who asked, when, the provider, the model, token counts, tool-call count, and the outcome. It does not store the question or the answer.
+
 ### Audit
 
-`audit_log`: `table_name`, `row_id`, `action`, `old_values`, `new_values`, `changed_at`, `changed_by`, `tenant_id`, `organisation_id`. It covers organisation defaults, access, suppliers, customers, VAT rates, GL codes, currencies, transaction types, and document headers.
+`audit_log`: `table_name`, `row_id`, `action`, `old_values`, `new_values`, `changed_at`, `changed_by`, `tenant_id`, `organisation_id`. It covers organisation defaults, access, suppliers, customers, VAT rates, GL codes, currencies, transaction types, document headers, Ask Qula settings, Access Point settings, and secret changes. A secret change records the kind and hint, never the value.
 
 ## Who can do what
 
@@ -353,6 +363,14 @@ Posting an imported draft is refused when its nett, VAT, or total differs from `
 | Download EN 16931 JSON | no | yes | yes |
 | Read the audit log | no | yes | yes |
 | Delete an organisation with no documents | no | no | yes, unless it is the last in the tenant |
+| Upload a received e-document | yes | yes | yes |
+| Import a valid e-document | yes | yes | yes |
+| Create a supplier from an e-document | yes | yes | yes |
+| Reject a received e-document | no | yes | yes |
+| Release a duplicate | no | yes | yes |
+| Regenerate an outbound e-document | yes | yes | yes |
+| Use Ask Qula | yes | yes | yes |
+| Ask Qula and Access Point settings, secrets and usage | no | yes | yes |
 
 Select on a business table uses `private.is_org_member(organisation_id)`.
 
@@ -364,6 +382,8 @@ Select on a business table uses `private.is_org_member(organisation_id)`.
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Browser and server session key |
 | `EINVOICE_HMAC_KEY` | Same secret as Vault `einvoice_hmac_k1` |
 | `EINVOICE_HMAC_KEY_ID` | `k1` until the key is rotated |
+| `QULA_SECRETS_KEYS` | JSON object of key id to a base64 32-byte AES key. Values are not committed. |
+| `QULA_SECRETS_KEY_ID` | The current key id in that object |
 
 To rotate the signing key, add Vault `einvoice_hmac_k2`, point the host at `k2`, and remove `k1` after a day. The key is not stored in the repository.
 

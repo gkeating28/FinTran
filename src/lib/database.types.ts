@@ -1996,6 +1996,17 @@ export type Database = {
         ]
       }
     }
+
+      e_documents: { Row: { id: string; organisation_id: string; direction: string; status: string; document_number: string | null; seller_name: string | null; buyer_name: string | null; issue_date: string | null; duplicate_of: string | null; header_id: string | null; semantic: Json | null }; Insert: { id?: string; organisation_id: string }; Update: { status?: string }; Relationships: [] }
+      e_document_contents: { Row: { e_document_id: string; xml: string }; Insert: { e_document_id: string; xml: string }; Update: { xml?: string }; Relationships: [] }
+      e_document_validation_results: { Row: { id: string; e_document_id: string; layer: string; rule_id: string; severity: string; message: string }; Insert: { id?: string }; Update: { message?: string }; Relationships: [] }
+      e_document_events: { Row: { id: string; e_document_id: string; to_status: string }; Insert: { id?: string }; Update: { to_status?: string }; Relationships: [] }
+      organisation_secrets: { Row: { organisation_id: string; kind: string; ciphertext: string; hint: string | null }; Insert: { organisation_id: string; kind: string; ciphertext: string }; Update: { ciphertext?: string }; Relationships: [] }
+      ai_providers: { Row: { code: string; name: string; needs_base_url: boolean }; Insert: { code: string; name: string; needs_base_url: boolean }; Update: { name?: string }; Relationships: [] }
+      ai_settings: { Row: { organisation_id: string; enabled: boolean; provider_code: string | null; model: string | null; config: Json; user_hourly_limit: number; organisation_monthly_limit: number | null }; Insert: { organisation_id: string; tenant_id: string }; Update: { enabled?: boolean }; Relationships: [] }
+      ai_usage: { Row: { id: number; organisation_id: string; outcome: string }; Insert: { organisation_id: string; outcome: string }; Update: { outcome?: string }; Relationships: [] }
+      access_point_providers: { Row: { code: string; name: string }; Insert: { code: string; name: string }; Update: { name?: string }; Relationships: [] }
+      access_point_settings: { Row: { organisation_id: string; provider_code: string; environment: string; status: string; participant_registered: boolean }; Insert: { organisation_id: string; tenant_id: string; provider_code: string; environment: string; webhook_token: string }; Update: { status?: string }; Relationships: [] }
     Views: {
       [_ in never]: never
     }
@@ -2049,6 +2060,14 @@ export type Database = {
         Returns: undefined
       }
       save_document: { Args: { p_document: Json }; Returns: string }
+      release_duplicate_e_document: { Args: { p_id: string; p_reason: string }; Returns: undefined }
+      set_organisation_secret: { Args: { p_organisation_id: string; p_kind: string; p_ciphertext: string; p_hint: string }; Returns: undefined }
+      clear_organisation_secret: { Args: { p_organisation_id: string; p_kind: string }; Returns: undefined }
+      organisation_secret_status: { Args: { p_organisation_id: string }; Returns: { kind: string; hint: string | null; updated_at: string; updated_by: string | null }[] }
+      organisation_secret_ciphertext: { Args: { p_organisation_id: string; p_kind: string }; Returns: string }
+      record_ai_usage: { Args: { p_organisation_id: string; p_provider_code: string; p_model: string; p_input_tokens: number; p_output_tokens: number; p_tool_calls: number; p_outcome: string }; Returns: undefined }
+      ai_usage_allowance: { Args: { p_organisation_id: string }; Returns: { user_hour: number; organisation_month: number }[] }
+
       void_document: {
         Args: { p_header_id: string; p_reason: string }
         Returns: undefined

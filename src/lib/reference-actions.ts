@@ -1,9 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getWorkspace, ORGANISATION_COOKIE } from "@/lib/data";
+import { requireCurrentOrganisation } from "@/lib/organisation-guard";
 import { codeChangeError, friendlyCodeChange } from "@/lib/immutable-code";
 import {
   parseAccountType,
@@ -58,24 +57,8 @@ function friendlyError(error: { code?: string; message: string } | null, fallbac
 }
 
 async function currentOrganisation() {
-  const workspace = await getWorkspace();
-  if (workspace.status === "signed-out") redirect("/login");
-  if (workspace.status !== "ready") redirect("/");
-
-  const cookieStore = await cookies();
-  if (cookieStore.get(ORGANISATION_COOKIE)?.value !== workspace.current.organisationId) {
-    cookieStore.set(ORGANISATION_COOKIE, workspace.current.organisationId, {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 365,
-    });
-  }
-
-  return {
-    organisationId: workspace.current.organisationId,
-    tenantId: workspace.current.tenantId,
-  };
+  const current = await requireCurrentOrganisation();
+  return { organisationId: current.organisationId, tenantId: current.tenantId };
 }
 
 function accountTypeFrom(kind: ReferenceKind, formData: FormData): AccountType | null {

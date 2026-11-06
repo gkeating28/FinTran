@@ -1,9 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getWorkspace, ORGANISATION_COOKIE } from "@/lib/data";
+import { getWorkspace } from "@/lib/data";
+import { requireCurrentOrganisation } from "@/lib/organisation-guard";
+import { postedEInvoiceError, shouldGenerateEInvoice } from "@/lib/posted-einvoice";
 import {
   optionalText,
   parseExchangeRate,
@@ -47,19 +48,7 @@ function friendlyError(error: { code?: string; message: string } | null, fallbac
 }
 
 async function currentOrganisation() {
-  const workspace = await getWorkspace();
-  if (workspace.status === "signed-out") redirect("/login");
-  if (workspace.status !== "ready") redirect("/");
-
-  const cookieStore = await cookies();
-  if (cookieStore.get(ORGANISATION_COOKIE)?.value !== workspace.current.organisationId) {
-    cookieStore.set(ORGANISATION_COOKIE, workspace.current.organisationId, {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 365,
-    });
-  }
+  return requireCurrentOrganisation();
 }
 
 function linesFrom(value: string): PurchaseInvoiceLine[] | { error: string } {
@@ -295,16 +284,16 @@ export async function postPurchaseInvoice(formData: FormData) {
 
   const workspace = await getWorkspace();
   if (workspace.status !== "ready") redirect("/login");
-  await currentOrganisation();
+  const current = await currentOrganisation();
   const supabase = await createClient();
   const defaults = await supabase
     .from("organisation_defaults")
     .select("logo_path")
-    .eq("organisation_id", workspace.current.organisationId)
+    .eq("organisation_id", current.organisationId)
     .maybeSingle();
   let logoPath: string | null = null;
   if (defaults.data?.logo_path) {
-    logoPath = organisationSnapshotPath(workspace.current.organisationId, id);
+    logoPath = organisationSnapshotPath(current.organisationId, id);
     const copied = await supabase.storage.from(ORGANISATION_LOGO_BUCKET).copy(defaults.data.logo_path, logoPath);
     if (copied.error) {
       redirect(`${next}?error=${encodeURIComponent("The organisation logo could not be copied, so the document was not posted.")}`);
@@ -323,13 +312,12 @@ export async function postPurchaseInvoice(formData: FormData) {
     .maybeSingle();
   const kind = posted.data?.transaction_types as { type?: string; document_kind?: string } | { type?: string; document_kind?: string }[] | null;
   const typeRow = Array.isArray(kind) ? kind[0] : kind;
-  if (typeRow?.type === "Sales" && (typeRow.document_kind === "invoice" || typeRow.document_kind === "credit_note")) {
+  if (shouldGenerateEInvoice(typeRow?.type, typeRow?.document_kind)) {
     try {
       const { createOutbound } = await import("@/lib/einvoice/store");
-      await createOutbound(supabase, id, workspace.current.organisationId);
+      await createOutbound(supabase, id, current.organisationId);
     } catch (generationError) {
-      const message = generationError instanceof Error ? generationError.message : "The e-invoice could not be generated.";
-      redirect(`${next}?error=${encodeURIComponent(`Posted, but the e-invoice was not stored. ${message}`)}`);
+      redirect(`${next}?error=${encodeURIComponent(postedEInvoiceError(generationError))}`);
     }
   }
 

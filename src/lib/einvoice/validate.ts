@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import SaxonJS from "saxon-js";
 import { XMLParser } from "fast-xml-parser";
+import { validateXsd } from "./xsd";
 import { rejectUnsafeXml } from "./xml";
 
 export type ValidationFailure = {
@@ -63,10 +64,20 @@ function runLayer(xml: string, stylesheet: unknown, layer: ValidationFailure["la
   return failures(String(result.principalResult ?? ""), layer);
 }
 
-export function validateXml(xml: string): ValidationResult {
+export async function validateXml(xml: string): Promise<ValidationResult> {
   const checked = rejectUnsafeXml(xml);
+  const xsd = await validateXsd(xml, checked.root);
+  if (xsd.some((item) => item.severity === "fatal")) {
+    return {
+      validatorVersion: VALIDATOR_VERSION,
+      rulesVersion: RULES_VERSION,
+      root: checked.root,
+      results: xsd,
+    };
+  }
   const loaded = loadStylesheets();
   const results = [
+    ...xsd,
     ...runLayer(xml, loaded.cen, "en16931"),
     ...runLayer(xml, loaded.peppol, "peppol"),
   ];

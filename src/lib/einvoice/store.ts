@@ -76,7 +76,7 @@ export async function createOutbound(supabase: Client, headerId: string, organis
     throw new Error("Only a sales invoice or credit note can generate an e-invoice.");
   }
   const xml = generateUbl(record as Parameters<typeof generateUbl>[0]);
-  const validation = validateXml(xml);
+  const validation = await validateXml(xml);
   const { keyId } = signingKey();
   const envelope: Envelope = {
     keyId,
@@ -99,7 +99,7 @@ export async function createOutbound(supabase: Client, headerId: string, organis
 }
 
 export async function receiveInbound(supabase: Client, organisationId: string, xml: string) {
-  const validation = validateXml(xml);
+  const validation = await validateXml(xml);
   const semantic = parseUbl(xml);
   const { keyId } = signingKey();
   const envelope: Envelope = {
