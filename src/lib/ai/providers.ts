@@ -59,12 +59,14 @@ async function anthropic(settings: Settings, system: string, messages: AiMessage
       "x-api-key": settings.apiKey,
       "anthropic-version": "2023-06-01",
     },
-    body: JSON.stringify({
+      body: JSON.stringify({
       model: settings.model,
       max_tokens: 800,
       system,
       messages: messages.map((message) => ({ role: message.role, content: message.text })),
-      tools: tools.map((tool) => ({ name: tool.name, description: tool.description, input_schema: tool.parameters })),
+      ...(tools.length
+        ? { tools: tools.map((tool) => ({ name: tool.name, description: tool.description, input_schema: tool.parameters })) }
+        : {}),
     }),
   }));
   const content = Array.isArray(body.content) ? body.content : [];
@@ -98,7 +100,9 @@ async function openAi(settings: Settings, system: string, messages: AiMessage[],
     body: JSON.stringify({
       model: azure ? undefined : settings.model,
       messages: [{ role: "system", content: system }, ...messages.map((message) => ({ role: message.role, content: message.text }))],
-      tools: tools.map((tool) => ({ type: "function", function: { name: tool.name, description: tool.description, parameters: tool.parameters } })),
+      ...(tools.length
+        ? { tools: tools.map((tool) => ({ type: "function", function: { name: tool.name, description: tool.description, parameters: tool.parameters } })) }
+        : {}),
     }),
   }));
   return openAiTurn(body);
