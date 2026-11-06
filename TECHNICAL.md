@@ -1,8 +1,25 @@
-# FinTran technical description
+# Qula Tran technical description
 
-FinTran keeps financial setup and documents separate for each organisation. A tenant owns one or more organisations. A person signs in once and is granted access to particular organisations as an owner, an admin, or a member.
+Qula Tran keeps financial setup and documents separate for each organisation. A tenant owns one or more organisations. A person signs in once and is granted access to particular organisations as an owner, an admin, or a member.
 
-Purchases and sales share one document store and one entry form. The transaction type decides the direction. Posted sales invoices and credit notes can be stored as Peppol BIS Billing 3.0 UBL. A received UBL file can be imported as a Purchases draft. Orders stay in FinTran and are not exported as EN 16931 invoices.
+Purchases and sales share one document store and one entry form. The transaction type decides the direction. Posted sales invoices and credit notes can be stored as Peppol BIS Billing 3.0 UBL. A received UBL file can be imported as a Purchases draft. Orders stay in Qula Tran and are not exported as EN 16931 invoices.
+
+## Naming
+
+The product name on screens, page titles, print, and messages is Qula Tran. These internal identifiers keep the previous name so existing sessions, files, and database behaviour do not change:
+
+| Identifier | Why it stays |
+| --- | --- |
+| Repository and npm package `fintran` | The GitHub repository and package name |
+| Cookie `fintran-organisation` | Existing browsers already store the open organisation under this name |
+| `sessionStorage` key `fintran.ask-qula.{organisationId}` | Existing Ask Qula conversations |
+| `localStorage` keys `fintran.form.*`, `fintran.transactionSplitWidth`, `fintran.spelling.ignored` | Saved grid sizes, split position, and ignored spellings |
+| Postgres settings `fintran.status_change`, `fintran.home_currency`, `fintran.deleting_organisation` | Triggers already read these names |
+| Readiness rule ids `FINTRAN-BT-1`, `FINTRAN-CREDIT`, `FINTRAN-ADDRESS-REVIEW` | Stored and displayed rule identifiers |
+| Supabase project and the SQL test addresses `@fintran.test` | The hosted project and the test fixtures |
+| Environment variable names | They are deployment configuration, not labels |
+
+Supabase Auth email templates are edited in the Supabase project, not in this repository. They need the same product name there.
 
 Domain rules in more detail, including EN 16931 business-term mapping, are in [CORE.md](CORE.md). This document is the application map: how the screen is built, which functions the app calls, and how the database is shaped.
 
@@ -303,7 +320,7 @@ Ordinary inserts are not granted. Status changes go through `store_e_document`, 
 | `status` | `generated`, `received`, `invalid`, `valid`, `duplicate`, `imported`, `rejected` |
 | `source` | `generated` or `manual_upload` |
 | `ubl_root` | `Invoice` or `CreditNote` |
-| `header_id` | Linked FinTran document. One valid outbound file per header. One imported inbound file per header. |
+| `header_id` | Linked Qula Tran document. One valid outbound file per header. One imported inbound file per header. |
 | `duplicate_of` | Earlier file with the same hash |
 | `sha256` | 64 hex characters. Unique per organisation and direction. |
 | `byte_size` | 1 to 4 MiB |

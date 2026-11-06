@@ -16,7 +16,7 @@ export default async function SignUpPage() {
         <div className={styles.brand}>
           <img src="/qula-logo.png" alt="" width={40} height={40} className={styles.brandMark} />
           <div>
-            <strong>Qula</strong>
+            <strong>Qula Tran</strong>
             <span>TRANSACTIONS</span>
           </div>
         </div>

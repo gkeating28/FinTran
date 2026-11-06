@@ -6,8 +6,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "FinTran",
-    template: "%s · FinTran",
+    default: "Qula Tran",
+    template: "%s · Qula Tran",
   },
   description: "Define and manage financial transactions for each organisation.",
 };

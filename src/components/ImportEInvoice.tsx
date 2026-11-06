@@ -502,7 +502,7 @@ export function ImportEInvoice({
   const ibanChanged = previousIban !== null && previousIban.replace(/\s/g, "") !== iban.replace(/\s/g, "");
   const title = documentTitle ? `Import ${documentTitle}` : "Import e-invoice";
   const statusText = unsupported.length
-    ? `This e-invoice uses features FinTran cannot import yet: ${unsupported.join(", ")}`
+    ? `This e-invoice uses features Qula Tran cannot import yet: ${unsupported.join(", ")}`
     : missingType
       ? "Choose the default Purchases document type before importing."
       : currenciesReady && !invoiceCurrency
@@ -530,7 +530,7 @@ export function ImportEInvoice({
               if (saving) return;
               setError(null);
               if (unsupported.length) {
-                setError(`This e-invoice uses features FinTran cannot import yet: ${unsupported.join(", ")}`);
+                setError(`This e-invoice uses features Qula Tran cannot import yet: ${unsupported.join(", ")}`);
                 return;
               }
               if (missingType) {
