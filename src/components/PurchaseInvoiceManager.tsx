@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useActionState, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import ConfirmSubmitButton from "@/components/ConfirmDialog";
 import DataGrid from "@/components/DataGrid";
 import GridPager from "@/components/GridPager";
 import { useGridPageSize } from "@/components/useGridPageSize";
@@ -407,15 +408,13 @@ export default function PurchaseInvoiceManager({
                 <form action={deletePurchaseInvoice}>
                   <input type="hidden" name="id" value={row.id} />
                   {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
-                  <button
+                  <ConfirmSubmitButton
                     className={styles.quiet}
-                    type="submit"
-                    onClick={(event) => {
-                      if (!window.confirm(`Remove ${row.transactionTypeCode} ${row.documentNumber || "draft"}?`)) event.preventDefault();
-                    }}
+                    title={`Remove ${row.transactionTypeCode} ${row.documentNumber || "draft"}?`}
+                    message="It will be removed from this organisation."
                   >
                     Remove
-                  </button>
+                  </ConfirmSubmitButton>
                 </form>
               </>
             ) : (

@@ -8,6 +8,15 @@ import { formatInteger } from "@/lib/numbers";
 import { clickOpensRow } from "@/lib/row-click";
 import styles from "@/components/OpsPage.module.css";
 
+function SortIcon({ direction }: { direction: "asc" | "desc" | null }) {
+  return (
+    <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor" aria-hidden>
+      <path d="M5 1 9 5.5H1L5 1Z" opacity={direction === "desc" ? 0.3 : 1} />
+      <path d="M5 13 1 8.5h8L5 13Z" opacity={direction === "asc" ? 0.3 : 1} />
+    </svg>
+  );
+}
+
 export type GridColumn<T> = {
   key: string;
   label: string;
@@ -104,82 +113,84 @@ export default function DataGrid<T extends { id: string }>({
         </label>
         {toolbar}
       </div>
-      <table
-        className={actionsWidth ? `${styles.table} ${styles.tableFixed}` : styles.table}
-        style={minWidth ? { minWidth } : undefined}
-      >
-        {actionsWidth ? (
-          <colgroup>
-            {columns.map((column) => (
-              <col key={column.key} style={{ width: column.width }} />
-            ))}
-            <col style={{ width: actionsWidth }} />
-          </colgroup>
-        ) : null}
-        <thead>
-          <tr>
-            {columns.map((column) => {
-              const active = column.key === sortKey;
-              return (
-                <th
-                  key={column.key}
-                  className={column.align === "right" ? styles.numeric : undefined}
-                  aria-sort={active ? (sortDirection === "asc" ? "ascending" : "descending") : "none"}
-                >
-                  <button className={styles.sortButton} type="button" title={column.label} onClick={() => sortBy(column.key)}>
-                    {column.label}
-                    <span className={styles.sortMark} aria-hidden>
-                      {active ? (sortDirection === "asc" ? "↑" : "↓") : "↕"}
-                    </span>
-                  </button>
-                </th>
-              );
-            })}
-            {actions ? <th className={styles.actionsHead}>Action</th> : null}
-          </tr>
-        </thead>
-        <tbody>
-          {visible.length === 0 ? (
+      <div className={styles.tableScroll}>
+        <table
+          className={actionsWidth ? `${styles.table} ${styles.tableFixed}` : styles.table}
+          style={minWidth ? { minWidth } : undefined}
+        >
+          {actionsWidth ? (
+            <colgroup>
+              {columns.map((column) => (
+                <col key={column.key} style={{ width: column.width }} />
+              ))}
+              <col style={{ width: actionsWidth }} />
+            </colgroup>
+          ) : null}
+          <thead>
             <tr>
-              <td colSpan={columns.length + (actions ? 1 : 0)} className={styles.empty}>
-                {query.trim() ? "No matches." : emptyLabel}
-              </td>
+              {columns.map((column) => {
+                const active = column.key === sortKey;
+                return (
+                  <th
+                    key={column.key}
+                    className={column.align === "right" ? styles.numeric : undefined}
+                    aria-sort={active ? (sortDirection === "asc" ? "ascending" : "descending") : "none"}
+                  >
+                    <button className={styles.sortButton} type="button" title={column.label} onClick={() => sortBy(column.key)}>
+                      {column.label}
+                      <span className={styles.sortMark} data-active={active} aria-hidden>
+                        <SortIcon direction={active ? sortDirection : null} />
+                      </span>
+                    </button>
+                  </th>
+                );
+              })}
+              {actions ? <th className={styles.actionsHead}>Action</th> : null}
             </tr>
-          ) : (
-            visible.map((row) => {
-              const opens = Boolean(onOpen) && (rowOpens?.(row) ?? true);
-              return (
-                <tr
-                  key={row.id}
-                  className={opens ? styles.rowClick : undefined}
-                  onClick={
-                    opens
-                      ? (event) => {
-                          if (!clickOpensRow(event.target)) return;
-                          onOpen?.(row);
+          </thead>
+          <tbody>
+            {visible.length === 0 ? (
+              <tr>
+                <td colSpan={columns.length + (actions ? 1 : 0)} className={styles.empty}>
+                  {query.trim() ? "No matches." : emptyLabel}
+                </td>
+              </tr>
+            ) : (
+              visible.map((row) => {
+                const opens = Boolean(onOpen) && (rowOpens?.(row) ?? true);
+                return (
+                  <tr
+                    key={row.id}
+                    className={opens ? styles.rowClick : undefined}
+                    onClick={
+                      opens
+                        ? (event) => {
+                            if (!clickOpensRow(event.target)) return;
+                            onOpen?.(row);
+                          }
+                        : undefined
+                    }
+                  >
+                    {columns.map((column) => (
+                      <td
+                        key={column.key}
+                        className={
+                          [column.mono ? styles.mono : "", column.align === "right" ? styles.numeric : ""]
+                            .filter(Boolean)
+                            .join(" ") || undefined
                         }
-                      : undefined
-                  }
-                >
-                  {columns.map((column) => (
-                    <td
-                      key={column.key}
-                      className={
-                        [column.mono ? styles.mono : "", column.align === "right" ? styles.numeric : ""]
-                          .filter(Boolean)
-                          .join(" ") || undefined
-                      }
-                    >
-                      {column.render(row)}
-                    </td>
-                  ))}
-                  {actions ? <td className={styles.actionsCell}><div className={styles.actions}>{actions(row)}</div></td> : null}
-                </tr>
-              );
-            })
-          )}
-        </tbody>
-      </table>
+                      >
+                        {column.render(row)}
+                      </td>
+                    ))}
+                    {actions ? <td className={styles.actionsCell}><div className={styles.actions}>{actions(row)}</div></td> : null}
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
       <GridPager
         page={page}
         pageCount={pageCount}

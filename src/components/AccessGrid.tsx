@@ -1,6 +1,7 @@
 "use client";
 
 import { GrantAccessForm } from "@/components/Forms";
+import ConfirmSubmitButton from "@/components/ConfirmDialog";
 import DataGrid from "@/components/DataGrid";
 import { revokeAccess } from "@/lib/actions";
 import styles from "@/components/OpsPage.module.css";
@@ -62,15 +63,13 @@ export default function AccessGrid({
                 <form action={revokeAccess}>
                   <input type="hidden" name="organisationId" value={organisationId} />
                   <input type="hidden" name="userId" value={row.id} />
-                  <button
+                  <ConfirmSubmitButton
                     className={styles.quiet}
-                    type="submit"
-                    onClick={(event) => {
-                      if (!window.confirm(`Remove ${row.name}?`)) event.preventDefault();
-                    }}
+                    title={`Remove ${row.name}?`}
+                    message="It will be removed from this organisation."
                   >
                     Remove
-                  </button>
+                  </ConfirmSubmitButton>
                 </form>
               ) : null
           : undefined

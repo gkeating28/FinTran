@@ -1,20 +1,18 @@
 .bar {
-  --tb-bg: #16294a;
-  --tb-accent: #2c4c78;
   --tb-font: var(--font-public-sans), system-ui, sans-serif;
-  --tb-radius: 3px;
 
   height: 60px;
   flex-shrink: 0;
-  background: var(--tb-bg);
-  color: #d5deeb;
+  background: var(--chrome-bg);
+  border-bottom: 1px solid var(--chrome-line);
+  color: var(--chrome-text);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 21px;
+  padding: 0 var(--space-5);
   gap: 18px;
   font-family: var(--tb-font);
-  font-size: 13px;
+  font-size: var(--text-sm);
   line-height: 1.4;
   box-sizing: border-box;
   width: 100%;
@@ -30,7 +28,7 @@
   display: flex;
   align-items: center;
   min-width: 0;
-  font-size: 12.5px;
+  font-size: var(--text-sm);
 }
 
 .crumbText {
@@ -42,7 +40,7 @@
 }
 
 .crumbLink {
-  color: #f4f7fb;
+  color: var(--chrome-text-strong);
   font-weight: 600;
   text-decoration: none;
 }
@@ -52,7 +50,7 @@
 }
 
 .breadcrumb strong {
-  color: #f4f7fb;
+  color: var(--chrome-text-strong);
   font-weight: 600;
 }
 
@@ -63,7 +61,7 @@
 .breadcrumb strong.formTitle {
   flex: 0 1 auto;
   min-width: 0;
-  font-size: 15px;
+  font-size: var(--text-lg);
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
@@ -72,7 +70,7 @@
 
 .sep {
   margin: 0 9px;
-  color: #7f8ba3;
+  color: var(--chrome-muted);
 }
 
 .actions {
@@ -85,7 +83,7 @@
 .exitBtn {
   composes: control from "./ChromeControl.module.css";
   width: 64px;
-  height: 42px;
+  height: 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -95,4 +93,35 @@
   font-weight: 600;
   text-decoration: none;
   appearance: none;
+}
+
+.menuBtn {
+  composes: control from "./ChromeControl.module.css";
+  display: none;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  margin-right: 12px;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  appearance: none;
+}
+
+.lead {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+@media (max-width: 860px) {
+  .menuBtn {
+    display: inline-flex;
+  }
+
+  .bar {
+    padding: 0 var(--space-4);
+    gap: 12px;
+  }
 }

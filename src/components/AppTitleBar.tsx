@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useFormChrome } from "@/components/FormChrome";
+import { useNav } from "@/components/NavState";
 import { previousPage } from "@/lib/previous-page";
 import styles from "./AppTitleBar.module.css";
 
@@ -40,6 +41,7 @@ export default function AppTitleBar({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const nav = useNav();
   const formTitle = useFormChrome();
   const transactionCode = pathname.match(/^\/transactions\/([A-Za-z0-9]+)$/)?.[1];
   const formCode = pathname.match(/^\/forms\/([A-Za-z0-9]+)$/)?.[1];
@@ -62,30 +64,44 @@ export default function AppTitleBar({
 
   return (
     <div className={styles.bar} data-title-bar="">
-      <div className={styles.breadcrumb}>
-        <span className={styles.crumbText}>
-          Managing: <strong>{organisationName}</strong>
-          <span className={styles.sep}>/</span>
-          {formCode ? (
-            <>
-              <Link href="/forms" className={styles.crumbLink}>
-                Forms
-              </Link>
-              <span className={styles.sep}>/</span>
-              <strong>{formCode.toUpperCase()}</strong>
-            </>
-          ) : (
-            <strong>{pageLabel}</strong>
-          )}
-        </span>
-        {formTitle ? (
-          <>
+      <div className={styles.lead}>
+        <button
+          className={styles.menuBtn}
+          type="button"
+          aria-label="Open menu"
+          aria-controls="app-sidebar"
+          aria-expanded={nav.open}
+          onClick={nav.toggle}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+            <path d="M4 7h16M4 12h16M4 17h16" />
+          </svg>
+        </button>
+        <div className={styles.breadcrumb}>
+          <span className={styles.crumbText}>
+            Managing: <strong>{organisationName}</strong>
             <span className={styles.sep}>/</span>
-            <strong id={formTitle.titleId} className={styles.formTitle}>
-              {formTitle.title}
-            </strong>
-          </>
-        ) : null}
+            {formCode ? (
+              <>
+                <Link href="/forms" className={styles.crumbLink}>
+                  Forms
+                </Link>
+                <span className={styles.sep}>/</span>
+                <strong>{formCode.toUpperCase()}</strong>
+              </>
+            ) : (
+              <strong>{pageLabel}</strong>
+            )}
+          </span>
+          {formTitle ? (
+            <>
+              <span className={styles.sep}>/</span>
+              <strong id={formTitle.titleId} className={styles.formTitle}>
+                {formTitle.title}
+              </strong>
+            </>
+          ) : null}
+        </div>
       </div>
       <div className={styles.actions}>
         {formTitle || back ? (

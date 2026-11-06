@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { CodeField } from "@/components/CodeField";
+import ConfirmSubmitButton from "@/components/ConfirmDialog";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
 import { QuietInput } from "@/components/QuietField";
@@ -102,15 +103,13 @@ export default function CurrencyManager({
                   </button>
                   <form action={deleteCurrency}>
                     <input type="hidden" name="id" value={row.id} />
-                    <button
+                    <ConfirmSubmitButton
                       className={styles.quiet}
-                      type="submit"
-                      onClick={(event) => {
-                        if (!window.confirm(`Remove ${row.code}?`)) event.preventDefault();
-                      }}
+                      title={`Remove ${row.code}?`}
+                      message="It will be removed from this organisation."
                     >
                       Remove
-                    </button>
+                    </ConfirmSubmitButton>
                   </form>
                 </>
               )

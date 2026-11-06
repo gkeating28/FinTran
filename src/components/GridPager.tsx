@@ -41,7 +41,7 @@ export default function GridPager({
     <div className={[styles.gridFooter, className].filter(Boolean).join(" ")}>
       <RowsPerPage pageSize={pageSize} onPageSize={onPageSize} />
       <div className={styles.pager}>
-        {summary ? <span className="sr-only">{summary}</span> : null}
+        {summary ? <span className={styles.pagerSummary}>{summary}</span> : null}
         <span aria-live="polite">
           Page {formatInteger(page + 1)} of {formatInteger(pageCount)}
         </span>
