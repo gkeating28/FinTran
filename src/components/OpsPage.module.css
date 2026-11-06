@@ -59,6 +59,7 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
+  overscroll-behavior: contain;
   padding: var(--space-5) 28px 40px;
 }
 
@@ -273,7 +274,6 @@
 .table th {
   position: sticky;
   top: 0;
-  z-index: 1;
   height: 40px;
   font-size: var(--text-xs);
   color: var(--ops-muted);
@@ -286,6 +286,7 @@
 .tableScroll {
   max-height: min(72vh, 760px);
   overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .table tbody tr:hover td {
@@ -669,6 +670,7 @@
 }
 
 .pageDialog {
+  z-index: 5;
   display: flex;
   flex-direction: column;
   padding: 0;

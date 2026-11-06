@@ -68,11 +68,16 @@ export default function FormModal({
       dialog.style.maxHeight = "none";
     };
 
+    // The list underneath must not scroll while the form covers it.
+    const pageOverflow = page.style.overflow;
+    page.style.overflow = "hidden";
+
     place();
     const observer = new ResizeObserver(place);
     observer.observe(page);
     window.addEventListener("resize", place);
     return () => {
+      page.style.overflow = pageOverflow;
       observer.disconnect();
       window.removeEventListener("resize", place);
     };
