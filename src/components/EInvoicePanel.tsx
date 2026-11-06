@@ -82,7 +82,7 @@ export function EInvoicePanel({
       {!sales && imported ? (
         <p className={styles.panelMeta}>
           Nett {foreignNett} / {nett || "—"} · VAT {foreignVat} / {vat || "—"} · Total {foreignTotal} / {total || "—"}. The first
-          figure is FinTran and the second is the e-invoice.
+          figure is Qula Tran and the second is the e-invoice.
         </p>
       ) : null}
       <div className={styles.readinessBar}>
