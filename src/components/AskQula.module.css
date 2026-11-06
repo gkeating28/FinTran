@@ -7,7 +7,7 @@
   justify-content: center;
   flex-shrink: 0;
   padding: 0;
-  color: #f4f8ff;
+  color: var(--chrome-text-strong);
   appearance: none;
 }
 
@@ -24,13 +24,13 @@
 }
 
 .drawer {
-  --ops-panel-muted: #f8f9fb;
-  --ops-border: #dde1e8;
-  --ops-border-soft: #e3e6ec;
-  --ops-text: #151b2b;
-  --ops-text-2: #3a4356;
-  --ops-muted: #8891a0;
-  --ops-accent: #2c4c78;
+  --ops-panel-muted: var(--color-surface-muted);
+  --ops-border: var(--color-border);
+  --ops-border-soft: var(--color-border-soft);
+  --ops-text: var(--color-text);
+  --ops-text-2: var(--color-text-2);
+  --ops-muted: var(--color-muted);
+  --ops-accent: var(--color-accent);
   --ops-font: var(--font-public-sans), system-ui, sans-serif;
   --ops-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
 
@@ -43,11 +43,10 @@
   width: min(400px, 100vw);
   border-left: 1px solid var(--ops-border);
   background: #fff;
-  box-shadow: -18px 0 40px rgba(15, 31, 56, 0.16);
   color: var(--ops-text);
   font-family: var(--ops-font);
-  font-size: 13px;
-  line-height: 1.4;
+  font-size: var(--text-base);
+  line-height: 1.45;
   overflow: hidden;
   transform: translateX(100%);
   pointer-events: none;
@@ -62,6 +61,7 @@
 }
 
 .drawer[data-open="true"] {
+  box-shadow: -18px 0 40px rgba(15, 31, 56, 0.16);
   transform: translateX(0);
   pointer-events: auto;
 }
@@ -94,7 +94,7 @@
   height: 28px;
   padding: 0 8px;
   border: 1px solid var(--ops-border, #dde1e8);
-  border-radius: 3px;
+  border-radius: var(--radius);
   background: #fff;
   color: var(--ops-text-2, #3a4356);
   font: inherit;
@@ -165,7 +165,7 @@
   width: 100%;
   padding: 8px;
   border: 1px solid var(--ops-border, #dde1e8);
-  border-radius: 3px;
+  border-radius: var(--radius);
   background: #fff;
   color: inherit;
   font: inherit;
@@ -296,7 +296,7 @@ button.card:hover {
   height: 34px;
   padding: 0 10px;
   border: 1px solid var(--ops-border, #dde1e8);
-  border-radius: 3px;
+  border-radius: var(--radius);
   font: inherit;
   color: var(--ops-text, #151b2b);
 }
@@ -304,7 +304,7 @@ button.card:hover {
 .send {
   height: 34px;
   padding: 0 12px;
-  border-radius: 3px;
+  border-radius: var(--radius);
   background: var(--ops-accent, #2c4c78);
   color: #fff;
   border-color: transparent;

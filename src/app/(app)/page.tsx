@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import { CreateTenantForm } from "@/components/Forms";
+import HomeOverview from "@/components/HomeOverview";
 import styles from "@/components/OpsPage.module.css";
 import { listIsoCurrencies } from "@/lib/currency-data";
 import { getWorkspace, listOrganisationMembers } from "@/lib/data";
+import { getHomeOverview } from "@/lib/home-data";
 import { roleLabel } from "@/lib/types";
 
 export const metadata = { title: "Home" };
@@ -39,43 +41,20 @@ export default async function HomePage() {
 
   const { current, memberships } = workspace;
   const inTenant = memberships.filter((membership) => membership.tenantId === current.tenantId);
-  const { members, error } = await listOrganisationMembers(current.organisationId);
+  const [{ members, error }, overview] = await Promise.all([
+    listOrganisationMembers(current.organisationId),
+    getHomeOverview(current.organisationId),
+  ]);
 
   return (
-    <section className={styles.stack}>
-      <div>
-        <h1 className={styles.heading}>{current.organisationName}</h1>
-        <p className={styles.lede}>
-          Organisations belong to a tenant. People are granted access to individual organisations
-          inside that tenant. Transaction definitions will be specific to each organisation.
-        </p>
-      </div>
-      {error ? (
-        <p className={styles.alert} role="alert">
-          {error}
-        </p>
-      ) : null}
-      <div className={styles.cards}>
-        <article className={styles.card}>
-          <div className={styles.cardLabel}>Tenant</div>
-          <div className={styles.cardValue}>{current.tenantName}</div>
-        </article>
-        <article className={styles.card}>
-          <div className={styles.cardLabel}>Your role</div>
-          <div className={styles.cardValue}>{roleLabel(current.role)}</div>
-          <div className={styles.cardMeta}>{current.organisationSlug}</div>
-        </article>
-        <article className={styles.card}>
-          <div className={styles.cardLabel}>Organisations you can open</div>
-          <div className={styles.cardValue}>{inTenant.length}</div>
-          <div className={styles.cardMeta}>in {current.tenantName}</div>
-        </article>
-        <article className={styles.card}>
-          <div className={styles.cardLabel}>People with access</div>
-          <div className={styles.cardValue}>{error ? "—" : members.length}</div>
-        </article>
-      </div>
-      <p className={styles.lede}>Version check: this page was last updated on 6 November 2026.</p>
-    </section>
+    <HomeOverview
+      organisationName={current.organisationName}
+      tenantName={current.tenantName}
+      role={roleLabel(current.role)}
+      organisationCount={inTenant.length}
+      memberCount={error ? null : members.length}
+      error={error}
+      overview={overview}
+    />
   );
 }
