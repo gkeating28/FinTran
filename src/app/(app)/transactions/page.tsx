@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DocumentIcon } from "@/components/icons";
 import styles from "@/components/OpsPage.module.css";
+import dashboardStyles from "@/components/Dashboard.module.css";
 import { getWorkspace } from "@/lib/data";
 import { formatInteger } from "@/lib/numbers";
 import { listTransactionMenu, type TransactionMenuTile } from "@/lib/transaction-type-data";
@@ -34,9 +35,9 @@ export default async function TransactionsPage() {
           No transaction types yet. Add them under Admin, then they will appear here.
         </p>
       ) : (
-        <div className={styles.menuGroups}>
+        <div className={dashboardStyles.menuGroups}>
           <TransactionGroup title="Purchase transactions" tiles={tiles.filter((tile) => tile.type === "Purchases")} />
-          <hr className={styles.menuDivider} />
+          <hr className={dashboardStyles.menuDivider} />
           <TransactionGroup title="Sales transactions" tiles={tiles.filter((tile) => tile.type === "Sales")} />
         </div>
       )}
@@ -46,23 +47,23 @@ export default async function TransactionsPage() {
 
 function TransactionGroup({ title, tiles }: { title: string; tiles: TransactionMenuTile[] }) {
   return (
-    <section className={styles.menuSection}>
-      <h2 className={styles.menuHeading}>{title}</h2>
+    <section className={dashboardStyles.menuSection}>
+      <h2 className={dashboardStyles.menuHeading}>{title}</h2>
       {tiles.length === 0 ? (
         <p className={styles.panelMeta}>No {title.toLowerCase()} yet.</p>
       ) : (
-        <div className={styles.adminGrid}>
+        <div className={dashboardStyles.adminGrid}>
           {tiles.map((tile) => (
-            <Link key={tile.id} href={`/transactions/${tile.code}`} className={styles.adminTile}>
-              <span className={styles.adminTileIcon}>
+            <Link key={tile.id} href={`/transactions/${tile.code}`} className={dashboardStyles.adminTile}>
+              <span className={dashboardStyles.adminTileIcon}>
                 <DocumentIcon size={22} />
               </span>
-              <span className={styles.adminTileLabel}>{tile.description}</span>
-              <span className={styles.adminTileCount}>{formatInteger(tile.count)}</span>
-              <span className={styles.adminTileMeta}>
+              <span className={dashboardStyles.adminTileLabel}>{tile.description}</span>
+              <span className={dashboardStyles.adminTileCount}>{formatInteger(tile.count)}</span>
+              <span className={dashboardStyles.adminTileMeta}>
                 {tile.code} · {documentKindLabel(tile.documentKind)}
               </span>
-              <span className={styles.adminTileMeta}>
+              <span className={dashboardStyles.adminTileMeta}>
                 {formatInteger(tile.draftCount)} draft · {formatInteger(tile.postedCount)} posted · {formatInteger(tile.voidCount)} void
               </span>
             </Link>

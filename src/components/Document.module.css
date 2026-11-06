@@ -1,0 +1,252 @@
+/* Shared by the transaction screens and the e-invoice import: header tabs, line grid helpers,
+   totals and VAT breakdown, readiness, and the side sheet. */
+
+.headerTabs {
+  display: flex;
+  flex: none;
+  gap: 4px;
+  border-bottom: 1px solid var(--ops-border);
+}
+
+.headerTab {
+  height: 40px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--ops-text-2);
+  font: inherit;
+  font-weight: 700;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.headerTab[aria-selected="true"] {
+  color: var(--ops-accent);
+  border-bottom-color: var(--ops-accent);
+}
+
+.actionCluster {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sideSheet {
+  position: absolute;
+  z-index: 4;
+  right: 16px;
+  bottom: 62px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(440px, calc(100% - 32px));
+  max-height: min(420px, calc(100% - 96px));
+  overflow: auto;
+  padding: 14px;
+  border: 1px solid var(--ops-border);
+  border-radius: var(--ops-radius);
+  background: var(--ops-panel);
+  box-shadow: var(--shadow-lg);
+}
+
+.sideSheetHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.linePager {
+  flex: none;
+  padding-left: 0;
+  padding-right: 12px;
+  border-radius: 0;
+}
+
+.lineScroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.lineHint {
+  margin-left: 10px;
+  color: var(--ops-text-2);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.lineClick {
+  cursor: pointer;
+}
+
+.lineClick:hover td,
+.lineClick:focus-visible td {
+  background: var(--color-hover);
+}
+
+.lineClick:focus-visible {
+  outline: 2px solid var(--ops-accent);
+  outline-offset: -2px;
+}
+
+.amountBox {
+  min-width: 0;
+  margin: 0;
+  border: 1px solid var(--ops-border);
+  border-radius: var(--ops-radius);
+  padding: 8px 12px 12px;
+}
+
+.amountBox legend {
+  padding: 0 6px;
+  color: var(--ops-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.amountBox table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.amountBox th,
+.amountBox td {
+  padding: 4px 8px;
+  text-align: right;
+  font-size: 12.5px;
+}
+
+.amountBox thead th {
+  color: var(--ops-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.amountBox tbody th,
+.amountBox thead th:first-child {
+  text-align: left;
+  width: 1%;
+  white-space: nowrap;
+}
+
+.amountBox tbody th {
+  font-family: var(--ops-mono);
+  font-weight: 700;
+}
+
+.amountBox .vatBreakdown {
+  margin-top: 8px;
+  border-top: 1px solid var(--ops-border);
+}
+
+.amountBox .vatBreakdown th:first-child,
+.amountBox .vatBreakdown td:first-child {
+  text-align: left;
+}
+
+.readinessButton {
+  border: 0;
+  border-radius: var(--ops-radius);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  line-height: 1;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.readinessButton[data-status="error"] {
+  background: var(--ops-danger);
+}
+
+.readinessButton[data-status="warning"] {
+  background: var(--ops-warn);
+}
+
+.readinessButton[data-status="ready"] {
+  background: var(--ops-ok);
+}
+
+.readinessButton[data-status="pending"] {
+  background: #e7ebf0;
+  color: var(--ops-text-2);
+  cursor: default;
+}
+
+.readinessButton:hover {
+  filter: brightness(0.92);
+}
+
+.readinessDialog {
+  width: min(720px, calc(100vw - 32px));
+}
+
+.readinessBody {
+  padding: 16px;
+}
+
+.readinessSummary {
+  margin: 0 0 14px;
+  font-weight: 700;
+}
+
+.readinessSummary[data-status="error"] {
+  color: var(--ops-danger);
+}
+
+.readinessSummary[data-status="warning"] {
+  color: var(--ops-warn);
+}
+
+.readinessSummary[data-status="ready"] {
+  color: var(--ops-ok);
+}
+
+.readinessList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.readinessItem {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--ops-border);
+  border-left-width: 4px;
+  border-radius: var(--ops-radius);
+  background: var(--ops-panel);
+}
+
+.readinessItem[data-status="error"] {
+  border-left-color: var(--ops-danger);
+}
+
+.readinessItem[data-status="warning"] {
+  border-left-color: var(--ops-warn);
+}
+
+.readinessItem p {
+  margin: 4px 0 0;
+}
+
+.readinessRule {
+  font-family: var(--ops-mono, ui-monospace, monospace);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.readinessItem a {
+  display: inline-block;
+  margin-top: 8px;
+}

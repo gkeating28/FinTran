@@ -3,6 +3,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import styles from "@/components/OpsPage.module.css";
+import confirmStyles from "@/components/Confirm.module.css";
 
 export function ConfirmDialog({
   title,
@@ -47,7 +48,7 @@ export function ConfirmDialog({
   return createPortal(
     <dialog
       ref={dialogRef}
-      className={`${styles.dialog} ${styles.confirmDialog}`}
+      className={confirmStyles.confirmDialog}
       role="alertdialog"
       aria-labelledby={titleId}
       aria-describedby={messageId}
@@ -56,15 +57,15 @@ export function ConfirmDialog({
       }}
       onClick={(event) => event.stopPropagation()}
     >
-      <div className={styles.confirmBody}>
-        <h2 id={titleId} className={styles.confirmTitle}>
+      <div className={confirmStyles.confirmBody}>
+        <h2 id={titleId} className={confirmStyles.confirmTitle}>
           {title}
         </h2>
-        <p id={messageId} className={styles.confirmMessage}>
+        <p id={messageId} className={confirmStyles.confirmMessage}>
           {message}
         </p>
       </div>
-      <div className={styles.confirmActions}>
+      <div className={confirmStyles.confirmActions}>
         <button ref={cancelRef} className={styles.quiet} type="button" onClick={onCancel}>
           Cancel
         </button>

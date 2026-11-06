@@ -43,6 +43,7 @@ import {
   type ReadinessItem,
 } from "@/lib/purchase-invoices";
 import styles from "@/components/OpsPage.module.css";
+import documentStyles from "@/components/Document.module.css";
 import type { ActionState } from "@/lib/types";
 
 function today() {
@@ -501,13 +502,13 @@ function readinessSummary(items: PurchaseInvoiceRow["readiness"], direction: "Sa
 
 function ReadinessList({ items, direction }: { items: PurchaseInvoiceRow["readiness"]; direction: "Sales" | "Purchases" }) {
   return (
-    <ul className={styles.readinessList}>
+    <ul className={documentStyles.readinessList}>
       {items.map((item, index) => {
         const href = readinessHref(item.businessTerm, direction);
         const label = href === "/customers" ? "Open Customers" : href === "/suppliers" ? "Open Suppliers" : "Open Organisations";
         return (
-          <li key={`${item.ruleId}-${item.businessTerm}-${index}`} className={styles.readinessItem} data-status={item.severity}>
-            <div className={styles.readinessRule}>{item.ruleId}</div>
+          <li key={`${item.ruleId}-${item.businessTerm}-${index}`} className={documentStyles.readinessItem} data-status={item.severity}>
+            <div className={documentStyles.readinessRule}>{item.ruleId}</div>
             <p>{item.message}</p>
             {href ? <Link href={href}>{label}</Link> : <p className={styles.panelMeta}>Enter this on the document.</p>}
           </li>
@@ -532,7 +533,7 @@ function ReadinessControl({
   return (
     <>
       <button
-        className={styles.readinessButton}
+        className={documentStyles.readinessButton}
         data-status={status}
         type="button"
         disabled={pending}
@@ -541,9 +542,9 @@ function ReadinessControl({
         Readiness
       </button>
       {open ? (
-        <FormModal title="Readiness" className={styles.readinessDialog} onClose={() => setOpen(false)}>
-          <div className={styles.readinessBody}>
-            <p className={styles.readinessSummary} data-status={status}>
+        <FormModal title="Readiness" className={documentStyles.readinessDialog} onClose={() => setOpen(false)}>
+          <div className={documentStyles.readinessBody}>
+            <p className={documentStyles.readinessSummary} data-status={status}>
               {readinessSummary(items, direction)}
             </p>
             {items.length > 0 ? <ReadinessList items={items} direction={direction} /> : null}
@@ -963,7 +964,7 @@ function InvoiceForm({
         </div>
         <div className={`${styles.invoiceSplit} ${sideBySide ? "" : styles.invoiceStacked}`} ref={splitRef} style={splitStyle}>
         <div className={styles.headerPane}>
-        <div className={styles.headerTabs} role="tablist" aria-label="Header">
+        <div className={documentStyles.headerTabs} role="tablist" aria-label="Header">
           {([
             ["document", "Document"],
             ["notes", "Notes"],
@@ -971,7 +972,7 @@ function InvoiceForm({
           ] as const).map(([id, label]) => (
             <button
               key={id}
-              className={styles.headerTab}
+              className={documentStyles.headerTab}
               type="button"
               role="tab"
               id={`header-tab-${id}`}
@@ -1267,7 +1268,7 @@ function InvoiceForm({
         </div>
         </div>
         <div className={styles.headerSummary}>
-          <fieldset className={styles.amountBox}>
+          <fieldset className={documentStyles.amountBox}>
             <legend>Totals</legend>
             <table>
               <thead>
@@ -1297,7 +1298,7 @@ function InvoiceForm({
             </table>
             <p className={styles.panelMeta}>Amount due {formatMoney(totals.amountDue)}</p>
             {totals.breakdown.length ? (
-              <table className={styles.vatBreakdown}>
+              <table className={documentStyles.vatBreakdown}>
                 <thead>
                   <tr>
                     <th>Category</th>
@@ -1340,7 +1341,7 @@ function InvoiceForm({
           <div className={styles.gridToolbar}>
             <span className={styles.paneLabel}>
               Lines ({invoiceLines.length})
-              {locked && invoiceLines.length > 0 ? <span className={styles.lineHint}>Select a line to see its details.</span> : null}
+              {locked && invoiceLines.length > 0 ? <span className={documentStyles.lineHint}>Select a line to see its details.</span> : null}
             </span>
             {locked ? null : (
               <button
@@ -1355,7 +1356,7 @@ function InvoiceForm({
               </button>
             )}
           </div>
-            <div className={styles.lineScroll}>
+            <div className={documentStyles.lineScroll}>
               <table className={styles.lineTable}>
                 <thead>
                   <tr>
@@ -1380,7 +1381,7 @@ function InvoiceForm({
                     linePage.rows.map((line) => (
                       <tr
                         key={line.lineNumber}
-                        className={styles.lineClick}
+                        className={documentStyles.lineClick}
                         tabIndex={locked ? 0 : undefined}
                         role={locked ? "button" : undefined}
                         aria-label={locked ? `View line ${line.lineNumber}` : undefined}
@@ -1444,7 +1445,7 @@ function InvoiceForm({
               </table>
             </div>
             <GridPager
-              className={styles.linePager}
+              className={documentStyles.linePager}
               page={linePage.page}
               pageCount={linePage.pageCount}
               pageSize={linePageSize}
@@ -1460,8 +1461,8 @@ function InvoiceForm({
         </div>
       </form>
       {voidOpen && canVoidDocument && header ? (
-        <form className={styles.sideSheet} action={voidPurchaseInvoice} autoComplete="off">
-          <div className={styles.sideSheetHead}>
+        <form className={documentStyles.sideSheet} action={voidPurchaseInvoice} autoComplete="off">
+          <div className={documentStyles.sideSheetHead}>
             <strong>Void document</strong>
             <button className={styles.quiet} type="button" onClick={() => setVoidOpen(false)}>Close</button>
           </div>
@@ -1475,8 +1476,8 @@ function InvoiceForm({
         </form>
       ) : null}
       {creditOpen && showCreditNote && header ? (
-        <div className={styles.sideSheet} role="dialog" aria-label="Credit notes">
-          <div className={styles.sideSheetHead}>
+        <div className={documentStyles.sideSheet} role="dialog" aria-label="Credit notes">
+          <div className={documentStyles.sideSheetHead}>
             <strong>Credit notes</strong>
             <button className={styles.quiet} type="button" onClick={() => setCreditOpen(false)}>Close</button>
           </div>
@@ -1524,7 +1525,7 @@ function InvoiceForm({
         </div>
       ) : null}
       <div className={styles.modalActions}>
-        <div className={styles.actionCluster}>
+        <div className={documentStyles.actionCluster}>
           {canVoidDocument ? (
             <button className={styles.quiet} type="button" aria-expanded={voidOpen} onClick={() => openPanel("void")}>
               Void
@@ -1536,7 +1537,7 @@ function InvoiceForm({
             </button>
           ) : null}
         </div>
-        <div className={styles.actionCluster}>
+        <div className={documentStyles.actionCluster}>
           <button className={styles.quiet} type="button" onClick={onClose}>
             {locked && !posted ? "Close" : "Cancel"}
           </button>

@@ -1,0 +1,101 @@
+/* Searchable pick lists drawn over a form: scheme lookup and the product lookup. */
+
+.lookup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lookupMenu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  overflow: auto;
+  padding: 6px;
+  border: 1px solid var(--ops-border);
+  border-radius: var(--ops-radius);
+  background: var(--ops-panel);
+}
+
+.lookupOption {
+  min-height: 32px;
+  border: 0;
+  border-radius: var(--ops-radius);
+  background: transparent;
+  color: var(--ops-text);
+  font: inherit;
+  font-weight: 500;
+  text-align: left;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.lookupPopover {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-sizing: border-box;
+  padding: 6px;
+  border: 1px solid var(--ops-border);
+  border-radius: var(--ops-radius);
+  background: var(--ops-panel);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.lookupPopover input {
+  flex: none;
+  width: 100%;
+  height: 34px;
+  margin: 0;
+  border: 1px solid #c5ced9;
+  border-radius: var(--ops-radius);
+  background: #f4f7fb;
+  padding: 0 10px;
+  color: var(--ops-text);
+  font: inherit;
+  font-weight: 500;
+  box-shadow: inset 0 1px 2px rgba(15, 31, 56, 0.06);
+}
+
+.lookupPopover input:focus {
+  outline: 2px solid var(--ops-accent);
+  outline-offset: 0;
+  border-color: var(--ops-accent);
+  background: var(--ops-panel);
+}
+
+.lookupSchemeOption {
+  display: block;
+  width: 100%;
+  flex: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lookupList {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: calc(8 * 34px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.lookupOption:hover,
+.lookupOption[aria-selected="true"],
+.lookupOption[data-active="true"] {
+  background: var(--color-hover);
+}
+
+.lookupEmpty {
+  margin: 0;
+  padding: 6px 8px;
+  color: var(--ops-text-2);
+  font-size: 12px;
+  font-weight: 500;
+}

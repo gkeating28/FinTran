@@ -10,6 +10,7 @@ import { RejectEInvoice } from "@/components/RejectEInvoice";
 import UnitSelect from "@/components/UnitSelect";
 import { useGridPageSize } from "@/components/useGridPageSize";
 import styles from "@/components/OpsPage.module.css";
+import documentStyles from "@/components/Document.module.css";
 import type { UnitChoice } from "@/lib/code-lists";
 import { formatExchangeRate } from "@/lib/currencies";
 import { sellerEndpoint, sellerIban, semanticAt, semanticRecord, semanticRows, semanticText } from "@/lib/einvoice/semantic-read";
@@ -678,7 +679,7 @@ export function ImportEInvoice({
             </div>
             <div className={`${styles.invoiceSplit} ${sideBySide ? "" : styles.invoiceStacked}`} ref={splitRef} style={splitStyle}>
               <div className={styles.headerPane}>
-                <div className={styles.headerTabs} role="tablist" aria-label="Header">
+                <div className={documentStyles.headerTabs} role="tablist" aria-label="Header">
                   {([
                     ["document", "Document"],
                     ["notes", "Notes"],
@@ -686,7 +687,7 @@ export function ImportEInvoice({
                   ] as const).map(([tab, label]) => (
                     <button
                       key={tab}
-                      className={styles.headerTab}
+                      className={documentStyles.headerTab}
                       type="button"
                       role="tab"
                       id={`header-tab-${tab}`}
@@ -935,7 +936,7 @@ export function ImportEInvoice({
                   </div>
                 </div>
                 <div className={styles.headerSummary}>
-                  <fieldset className={styles.amountBox}>
+                  <fieldset className={documentStyles.amountBox}>
                     <legend>Totals</legend>
                     <table>
                       <thead>
@@ -965,7 +966,7 @@ export function ImportEInvoice({
                     </table>
                     <p className={styles.panelMeta}>Amount due {moneyText(due)}</p>
                     {taxes.length ? (
-                      <table className={styles.vatBreakdown}>
+                      <table className={documentStyles.vatBreakdown}>
                         <thead>
                           <tr>
                             <th>Category</th>
@@ -1012,10 +1013,10 @@ export function ImportEInvoice({
                 <div className={styles.gridToolbar}>
                   <span className={styles.paneLabel}>
                     Lines ({lines.length})
-                    {lines.length > 0 ? <span className={styles.lineHint}>Select a line to see its details.</span> : null}
+                    {lines.length > 0 ? <span className={documentStyles.lineHint}>Select a line to see its details.</span> : null}
                   </span>
                 </div>
-                <div className={styles.lineScroll}>
+                <div className={documentStyles.lineScroll}>
                   <table className={styles.lineTable}>
                     <thead>
                       <tr>
@@ -1042,7 +1043,7 @@ export function ImportEInvoice({
                           return (
                             <tr
                               key={view.number}
-                              className={styles.lineClick}
+                              className={documentStyles.lineClick}
                               tabIndex={0}
                               role="button"
                               aria-label={`View line ${view.number}`}
@@ -1079,7 +1080,7 @@ export function ImportEInvoice({
                   </table>
                 </div>
                 <GridPager
-                  className={styles.linePager}
+                  className={documentStyles.linePager}
                   page={linePage.page}
                   pageCount={linePage.pageCount}
                   pageSize={linePageSize}
@@ -1095,10 +1096,10 @@ export function ImportEInvoice({
             </div>
           </form>
           <div className={styles.modalActions}>
-            <div className={styles.actionCluster}>
+            <div className={documentStyles.actionCluster}>
               {canReject ? <RejectEInvoice id={id} className={styles.quiet} /> : null}
             </div>
-            <div className={styles.actionCluster}>
+            <div className={documentStyles.actionCluster}>
               <button className={styles.quiet} type="button" onClick={close}>
                 Cancel
               </button>

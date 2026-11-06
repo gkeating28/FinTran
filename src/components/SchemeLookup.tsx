@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CodeName } from "@/lib/code-lists";
 import styles from "@/components/OpsPage.module.css";
+import lookupStyles from "@/components/Lookup.module.css";
 
 const SCHEME_ROWS = 8;
 
@@ -115,7 +116,7 @@ export default function SchemeLookup({
       ? createPortal(
           <div
             ref={menuRef}
-            className={styles.lookupPopover}
+            className={lookupStyles.lookupPopover}
             role="listbox"
             aria-label="Peppol scheme"
             style={{ top: place.top, left: place.left, width: place.width, maxHeight: place.maxHeight }}
@@ -149,10 +150,10 @@ export default function SchemeLookup({
             />
             <div
               ref={listRef}
-              className={styles.lookupList}
+              className={lookupStyles.lookupList}
               style={{ maxHeight: Math.min(SCHEME_ROWS * 34, Math.max(place.maxHeight - 52, 34)) }}
             >
-              {options.length === 0 ? <p className={styles.lookupEmpty}>No schemes match.</p> : null}
+              {options.length === 0 ? <p className={lookupStyles.lookupEmpty}>No schemes match.</p> : null}
               {options.map((option, index) => {
                 const label = option.code ? `${option.code} — ${option.name}` : "None";
                 return (
@@ -163,7 +164,7 @@ export default function SchemeLookup({
                     title={label}
                     aria-selected={option.code === value}
                     data-active={index === active ? "true" : "false"}
-                    className={`${styles.lookupOption} ${styles.lookupSchemeOption}`}
+                    className={`${lookupStyles.lookupOption} ${lookupStyles.lookupSchemeOption}`}
                     onMouseEnter={() => setActive(index)}
                     onClick={() => choose(option.code)}
                   >
@@ -178,7 +179,7 @@ export default function SchemeLookup({
       : null;
 
   return (
-    <div className={styles.lookup} ref={rootRef}>
+    <div className={lookupStyles.lookup} ref={rootRef}>
       <input type="hidden" name="peppol_scheme" value={value} />
       <button
         type="button"

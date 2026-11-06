@@ -1,0 +1,55 @@
+/* Confirmation dialog. It is drawn outside the app shell, so it carries its own colours. */
+
+.confirmDialog {
+  composes: dialog from "./OpsPage.module.css";
+  --ops-page: var(--color-page);
+  --ops-panel: var(--color-surface);
+  --ops-panel-muted: var(--color-surface-muted);
+  --ops-border: var(--color-border);
+  --ops-border-soft: var(--color-border-soft);
+  --ops-text: var(--color-text);
+  --ops-text-2: var(--color-text-2);
+  --ops-muted: var(--color-muted);
+  --ops-accent: var(--color-accent);
+  --ops-warn: var(--color-warn);
+  --ops-danger: var(--color-danger);
+  --ops-ok: var(--color-ok);
+  --ops-radius: var(--radius);
+  --ops-radius-lg: var(--radius-lg);
+  --ops-font: var(--font-public-sans), system-ui, sans-serif;
+  --ops-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
+}
+
+.confirmDialog,
+.confirmDialog *,
+.confirmDialog *::before,
+.confirmDialog *::after {
+  box-sizing: border-box;
+}
+
+.confirmDialog {
+  width: min(420px, calc(100vw - 32px));
+}
+
+.confirmBody {
+  padding: 20px 20px 8px;
+}
+
+.confirmTitle {
+  margin: 0 0 6px;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.confirmMessage {
+  margin: 0;
+  color: var(--ops-text-2);
+}
+
+.confirmActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: 16px 20px 20px;
+}

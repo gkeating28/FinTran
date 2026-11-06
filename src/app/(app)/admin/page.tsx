@@ -13,6 +13,7 @@ import {
   VatIcon,
 } from "@/components/icons";
 import styles from "@/components/OpsPage.module.css";
+import dashboardStyles from "@/components/Dashboard.module.css";
 import { adminCounts } from "@/lib/admin";
 import { formatInteger } from "@/lib/numbers";
 import { getWorkspace } from "@/lib/data";
@@ -57,28 +58,28 @@ export default async function AdminPage() {
           {totals.error}
         </p>
       ) : null}
-      <div className={styles.adminGrid}>
+      <div className={dashboardStyles.adminGrid}>
         {TILES.filter((tile) => tile.href !== "/history" || canManage(current.role)).map((tile) => {
           const count = counts[tile.count];
           return (
-            <Link key={tile.href} href={tile.href} className={styles.adminTile}>
-              <span className={styles.adminTileIcon}>{tile.icon}</span>
-              <span className={styles.adminTileLabel}>{tile.label}</span>
-              <span className={styles.adminTileCount}>{count === null ? "—" : formatInteger(count)}</span>
-              <span className={styles.adminTileMeta}>{count === 1 ? "record" : count === null ? "Unavailable" : "records"}</span>
+            <Link key={tile.href} href={tile.href} className={dashboardStyles.adminTile}>
+              <span className={dashboardStyles.adminTileIcon}>{tile.icon}</span>
+              <span className={dashboardStyles.adminTileLabel}>{tile.label}</span>
+              <span className={dashboardStyles.adminTileCount}>{count === null ? "—" : formatInteger(count)}</span>
+              <span className={dashboardStyles.adminTileMeta}>{count === 1 ? "record" : count === null ? "Unavailable" : "records"}</span>
             </Link>
           );
         })}
       </div>
       {canManage(current.role) ? (
-        <div className={styles.adminGrid}>
-          <Link href="/ask-qula" className={styles.adminTile}>
-            <span className={styles.adminTileLabel}>Ask Qula</span>
-            <span className={styles.adminTileMeta}>AI settings</span>
+        <div className={dashboardStyles.adminGrid}>
+          <Link href="/ask-qula" className={dashboardStyles.adminTile}>
+            <span className={dashboardStyles.adminTileLabel}>Ask Qula</span>
+            <span className={dashboardStyles.adminTileMeta}>AI settings</span>
           </Link>
-          <Link href="/access-point" className={styles.adminTile}>
-            <span className={styles.adminTileLabel}>Access Point</span>
-            <span className={styles.adminTileMeta}>Peppol settings</span>
+          <Link href="/access-point" className={dashboardStyles.adminTile}>
+            <span className={dashboardStyles.adminTileLabel}>Access Point</span>
+            <span className={dashboardStyles.adminTileMeta}>Peppol settings</span>
           </Link>
         </div>
       ) : null}

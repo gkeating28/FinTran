@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DocumentIcon } from "@/components/icons";
 import styles from "@/components/OpsPage.module.css";
+import dashboardStyles from "@/components/Dashboard.module.css";
 import { listFormMenu, type FormMenuTile } from "@/lib/form-data";
 import { getWorkspace } from "@/lib/data";
 
@@ -30,9 +31,9 @@ export default async function FormsPage() {
       {tiles.length === 0 ? (
         <p className={styles.empty}>No transaction types yet. Add them under Admin, then design a form for each one.</p>
       ) : (
-        <div className={styles.menuGroups}>
+        <div className={dashboardStyles.menuGroups}>
           <FormGroup title="Purchase transactions" tiles={tiles.filter((tile) => tile.type === "Purchases")} />
-          <hr className={styles.menuDivider} />
+          <hr className={dashboardStyles.menuDivider} />
           <FormGroup title="Sales transactions" tiles={tiles.filter((tile) => tile.type === "Sales")} />
         </div>
       )}
@@ -42,20 +43,20 @@ export default async function FormsPage() {
 
 function FormGroup({ title, tiles }: { title: string; tiles: FormMenuTile[] }) {
   return (
-    <section className={styles.menuSection}>
-      <h2 className={styles.menuHeading}>{title}</h2>
+    <section className={dashboardStyles.menuSection}>
+      <h2 className={dashboardStyles.menuHeading}>{title}</h2>
       {tiles.length === 0 ? (
         <p className={styles.panelMeta}>No {title.toLowerCase()} yet.</p>
       ) : (
-        <div className={styles.adminGrid}>
+        <div className={dashboardStyles.adminGrid}>
           {tiles.map((tile) => (
-            <Link key={tile.id} href={`/forms/${tile.code}`} className={styles.adminTile}>
-              <span className={styles.adminTileIcon}>
+            <Link key={tile.id} href={`/forms/${tile.code}`} className={dashboardStyles.adminTile}>
+              <span className={dashboardStyles.adminTileIcon}>
                 <DocumentIcon size={22} />
               </span>
-              <span className={styles.adminTileLabel}>{tile.description}</span>
-              <span className={styles.adminTileCount}>{tile.code}</span>
-              <span className={styles.adminTileMeta}>{tile.custom ? "Custom layout" : "Standard layout"}</span>
+              <span className={dashboardStyles.adminTileLabel}>{tile.description}</span>
+              <span className={dashboardStyles.adminTileCount}>{tile.code}</span>
+              <span className={dashboardStyles.adminTileMeta}>{tile.custom ? "Custom layout" : "Standard layout"}</span>
             </Link>
           ))}
         </div>

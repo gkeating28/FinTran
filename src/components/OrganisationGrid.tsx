@@ -18,6 +18,7 @@ import {
 } from "@/lib/organisation-logo";
 import { canManage, roleLabel, type ActionState, type Role } from "@/lib/types";
 import styles from "@/components/OpsPage.module.css";
+import logoStyles from "@/components/Logo.module.css";
 
 export type OrganisationGridRow = {
   id: string;
@@ -78,7 +79,7 @@ export default function OrganisationGrid({
             label: "Logo",
             sortValue: (row) => (row.logoUrl ? "1" : "0"),
             render: (row) =>
-              row.logoUrl ? <img src={row.logoUrl} alt="" className={styles.logoMark} /> : "—",
+              row.logoUrl ? <img src={row.logoUrl} alt="" className={logoStyles.logoMark} /> : "—",
           },
           {
             key: "slug",
@@ -467,11 +468,11 @@ function OrganisationForm({
             </span>
             <div className={`${styles.field} ${styles.span2}`}>
               <label htmlFor={logoInputId}>Logo</label>
-              <div className={styles.logoControl}>
+              <div className={logoStyles.logoControl}>
                 {preview ? (
-                  <img src={preview} alt="" className={styles.logoPreview} />
+                  <img src={preview} alt="" className={logoStyles.logoPreview} />
                 ) : (
-                  <span className={styles.logoEmpty}>No logo</span>
+                  <span className={logoStyles.logoEmpty}>No logo</span>
                 )}
                 <div className={styles.logoChoices}>
                   <input
@@ -489,7 +490,7 @@ function OrganisationForm({
                     </p>
                   ) : null}
                   {organisation.logoUrl ? (
-                    <label className={styles.logoRemove}>
+                    <label className={logoStyles.logoRemove}>
                       <input
                         type="checkbox"
                         name="remove_logo"

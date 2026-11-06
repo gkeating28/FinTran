@@ -1,0 +1,49 @@
+/* Loading placeholders shown while a page streams in. */
+
+.skeleton {
+  border-radius: var(--ops-radius);
+  background: linear-gradient(90deg, #e8ecf2 25%, #f3f5f9 50%, #e8ecf2 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.skeletonTitle {
+  width: 220px;
+  height: 28px;
+}
+
+.skeletonLine {
+  width: min(420px, 100%);
+  height: 14px;
+  margin-top: 12px;
+}
+
+.skeletonSearch {
+  width: 280px;
+  max-width: 100%;
+  height: var(--control-height);
+}
+
+.skeletonRow {
+  display: grid;
+  grid-template-columns: 1fr 3fr 1.5fr;
+  gap: 24px;
+  align-items: center;
+  height: var(--row-height);
+  padding: 0 14px;
+  border-bottom: 1px solid var(--ops-border-soft);
+}
+
+.skeletonCell,
+.skeletonCellWide {
+  height: 12px;
+}
