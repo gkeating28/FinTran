@@ -682,8 +682,18 @@ export function ImportEInvoice({
                           className={styles.mono}
                         />
                       ) : (
-                        <select value={supplierId || matched?.id || ""} onChange={(event) => setSupplierId(event.target.value)}>
+                        <select
+                          value={supplierId || matched?.id || ""}
+                          onChange={(event) => {
+                            if (event.target.value === "new") {
+                              setShowCreate(true);
+                              return;
+                            }
+                            setSupplierId(event.target.value);
+                          }}
+                        >
                           <option value="">Choose a supplier</option>
+                          <option value="new">Create New</option>
                           {suppliers.map((supplier) => (
                             <option key={supplier.id} value={supplier.id}>
                               {supplier.code} — {supplier.name}
@@ -789,15 +799,12 @@ export function ImportEInvoice({
                         </p>
                       </>
                     ) : null}
-                    <button className={`${styles.quiet} ${styles.wide}`} type="button" onClick={() => setShowCreate(true)}>
-                      Create supplier
-                    </button>
                     <p className={`${styles.panelMeta} ${styles.wide}`}>
                       {peppolMatch
                         ? `Matched supplier ${peppolMatch.code} — ${peppolMatch.name} by Peppol ID. `
                         : matched
                           ? `Matched supplier ${matched.code} — ${matched.name} by VAT number. `
-                          : "No supplier matched. Create one or choose an existing supplier. "}
+                          : "No supplier matched. Choose Create New, or choose an existing supplier."}
                     </p>
                     {vatMatch && !peppolMatch && !vatMatch.peppol_id && endpoint.id ? (
                       <label className={`${styles.checkLine} ${styles.wide}`}>

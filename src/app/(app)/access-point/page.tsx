@@ -20,55 +20,96 @@ export default async function AccessPointPage({
   const supabase = await createClient();
   const settings = await supabase.from("access_point_settings").select("provider_code, environment, status, participant_registered, config").eq("organisation_id", workspace.current.organisationId).maybeSingle();
   const row = (settings.data ?? {}) as { provider_code?: string; environment?: string; status?: string; participant_registered?: boolean; config?: { accountId?: string; baseUrl?: string } };
-  const fields = mockAccessPoint().fields();
+  const accountField = mockAccessPoint().fields().find((field) => field.name === "accountId");
+  const statusText = params.error
+    ?? params.message
+    ?? `${row.status === "verified" ? "Verified" : row.status === "suspended" ? "Suspended" : row.status === "configured" ? "Configured" : "Not configured"}${row.participant_registered ? " · Peppol ID registered" : ""}`;
 
   return (
     <section className={styles.stack}>
-      <h1 className={styles.heading}>Access Point</h1>
-      <p className={styles.lede}>Status: {row.status ?? "Not configured"}{row.participant_registered ? " · Peppol ID registered" : ""}</p>
-      {params.error ? <p className={styles.alert} role="alert">{params.error}</p> : null}
-      {params.message ? <p className={styles.panelMeta}>{params.message}</p> : null}
-      {manage ? (
-        <form className={styles.partyFields} action={saveAccessPoint}>
-          <label className={styles.field}>Provider
-            <select name="provider" defaultValue={row.provider_code ?? "mock"}><option value="mock">Mock</option></select>
+      <div>
+        <h1 className={styles.heading}>Access Point</h1>
+        <p className={styles.lede}>
+          {manage
+            ? `Peppol connection for ${workspace.current.organisationName}.`
+            : "Owners and admins configure the Access Point. You can see the current status."}
+        </p>
+      </div>
+      <div className={styles.statusRow}>
+        <p className={params.error ? styles.alert : styles.notice} role={params.error ? "alert" : "status"}>
+          {statusText}
+        </p>
+      </div>
+      <div className={styles.panel}>
+        <div className={styles.panelHead}>Connection</div>
+        <form className={styles.partyFields} action={saveAccessPoint} autoComplete="off">
+          <label className={styles.field}>
+            Provider
+            <select name="provider" defaultValue={row.provider_code ?? "mock"} disabled={!manage}>
+              <option value="mock">Mock</option>
+            </select>
           </label>
-          <label className={styles.field}>Environment
-            <select name="environment" defaultValue={row.environment ?? "sandbox"}>
+          <label className={styles.field}>
+            Environment
+            <select name="environment" defaultValue={row.environment ?? "sandbox"} disabled={!manage}>
               <option value="sandbox">Sandbox</option>
               <option value="production">Production</option>
             </select>
           </label>
-          {fields.filter((field) => !field.secret).map((field) => (
-            <label key={field.name} className={styles.field}>{field.label}
-              <input name={field.name} defaultValue={field.name === "accountId" ? row.config?.accountId ?? "" : row.config?.baseUrl ?? ""} />
+          <label className={styles.field}>
+            {accountField?.label ?? "Account ID"}
+            <input name="accountId" defaultValue={row.config?.accountId ?? ""} disabled={!manage} />
+          </label>
+          <label className={styles.field}>
+            Base URL
+            <input name="baseUrl" defaultValue={row.config?.baseUrl ?? ""} placeholder="https://" disabled={!manage} />
+          </label>
+          <label className={styles.field}>
+            API key
+            <input name="apiKey" type="password" autoComplete="off" placeholder="Write-only" disabled={!manage} />
+          </label>
+          <label className={styles.field}>
+            Webhook secret
+            <input name="webhookSecret" type="password" autoComplete="off" placeholder="Write-only" disabled={!manage} />
+          </label>
+          {manage ? (
+            <label className={`${styles.checkLine} ${styles.wide}`}>
+              <input type="checkbox" name="forceFailure" />
+              Force a failed test
             </label>
-          ))}
-          <label className={styles.field}>API key
-            <input name="apiKey" type="password" autoComplete="off" placeholder="Write-only" />
-          </label>
-          <label className={styles.field}>Webhook secret
-            <input name="webhookSecret" type="password" autoComplete="off" placeholder="Write-only" />
-          </label>
-          <label className={styles.checkLine}><input type="checkbox" name="forceFailure" /> Force a failed test</label>
-          <div className={styles.modalActions}>
-            <button className={styles.quiet} type="submit" formAction={testAccessPoint}>Test connection</button>
-            <button className={styles.primary} type="submit">Save</button>
-          </div>
-          <label className={styles.field}>Scheme
-            <input name="scheme" defaultValue="9935" />
-          </label>
-          <label className={styles.field}>Participant
-            <input name="participant" />
-          </label>
-          <div className={styles.modalActions}>
-            <button className={styles.quiet} type="submit" formAction={lookupParticipant}>Look up participant</button>
-            <button className={styles.primary} type="submit" formAction={registerParticipant} disabled={row.status !== "verified"}>Register Peppol ID</button>
-          </div>
+          ) : null}
+          {manage ? (
+            <div className={`${styles.modalActions} ${styles.wide}`}>
+              <span className={styles.actionStart} />
+              <button className={styles.quiet} type="submit" formAction={testAccessPoint}>Test connection</button>
+              <button className={styles.primary} type="submit">Save</button>
+            </div>
+          ) : null}
         </form>
-      ) : (
-        <p className={styles.panelMeta}>Owners and admins configure the Access Point. Members can see this status.</p>
-      )}
+      </div>
+      <div className={styles.panel}>
+        <div className={styles.panelHead}>
+          Participant
+          <span className={styles.panelMeta}>{row.participant_registered ? "Registered" : "Not registered"}</span>
+        </div>
+        <form className={styles.partyFields} action={lookupParticipant} autoComplete="off">
+          <label className={styles.field}>
+            Scheme
+            <input name="scheme" defaultValue="9935" disabled={!manage} />
+          </label>
+          <label className={styles.field}>
+            Participant
+            <input name="participant" disabled={!manage} />
+          </label>
+          {manage ? (
+            <div className={`${styles.modalActions} ${styles.wide}`}>
+              <span className={styles.actionStart} />
+              <button className={styles.quiet} type="submit">Look up participant</button>
+              <button className={styles.primary} type="submit" formAction={registerParticipant} disabled={row.status !== "verified"}>Register Peppol ID</button>
+            </div>
+          ) : null}
+        </form>
+      </div>
     </section>
   );
 }
