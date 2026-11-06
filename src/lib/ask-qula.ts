@@ -1,4 +1,4 @@
-export type AskIntent = "transactions" | "documents" | "aging" | "help";
+export type AskIntent = "transactions" | "documents" | "aging" | "help" | "ai";
 
 export type AskDoc = {
   ref: string;

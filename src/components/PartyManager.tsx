@@ -149,7 +149,7 @@ export default function PartyManager({
   );
 }
 
-function PartyForm({
+export function PartyForm({
   kind,
   row,
   currencies,
@@ -157,6 +157,9 @@ function PartyForm({
   schemes,
   homeCurrencyId,
   onClose,
+  seed = null,
+  notice = null,
+  blockSave = false,
 }: {
   kind: PartyKind;
   row: PartyRow | null;
@@ -165,33 +168,36 @@ function PartyForm({
   schemes: CodeName[];
   homeCurrencyId: string | null;
   onClose: () => void;
+  seed?: Partial<PartyRow> | null;
+  notice?: string | null;
+  blockSave?: boolean;
 }) {
   const meta = PARTY_META[kind];
   const save = row ? updateParty.bind(null, kind) : createParty.bind(null, kind);
   const [state, action, pending] = useActionState(save, {} as ActionState);
-  const [code, setCode] = useState(row?.code ?? "");
-  const [name, setName] = useState(row?.name ?? "");
+  const [code, setCode] = useState(row?.code ?? seed?.code ?? "");
+  const [name, setName] = useState(row?.name ?? seed?.name ?? "");
   const [currencyId, setCurrencyId] = useState(
-    row?.currencyId ?? homeCurrencyId ?? (currencies.length === 1 ? currencies[0].id : ""),
+    row?.currencyId ?? seed?.currencyId ?? homeCurrencyId ?? (currencies.length === 1 ? currencies[0].id : ""),
   );
-  const [phone, setPhone] = useState(row?.phone ?? "");
-  const [email, setEmail] = useState(row?.email ?? "");
+  const [phone, setPhone] = useState(row?.phone ?? seed?.phone ?? "");
+  const [email, setEmail] = useState(row?.email ?? seed?.email ?? "");
   const [website, setWebsite] = useState(row?.website ?? "");
-  const [addressLine1, setAddressLine1] = useState(row?.addressLine1 ?? "");
-  const [addressLine2, setAddressLine2] = useState(row?.addressLine2 ?? "");
-  const [addressLine3, setAddressLine3] = useState(row?.addressLine3 ?? "");
-  const [city, setCity] = useState(row?.city ?? "");
-  const [postCode, setPostCode] = useState(row?.postCode ?? "");
-  const [county, setCounty] = useState(row?.county ?? "");
-  const [countryCode, setCountryCode] = useState(row?.countryCode ?? "IE");
+  const [addressLine1, setAddressLine1] = useState(row?.addressLine1 ?? seed?.addressLine1 ?? "");
+  const [addressLine2, setAddressLine2] = useState(row?.addressLine2 ?? seed?.addressLine2 ?? "");
+  const [addressLine3, setAddressLine3] = useState(row?.addressLine3 ?? seed?.addressLine3 ?? "");
+  const [city, setCity] = useState(row?.city ?? seed?.city ?? "");
+  const [postCode, setPostCode] = useState(row?.postCode ?? seed?.postCode ?? "");
+  const [county, setCounty] = useState(row?.county ?? seed?.county ?? "");
+  const [countryCode, setCountryCode] = useState(row?.countryCode ?? seed?.countryCode ?? "IE");
   const [contactDetails, setContactDetails] = useState(row?.contactDetails ?? "");
   const [notes, setNotes] = useState(row?.notes ?? "");
-  const [vatNumber, setVatNumber] = useState(row?.vatNumber ?? "");
-  const [companyNumber, setCompanyNumber] = useState(row?.companyNumber ?? "");
-  const [paymentTermsDays, setPaymentTermsDays] = useState(row?.paymentTermsDays ?? "");
+  const [vatNumber, setVatNumber] = useState(row?.vatNumber ?? seed?.vatNumber ?? "");
+  const [companyNumber, setCompanyNumber] = useState(row?.companyNumber ?? seed?.companyNumber ?? "");
+  const [paymentTermsDays, setPaymentTermsDays] = useState(row?.paymentTermsDays ?? seed?.paymentTermsDays ?? "");
   const [defaultBuyerReference, setDefaultBuyerReference] = useState(row?.defaultBuyerReference ?? "");
-  const [peppolScheme, setPeppolScheme] = useState(row?.peppolScheme ?? "");
-  const [peppolId, setPeppolId] = useState(row?.peppolId ?? "");
+  const [peppolScheme, setPeppolScheme] = useState(row?.peppolScheme ?? seed?.peppolScheme ?? "");
+  const [peppolId, setPeppolId] = useState(row?.peppolId ?? seed?.peppolId ?? "");
   const orderedCountries = countryChoices(countries);
 
   useEffect(() => {
@@ -206,6 +212,7 @@ function PartyForm({
     >
       <form className={`${styles.modalForm} ${styles.partyForm}`} action={action} autoComplete="off" noValidate>
         {row ? <input type="hidden" name="id" value={row.id} /> : null}
+        {notice ? <p className={styles.alert}>{notice} <a href="/currencies">Add a currency</a></p> : null}
         {state.error ? (
           <p className={styles.alert} role="alert">
             {state.error}
@@ -423,7 +430,7 @@ function PartyForm({
           <button className={styles.quiet} type="button" onClick={onClose}>
             Cancel
           </button>
-          <button className={styles.primary} type="submit" disabled={pending || currencies.length === 0}>
+          <button className={styles.primary} type="submit" disabled={pending || currencies.length === 0 || blockSave}>
             {pending ? "Saving…" : "Save"}
           </button>
         </div>

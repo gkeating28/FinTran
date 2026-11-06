@@ -6,6 +6,6 @@ The CEN EN 16931 and Peppol BIS Schematron files were compiled with the ISO Sche
 
 The official `base-example.xml` from OpenPeppol produces no `svrl:failed-assert` from either layer. On 25 October 2026 that run took 287 milliseconds in SaxonJS on this project.
 
-XSD validation with a WebAssembly libxml2 build is not wired in this version. The route still refuses a `DOCTYPE`, an external entity, a CII root, and any file that is not a UBL 2.1 Invoice or CreditNote before Schematron runs. Element order is covered by the golden UBL round trip of the four Qula Tran fixtures.
+XSD validation uses `xmllint-wasm` (libxml2 compiled to WebAssembly) and the OASIS UBL 2.1 schemas pinned in `xsd/`. An invoice is checked against `UBL-Invoice-2.1.xsd` and a credit note against `UBL-CreditNote-2.1.xsd`. A fatal XSD error stops Schematron. The golden outbound files `sales-invoice`, `sales-credit-note`, and `sales-reverse-charge` pass. A local run of the sales invoice schema check completed in under a second. The purchase fixture is not an outbound file; its `PaymentID` is not in the UBL element order, so XSD reports it.
 
 Negative Peppol unit cases live in the OpenPeppol repository under `rules/unit-UBL-PEPPOL`. They are fragments, so a full Schematron run reports more than the one expected rule. A sampled run is still required before calling the conformance suite complete.

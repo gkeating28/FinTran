@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getWorkspace, ORGANISATION_COOKIE } from "@/lib/data";
+import { getWorkspace } from "@/lib/data";
+import { requireCurrentOrganisation } from "@/lib/organisation-guard";
 import {
   optionalText,
   parseExchangeRate,
@@ -47,19 +47,7 @@ function friendlyError(error: { code?: string; message: string } | null, fallbac
 }
 
 async function currentOrganisation() {
-  const workspace = await getWorkspace();
-  if (workspace.status === "signed-out") redirect("/login");
-  if (workspace.status !== "ready") redirect("/");
-
-  const cookieStore = await cookies();
-  if (cookieStore.get(ORGANISATION_COOKIE)?.value !== workspace.current.organisationId) {
-    cookieStore.set(ORGANISATION_COOKIE, workspace.current.organisationId, {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 365,
-    });
-  }
+  await requireCurrentOrganisation();
 }
 
 function linesFrom(value: string): PurchaseInvoiceLine[] | { error: string } {

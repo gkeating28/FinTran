@@ -20,9 +20,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${jakarta.variable} ${publicSans.variable} ${ibmPlexMono.variable} h-full antialiased`}
+      className={`${jakarta.variable} ${publicSans.variable} ${ibmPlexMono.variable}`}
     >
-      <body className="h-full">{children}</body>
+      <body>{children}</body>
     </html>
   );
 }

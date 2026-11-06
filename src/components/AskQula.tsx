@@ -25,9 +25,11 @@ const snapshots = new Map<string, { raw: string; value: StoredChat }>();
 export default function AskQula({
   organisationId,
   organisationName,
+  aiEnabled = false,
 }: {
   organisationId: string;
   organisationName: string;
+  aiEnabled?: boolean;
 }) {
   const router = useRouter();
   const panelId = useId();
@@ -89,7 +91,11 @@ export default function AskQula({
       const response = await fetch("/api/ask-qula", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: text, organisationId }),
+        body: JSON.stringify({
+          question: text,
+          organisationId,
+          history: clientSnapshot(organisationId).messages.slice(-6).map((message) => ({ role: message.role, text: message.text })),
+        }),
       });
       const body = (await response.json()) as AskAnswer & { error?: string };
       const reply = response.ok ? body.text || "Nothing matched that." : body.error || "That could not be answered.";
@@ -141,7 +147,9 @@ export default function AskQula({
         <div className={styles.log} ref={logRef} role="log" aria-live="polite" aria-relevant="additions">
           {messages.length === 0 ? (
             <p className={styles.intro}>
-              Ask about transactions, e-documents, or what is overdue. The answer is looked up from this organisation.
+              {aiEnabled
+                ? "Ask Qula understands plain questions, such as which suppliers we owe more than €5,000, or what we invoiced a customer in September."
+                : "Ask Qula answers a fixed set of questions: overdue items, recent transactions, drafts, and received e-documents."}
             </p>
           ) : null}
           {messages.map((message) => (

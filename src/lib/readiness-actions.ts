@@ -1,12 +1,20 @@
 "use server";
 
 import { getWorkspace } from "@/lib/data";
+import { OrganisationAccessError, requireCurrentOrganisation } from "@/lib/organisation-guard";
 import type { ReadinessItem } from "@/lib/purchase-invoices";
 import { createClient } from "@/lib/supabase/server";
 
 const HEADER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function loadTransactionReadiness(ids: string[]): Promise<Record<string, ReadinessItem[]>> {
+  let current;
+  try {
+    current = await requireCurrentOrganisation();
+  } catch (error) {
+    if (error instanceof OrganisationAccessError) return {};
+    throw error;
+  }
   const workspace = await getWorkspace();
   if (workspace.status !== "ready") return {};
 
@@ -17,7 +25,7 @@ export async function loadTransactionReadiness(ids: string[]): Promise<Record<st
   const owned = await supabase
     .from("transaction_headers")
     .select("id")
-    .eq("organisation_id", workspace.current.organisationId)
+    .eq("organisation_id", current.organisationId)
     .in("id", wanted);
   if (owned.error) return {};
 

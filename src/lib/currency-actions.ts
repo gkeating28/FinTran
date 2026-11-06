@@ -1,11 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { parseBic, parseIban, parsePeppol, parsePostalAddress, parseVatNumber } from "@/lib/address";
 import { parseCurrencyCode, parseCurrencyName, parseCurrencyRate } from "@/lib/currencies";
-import { getWorkspace, ORGANISATION_COOKIE } from "@/lib/data";
+import { getWorkspace } from "@/lib/data";
+import { requireCurrentOrganisation, requireOrganisationMember } from "@/lib/organisation-guard";
 import { codeChangeError, friendlyCodeChange } from "@/lib/immutable-code";
 import {
   logoContentType,
@@ -78,24 +78,8 @@ function friendlyError(error: { code?: string; message: string } | null, fallbac
 }
 
 async function currentOrganisation() {
-  const workspace = await getWorkspace();
-  if (workspace.status === "signed-out") redirect("/login");
-  if (workspace.status !== "ready") redirect("/");
-
-  const cookieStore = await cookies();
-  if (cookieStore.get(ORGANISATION_COOKIE)?.value !== workspace.current.organisationId) {
-    cookieStore.set(ORGANISATION_COOKIE, workspace.current.organisationId, {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 365,
-    });
-  }
-
-  return {
-    organisationId: workspace.current.organisationId,
-    tenantId: workspace.current.tenantId,
-  };
+  const current = await requireCurrentOrganisation();
+  return { organisationId: current.organisationId, tenantId: current.tenantId };
 }
 
 function currencyFields(formData: FormData) {
@@ -337,8 +321,9 @@ export async function updateOrganisationDefaults(
   }
   if ("error" in profile) return { error: profile.error };
 
+  await requireCurrentOrganisation();
+  await requireOrganisationMember(organisation);
   const workspace = await getWorkspace();
-  if (workspace.status === "signed-out") redirect("/login");
   if (workspace.status !== "ready") redirect("/");
   const membership = workspace.memberships.find((item) => item.organisationId === organisation);
   if (!membership) return { error: "You do not have access to that organisation." };

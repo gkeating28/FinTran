@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getFormType } from "@/lib/form-data";
 import { parseLayout } from "@/lib/form-layout";
 import { getWorkspace } from "@/lib/data";
+import { requireCurrentOrganisation } from "@/lib/organisation-guard";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionState } from "@/lib/types";
 
@@ -13,8 +14,8 @@ function text(formData: FormData, name: string) {
 }
 
 export async function saveTransactionForm(_state: ActionState, formData: FormData): Promise<ActionState> {
+  const current = await requireCurrentOrganisation();
   const workspace = await getWorkspace();
-  if (workspace.status === "signed-out") redirect("/login");
   if (workspace.status !== "ready") redirect("/");
 
   const loaded = await getFormType(text(formData, "code"));
@@ -34,8 +35,8 @@ export async function saveTransactionForm(_state: ActionState, formData: FormDat
   const supabase = await createClient();
   const { error } = await supabase.from("transaction_forms").upsert(
     {
-      tenant_id: workspace.current.tenantId,
-      organisation_id: workspace.current.organisationId,
+      tenant_id: current.tenantId,
+      organisation_id: current.organisationId,
       transaction_type_id: loaded.type.id,
       layout,
     },

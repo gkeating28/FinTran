@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
 import FormModal from "@/components/FormModal";
+import { PartyForm } from "@/components/PartyManager";
 import GridPager from "@/components/GridPager";
 import { QuietInput, QuietTextarea } from "@/components/QuietField";
 import { RejectEInvoice } from "@/components/RejectEInvoice";
@@ -170,6 +171,7 @@ export function ImportEInvoice({
   homeCurrencyId,
   missingType,
   failures,
+  canReject = false,
 }: {
   id: string;
   semantic: Record<string, unknown> | null;
@@ -181,6 +183,7 @@ export function ImportEInvoice({
   homeCurrencyId: string;
   missingType: boolean;
   failures: RuleFailure[];
+  canReject?: boolean;
 }) {
   const router = useRouter();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -192,7 +195,10 @@ export function ImportEInvoice({
   const [paymentMeans, setPaymentMeans] = useState<Means[]>([]);
   const [units, setUnits] = useState<UnitChoice[]>([]);
   const [supplierId, setSupplierId] = useState("");
-  const [createSupplier, setCreateSupplier] = useState(false);
+  const createSupplier = false;
+  const [showCreate, setShowCreate] = useState(false);
+  const [countries, setCountries] = useState<{ code: string; name: string }[]>([{ code: "IE", name: "Ireland" }]);
+  const [schemes, setSchemes] = useState<{ code: string; name: string }[]>([]);
   const [code, setCode] = useState("");
   const seller = semanticRecord(semantic?.["BG-4"]);
   const sellerName = semanticText(seller?.["BT-27"]);
@@ -275,6 +281,19 @@ export function ImportEInvoice({
       setUnits(((unitResult.data ?? []) as UnitChoice[]).slice().sort((left, right) => Number(right.common) - Number(left.common) || left.code.localeCompare(right.code)));
     });
   }, [organisationId]);
+
+  useEffect(() => {
+    if (!showCreate || schemes.length > 0) return;
+    const supabase = createClient();
+    void Promise.all([
+      supabase.from("ref_countries").select("code, name").order("name"),
+      supabase.from("ref_eas").select("code, name").order("code"),
+    ]).then(([countryResult, schemeResult]) => {
+      const loadedCountries = (countryResult.data ?? []) as { code: string; name: string }[];
+      if (loadedCountries.length) setCountries(loadedCountries);
+      setSchemes((schemeResult.data ?? []) as { code: string; name: string }[]);
+    });
+  }, [showCreate, schemes.length]);
 
   const peppolMatch = suppliers.find(
     (supplier) => supplier.peppol_scheme === endpoint.scheme && sameId(supplier.peppol_id, endpoint.id),
@@ -559,9 +578,7 @@ export function ImportEInvoice({
               const { data, error: imported } = await supabase.rpc("import_e_document", {
                 p_id: id,
                 p_choices: {
-                  supplierId: createSupplier ? null : effectiveSupplierId || null,
-                  createSupplier,
-                  supplier: { code, name: name || sellerName },
+                  supplierId: effectiveSupplierId || null,
                   lines: lines.map((line) => {
                     const number = semanticText(line["BT-126"]);
                     const selectedLine = choiceFor(line);
@@ -761,10 +778,9 @@ export function ImportEInvoice({
                         </p>
                       </>
                     ) : null}
-                    <label className={`${styles.checkLine} ${styles.wide}`}>
-                      <input type="checkbox" checked={createSupplier} onChange={(event) => setCreateSupplier(event.target.checked)} />
+                    <button className={`${styles.quiet} ${styles.wide}`} type="button" onClick={() => setShowCreate(true)}>
                       Create supplier
-                    </label>
+                    </button>
                     <p className={`${styles.panelMeta} ${styles.wide}`}>
                       {peppolMatch
                         ? `Matched supplier ${peppolMatch.code} — ${peppolMatch.name} by Peppol ID. `
@@ -999,7 +1015,7 @@ export function ImportEInvoice({
           </form>
           <div className={styles.modalActions}>
             <div className={styles.actionCluster}>
-              <RejectEInvoice id={id} className={styles.quiet} />
+              {canReject ? <RejectEInvoice id={id} className={styles.quiet} /> : null}
             </div>
             <div className={styles.actionCluster}>
               <button className={styles.quiet} type="button" onClick={close}>
@@ -1024,6 +1040,26 @@ export function ImportEInvoice({
           onChange={setOpenLine}
           onCancel={() => setOpenLine(null)}
           onSave={saveLine}
+        />
+      ) : null}
+      {showCreate ? (
+        <PartyForm
+          kind="suppliers"
+          row={null}
+          currencies={currencies.map((currency) => ({ id: currency.id, code: currency.code, name: currency.code }))}
+          countries={countries}
+          schemes={schemes}
+          homeCurrencyId={homeCurrencyId}
+          notice={currencies.some((currency) => currency.iso_code === semanticText(semantic?.["BT-5"]) || currency.code === semanticText(semantic?.["BT-5"])) ? null : `Add the invoice currency ${semanticText(semantic?.["BT-5"])} before saving this supplier.`}
+          blockSave={!currencies.some((currency) => currency.iso_code === semanticText(semantic?.["BT-5"]) || currency.code === semanticText(semantic?.["BT-5"]))}
+          seed={{
+            code: sellerName.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 10),
+            name: sellerName,
+            vatNumber: semanticText(semanticRecord(semantic?.["BG-4"])?.["BT-31"]),
+            companyNumber: semanticText(semanticRecord(semantic?.["BG-4"])?.["BT-30"]),
+            currencyId: currencies.find((currency) => currency.iso_code === semanticText(semantic?.["BT-5"]) || currency.code === semanticText(semantic?.["BT-5"]))?.id ?? "",
+          }}
+          onClose={() => setShowCreate(false)}
         />
       ) : null}
     </>

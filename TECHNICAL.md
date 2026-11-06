@@ -321,7 +321,7 @@ Ordinary inserts are not granted. Status changes go through `store_e_document`, 
 | `source` | `generated` or `manual_upload` |
 | `ubl_root` | `Invoice` or `CreditNote` |
 | `header_id` | Linked Qula Tran document. One valid outbound file per header. One imported inbound file per header. |
-| `duplicate_of` | Earlier file with the same hash |
+| `duplicate_of` | An earlier inbound file with the same document kind, number, and seller. An identical file is not stored again; its existing id is returned. |
 | `sha256` | 64 hex characters. Unique per organisation and direction. |
 | `byte_size` | 1 to 4 MiB |
 | Party and totals | Sender and receiver scheme and id, document number, issue date, currency, total, amount due, seller and buyer name and VAT |
@@ -353,6 +353,14 @@ Posting an imported draft is refused when its nett, VAT, or total differs from `
 | Download EN 16931 JSON | no | yes | yes |
 | Read the audit log | no | yes | yes |
 | Delete an organisation with no documents | no | no | yes, unless it is the last in the tenant |
+| Upload a received e-document | yes | yes | yes |
+| Import a valid e-document | yes | yes | yes |
+| Create a supplier from an e-document | yes | yes | yes |
+| Reject a received e-document | no | yes | yes |
+| Release a duplicate | no | yes | yes |
+| Regenerate an outbound e-document | yes | yes | yes |
+| Use Ask Qula | yes | yes | yes |
+| Ask Qula and Access Point settings, secrets and usage | no | yes | yes |
 
 Select on a business table uses `private.is_org_member(organisation_id)`.
 
@@ -364,6 +372,8 @@ Select on a business table uses `private.is_org_member(organisation_id)`.
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Browser and server session key |
 | `EINVOICE_HMAC_KEY` | Same secret as Vault `einvoice_hmac_k1` |
 | `EINVOICE_HMAC_KEY_ID` | `k1` until the key is rotated |
+| `QULA_SECRETS_KEYS` | JSON object of key id to a base64 32-byte AES key. Values are not committed. |
+| `QULA_SECRETS_KEY_ID` | The current key id in that object |
 
 To rotate the signing key, add Vault `einvoice_hmac_k2`, point the host at `k2`, and remove `k1` after a day. The key is not stored in the repository.
 

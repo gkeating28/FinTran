@@ -59,6 +59,18 @@ export default async function AdminPage() {
           );
         })}
       </div>
+      {canManage(current.role) ? (
+        <div className={styles.adminGrid}>
+          <Link href="/ask-qula" className={styles.adminTile}>
+            <span className={styles.adminTileLabel}>Ask Qula</span>
+            <span className={styles.adminTileMeta}>AI settings</span>
+          </Link>
+          <Link href="/access-point" className={styles.adminTile}>
+            <span className={styles.adminTileLabel}>Access Point</span>
+            <span className={styles.adminTileMeta}>Peppol settings</span>
+          </Link>
+        </div>
+      ) : null}
     </section>
   );
 }

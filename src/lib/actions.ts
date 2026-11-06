@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { ORGANISATION_COOKIE } from "@/lib/data";
+import { requireCurrentOrganisation, requireOrganisationMember } from "@/lib/organisation-guard";
 import { ORGANISATION_LOGO_BUCKET } from "@/lib/organisation-logo";
 import { createClient } from "@/lib/supabase/server";
 import { isRole, type ActionState } from "@/lib/types";
@@ -150,6 +151,8 @@ export async function deleteOrganisation(_state: ActionState, formData: FormData
     return { error: "Type the organisation name to confirm deletion." };
   }
 
+  await requireCurrentOrganisation();
+  await requireOrganisationMember(organisationId, ["owner"]);
   const supabase = await createClient();
   const { error } = await supabase.rpc("delete_organisation", { p_organisation_id: organisationId });
   if (error) return failure(error, "The organisation could not be deleted.");
@@ -181,6 +184,8 @@ export async function grantAccess(_state: ActionState, formData: FormData): Prom
   const role = text(formData, "role");
   if (!isRole(role)) return { error: "Choose owner, admin, or member." };
 
+  await requireCurrentOrganisation();
+  await requireOrganisationMember(organisationId, ["owner", "admin"]);
   const supabase = await createClient();
   const { error } = await supabase.rpc("grant_organisation_access", {
     p_organisation_id: organisationId,
@@ -197,6 +202,8 @@ export async function grantAccess(_state: ActionState, formData: FormData): Prom
 export async function revokeAccess(formData: FormData) {
   const organisationId = text(formData, "organisationId");
   const userId = text(formData, "userId");
+  await requireCurrentOrganisation();
+  await requireOrganisationMember(organisationId, ["owner", "admin"]);
   const supabase = await createClient();
   const { error } = await supabase.rpc("revoke_organisation_access", {
     p_organisation_id: organisationId,

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getWorkspace } from "@/lib/data";
+import { accessErrorResponse, requireCurrentOrganisation } from "@/lib/organisation-guard";
 import { canManage } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 
@@ -9,6 +10,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cod
   const { id } = await params;
   if (!ID.test(id)) return new NextResponse("That document was not found.", { status: 404 });
 
+  try {
+    await requireCurrentOrganisation(["owner", "admin"]);
+  } catch (error) {
+    const denied = accessErrorResponse(error);
+    if (denied) return new NextResponse(denied.message, { status: denied.status });
+    throw error;
+  }
   const workspace = await getWorkspace();
   if (workspace.status !== "ready") return new NextResponse("Sign in before downloading a document.", { status: 401 });
   if (!canManage(workspace.current.role)) {
