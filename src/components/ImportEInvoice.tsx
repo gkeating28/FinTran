@@ -624,6 +624,8 @@ export function ImportEInvoice({
                 }
               }
               const supabase = createClient();
+              const typeColumn = creditNote ? "inbound_credit_note_type_id" : "inbound_invoice_type_id";
+              await supabase.from("organisation_defaults").update({ [typeColumn]: typeId }).eq("organisation_id", organisationId);
               const { data, error: imported } = await supabase.rpc("import_e_document", {
                 p_id: id,
                 p_choices: {
