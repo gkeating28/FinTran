@@ -19,6 +19,8 @@ import {
 import { canManage, roleLabel, type ActionState, type Role } from "@/lib/types";
 import styles from "@/components/OpsPage.module.css";
 import logoStyles from "@/components/Logo.module.css";
+import recordStyles from "@/components/RecordForm.module.css";
+import { slot, tall } from "@/components/recordForm";
 
 export type OrganisationGridRow = {
   id: string;
@@ -214,267 +216,206 @@ function OrganisationForm({
             {state.error}
           </p>
         ) : null}
-        <div className={`${styles.partyFields} ${styles.orgFields}`}>
+        <div className={recordStyles.layout}>
           <form id={formId} className={styles.displayContents} action={action} autoComplete="off" noValidate>
-            <label className={`${styles.field} ${styles.span2}`}>
-              Organisation
-              <QuietInput
-                name="organisation_name"
-                required
-                minLength={2}
-                maxLength={80}
-                autoFocus={!readOnly}
-                value={organisationName}
-                onChange={(event) => setOrganisationName(event.target.value)}
-              />
-            </label>
-            <label className={`${styles.field} ${styles.span2}`}>
-              Contact name
-              <QuietInput
-                name="contact_name"
-                maxLength={200}
-                value={contactName}
-                onChange={(event) => setContactName(event.target.value)}
-              />
-            </label>
-            <label className={`${styles.field} ${styles.span2}`}>
-              Contact email
-              <QuietInput
-                name="contact_email"
-                type="text"
-                inputMode="email"
-                maxLength={200}
-                value={contactEmail}
-                onChange={(event) => setContactEmail(event.target.value)}
-              />
-            </label>
-            <div className={`${styles.fieldPair} ${styles.span2}`}>
-              <label className={styles.field}>
-                Phone
+            {/* Left column: who and where */}
+            <div className={`${recordStyles.row} ${slot("left", 1)}`}>
+              <label className={recordStyles.grow}>
+                Organisation
                 <QuietInput
-                  name="phone"
-                  maxLength={40}
-                  value={phone}
-                  onChange={(event) => setPhone(event.target.value)}
-                  placeholder="+353 1 555 0100"
-                />
-              </label>
-              <label className={styles.field}>
-                Website
-                <QuietInput
-                  name="website"
-                  maxLength={200}
-                  value={website}
-                  onChange={(event) => setWebsite(event.target.value)}
-                  placeholder="https://example.com"
+                  name="organisation_name"
+                  required
+                  minLength={2}
+                  maxLength={80}
+                  autoFocus={!readOnly}
+                  value={organisationName}
+                  onChange={(event) => setOrganisationName(event.target.value)}
                 />
               </label>
             </div>
-            <div className={styles.addressBlock}>
-              <p className={styles.sectionLabel}>Address</p>
-              <label className={styles.field}>
+            <div className={`${recordStyles.pair} ${slot("left", 2)}`}>
+              <label className={recordStyles.cell}>
+                Contact name
+                <QuietInput name="contact_name" maxLength={200} value={contactName} onChange={(event) => setContactName(event.target.value)} />
+              </label>
+              <label className={recordStyles.cell}>
+                Contact email
+                <QuietInput
+                  name="contact_email"
+                  type="text"
+                  inputMode="email"
+                  maxLength={200}
+                  value={contactEmail}
+                  onChange={(event) => setContactEmail(event.target.value)}
+                />
+              </label>
+            </div>
+            <div className={`${recordStyles.pair} ${slot("left", 3)}`}>
+              <label className={recordStyles.cell}>
+                Phone
+                <QuietInput name="phone" maxLength={40} value={phone} onChange={(event) => setPhone(event.target.value)} />
+              </label>
+              <label className={recordStyles.cell}>
+                Website
+                <QuietInput name="website" maxLength={200} value={website} onChange={(event) => setWebsite(event.target.value)} />
+              </label>
+            </div>
+            <div className={`${recordStyles.row} ${slot("left", 4)}`}>
+              <label className={recordStyles.grow}>
                 <span>
                   Address line 1
                   {organisation.profile.addressNeedsReview ? <span className={styles.reviewBadge}>Needs review</span> : null}
                 </span>
                 <QuietInput name="address_line1" maxLength={100} value={addressLine1} onChange={(event) => setAddressLine1(event.target.value)} />
               </label>
-              <label className={styles.field}>
+            </div>
+            <div className={`${recordStyles.row} ${slot("left", 5)}`}>
+              <label className={recordStyles.grow}>
                 Address line 2
                 <QuietInput name="address_line2" maxLength={100} value={addressLine2} onChange={(event) => setAddressLine2(event.target.value)} />
               </label>
-              <label className={styles.field}>
+            </div>
+            <div className={`${recordStyles.row} ${slot("left", 6)}`}>
+              <label className={recordStyles.grow}>
                 Address line 3
                 <QuietInput name="address_line3" maxLength={100} value={addressLine3} onChange={(event) => setAddressLine3(event.target.value)} />
               </label>
-              <div className={styles.fieldPair}>
-                <label className={styles.field}>
-                  City
-                  <QuietInput name="city" maxLength={60} value={city} onChange={(event) => setCity(event.target.value)} />
-                </label>
-                <label className={styles.field}>
-                  County
-                  <QuietInput name="county" maxLength={60} value={county} onChange={(event) => setCounty(event.target.value)} />
-                </label>
-              </div>
-              <div className={styles.fieldPair}>
-                <label className={styles.field}>
-                  Post code
-                  <QuietInput
-                    name="post_code"
-                    maxLength={20}
-                    value={postCode}
-                    onChange={(event) => setPostCode(event.target.value)}
-                    className={styles.mono}
-                  />
-                </label>
-                <label className={styles.field}>
-                  Country
-                  <select name="country_code" autoComplete="off" value={countryCode} onChange={(event) => setCountryCode(event.target.value)}>
-                    {orderedCountries.map((country) => (
-                      <option key={country.code} value={country.code}>
-                        {country.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
             </div>
-            <div className={styles.addressBlock}>
-              <p className={styles.sectionLabel}>Registration</p>
-              <div className={styles.fieldPair}>
-                <label className={styles.field}>
-                  VAT number
-                  <QuietInput
-                    name="vat_number"
-                    maxLength={16}
-                    value={vatNumber}
-                    onChange={(event) => setVatNumber(event.target.value)}
-                    placeholder="IE1234567T"
-                    className={styles.mono}
-                  />
-                </label>
-                <label className={styles.field}>
-                  Company number
-                  <QuietInput
-                    name="company_number"
-                    maxLength={40}
-                    value={companyNumber}
-                    onChange={(event) => setCompanyNumber(event.target.value)}
-                    className={styles.mono}
-                  />
-                </label>
-              </div>
-              <span className={styles.panelMeta}>VAT number includes the country prefix, for example IE1234567T.</span>
-              <div className={styles.fieldPair}>
-                <label className={styles.field}>
-                  Peppol scheme
-                  <SchemeLookup schemes={schemes} value={peppolScheme} onChange={setPeppolScheme} />
-                </label>
-                <label className={styles.field}>
-                  Peppol ID
-                  <QuietInput
-                    name="peppol_id"
-                    maxLength={100}
-                    value={peppolId}
-                    onChange={(event) => setPeppolId(event.target.value)}
-                    className={styles.mono}
-                  />
-                </label>
-              </div>
+            <div className={`${recordStyles.pair} ${slot("left", 7)}`}>
+              <label className={recordStyles.cell}>
+                City
+                <QuietInput name="city" maxLength={60} value={city} onChange={(event) => setCity(event.target.value)} />
+              </label>
+              <label className={recordStyles.cell}>
+                County
+                <QuietInput name="county" maxLength={60} value={county} onChange={(event) => setCounty(event.target.value)} />
+              </label>
             </div>
-            <p className={`${styles.sectionLabel} ${styles.wide}`}>Bank</p>
-            <div className={styles.addressBlock}>
-              <label className={styles.field}>
+            <div className={`${recordStyles.pair} ${slot("left", 8)}`}>
+              <label className={recordStyles.cell}>
+                Post code
+                <QuietInput name="post_code" maxLength={20} value={postCode} onChange={(event) => setPostCode(event.target.value)} className={styles.mono} />
+              </label>
+              <label className={recordStyles.cell}>
+                Country
+                <select name="country_code" autoComplete="off" value={countryCode} onChange={(event) => setCountryCode(event.target.value)}>
+                  {orderedCountries.map((country) => (
+                    <option key={country.code} value={country.code}>
+                      {country.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            {/* Right column: settings, registration and bank */}
+            <div className={`${recordStyles.pair} ${slot("right", 1)}`}>
+              <label className={recordStyles.cell}>
+                Home currency
+                <select
+                  name={organisation.hasDocuments ? undefined : "home_currency_id"}
+                  required
+                  autoComplete="off"
+                  value={homeCurrency}
+                  onChange={(event) => setHomeCurrency(event.target.value)}
+                  disabled={organisation.currencies.length === 0 || organisation.hasDocuments}
+                >
+                  <option value="" disabled></option>
+                  {organisation.currencies.map((currency) => (
+                    <option key={currency.id} value={currency.id}>
+                      {currencyLabel(currency)}
+                    </option>
+                  ))}
+                </select>
+                {organisation.hasDocuments ? <input type="hidden" name="home_currency_id" value={organisation.homeCurrencyId ?? ""} /> : null}
+              </label>
+              <label className={recordStyles.cell}>
+                Lock date
+                <QuietInput name="lock_date" type="date" value={lockDate} onChange={(event) => setLockDate(event.target.value)} />
+              </label>
+            </div>
+            <div className={`${recordStyles.pair} ${slot("right", 2)}`}>
+              <label className={recordStyles.cell}>
+                Inbound invoice type
+                <select
+                  name="inbound_invoice_type_id"
+                  value={inboundInvoiceTypeId}
+                  onChange={(event) => setInboundInvoiceTypeId(event.target.value)}
+                >
+                  <option value="">Not set</option>
+                  {invoiceTypes.map((type) => (
+                    <option key={type.id} value={type.id}>
+                      {type.code} {type.description}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className={recordStyles.cell}>
+                Inbound credit note type
+                <select
+                  name="inbound_credit_note_type_id"
+                  value={inboundCreditNoteTypeId}
+                  onChange={(event) => setInboundCreditNoteTypeId(event.target.value)}
+                >
+                  <option value="">Not set</option>
+                  {creditTypes.map((type) => (
+                    <option key={type.id} value={type.id}>
+                      {type.code} {type.description}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className={`${recordStyles.pair} ${slot("right", 3)}`}>
+              <label className={recordStyles.cell}>
+                VAT number
+                <QuietInput name="vat_number" maxLength={16} value={vatNumber} onChange={(event) => setVatNumber(event.target.value)} className={styles.mono} />
+              </label>
+              <label className={recordStyles.cell}>
+                Company number
+                <QuietInput name="company_number" maxLength={40} value={companyNumber} onChange={(event) => setCompanyNumber(event.target.value)} className={styles.mono} />
+              </label>
+            </div>
+            <div className={`${recordStyles.pair} ${slot("right", 4)}`}>
+              <label className={recordStyles.cell}>
+                Peppol scheme
+                <SchemeLookup schemes={schemes} value={peppolScheme} onChange={setPeppolScheme} />
+              </label>
+              <label className={recordStyles.cell}>
+                Peppol ID
+                <QuietInput name="peppol_id" maxLength={100} value={peppolId} onChange={(event) => setPeppolId(event.target.value)} className={styles.mono} />
+              </label>
+            </div>
+            <div className={`${recordStyles.row} ${slot("right", 5)}`}>
+              <label className={recordStyles.grow}>
                 Account name
-                <QuietInput
-                  name="bank_account_name"
-                  maxLength={100}
-                  value={bankAccountName}
-                  onChange={(event) => setBankAccountName(event.target.value)}
-                />
-              </label>
-              <div className={styles.fieldPair}>
-                <label className={styles.field}>
-                  IBAN
-                  <QuietInput
-                    name="iban"
-                    maxLength={42}
-                    value={iban}
-                    onChange={(event) => setIban(event.target.value)}
-                    placeholder="IE29AIBK93115212345678"
-                    className={styles.mono}
-                  />
-                </label>
-                <label className={styles.field}>
-                  BIC
-                  <QuietInput
-                    name="bic"
-                    maxLength={11}
-                    value={bic}
-                    onChange={(event) => setBic(event.target.value)}
-                    placeholder="AIBKIE2D"
-                    className={styles.mono}
-                  />
-                </label>
-              </div>
-            </div>
-            <div className={styles.addressBlock}>
-              <label className={styles.field}>
-                Banking details
-                <QuietTextarea
-                  name="banking_details"
-                  maxLength={1000}
-                  rows={3}
-                  spellCheck
-                  value={bankingDetails}
-                  onChange={(event) => setBankingDetails(event.target.value)}
-                />
-                <span className={styles.panelMeta}>Printed as written. IBAN, BIC, and account name are stored separately.</span>
+                <QuietInput name="bank_account_name" maxLength={100} value={bankAccountName} onChange={(event) => setBankAccountName(event.target.value)} />
               </label>
             </div>
-            <p className={`${styles.sectionLabel} ${styles.wide}`}>Documents</p>
-            <label className={styles.field}>
-              Home currency
-              <select
-                name={organisation.hasDocuments ? undefined : "home_currency_id"}
-                required
-                autoComplete="off"
-                value={homeCurrency}
-                onChange={(event) => setHomeCurrency(event.target.value)}
-                disabled={organisation.currencies.length === 0 || organisation.hasDocuments}
-              >
-                <option value="" disabled>
-                  Choose a home currency
-                </option>
-                {organisation.currencies.map((currency) => (
-                  <option key={currency.id} value={currency.id}>
-                    {currencyLabel(currency)}
-                  </option>
-                ))}
-              </select>
-              {organisation.hasDocuments ? <input type="hidden" name="home_currency_id" value={organisation.homeCurrencyId ?? ""} /> : null}
+            <div className={`${recordStyles.pair} ${slot("right", 6)}`}>
+              <label className={recordStyles.cell}>
+                IBAN
+                <QuietInput name="iban" maxLength={42} value={iban} onChange={(event) => setIban(event.target.value)} className={styles.mono} />
+              </label>
+              <label className={recordStyles.cell}>
+                BIC
+                <QuietInput name="bic" maxLength={11} value={bic} onChange={(event) => setBic(event.target.value)} className={styles.mono} />
+              </label>
+            </div>
+            <label className={`${recordStyles.cell} ${recordStyles.right} ${recordStyles.tall}`} style={tall(7, 2)}>
+              Banking details
+              <QuietTextarea
+                name="banking_details"
+                maxLength={1000}
+                rows={3}
+                spellCheck
+                value={bankingDetails}
+                onChange={(event) => setBankingDetails(event.target.value)}
+              />
             </label>
-            <label className={styles.field}>
-              Lock date
-              <QuietInput name="lock_date" type="date" value={lockDate} onChange={(event) => setLockDate(event.target.value)} />
-            </label>
-            <label className={styles.field}>
-              Inbound invoice type
-              <select
-                name="inbound_invoice_type_id"
-                value={inboundInvoiceTypeId}
-                onChange={(event) => setInboundInvoiceTypeId(event.target.value)}
-              >
-                <option value="">Not set</option>
-                {invoiceTypes.map((type) => (
-                  <option key={type.id} value={type.id}>
-                    {type.code} {type.description}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className={styles.field}>
-              Inbound credit note type
-              <select
-                name="inbound_credit_note_type_id"
-                value={inboundCreditNoteTypeId}
-                onChange={(event) => setInboundCreditNoteTypeId(event.target.value)}
-              >
-                <option value="">Not set</option>
-                {creditTypes.map((type) => (
-                  <option key={type.id} value={type.id}>
-                    {type.code} {type.description}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <span className={`${styles.panelMeta} ${styles.wide}`}>
-              {homeCurrencyNote}
-              {organisation.currencies.length === 0 ? " Add a currency for this organisation before choosing a home currency." : ""}
-              {" "}Documents on or before the lock date cannot be entered, posted, voided, or removed. Received e-invoices use these purchase types.
-            </span>
-            <div className={`${styles.field} ${styles.span2}`}>
+
+            {/* Logo, then the notes that explain the settings above */}
+            <div className={`${styles.field} ${slot("left", 9)}`}>
               <label htmlFor={logoInputId}>Logo</label>
               <div className={logoStyles.logoControl}>
                 {preview ? (
@@ -523,6 +464,11 @@ function OrganisationForm({
                 </div>
               </div>
             </div>
+            <p className={`${styles.panelMeta} ${slot("left", 10, recordStyles.wideCell)}`}>
+              {homeCurrencyNote}
+              {organisation.currencies.length === 0 ? " Add a currency for this organisation before choosing a home currency." : ""}
+              {" "}Documents on or before the lock date cannot be entered, posted, voided, or removed. Received e-invoices use the inbound types. The VAT number includes the country prefix, for example IE1234567T. Banking details are printed as written; IBAN, BIC, and account name are stored separately.
+            </p>
             <input type="hidden" name="organisation_id" value={organisation.id} />
           </form>
         </div>

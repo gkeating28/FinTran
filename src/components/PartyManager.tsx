@@ -1,6 +1,6 @@
 "use client";
 
-import { type CSSProperties, useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { CodeField } from "@/components/CodeField";
 import ConfirmSubmitButton from "@/components/ConfirmDialog";
 import DataGrid from "@/components/DataGrid";
@@ -13,6 +13,7 @@ import { PARTY_META, type PartyCurrency, type PartyKind, type PartyRow } from "@
 import { countryChoices, type CodeName } from "@/lib/code-lists";
 import styles from "@/components/OpsPage.module.css";
 import recordStyles from "@/components/RecordForm.module.css";
+import { exact, slot } from "@/components/recordForm";
 import type { ActionState } from "@/lib/types";
 
 export default function PartyManager({
@@ -147,16 +148,6 @@ export default function PartyManager({
       ) : null}
     </section>
   );
-}
-
-/** Gives a field an exact width (a CSS length) instead of one worked out from its character count. */
-function exact(w: string): CSSProperties {
-  return { ["--w" as string]: w };
-}
-
-/** Puts a cell of the form on its row in the left or the right column, so both sides of a row stay level. */
-function slot(side: "left" | "right", row: number, extra?: string) {
-  return [recordStyles[side], recordStyles[`r${row}`], extra].filter(Boolean).join(" ");
 }
 
 export function PartyForm({
