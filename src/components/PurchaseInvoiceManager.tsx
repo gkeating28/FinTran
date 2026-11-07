@@ -1418,6 +1418,7 @@ function InvoiceForm({
                             <button
                               className={styles.quiet}
                               type="button"
+                              data-destructive="true"
                               onClick={() =>
                                 setInvoiceLines((current) =>
                                   current
