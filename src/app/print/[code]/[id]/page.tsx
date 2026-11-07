@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { ArrowLeftIcon } from "@/components/icons";
 import PrintedForm from "@/components/PrintedForm";
 import styles from "@/components/PrintForm.module.css";
 import { loadPrintedDocument } from "@/lib/form-data";
 import { getWorkspace } from "@/lib/data";
+import { PAGE_SIZE_OPTIONS } from "@/lib/form-layout";
 import PdfButton from "./PdfButton";
 import PrintButton from "./PrintButton";
 
@@ -36,15 +38,17 @@ export default async function PrintDocumentPage({ params }: { params: Promise<{ 
 
   return (
     <main className={styles.stage}>
-      <div className={styles.toolbar}>
+      <div className={styles.toolbar} style={{ ["--page-width" as string]: PAGE_SIZE_OPTIONS[loaded.view.pageSize].width }}>
         <Link className={styles.back} href={`/transactions/${loaded.type.code}`}>
+          <ArrowLeftIcon />
           Back
         </Link>
-        <PrintButton />
+        <span className={styles.spacer} />
         <PdfButton
           pageSize={loaded.view.pageSize}
           fileName={pdfFileName(loaded.view.downloadName)}
         />
+        <PrintButton />
       </div>
       <PrintedForm view={loaded.view} />
     </main>
