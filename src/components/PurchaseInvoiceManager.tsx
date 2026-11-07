@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useActionState, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import ConfirmSubmitButton from "@/components/ConfirmDialog";
 import DataGrid from "@/components/DataGrid";
 import GridPager from "@/components/GridPager";
@@ -43,6 +43,7 @@ import {
   type ReadinessItem,
 } from "@/lib/purchase-invoices";
 import styles from "@/components/OpsPage.module.css";
+import documentStyles from "@/components/Document.module.css";
 import type { ActionState } from "@/lib/types";
 
 function today() {
@@ -68,6 +69,24 @@ function termsText(days: number) {
 }
 
 const SPLIT_WIDTH_KEY = "fintran.transactionSplitWidth";
+
+function readStoredSplitWidth(): number | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const stored = window.localStorage.getItem(SPLIT_WIDTH_KEY);
+    const value = stored == null ? Number.NaN : Number(stored);
+    return Number.isFinite(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+const noSubscription = () => () => {};
+
+/** False while the server renders and while the browser hydrates, true afterwards. */
+function useHydrated() {
+  return useSyncExternalStore(noSubscription, () => true, () => false);
+}
 const SPLIT_HANDLE = 10;
 const SPLIT_MIN = 280;
 
@@ -194,19 +213,30 @@ export default function PurchaseInvoiceManager({
     };
   }, [rows]);
 
-  useEffect(() => {
+  // Moving to another page closes any open document.
+  const [seenPath, setSeenPath] = useState(pathname);
+  if (pathname !== seenPath) {
+    setSeenPath(pathname);
     setDraft(null);
     setLines(null);
     setLineError(null);
-  }, [pathname]);
+  }
 
-  useEffect(() => {
-    if (!openId) return;
-    const row = rows.find((item) => item.id === openId);
-    if (!row) return;
-    setLines(row.lines);
-    setDraft(row);
-  }, [openId, openStamp, rows]);
+  // A document named in the address opens once the page is in the browser, and again whenever the
+  // address, the stamp or the rows change.
+  const hydrated = useHydrated();
+  const [seenOpen, setSeenOpen] = useState<{ openId?: string; openStamp?: string; rows: PurchaseInvoiceRow[] } | null>(null);
+  if (
+    hydrated &&
+    (!seenOpen || seenOpen.openId !== openId || seenOpen.openStamp !== openStamp || seenOpen.rows !== rows)
+  ) {
+    setSeenOpen({ openId, openStamp, rows });
+    const row = openId ? rows.find((item) => item.id === openId) : undefined;
+    if (row) {
+      setLines(row.lines);
+      setDraft(row);
+    }
+  }
 
   const parties = sales ? choices.customers : choices.suppliers;
   const listedRows = readinessById
@@ -472,13 +502,13 @@ function readinessSummary(items: PurchaseInvoiceRow["readiness"], direction: "Sa
 
 function ReadinessList({ items, direction }: { items: PurchaseInvoiceRow["readiness"]; direction: "Sales" | "Purchases" }) {
   return (
-    <ul className={styles.readinessList}>
+    <ul className={documentStyles.readinessList}>
       {items.map((item, index) => {
         const href = readinessHref(item.businessTerm, direction);
         const label = href === "/customers" ? "Open Customers" : href === "/suppliers" ? "Open Suppliers" : "Open Organisations";
         return (
-          <li key={`${item.ruleId}-${item.businessTerm}-${index}`} className={styles.readinessItem} data-status={item.severity}>
-            <div className={styles.readinessRule}>{item.ruleId}</div>
+          <li key={`${item.ruleId}-${item.businessTerm}-${index}`} className={documentStyles.readinessItem} data-status={item.severity}>
+            <div className={documentStyles.readinessRule}>{item.ruleId}</div>
             <p>{item.message}</p>
             {href ? <Link href={href}>{label}</Link> : <p className={styles.panelMeta}>Enter this on the document.</p>}
           </li>
@@ -503,7 +533,7 @@ function ReadinessControl({
   return (
     <>
       <button
-        className={styles.readinessButton}
+        className={documentStyles.readinessButton}
         data-status={status}
         type="button"
         disabled={pending}
@@ -512,9 +542,9 @@ function ReadinessControl({
         Readiness
       </button>
       {open ? (
-        <FormModal title="Readiness" className={styles.readinessDialog} onClose={() => setOpen(false)}>
-          <div className={styles.readinessBody}>
-            <p className={styles.readinessSummary} data-status={status}>
+        <FormModal title="Readiness" className={documentStyles.readinessDialog} onClose={() => setOpen(false)}>
+          <div className={documentStyles.readinessBody}>
+            <p className={documentStyles.readinessSummary} data-status={status}>
               {readinessSummary(items, direction)}
             </p>
             {items.length > 0 ? <ReadinessList items={items} direction={direction} /> : null}
@@ -557,7 +587,7 @@ function InvoiceForm({
   const state = posted ? paidState : saveState;
   const action = posted ? paidAction : saveAction;
   const pending = posted ? paidPending : savePending;
-  const [typeId, setTypeId] = useState(header?.transactionTypeId ?? choices.types[0]?.id ?? "");
+  const [typeId] = useState(header?.transactionTypeId ?? choices.types[0]?.id ?? "");
   const [transactionDate, setTransactionDate] = useState(header?.transactionDate ?? today());
   const [dueDate, setDueDate] = useState(header?.dueDate ?? "");
   const [supplierId, setSupplierId] = useState(header ? (sales ? header.customerId : header.supplierId) : "");
@@ -594,26 +624,20 @@ function InvoiceForm({
   const [lineDraft, setLineDraft] = useState<PurchaseInvoiceLine | null>(null);
   const [lineMessage, setLineMessage] = useState<string | null>(null);
   const [headerTab, setHeaderTab] = useState<HeaderTab>("document");
-  const [headerWidth, setHeaderWidth] = useState<number | null>(null);
+  const [headerWidth, setHeaderWidth] = useState<number | null>(readStoredSplitWidth);
+  const [panelWidth, setPanelWidth] = useState<number | null>(null);
   const [sideBySide, setSideBySide] = useState(true);
   const [voidOpen, setVoidOpen] = useState(false);
   const [creditOpen, setCreditOpen] = useState(false);
   const splitRef = useRef<HTMLDivElement>(null);
-  const headerWidthRef = useRef<number | null>(null);
+  const headerWidthRef = useRef<number | null>(headerWidth);
   const sideBySideRef = useRef(true);
-
-  useEffect(() => {
-    const stored = window.localStorage.getItem(SPLIT_WIDTH_KEY);
-    const value = stored == null ? Number.NaN : Number(stored);
-    if (!Number.isFinite(value)) return;
-    headerWidthRef.current = value;
-    setHeaderWidth(value);
-  }, []);
 
   useEffect(() => {
     const node = splitRef.current;
     if (!node) return;
     const watch = () => {
+      setPanelWidth(node.clientWidth);
       const wide = node.clientWidth >= 860;
       if (wide === sideBySideRef.current) return;
       sideBySideRef.current = wide;
@@ -684,16 +708,18 @@ function InvoiceForm({
     rememberWidth(current + (event.shiftKey ? delta * 3 : delta));
   }
 
-  useEffect(() => {
+  // Lines loaded after the form opened replace the ones shown.
+  const [seenLines, setSeenLines] = useState<PurchaseInvoiceLine[] | null | undefined>(undefined);
+  if (lines !== seenLines) {
+    setSeenLines(lines);
     if (lines) setInvoiceLines(lines);
-  }, [lines]);
+  }
 
   useEffect(() => {
     if (state.message) onClose();
   }, [state.message, onClose]);
 
   const selectedType = choices.types.find((type) => type.id === typeId);
-  const typeLocked = Boolean(header) || choices.types.length === 1;
   const selectedCurrency = choices.currencies.find((currency) => currency.id === currencyId);
   const supplierCurrency = selectedCurrency?.code ?? "";
   const homeCurrency = choices.homeCurrencyCode;
@@ -879,9 +905,7 @@ function InvoiceForm({
         gridTemplateColumns: "minmax(0, 1fr)",
         gridTemplateRows: "minmax(0, 1fr) minmax(0, 1fr)",
       };
-  const splitMax = splitRef.current
-    ? Math.max(SPLIT_MIN, splitRef.current.clientWidth - SPLIT_MIN - SPLIT_HANDLE)
-    : 1200;
+  const splitMax = panelWidth ? Math.max(SPLIT_MIN, panelWidth - SPLIT_MIN - SPLIT_HANDLE) : 1200;
   const linePage = gridPageSlice(invoiceLines, linePageIndex, linePageSize);
 
   function changeLinePageSize(next: GridPageSize) {
@@ -940,7 +964,7 @@ function InvoiceForm({
         </div>
         <div className={`${styles.invoiceSplit} ${sideBySide ? "" : styles.invoiceStacked}`} ref={splitRef} style={splitStyle}>
         <div className={styles.headerPane}>
-        <div className={styles.headerTabs} role="tablist" aria-label="Header">
+        <div className={documentStyles.headerTabs} role="tablist" aria-label="Header">
           {([
             ["document", "Document"],
             ["notes", "Notes"],
@@ -948,7 +972,7 @@ function InvoiceForm({
           ] as const).map(([id, label]) => (
             <button
               key={id}
-              className={styles.headerTab}
+              className={documentStyles.headerTab}
               type="button"
               role="tab"
               id={`header-tab-${id}`}
@@ -1244,7 +1268,7 @@ function InvoiceForm({
         </div>
         </div>
         <div className={styles.headerSummary}>
-          <fieldset className={styles.amountBox}>
+          <fieldset className={documentStyles.amountBox}>
             <legend>Totals</legend>
             <table>
               <thead>
@@ -1274,7 +1298,7 @@ function InvoiceForm({
             </table>
             <p className={styles.panelMeta}>Amount due {formatMoney(totals.amountDue)}</p>
             {totals.breakdown.length ? (
-              <table className={styles.vatBreakdown}>
+              <table className={documentStyles.vatBreakdown}>
                 <thead>
                   <tr>
                     <th>Category</th>
@@ -1317,7 +1341,7 @@ function InvoiceForm({
           <div className={styles.gridToolbar}>
             <span className={styles.paneLabel}>
               Lines ({invoiceLines.length})
-              {locked && invoiceLines.length > 0 ? <span className={styles.lineHint}>Select a line to see its details.</span> : null}
+              {locked && invoiceLines.length > 0 ? <span className={documentStyles.lineHint}>Select a line to see its details.</span> : null}
             </span>
             {locked ? null : (
               <button
@@ -1332,7 +1356,7 @@ function InvoiceForm({
               </button>
             )}
           </div>
-            <div className={styles.lineScroll}>
+            <div className={documentStyles.lineScroll}>
               <table className={styles.lineTable}>
                 <thead>
                   <tr>
@@ -1357,7 +1381,7 @@ function InvoiceForm({
                     linePage.rows.map((line) => (
                       <tr
                         key={line.lineNumber}
-                        className={styles.lineClick}
+                        className={documentStyles.lineClick}
                         tabIndex={locked ? 0 : undefined}
                         role={locked ? "button" : undefined}
                         aria-label={locked ? `View line ${line.lineNumber}` : undefined}
@@ -1421,7 +1445,7 @@ function InvoiceForm({
               </table>
             </div>
             <GridPager
-              className={styles.linePager}
+              className={documentStyles.linePager}
               page={linePage.page}
               pageCount={linePage.pageCount}
               pageSize={linePageSize}
@@ -1437,8 +1461,8 @@ function InvoiceForm({
         </div>
       </form>
       {voidOpen && canVoidDocument && header ? (
-        <form className={styles.sideSheet} action={voidPurchaseInvoice} autoComplete="off">
-          <div className={styles.sideSheetHead}>
+        <form className={documentStyles.sideSheet} action={voidPurchaseInvoice} autoComplete="off">
+          <div className={documentStyles.sideSheetHead}>
             <strong>Void document</strong>
             <button className={styles.quiet} type="button" onClick={() => setVoidOpen(false)}>Close</button>
           </div>
@@ -1452,8 +1476,8 @@ function InvoiceForm({
         </form>
       ) : null}
       {creditOpen && showCreditNote && header ? (
-        <div className={styles.sideSheet} role="dialog" aria-label="Credit notes">
-          <div className={styles.sideSheetHead}>
+        <div className={documentStyles.sideSheet} role="dialog" aria-label="Credit notes">
+          <div className={documentStyles.sideSheetHead}>
             <strong>Credit notes</strong>
             <button className={styles.quiet} type="button" onClick={() => setCreditOpen(false)}>Close</button>
           </div>
@@ -1501,7 +1525,7 @@ function InvoiceForm({
         </div>
       ) : null}
       <div className={styles.modalActions}>
-        <div className={styles.actionCluster}>
+        <div className={documentStyles.actionCluster}>
           {canVoidDocument ? (
             <button className={styles.quiet} type="button" aria-expanded={voidOpen} onClick={() => openPanel("void")}>
               Void
@@ -1513,7 +1537,7 @@ function InvoiceForm({
             </button>
           ) : null}
         </div>
-        <div className={styles.actionCluster}>
+        <div className={documentStyles.actionCluster}>
           <button className={styles.quiet} type="button" onClick={onClose}>
             {locked && !posted ? "Close" : "Cancel"}
           </button>

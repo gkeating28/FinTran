@@ -1,5 +1,6 @@
 import Link from "next/link";
 import styles from "@/components/OpsPage.module.css";
+import dashboardStyles from "@/components/Dashboard.module.css";
 import type { HomeOverview as Overview } from "@/lib/home-data";
 
 const SHORTCUTS = [
@@ -45,43 +46,43 @@ export default function HomeOverview({
         </p>
       ) : null}
 
-      <h2 className={styles.menuHeading}>Needs attention</h2>
-      <div className={styles.cards}>
-        <Link href="/transactions" className={`${styles.card} ${styles.cardLink}`}>
-          <div className={styles.cardLabel}>Draft documents</div>
-          <div className={styles.cardValue}>{count(overview.draftDocuments)}</div>
-          <div className={styles.cardNote}>waiting to be posted</div>
+      <h2 className={dashboardStyles.menuHeading}>Needs attention</h2>
+      <div className={dashboardStyles.cards}>
+        <Link href="/transactions" className={`${dashboardStyles.card} ${dashboardStyles.cardLink}`}>
+          <div className={dashboardStyles.cardLabel}>Draft documents</div>
+          <div className={dashboardStyles.cardValue}>{count(overview.draftDocuments)}</div>
+          <div className={dashboardStyles.cardNote}>waiting to be posted</div>
         </Link>
-        <Link href="/e-documents" className={`${styles.card} ${styles.cardLink}`}>
-          <div className={styles.cardLabel}>E-invoices ready to import</div>
-          <div className={styles.cardValue}>{count(overview.eDocumentsReady)}</div>
-          <div className={styles.cardNote}>received and valid</div>
+        <Link href="/e-documents" className={`${dashboardStyles.card} ${dashboardStyles.cardLink}`}>
+          <div className={dashboardStyles.cardLabel}>E-invoices ready to import</div>
+          <div className={dashboardStyles.cardValue}>{count(overview.eDocumentsReady)}</div>
+          <div className={dashboardStyles.cardNote}>received and valid</div>
         </Link>
-        <Link href="/e-documents" className={`${styles.card} ${styles.cardLink}`}>
-          <div className={styles.cardLabel}>E-invoices to review</div>
-          <div className={styles.cardValue}>{count(overview.eDocumentsNeedReview)}</div>
-          <div className={styles.cardNote}>duplicates and invalid files</div>
+        <Link href="/e-documents" className={`${dashboardStyles.card} ${dashboardStyles.cardLink}`}>
+          <div className={dashboardStyles.cardLabel}>E-invoices to review</div>
+          <div className={dashboardStyles.cardValue}>{count(overview.eDocumentsNeedReview)}</div>
+          <div className={dashboardStyles.cardNote}>duplicates and invalid files</div>
         </Link>
-        <Link href="/transactions" className={`${styles.card} ${styles.cardLink}`}>
-          <div className={styles.cardLabel}>Posted this month</div>
-          <div className={styles.cardValue}>{count(overview.postedThisMonth)}</div>
-          <div className={styles.cardNote}>documents</div>
+        <Link href="/transactions" className={`${dashboardStyles.card} ${dashboardStyles.cardLink}`}>
+          <div className={dashboardStyles.cardLabel}>Posted this month</div>
+          <div className={dashboardStyles.cardValue}>{count(overview.postedThisMonth)}</div>
+          <div className={dashboardStyles.cardNote}>documents</div>
         </Link>
       </div>
 
-      <h2 className={styles.menuHeading}>Go to</h2>
-      <div className={styles.shortcutGrid}>
+      <h2 className={dashboardStyles.menuHeading}>Go to</h2>
+      <div className={dashboardStyles.shortcutGrid}>
         {SHORTCUTS.map((shortcut) => (
-          <Link key={shortcut.href} href={shortcut.href} className={`${styles.adminTile} ${styles.shortcut}`}>
-            <span className={styles.adminTileLabel}>{shortcut.label}</span>
-            <span className={styles.adminTileMeta}>{shortcut.meta}</span>
+          <Link key={shortcut.href} href={shortcut.href} className={`${dashboardStyles.adminTile} ${dashboardStyles.shortcut}`}>
+            <span className={dashboardStyles.adminTileLabel}>{shortcut.label}</span>
+            <span className={dashboardStyles.adminTileMeta}>{shortcut.meta}</span>
           </Link>
         ))}
       </div>
 
-      <h2 className={styles.menuHeading}>Workspace</h2>
+      <h2 className={dashboardStyles.menuHeading}>Workspace</h2>
       <div className={styles.panel}>
-        <dl className={styles.workspaceList}>
+        <dl className={dashboardStyles.workspaceList}>
           <div>
             <dt>Tenant</dt>
             <dd>{tenantName}</dd>

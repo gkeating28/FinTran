@@ -1,19 +1,16 @@
 import { createClient } from "@/lib/supabase/server";
 
-const ORGANISATION_TABLES = [
-  "gl_codes",
-  "departments",
-  "cost_centres",
-  "vat_rates",
-  "currencies",
-  "transaction_types",
-  "products",
-  "organisation_access",
-  "transaction_forms",
-  "audit_log",
-] as const;
-
-type OrganisationTable = (typeof ORGANISATION_TABLES)[number];
+type OrganisationTable =
+  | "gl_codes"
+  | "departments"
+  | "cost_centres"
+  | "vat_rates"
+  | "currencies"
+  | "transaction_types"
+  | "products"
+  | "organisation_access"
+  | "transaction_forms"
+  | "audit_log";
 
 export type AdminCounts = {
   glCodes: number | null;

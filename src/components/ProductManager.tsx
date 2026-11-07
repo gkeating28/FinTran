@@ -12,6 +12,7 @@ import type { UnitChoice } from "@/lib/code-lists";
 import { formatProductPrice, parseProductPrice, type ProductRow } from "@/lib/products";
 import { formatRate, type AccountType, type ReferenceRow, type VatType } from "@/lib/reference";
 import styles from "@/components/OpsPage.module.css";
+import lookupStyles from "@/components/Lookup.module.css";
 import type { ActionState } from "@/lib/types";
 
 export default function ProductManager({
@@ -233,7 +234,7 @@ function CodeLookup({
     : options;
 
   return (
-    <div className={styles.lookup}>
+    <div className={lookupStyles.lookup}>
       <input type="hidden" name={name} value={value} />
       <button
         type="button"
@@ -245,7 +246,7 @@ function CodeLookup({
         <span>{selected?.label ?? placeholder}</span>
       </button>
       {open ? (
-        <div className={styles.lookupMenu} role="listbox" aria-label={placeholder}>
+        <div className={lookupStyles.lookupMenu} role="listbox" aria-label={placeholder}>
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -257,7 +258,7 @@ function CodeLookup({
             spellCheck={false}
           />
           {shown.length === 0 ? (
-            <p className={styles.lookupEmpty}>{options.length === 0 ? emptyText : "No matches."}</p>
+            <p className={lookupStyles.lookupEmpty}>{options.length === 0 ? emptyText : "No matches."}</p>
           ) : (
             shown.map((option) => (
               <button
@@ -265,7 +266,7 @@ function CodeLookup({
                 type="button"
                 role="option"
                 aria-selected={option.id === value}
-                className={styles.lookupOption}
+                className={lookupStyles.lookupOption}
                 onClick={() => {
                   onChange(option.id);
                   setQuery("");

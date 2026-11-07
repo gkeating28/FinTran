@@ -1,4 +1,3 @@
-import type { UnitChoice } from "@/lib/code-lists";
 import { parseCurrencyRate } from "@/lib/currencies";
 import { numberValue } from "@/lib/numbers";
 import { formatProductPrice, parseProductPrice } from "@/lib/products";

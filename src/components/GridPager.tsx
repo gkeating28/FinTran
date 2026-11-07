@@ -2,9 +2,10 @@
 
 import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { CheckIcon, ChevronDownIcon, PageIcon } from "@/components/icons";
 import { GRID_PAGE_SIZES, type GridPageSize } from "@/lib/grid-page";
 import { formatInteger } from "@/lib/numbers";
-import styles from "@/components/OpsPage.module.css";
+import pagerStyles from "@/components/Pager.module.css";
 
 const PAGE_OPTIONS: { value: GridPageSize; label: string }[] = [
   ...GRID_PAGE_SIZES.map((size) => ({ value: size, label: formatInteger(size) })),
@@ -38,14 +39,14 @@ export default function GridPager({
   const atEnd = page >= pageCount - 1;
 
   return (
-    <div className={[styles.gridFooter, className].filter(Boolean).join(" ")}>
+    <div className={[pagerStyles.gridFooter, className].filter(Boolean).join(" ")}>
       <RowsPerPage pageSize={pageSize} onPageSize={onPageSize} />
-      <div className={styles.pager}>
-        {summary ? <span className={styles.pagerSummary}>{summary}</span> : null}
+      <div className={pagerStyles.pager}>
+        {summary ? <span className={pagerStyles.pagerSummary}>{summary}</span> : null}
         <span aria-live="polite">
           Page {formatInteger(page + 1)} of {formatInteger(pageCount)}
         </span>
-        <div className={styles.pageButtons}>
+        <div className={pagerStyles.pageButtons}>
           <PageButton label="First page" disabled={atStart} onClick={() => onPage(0)}>
             <PageIcon name="first" />
           </PageButton>
@@ -192,7 +193,7 @@ function RowsPerPage({
         <div
           ref={menuRef}
           id={listId}
-          className={styles.rowsMenu}
+          className={pagerStyles.rowsMenu}
           role="listbox"
           aria-labelledby={labelId}
           style={
@@ -209,7 +210,7 @@ function RowsPerPage({
                 id={`${listId}-${index}`}
                 type="button"
                 role="option"
-                className={styles.rowsOption}
+                className={pagerStyles.rowsOption}
                 aria-selected={selected}
                 data-active={index === active ? "true" : undefined}
                 onMouseEnter={() => setActive(index)}
@@ -217,7 +218,7 @@ function RowsPerPage({
                 onClick={() => choose(option.value)}
               >
                 <span>{option.label}</span>
-                <span className={styles.rowsCheck} aria-hidden>
+                <span className={pagerStyles.rowsCheck} aria-hidden>
                   {selected ? <CheckIcon /> : null}
                 </span>
               </button>
@@ -229,12 +230,12 @@ function RowsPerPage({
     : null;
 
   return (
-    <div className={styles.rowsPerPage} ref={rootRef}>
+    <div className={pagerStyles.rowsPerPage} ref={rootRef}>
       <span id={labelId}>Rows per page</span>
       <button
         ref={buttonRef}
         type="button"
-        className={styles.rowsButton}
+        className={pagerStyles.rowsButton}
         role="combobox"
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -247,8 +248,8 @@ function RowsPerPage({
         onKeyDownCapture={onKeyDownCapture}
       >
         <span id={valueId}>{shown}</span>
-        <span className={styles.rowsChevron} aria-hidden>
-          <ChevronIcon />
+        <span className={pagerStyles.rowsChevron} aria-hidden>
+          <ChevronDownIcon />
         </span>
       </button>
       {menu}
@@ -268,48 +269,11 @@ function PageButton({
   children: ReactNode;
 }) {
   return (
-    <button type="button" className={styles.pageButton} aria-label={label} title={label} disabled={disabled} onClick={onClick}>
+    <button type="button" className={pagerStyles.pageButton} aria-label={label} title={label} disabled={disabled} onClick={onClick}>
       {children}
     </button>
   );
 }
 
-function ChevronIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <path d="M4 6.2 8 10.2 12 6.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
 
-function CheckIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <path d="M3.5 8.2 6.4 11.1 12.5 4.8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
 
-function PageIcon({ name }: { name: "first" | "previous" | "next" | "last" }) {
-  const bar = name === "first" || name === "last";
-  const left = name === "first" || name === "previous";
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-      {bar ? (
-        <path
-          d={name === "first" ? "M4.25 3.25v9.5" : "M11.75 3.25v9.5"}
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-        />
-      ) : null}
-      <path
-        d={left ? "M11.25 3.75 6.75 8l4.5 4.25" : "M4.75 3.75 9.25 8l-4.5 4.25"}
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}

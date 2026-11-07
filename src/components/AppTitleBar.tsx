@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useFormChrome } from "@/components/FormChrome";
+import { MenuIcon } from "@/components/icons";
 import { useNav } from "@/components/NavState";
 import { previousPage } from "@/lib/previous-page";
 import styles from "./AppTitleBar.module.css";
@@ -73,9 +74,7 @@ export default function AppTitleBar({
           aria-expanded={nav.open}
           onClick={nav.toggle}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
-            <path d="M4 7h16M4 12h16M4 17h16" />
-          </svg>
+          <MenuIcon />
         </button>
         <div className={styles.breadcrumb}>
           <span className={styles.crumbText}>

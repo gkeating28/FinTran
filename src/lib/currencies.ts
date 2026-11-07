@@ -48,7 +48,7 @@ export function formatExchangeRate(value: string | number | null) {
   if (!/^\d+(?:\.\d+)?$/.test(text)) return String(value);
   const [whole, fraction = ""] = text.split(".");
   const padded = (fraction + "00000").slice(0, 5);
-  let frac = padded.slice(0, 4);
+  const frac = padded.slice(0, 4);
   let carry = padded[4] >= "5" ? 1 : 0;
   const digits = (whole + frac).split("");
   for (let index = digits.length - 1; index >= 0 && carry; index -= 1) {

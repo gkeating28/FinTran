@@ -1,0 +1,151 @@
+/* Grid footer: rows per page menu, page count and the first, previous, next and last buttons. Used by GridPager. */
+
+.gridFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  flex-wrap: wrap;
+  min-height: 52px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--ops-border-soft);
+  background: var(--ops-panel-muted);
+  color: var(--ops-text-2);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.rowsPerPage {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ops-text-2);
+  white-space: nowrap;
+}
+
+.rowsButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 72px;
+  height: 34px;
+  padding: 0 8px 0 12px;
+  border: 1px solid var(--ops-border);
+  border-radius: var(--ops-radius);
+  background: var(--ops-panel);
+  color: var(--ops-text);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.rowsButton:hover {
+  border-color: var(--ops-accent);
+}
+
+.rowsChevron {
+  display: inline-flex;
+  color: var(--ops-muted);
+}
+
+.rowsMenu {
+  position: fixed;
+  z-index: 80;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 6px;
+  border: 1px solid var(--ops-border);
+  border-radius: var(--ops-radius);
+  background: var(--ops-panel);
+  color: var(--ops-text);
+  font-family: var(--font-public-sans), system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+}
+
+.rowsOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--ops-radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rowsOption:hover,
+.rowsOption[data-active="true"] {
+  background: var(--color-hover);
+}
+
+.rowsCheck {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  color: var(--ops-accent);
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
+  color: var(--ops-text-2);
+  white-space: nowrap;
+}
+
+.pageButtons {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pageButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--ops-border);
+  border-radius: var(--ops-radius);
+  background: var(--ops-panel);
+  color: var(--ops-text-2);
+  cursor: pointer;
+}
+
+.pageButton:hover:not(:disabled) {
+  background: var(--color-hover);
+  color: var(--ops-text);
+}
+
+.pageButton:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+@media (max-width: 860px) {
+  .gridFooter {
+      flex-wrap: wrap;
+    }
+
+  .pager {
+      width: 100%;
+      justify-content: space-between;
+    }
+}
+
+.pagerSummary {
+  color: var(--ops-text-2);
+}
