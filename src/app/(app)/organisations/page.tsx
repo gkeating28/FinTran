@@ -8,6 +8,8 @@ import { listCodeLists } from "@/lib/reference-data";
 export const metadata = { title: "Organisations" };
 
 export default async function OrganisationsPage() {
+  const codeLists = listCodeLists();
+  const isoCurrencies = listIsoCurrencies();
   const workspace = await getWorkspace();
   if (workspace.status === "signed-out") redirect("/login");
   if (workspace.status !== "ready") redirect("/");
@@ -16,8 +18,8 @@ export default async function OrganisationsPage() {
   const organisations = memberships.filter((membership) => membership.tenantId === current.tenantId);
   const [{ byOrganisation, error }, codes, currencies] = await Promise.all([
     listDefaultsByOrganisation(organisations.map((organisation) => organisation.organisationId)),
-    listCodeLists(),
-    listIsoCurrencies(),
+    codeLists,
+    isoCurrencies,
   ]);
 
   return (
