@@ -1,13 +1,20 @@
 /*
  * Layout for the supplier and customer form.
  *
- * Two columns of fixed width, each a stack of sections. A section is a heading and rows, and a row
- * is fields side by side. A field is one of two kinds:
+ * One grid of two columns with no section headings. Each cell sits on an explicit row (r1, r2, ...),
+ * so the edit boxes on the left and on the right of a row share the same top edge, whatever else is
+ * in the row: a hint under the code field makes its whole row taller on both sides and nothing below
+ * drifts out of line.
+ *
+ * Contact details is a tall box that starts level with the first address line and ends level with
+ * the third. The page lists every left cell, then every right cell, then the notes, so tabbing runs
+ * down the left column and then down the right one. Below 1200px the grid is one column in that order.
+ *
+ * In a row a field is one of two kinds:
  *   fixed  as wide as the value it accepts: set --chars to the number of characters it holds.
  *          Selects add room for their arrow with --pad.
  *   grow   free text (a name, an email, an address line): it fills what is left of the row.
- * Every row therefore starts and ends on the same two edges, and a three digit field is never wider
- * than three digits.
+ * A pair puts two fields on equal halves, so the second field of every pair starts on one line.
  */
 
 .layout {
@@ -16,25 +23,50 @@
   overflow: auto;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 560px));
-  gap: 24px 48px;
+  column-gap: 48px;
+  row-gap: 16px;
   align-content: start;
   align-items: start;
   /* Room for the focus ring, which the scroll area would otherwise clip. */
   padding: 4px;
 }
 
-.column {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  min-width: 0;
+.left {
+  grid-column: 1;
 }
 
-.section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.right {
+  grid-column: 2;
 }
+
+.wideCell {
+  grid-column: 1 / -1;
+}
+
+/*
+ * Contact details: starts on row 3, level with the first address line, and runs down three rows to
+ * the bottom of the third. It takes the height of those rows, so it fills the space without making
+ * the left side taller.
+ */
+.tall {
+  grid-row: 3 / span 3;
+  align-self: stretch;
+}
+
+.tall textarea {
+  flex: 1 1 auto;
+  min-height: 72px;
+  resize: none;
+}
+
+.r1 { grid-row: 1; }
+.r2 { grid-row: 2; }
+.r3 { grid-row: 3; }
+.r4 { grid-row: 4; }
+.r5 { grid-row: 5; }
+.r6 { grid-row: 6; }
+.r7 { grid-row: 7; }
+.r8 { grid-row: 8; }
 
 .row {
   display: flex;
@@ -60,8 +92,8 @@
 
 /* Three classes deep on purpose: the core form rule ".partyForm .field input" sets width 100%, and
    inside a label that is as wide as its content that would resolve to the input's default width. */
-.layout .column .fixed input,
-.layout .column .fixed select {
+.layout .row .fixed input,
+.layout .row .fixed select {
   width: calc(var(--chars, 12) * 1ch + var(--pad, 28px));
   max-width: 100%;
 }
@@ -91,5 +123,25 @@
 @media (max-width: 1200px) {
   .layout {
     grid-template-columns: minmax(0, 560px);
+  }
+
+  .left,
+  .right,
+  .wideCell {
+    grid-column: 1;
+  }
+
+  .r1, .r2, .r3, .r4, .r5, .r6, .r7, .r8 {
+    grid-row: auto;
+  }
+
+  .tall {
+    grid-row: auto;
+    align-self: start;
+  }
+
+  .tall textarea {
+    min-height: 96px;
+    resize: vertical;
   }
 }
