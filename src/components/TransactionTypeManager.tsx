@@ -194,18 +194,16 @@ function TransactionTypeForm({
             {state.error}
           </p>
         ) : null}
-        <div className={recordStyles.stack}>
-          <div className={recordStyles.row}>
+        <div className={recordStyles.cols}>
             <CodeField
               locked={Boolean(row)}
               value={code}
               onChange={setCode}
               maxLength={20}
               autoFocus={!row}
-              className={recordStyles.fixed}
-              style={exact("22ch")}
+              className={recordStyles.cell}
             />
-            <label className={recordStyles.grow}>
+            <label className={recordStyles.cell}>
           Description
           <QuietInput
             name="description"
@@ -217,9 +215,7 @@ function TransactionTypeForm({
             
           />
         </label>
-          </div>
-          <div className={recordStyles.row}>
-            <label className={recordStyles.grow}>
+            <label className={recordStyles.cell}>
           Type
           <select name="type" required autoComplete="off" value={type} onChange={(event) => setType(event.target.value)}>
             <option value="" disabled></option>
@@ -230,7 +226,7 @@ function TransactionTypeForm({
             ))}
           </select>
         </label>
-            <label className={recordStyles.grow}>
+            <label className={recordStyles.cell}>
           Kind
           {kindLocked ? <input type="hidden" name="document_kind" value={documentKind} /> : null}
           <select
@@ -248,7 +244,7 @@ function TransactionTypeForm({
             ))}
           </select>
         </label>
-            <label className={recordStyles.fixed} style={exact("14ch")}>
+            <label className={recordStyles.fixed} style={exact("12ch")}>
           Number prefix
           <QuietInput
             name="reference_prefix"
@@ -272,8 +268,6 @@ function TransactionTypeForm({
             className={styles.mono}
           />
         </label>
-          </div>
-          <div className={recordStyles.flow} style={{ ["--rows" as string]: 3 }}>
             {flexLabels.map((label, index) => (
           <label className={recordStyles.cell} key={index}>
             {`Flex ${index + 1} label`}
@@ -288,8 +282,7 @@ function TransactionTypeForm({
             />
           </label>
         ))}
-          </div>
-<p className={styles.panelMeta}>
+            <p className={styles.panelMeta}>
           Last reference: {formatInteger(row ? row.lastReference : 0)}. Next document number:{" "}
           {documentNumberPreview(
             referencePrefix.trim(),

@@ -14,7 +14,6 @@ import { formatRate, type AccountType, type ReferenceRow, type VatType } from "@
 import styles from "@/components/OpsPage.module.css";
 import recordStyles from "@/components/RecordForm.module.css";
 import { exact } from "@/components/recordForm";
-import lookupStyles from "@/components/Lookup.module.css";
 import type { ActionState } from "@/lib/types";
 
 export default function ProductManager({
@@ -208,80 +207,31 @@ function accountSummary(rows: ReferenceRow[]) {
 }
 
 function vatLabel(row: ReferenceRow) {
-  const rate = row.rate ? ` (${formatRate(row.rate)})` : "";
+  const shown = row.rate ? formatRate(row.rate) : "";
+  const rate = shown && !row.description.includes(shown) ? ` (${shown})` : "";
   return `${row.code} — ${row.description}${rate}`;
 }
 
-function CodeLookup({
+function CodeSelect({
   name,
   value,
   onChange,
-  label,
   options,
-  emptyText,
 }: {
   name: string;
   value: string;
   onChange: (value: string) => void;
-  label: string;
   options: { id: string; label: string }[];
-  emptyText: string;
 }) {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const selected = options.find((option) => option.id === value);
-  const needle = query.trim().toLowerCase();
-  const shown = needle
-    ? options.filter((option) => option.label.toLowerCase().includes(needle))
-    : options;
-
   return (
-    <div className={lookupStyles.lookup}>
-      <input type="hidden" name={name} value={value} />
-      <button
-        type="button"
-        className={styles.lookupButton}
-        aria-expanded={open}
-        aria-haspopup="listbox"
-        onClick={() => setOpen((current) => !current)}
-      >
-        <span>{selected?.label ?? ""}</span>
-      </button>
-      {open ? (
-        <div className={lookupStyles.lookupMenu} role="listbox" aria-label={label}>
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search"
-            aria-label={`Search ${label}`}
-            autoComplete="one-time-code"
-            autoCorrect="off"
-            autoCapitalize="none"
-            spellCheck={false}
-          />
-          {shown.length === 0 ? (
-            <p className={lookupStyles.lookupEmpty}>{options.length === 0 ? emptyText : "No matches."}</p>
-          ) : (
-            shown.map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                role="option"
-                aria-selected={option.id === value}
-                className={lookupStyles.lookupOption}
-                onClick={() => {
-                  onChange(option.id);
-                  setQuery("");
-                  setOpen(false);
-                }}
-              >
-                {option.label}
-              </button>
-            ))
-          )}
-        </div>
-      ) : null}
-    </div>
+    <select name={name} autoComplete="off" value={value} onChange={(event) => onChange(event.target.value)}>
+      <option value="" disabled></option>
+      {options.map((option) => (
+        <option key={option.id} value={option.id}>
+          {option.label}
+        </option>
+      ))}
+    </select>
   );
 }
 
@@ -384,17 +334,16 @@ function ProductForm({
           </p>
         ) : null}
         <div className={recordStyles.stack}>
-          <div className={recordStyles.row}>
+          <div className={recordStyles.pair}>
             <CodeField
               locked={Boolean(row)}
               value={code}
               onChange={setCode}
               maxLength={30}
               autoFocus={!row}
-              className={recordStyles.fixed}
-              style={exact("22ch")}
+              className={recordStyles.cell}
             />
-            <label className={recordStyles.grow}>
+            <label className={recordStyles.cell}>
               Description
               <QuietInput
                 name="description"
@@ -405,88 +354,78 @@ function ProductForm({
                 onChange={(event) => setDescription(event.target.value)}
               />
             </label>
-          </div>
-          <div className={recordStyles.row}>
-            <label className={recordStyles.fixed} style={exact("32ch")}>
+            <label className={recordStyles.cell}>
               Unit
               <UnitSelect name="unit_code" units={units} value={unitCode} onChange={setUnitCode} />
             </label>
           </div>
-          <div className={recordStyles.flow}>
-            <label className={recordStyles.fixed} style={exact("14ch")}>
-              Purchase price
-              <QuietInput
-                name="purchase_price"
-                required
-                inputMode="decimal"
-                value={purchasePrice}
-                onChange={(event) => setPurchasePrice(event.target.value)}
-                onBlur={(event) => {
-                  if (parseProductPrice(event.target.value)) setPurchasePrice(formatProductPrice(event.target.value));
-                }}
-                className={styles.mono}
-              />
-            </label>
+          <div className={recordStyles.flow} style={{ ["--rows" as string]: 2 }}>
+            <div className={recordStyles.row}>
+              <label className={recordStyles.fixed} style={exact("14ch")}>
+                Purchase price
+                <QuietInput
+                  name="purchase_price"
+                  required
+                  inputMode="decimal"
+                  value={purchasePrice}
+                  onChange={(event) => setPurchasePrice(event.target.value)}
+                  onBlur={(event) => {
+                    if (parseProductPrice(event.target.value)) setPurchasePrice(formatProductPrice(event.target.value));
+                  }}
+                  className={styles.mono}
+                />
+              </label>
+              <label className={recordStyles.grow}>
+                Purchase VAT code
+                <CodeSelect
+                  name="purchase_vat_code_id"
+                  value={purchaseVatCodeId}
+                  onChange={setPurchaseVatCodeId}
+                  options={purchaseVatRates.map((rate) => ({ id: rate.id, label: vatLabel(rate) }))}
+                />
+              </label>
+            </div>
             <label className={recordStyles.cell}>
               Purchase GL code
-              <CodeLookup
+              <CodeSelect
                 name="purchase_gl_code_id"
                 value={purchaseGlCodeId}
                 onChange={setPurchaseGlCodeId}
-                label="Purchase GL code"
                 options={purchaseGlCodes.map((gl) => ({ id: gl.id, label: glLabel(gl) }))}
-                emptyText="No Expense GL codes."
               />
             </label>
-            <label className={recordStyles.cell}>
-              Purchase VAT code
-              <CodeLookup
-                name="purchase_vat_code_id"
-                value={purchaseVatCodeId}
-                onChange={setPurchaseVatCodeId}
-                label="Purchase VAT code"
-                options={purchaseVatRates.map((rate) => ({ id: rate.id, label: vatLabel(rate) }))}
-                emptyText="No Expense VAT rates."
-              />
-            </label>
-            <label className={recordStyles.fixed} style={exact("14ch")}>
-              Sales price
-              <QuietInput
-                name="sales_price"
-                required
-                inputMode="decimal"
-                value={salesPrice}
-                onChange={(event) => setSalesPrice(event.target.value)}
-                onBlur={(event) => {
-                  if (parseProductPrice(event.target.value)) setSalesPrice(formatProductPrice(event.target.value));
-                }}
-                className={styles.mono}
-              />
-            </label>
+            <div className={recordStyles.row}>
+              <label className={recordStyles.fixed} style={exact("14ch")}>
+                Sales price
+                <QuietInput
+                  name="sales_price"
+                  required
+                  inputMode="decimal"
+                  value={salesPrice}
+                  onChange={(event) => setSalesPrice(event.target.value)}
+                  onBlur={(event) => {
+                    if (parseProductPrice(event.target.value)) setSalesPrice(formatProductPrice(event.target.value));
+                  }}
+                  className={styles.mono}
+                />
+              </label>
+              <label className={recordStyles.grow}>
+                Sales VAT code
+                <CodeSelect
+                  name="sales_vat_code_id"
+                  value={salesVatCodeId}
+                  onChange={setSalesVatCodeId}
+                  options={salesVatRates.map((rate) => ({ id: rate.id, label: vatLabel(rate) }))}
+                />
+              </label>
+            </div>
             <label className={recordStyles.cell}>
               Sales GL code
-              <CodeLookup
+              <CodeSelect
                 name="sales_gl_code_id"
                 value={salesGlCodeId}
                 onChange={setSalesGlCodeId}
-                label="Sales GL code"
                 options={salesGlCodes.map((gl) => ({ id: gl.id, label: glLabel(gl) }))}
-                emptyText={
-                  availableGlCodes.length === 0
-                    ? "Add a GL code with account type Income."
-                    : `No Income GL codes. ${accountSummary(availableGlCodes)}.`
-                }
-              />
-            </label>
-            <label className={recordStyles.cell}>
-              Sales VAT code
-              <CodeLookup
-                name="sales_vat_code_id"
-                value={salesVatCodeId}
-                onChange={setSalesVatCodeId}
-                label="Sales VAT code"
-                options={salesVatRates.map((rate) => ({ id: rate.id, label: vatLabel(rate) }))}
-                emptyText="No Sales VAT rates."
               />
             </label>
           </div>
