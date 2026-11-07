@@ -1022,7 +1022,8 @@
 
 /* Row actions in a grid are text buttons. Edit and View are accent coloured, Remove is red. */
 
-.table td .actions .quiet {
+.table td .actions .quiet,
+.lineTable td.actions .quiet {
   height: 30px;
   padding: 0 10px;
   border-color: transparent;
@@ -1031,17 +1032,20 @@
   box-shadow: none;
 }
 
-.table td .actions .quiet:hover:not(:disabled) {
+.table td .actions .quiet:hover:not(:disabled),
+.lineTable td.actions .quiet:hover:not(:disabled) {
   background: var(--color-accent-soft);
   border-color: transparent;
   color: var(--color-accent-hover);
 }
 
-.table td .actions .quiet[data-destructive] {
+.table td .actions .quiet[data-destructive],
+.lineTable td.actions .quiet[data-destructive] {
   color: var(--ops-danger);
 }
 
-.table td .actions .quiet[data-destructive]:hover:not(:disabled) {
+.table td .actions .quiet[data-destructive]:hover:not(:disabled),
+.lineTable td.actions .quiet[data-destructive]:hover:not(:disabled) {
   background: var(--color-danger-soft);
   color: var(--color-danger-hover);
 }
