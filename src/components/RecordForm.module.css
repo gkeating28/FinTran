@@ -45,7 +45,7 @@
 
 .grow {
   composes: field from "./OpsPage.module.css";
-  flex: 1 1 220px;
+  flex: 1 1 140px;
   min-width: 0;
 }
 
@@ -69,6 +69,23 @@
 /* A short field with a long label ("Payment terms (days)") keeps the label on one line. */
 .fixed {
   white-space: nowrap;
+}
+
+/*
+ * Two fields side by side on equal halves. Every pair in a column splits on the same line, so the
+ * second field of each pair lines up with the second field of the pair above and below it. A field
+ * that should stay small inside a pair is a "fixed" field and keeps its own width.
+ */
+.pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+  gap: 12px 16px;
+}
+
+.cell {
+  composes: field from "./OpsPage.module.css";
+  min-width: 0;
 }
 
 @media (max-width: 1200px) {

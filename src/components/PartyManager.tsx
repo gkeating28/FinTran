@@ -333,22 +333,22 @@ export function PartyForm({
                   <QuietInput name="address_line3" maxLength={100} autoComplete="off" spellCheck={false} value={addressLine3} onChange={(event) => setAddressLine3(event.target.value)} />
                 </label>
               </div>
-              <div className={recordStyles.row}>
-                <label className={recordStyles.grow}>
+              <div className={recordStyles.pair}>
+                <label className={recordStyles.cell}>
                   City
                   <QuietInput name="city" maxLength={60} autoComplete="off" spellCheck={false} value={city} onChange={(event) => setCity(event.target.value)} />
                 </label>
-                <label className={recordStyles.fixed} style={width(24)}>
+                <label className={recordStyles.cell}>
                   County
                   <QuietInput name="county" maxLength={60} autoComplete="off" spellCheck={false} value={county} onChange={(event) => setCounty(event.target.value)} />
                 </label>
               </div>
-              <div className={recordStyles.row}>
-                <label className={recordStyles.fixed} style={width(12)}>
+              <div className={recordStyles.pair}>
+                <label className={recordStyles.cell}>
                   Post code
                   <QuietInput name="post_code" maxLength={20} autoComplete="off" spellCheck={false} value={postCode} onChange={(event) => setPostCode(event.target.value)} className={styles.mono} />
                 </label>
-                <label className={recordStyles.fixed} style={width(24, 52)}>
+                <label className={recordStyles.cell}>
                   Country
                   <select name="country_code" autoComplete="off" value={countryCode} onChange={(event) => setCountryCode(event.target.value)}>
                     {orderedCountries.map((country) => (
@@ -381,8 +381,8 @@ export function PartyForm({
                   />
                 </label>
               </div>
-              <div className={recordStyles.row}>
-                <label className={recordStyles.fixed} style={width(22)}>
+              <div className={recordStyles.pair}>
+                <label className={recordStyles.cell}>
                   Phone
                   <QuietInput
                     name="phone"
@@ -394,7 +394,7 @@ export function PartyForm({
                     placeholder="+353 1 555 0100"
                   />
                 </label>
-                <label className={recordStyles.grow}>
+                <label className={recordStyles.cell}>
                   Website
                   <QuietInput
                     name="website"
@@ -411,8 +411,8 @@ export function PartyForm({
 
             <div className={recordStyles.section}>
               <p className={styles.sectionLabel}>Registration</p>
-              <div className={recordStyles.row}>
-                <label className={recordStyles.fixed} style={width(16)}>
+              <div className={recordStyles.pair}>
+                <label className={recordStyles.cell}>
                   VAT number
                   <QuietInput
                     name="vat_number"
@@ -425,7 +425,7 @@ export function PartyForm({
                     className={styles.mono}
                   />
                 </label>
-                <label className={recordStyles.fixed} style={width(16)}>
+                <label className={recordStyles.cell}>
                   Company number
                   <QuietInput
                     name="company_number"
@@ -438,12 +438,12 @@ export function PartyForm({
                   />
                 </label>
               </div>
-              <div className={recordStyles.row}>
-                <label className={recordStyles.grow}>
+              <div className={recordStyles.pair}>
+                <label className={recordStyles.cell}>
                   Peppol scheme
                   <SchemeLookup schemes={schemes} value={peppolScheme} onChange={setPeppolScheme} />
                 </label>
-                <label className={recordStyles.fixed} style={width(24)}>
+                <label className={recordStyles.cell}>
                   Peppol ID
                   <QuietInput name="peppol_id" maxLength={100} autoComplete="off" spellCheck={false} value={peppolId} onChange={(event) => setPeppolId(event.target.value)} className={styles.mono} />
                 </label>
