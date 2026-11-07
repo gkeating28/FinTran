@@ -149,9 +149,9 @@ export default function PartyManager({
   );
 }
 
-/** Sizes a field to the value it accepts: chars is how many characters it holds, pad adds room for a select arrow. */
-function width(chars: number, pad?: number): CSSProperties {
-  return { ["--chars" as string]: chars, ...(pad ? { ["--pad" as string]: `${pad}px` } : {}) };
+/** Gives a field an exact width (a CSS length) instead of one worked out from its character count. */
+function exact(w: string): CSSProperties {
+  return { ["--w" as string]: w };
 }
 
 /** Puts a cell of the form on its row in the left or the right column, so both sides of a row stay level. */
@@ -245,7 +245,7 @@ export function PartyForm({
               placeholder="1000"
               autoFocus={!row}
               className={recordStyles.fixed}
-              style={width(20)}
+              style={exact("var(--code-w)")}
             />
             <label className={recordStyles.grow}>
               Name
@@ -263,7 +263,7 @@ export function PartyForm({
           </div>
           <div className={slot("left", 2)}>
             <div className={recordStyles.row}>
-              <label className={recordStyles.fixed} style={width(8, 52)}>
+              <label className={recordStyles.fixed} style={exact("calc(var(--code-w) - var(--terms-w) - var(--field-gap))")}>
                 Currency
                 <select
                   name="currency_id"
@@ -283,7 +283,7 @@ export function PartyForm({
                   ))}
                 </select>
               </label>
-              <label className={recordStyles.fixed} style={width(3)}>
+              <label className={recordStyles.fixed} style={exact("var(--terms-w)")}>
                 Payment terms (days)
                 <QuietInput
                   name="payment_terms_days"

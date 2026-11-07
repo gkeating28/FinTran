@@ -11,13 +11,17 @@
  * down the left column and then down the right one. Below 1200px the grid is one column in that order.
  *
  * In a row a field is one of two kinds:
- *   fixed  as wide as the value it accepts: set --chars to the number of characters it holds.
- *          Selects add room for their arrow with --pad.
+ *   fixed  as wide as the value it accepts: set --w to its exact width. The code, the payment terms
+ *          and the currency are sized from shared variables so their edges line up.
  *   grow   free text (a name, an email, an address line): it fills what is left of the row.
  * A pair puts two fields on equal halves, so the second field of every pair starts on one line.
  */
 
 .layout {
+  /* Row 2 under the code is the currency, then the payment terms with its right edge on the code's. */
+  --code-w: 200px;
+  --terms-w: 56px;
+  --field-gap: 16px;
   flex: 1;
   min-height: 0;
   overflow: auto;
@@ -72,7 +76,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  gap: 12px 16px;
+  gap: 12px var(--field-gap);
 }
 
 .grow {
@@ -94,7 +98,7 @@
    inside a label that is as wide as its content that would resolve to the input's default width. */
 .layout .row .fixed input,
 .layout .row .fixed select {
-  width: calc(var(--chars, 12) * 1ch + var(--pad, 28px));
+  width: var(--w, 12ch);
   max-width: 100%;
 }
 
