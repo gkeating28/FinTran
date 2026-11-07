@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useId, type CSSProperties } from "react";
 import { QuietInput } from "@/components/QuietField";
 import { CODE_LOCKED_ERROR } from "@/lib/immutable-code";
 import styles from "@/components/OpsPage.module.css";
@@ -12,6 +12,8 @@ export function CodeField({
   maxLength,
   placeholder,
   autoFocus = false,
+  className,
+  style,
 }: {
   locked: boolean;
   value: string;
@@ -19,11 +21,14 @@ export function CodeField({
   maxLength: number;
   placeholder: string;
   autoFocus?: boolean;
+  /** Replaces the default field class, for a form that sizes its own fields. */
+  className?: string;
+  style?: CSSProperties;
 }) {
   const hintId = useId();
 
   return (
-    <label className={styles.field}>
+    <label className={className ?? styles.field} style={style}>
       Code
       <QuietInput
         name="code"
