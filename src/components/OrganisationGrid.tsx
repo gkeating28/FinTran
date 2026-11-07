@@ -346,65 +346,73 @@ function OrganisationForm({
                 </label>
               </div>
               <span className={styles.panelMeta}>VAT number includes the country prefix, for example IE1234567T.</span>
-              <label className={styles.field}>
-                Peppol scheme
-                <SchemeLookup schemes={schemes} value={peppolScheme} onChange={setPeppolScheme} />
-              </label>
-              <label className={styles.field}>
-                Peppol ID
-                <QuietInput
-                  name="peppol_id"
-                  maxLength={100}
-                  value={peppolId}
-                  onChange={(event) => setPeppolId(event.target.value)}
-                  className={styles.mono}
-                />
-              </label>
+              <div className={styles.fieldPair}>
+                <label className={styles.field}>
+                  Peppol scheme
+                  <SchemeLookup schemes={schemes} value={peppolScheme} onChange={setPeppolScheme} />
+                </label>
+                <label className={styles.field}>
+                  Peppol ID
+                  <QuietInput
+                    name="peppol_id"
+                    maxLength={100}
+                    value={peppolId}
+                    onChange={(event) => setPeppolId(event.target.value)}
+                    className={styles.mono}
+                  />
+                </label>
+              </div>
             </div>
             <p className={`${styles.sectionLabel} ${styles.wide}`}>Bank</p>
-            <label className={`${styles.field} ${styles.span2}`}>
-              IBAN
-              <QuietInput
-                name="iban"
-                maxLength={42}
-                value={iban}
-                onChange={(event) => setIban(event.target.value)}
-                placeholder="IE29AIBK93115212345678"
-                className={styles.mono}
-              />
-            </label>
-            <label className={styles.field}>
-              BIC
-              <QuietInput
-                name="bic"
-                maxLength={11}
-                value={bic}
-                onChange={(event) => setBic(event.target.value)}
-                placeholder="AIBKIE2D"
-                className={styles.mono}
-              />
-            </label>
-            <label className={`${styles.field} ${styles.span2}`}>
-              Account name
-              <QuietInput
-                name="bank_account_name"
-                maxLength={100}
-                value={bankAccountName}
-                onChange={(event) => setBankAccountName(event.target.value)}
-              />
-            </label>
-            <label className={`${styles.field} ${styles.span2}`}>
-              Banking details
-              <QuietTextarea
-                name="banking_details"
-                maxLength={1000}
-                rows={3}
-                spellCheck
-                value={bankingDetails}
-                onChange={(event) => setBankingDetails(event.target.value)}
-              />
-              <span className={styles.panelMeta}>Printed as written. IBAN, BIC, and account name are stored separately.</span>
-            </label>
+            <div className={styles.addressBlock}>
+              <label className={styles.field}>
+                Account name
+                <QuietInput
+                  name="bank_account_name"
+                  maxLength={100}
+                  value={bankAccountName}
+                  onChange={(event) => setBankAccountName(event.target.value)}
+                />
+              </label>
+              <div className={styles.fieldPair}>
+                <label className={styles.field}>
+                  IBAN
+                  <QuietInput
+                    name="iban"
+                    maxLength={42}
+                    value={iban}
+                    onChange={(event) => setIban(event.target.value)}
+                    placeholder="IE29AIBK93115212345678"
+                    className={styles.mono}
+                  />
+                </label>
+                <label className={styles.field}>
+                  BIC
+                  <QuietInput
+                    name="bic"
+                    maxLength={11}
+                    value={bic}
+                    onChange={(event) => setBic(event.target.value)}
+                    placeholder="AIBKIE2D"
+                    className={styles.mono}
+                  />
+                </label>
+              </div>
+            </div>
+            <div className={styles.addressBlock}>
+              <label className={styles.field}>
+                Banking details
+                <QuietTextarea
+                  name="banking_details"
+                  maxLength={1000}
+                  rows={3}
+                  spellCheck
+                  value={bankingDetails}
+                  onChange={(event) => setBankingDetails(event.target.value)}
+                />
+                <span className={styles.panelMeta}>Printed as written. IBAN, BIC, and account name are stored separately.</span>
+              </label>
+            </div>
             <p className={`${styles.sectionLabel} ${styles.wide}`}>Documents</p>
             <label className={styles.field}>
               Home currency
