@@ -119,6 +119,16 @@ These apply to the customer, supplier and organisation page forms and to the pro
 7. Every single line control is 36px high (`--control-height`).
 8. Verify by measuring the edit boxes with `getBoundingClientRect`, not the labels.
 
+### Loading data for a page
+
+Every page that lists rows starts its data read at the same time as the workspace load, not after it. The workspace (profile and access) and the page data are each a database round trip, and chaining them made every grid wait twice.
+
+1. `getOrganisationScope()` in `src/lib/data.ts` returns the organisation from the `fintran-organisation` cookie. With no cookie it waits for the workspace. `forOrganisation(load)` runs a read for that organisation as soon as it is known.
+2. A data function that lists rows calls `getOrganisationScope()` for the organisation id. It does not call `getWorkspace()`.
+3. A page starts the read first, then awaits the workspace to check the person is signed in and has an organisation, then awaits the read. For example `const listed = listParties("customers"); const workspace = await getWorkspace(); ... await listed`.
+4. Row level security limits every query to organisations the signed in person can open, so a stale cookie reads no rows. It never reads another person's rows.
+5. Pages that need the organisation name, role or memberships still await the workspace, because those come from it.
+
 ### Ask Qula
 
 The sparkle button opens a sheet fixed to the right edge, from the bottom of the title bar to the bottom of the viewport, 400px wide. It slides over 480ms. Escape, Close, and the sparkle button dismiss it. The conversation is kept in `sessionStorage` under `fintran.ask-qula.{organisationId}`.

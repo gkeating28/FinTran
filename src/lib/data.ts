@@ -102,6 +102,31 @@ export const getWorkspace = cache(async (): Promise<Workspace> => {
   return { status: "ready", profile, memberships, current };
 });
 
+/**
+ * The organisation a page reads for, without waiting for the whole workspace.
+ *
+ * The workspace load (profile and access) and the page data are two database round trips. When the
+ * page data waits for the workspace they run one after the other. The organisation cookie already
+ * names the organisation, so the data query can start at the same time. Row level security still
+ * limits every query to organisations the signed in person can open, so a stale cookie reads
+ * nothing rather than somebody else's rows. With no cookie it falls back to the workspace.
+ *
+ * Standard for every page that lists rows: start the data function first, then await the workspace
+ * to check the person is signed in, so the two run together.
+ */
+export const getOrganisationScope = cache(async (): Promise<string | null> => {
+  const cookieStore = await cookies();
+  const selected = cookieStore.get(ORGANISATION_COOKIE)?.value;
+  if (selected) return selected;
+  const workspace = await getWorkspace();
+  return workspace.status === "ready" ? workspace.current.organisationId : null;
+});
+
+/** Runs a read for the current organisation as soon as the organisation is known. Null when there is none. */
+export function forOrganisation<T>(load: (organisationId: string) => Promise<T>): Promise<T | null> {
+  return getOrganisationScope().then((organisationId) => (organisationId ? load(organisationId) : null));
+}
+
 export async function listOrganisationMembers(
   organisationId: string,
 ): Promise<{ members: OrganisationMember[]; error: string | null }> {

@@ -9,11 +9,12 @@ import { getWorkspace } from "@/lib/data";
 export const metadata = { title: "Forms" };
 
 export default async function FormsPage() {
+  const menu = listFormMenu();
   const workspace = await getWorkspace();
   if (workspace.status === "signed-out") redirect("/login");
   if (workspace.status !== "ready") redirect("/");
 
-  const { tiles, error } = await listFormMenu();
+  const { tiles, error } = await menu;
 
   return (
     <section className={styles.stack}>

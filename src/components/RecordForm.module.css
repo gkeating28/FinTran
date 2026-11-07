@@ -101,7 +101,11 @@
 .layout .row .fixed input,
 .layout .row .fixed select,
 .stack .row .fixed input,
-.stack .row .fixed select {
+.stack .row .fixed select,
+.flow .fixed input,
+.flow .fixed select,
+.cols .fixed input,
+.cols .fixed select {
   width: var(--w, 12ch);
   max-width: 100%;
 }
@@ -137,11 +141,28 @@
   gap: 16px;
 }
 
+/* A dialog form on two columns. The first column is as wide as a code or a pair of short fields, so
+   every field starts on one of two left edges and the second column lines up row after row. */
+.cols {
+  grid-column: 1 / -1;
+  display: grid;
+  --field-gap: 16px;
+  grid-template-columns: 240px minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+}
+
+.cols > p {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
 /* Two columns of fields filled down the first column and then the second, so tab order runs down
    each side and the two sides stay level row by row. Set --rows to the number of fields per side. */
 .flow {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  --field-gap: 16px;
   grid-template-rows: repeat(var(--rows, 3), auto);
   grid-auto-flow: column;
   align-items: start;
@@ -160,6 +181,10 @@
 }
 
 @media (max-width: 640px) {
+  .cols {
+    grid-template-columns: 1fr;
+  }
+
   .flow {
     grid-template-columns: 1fr;
     grid-template-rows: none;

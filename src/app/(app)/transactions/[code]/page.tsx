@@ -19,15 +19,14 @@ export default async function TransactionTypePage({
   params: Promise<{ code: string }>;
   searchParams: Promise<{ error?: string; open?: string; ask?: string }>;
 }) {
+  const { code } = await params;
+  const loaded = Promise.all([getTransactionTypeByCode(code), listPurchaseInvoices(code)]);
   const workspace = await getWorkspace();
   if (workspace.status === "signed-out") redirect("/login");
   if (workspace.status !== "ready") redirect("/");
 
-  const [{ code }, query] = await Promise.all([params, searchParams]);
-  const [{ tile, error }, listed] = await Promise.all([
-    getTransactionTypeByCode(code),
-    listPurchaseInvoices(code),
-  ]);
+  const query = await searchParams;
+  const [{ tile, error }, listed] = await loaded;
   if (error) {
     return (
       <section className={styles.stack}>

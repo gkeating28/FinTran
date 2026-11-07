@@ -166,18 +166,16 @@ function CurrencyForm({
             {state.error}
           </p>
         ) : null}
-        <div className={recordStyles.stack}>
-          <div className={recordStyles.row}>
+        <div className={recordStyles.cols}>
             <CodeField
               locked={Boolean(row)}
               value={code}
               onChange={setCode}
               maxLength={20}
               autoFocus={!row}
-              className={recordStyles.fixed}
-              style={exact("22ch")}
+              className={recordStyles.cell}
             />
-            <label className={recordStyles.grow}>
+            <label className={recordStyles.cell}>
           Name
           <QuietInput
             name="name"
@@ -189,19 +187,6 @@ function CurrencyForm({
             onChange={(event) => setName(event.target.value)}
             
           />
-        </label>
-          </div>
-          <div className={recordStyles.row}>
-            <label className={recordStyles.grow}>
-          ISO code
-          <select name="iso_code" required autoComplete="off" value={isoCode} onChange={(event) => setIsoCode(event.target.value)}>
-            <option value="" disabled></option>
-            {isoCurrencies.map((currency) => (
-              <option key={currency.code} value={currency.code}>
-                {currency.code} — {currency.name}
-              </option>
-            ))}
-          </select>
         </label>
             <label className={recordStyles.fixed} style={exact("14ch")}>
           Rate
@@ -218,7 +203,17 @@ function CurrencyForm({
             
           />
         </label>
-          </div>
+            <label className={recordStyles.cell}>
+          ISO code
+          <select name="iso_code" required autoComplete="off" value={isoCode} onChange={(event) => setIsoCode(event.target.value)}>
+            <option value="" disabled></option>
+            {isoCurrencies.map((currency) => (
+              <option key={currency.code} value={currency.code}>
+                {currency.code} — {currency.name}
+              </option>
+            ))}
+          </select>
+        </label>
         </div>
         <div className={styles.modalActions}>
           <button className={styles.quiet} type="button" onClick={onClose}>

@@ -1,4 +1,4 @@
-import { getWorkspace } from "@/lib/data";
+import { getOrganisationScope } from "@/lib/data";
 import { formatProductPrice, type ProductRow } from "@/lib/products";
 import { createClient } from "@/lib/supabase/server";
 
@@ -30,8 +30,8 @@ export async function listProducts(): Promise<{
   rows: ProductRow[];
   error: string | null;
 }> {
-  const workspace = await getWorkspace();
-  if (workspace.status !== "ready") return { rows: [], error: null };
+  const organisationId = await getOrganisationScope();
+  if (!organisationId) return { rows: [], error: null };
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -44,7 +44,7 @@ export async function listProducts(): Promise<{
        purchase_vat:vat_rates!products_purchase_vat_code_id_fkey(code),
        sales_vat:vat_rates!products_sales_vat_code_id_fkey(code)`,
     )
-    .eq("organisation_id", workspace.current.organisationId)
+    .eq("organisation_id", organisationId)
     .order("code");
 
   if (error) return { rows: [], error: "Products could not be loaded." };

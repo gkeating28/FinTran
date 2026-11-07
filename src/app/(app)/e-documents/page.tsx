@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { EDocumentList, type EDocumentListRow } from "@/components/EDocumentList";
 import styles from "@/components/OpsPage.module.css";
-import { getWorkspace } from "@/lib/data";
+import { getOrganisationScope, getWorkspace } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "E-documents" };
@@ -19,26 +19,19 @@ type Row = {
   header_id: string | null;
 };
 
-export default async function EDocumentsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ direction?: string; error?: string }>;
-}) {
-  const workspace = await getWorkspace();
-  if (workspace.status === "signed-out") redirect("/login");
-  if (workspace.status !== "ready") redirect("/");
-  const query = await searchParams;
-  const direction = query.direction === "outbound" ? "outbound" : "inbound";
+/** Starts with the organisation cookie so the query runs while the workspace loads. */
+async function loadEDocuments() {
+  const organisationId = await getOrganisationScope();
+  const links = new Map<string, string>();
+  if (!organisationId) return { source: [] as Row[], links, error: null };
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("e_documents")
     .select("id, direction, status, document_number, issue_date, seller_name, buyer_name, currency_code, total_amount, header_id")
-    .eq("organisation_id", workspace.current.organisationId)
+    .eq("organisation_id", organisationId)
     .order("created_at", { ascending: false });
-
   const source = (data ?? []) as Row[];
   const headerIds = source.flatMap((row) => (row.header_id ? [row.header_id] : []));
-  const links = new Map<string, string>();
   if (headerIds.length) {
     const headers = await supabase.from("transaction_headers").select("id, transaction_types(code)").in("id", headerIds);
     for (const header of headers.data ?? []) {
@@ -47,6 +40,21 @@ export default async function EDocumentsPage({
       if (code) links.set(header.id, `/transactions/${code}?open=${header.id}`);
     }
   }
+  return { source, links, error };
+}
+
+export default async function EDocumentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ direction?: string; error?: string }>;
+}) {
+  const loaded = loadEDocuments();
+  const workspace = await getWorkspace();
+  if (workspace.status === "signed-out") redirect("/login");
+  if (workspace.status !== "ready") redirect("/");
+  const query = await searchParams;
+  const direction = query.direction === "outbound" ? "outbound" : "inbound";
+  const { source, links, error } = await loaded;
   const rows: EDocumentListRow[] = source.map((row) => ({
     id: row.id,
     direction: row.direction === "outbound" ? "outbound" : "inbound",

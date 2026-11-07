@@ -3,13 +3,15 @@ import { CreateTenantForm } from "@/components/Forms";
 import HomeOverview from "@/components/HomeOverview";
 import styles from "@/components/OpsPage.module.css";
 import { listIsoCurrencies } from "@/lib/currency-data";
-import { getWorkspace, listOrganisationMembers } from "@/lib/data";
+import { forOrganisation, getWorkspace, listOrganisationMembers } from "@/lib/data";
 import { getHomeOverview } from "@/lib/home-data";
 import { roleLabel } from "@/lib/types";
 
 export const metadata = { title: "Home" };
 
 export default async function HomePage() {
+  const people = forOrganisation(listOrganisationMembers);
+  const summary = forOrganisation(getHomeOverview);
   const workspace = await getWorkspace();
   if (workspace.status === "signed-out") redirect("/login");
   if (workspace.status === "error") return null;
@@ -42,8 +44,8 @@ export default async function HomePage() {
   const { current, memberships } = workspace;
   const inTenant = memberships.filter((membership) => membership.tenantId === current.tenantId);
   const [{ members, error }, overview] = await Promise.all([
-    listOrganisationMembers(current.organisationId),
-    getHomeOverview(current.organisationId),
+    people.then((loaded) => loaded ?? listOrganisationMembers(current.organisationId)),
+    summary.then((loaded) => loaded ?? getHomeOverview(current.organisationId)),
   ]);
 
   return (
