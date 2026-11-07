@@ -154,6 +154,11 @@ function width(chars: number, pad?: number): CSSProperties {
   return { ["--chars" as string]: chars, ...(pad ? { ["--pad" as string]: `${pad}px` } : {}) };
 }
 
+/** Puts a cell of the form on its row in the left or the right column, so both sides of a row stay level. */
+function slot(side: "left" | "right", row: number, extra?: string) {
+  return [recordStyles[side], recordStyles[`r${row}`], extra].filter(Boolean).join(" ");
+}
+
 export function PartyForm({
   kind,
   row,
@@ -230,260 +235,245 @@ export function PartyForm({
           </p>
         ) : null}
         <div className={recordStyles.layout}>
-          <div className={recordStyles.column}>
-            <div className={recordStyles.section}>
-              <p className={styles.sectionLabel}>General</p>
-              <div className={recordStyles.row}>
-                <CodeField
-                  locked={Boolean(row)}
-                  value={code}
-                  onChange={setCode}
-                  maxLength={20}
-                  placeholder="1000"
-                  autoFocus={!row}
-                  className={recordStyles.fixed}
-                  style={width(20)}
+          {/* Left column */}
+          <p className={`${styles.sectionLabel} ${slot("left", 1)}`}>General</p>
+          <div className={`${recordStyles.row} ${slot("left", 2)}`}>
+            <CodeField
+              locked={Boolean(row)}
+              value={code}
+              onChange={setCode}
+              maxLength={20}
+              placeholder="1000"
+              autoFocus={!row}
+              className={recordStyles.fixed}
+              style={width(20)}
+            />
+            <label className={recordStyles.grow}>
+              Name
+              <QuietInput
+                name="name"
+                required
+                maxLength={200}
+                autoComplete="off"
+                spellCheck={false}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="Enter the name"
+              />
+            </label>
+          </div>
+          <div className={slot("left", 3)}>
+            <div className={recordStyles.row}>
+              <label className={recordStyles.fixed} style={width(8, 52)}>
+                Currency
+                <select
+                  name="currency_id"
+                  required
+                  autoComplete="off"
+                  value={currencyId}
+                  onChange={(event) => setCurrencyId(event.target.value)}
+                  disabled={currencies.length === 0}
+                >
+                  <option value="" disabled>
+                    Choose a currency
+                  </option>
+                  {currencies.map((currency) => (
+                    <option key={currency.id} value={currency.id}>
+                      {currency.code}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className={recordStyles.fixed} style={width(3)}>
+                Payment terms (days)
+                <QuietInput
+                  name="payment_terms_days"
+                  inputMode="numeric"
+                  maxLength={3}
+                  autoComplete="off"
+                  value={paymentTermsDays}
+                  onChange={(event) => setPaymentTermsDays(event.target.value)}
+                  placeholder="30"
                 />
+              </label>
+              {kind === "customers" ? (
                 <label className={recordStyles.grow}>
-                  Name
+                  Buyer reference
                   <QuietInput
-                    name="name"
-                    required
-                    maxLength={200}
+                    name="default_buyer_reference"
+                    maxLength={100}
                     autoComplete="off"
                     spellCheck={false}
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                    placeholder="Enter the name"
+                    value={defaultBuyerReference}
+                    onChange={(event) => setDefaultBuyerReference(event.target.value)}
                   />
                 </label>
-              </div>
-              <div className={recordStyles.row}>
-                <label className={recordStyles.fixed} style={width(8, 52)}>
-                  Currency
-                  <select
-                    name="currency_id"
-                    required
-                    autoComplete="off"
-                    value={currencyId}
-                    onChange={(event) => setCurrencyId(event.target.value)}
-                    disabled={currencies.length === 0}
-                  >
-                    <option value="" disabled>
-                      Choose a currency
-                    </option>
-                    {currencies.map((currency) => (
-                      <option key={currency.id} value={currency.id}>
-                        {currency.code}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className={recordStyles.fixed} style={width(3)}>
-                  Payment terms (days)
-                  <QuietInput
-                    name="payment_terms_days"
-                    inputMode="numeric"
-                    maxLength={3}
-                    autoComplete="off"
-                    value={paymentTermsDays}
-                    onChange={(event) => setPaymentTermsDays(event.target.value)}
-                    placeholder="30"
-                  />
-                </label>
-                {kind === "customers" ? (
-                  <label className={recordStyles.grow}>
-                    Buyer reference
-                    <QuietInput
-                      name="default_buyer_reference"
-                      maxLength={100}
-                      autoComplete="off"
-                      spellCheck={false}
-                      value={defaultBuyerReference}
-                      onChange={(event) => setDefaultBuyerReference(event.target.value)}
-                    />
-                  </label>
-                ) : null}
-              </div>
-              {currencies.length === 0 ? (
-                <span className={styles.panelMeta}>Add a currency for this organisation before saving.</span>
               ) : null}
             </div>
-
-            <div className={recordStyles.section}>
-              <p className={styles.sectionLabel}>Address</p>
-              <div className={recordStyles.row}>
-                <label className={recordStyles.grow}>
-                  <span>
-                    Address line 1
-                    {row?.addressNeedsReview ? <span className={styles.reviewBadge}>Needs review</span> : null}
-                  </span>
-                  <QuietInput name="address_line1" maxLength={100} autoComplete="off" spellCheck={false} value={addressLine1} onChange={(event) => setAddressLine1(event.target.value)} />
-                </label>
-              </div>
-              <div className={recordStyles.row}>
-                <label className={recordStyles.grow}>
-                  Address line 2
-                  <QuietInput name="address_line2" maxLength={100} autoComplete="off" spellCheck={false} value={addressLine2} onChange={(event) => setAddressLine2(event.target.value)} />
-                </label>
-              </div>
-              <div className={recordStyles.row}>
-                <label className={recordStyles.grow}>
-                  Address line 3
-                  <QuietInput name="address_line3" maxLength={100} autoComplete="off" spellCheck={false} value={addressLine3} onChange={(event) => setAddressLine3(event.target.value)} />
-                </label>
-              </div>
-              <div className={recordStyles.pair}>
-                <label className={recordStyles.cell}>
-                  City
-                  <QuietInput name="city" maxLength={60} autoComplete="off" spellCheck={false} value={city} onChange={(event) => setCity(event.target.value)} />
-                </label>
-                <label className={recordStyles.cell}>
-                  County
-                  <QuietInput name="county" maxLength={60} autoComplete="off" spellCheck={false} value={county} onChange={(event) => setCounty(event.target.value)} />
-                </label>
-              </div>
-              <div className={recordStyles.pair}>
-                <label className={recordStyles.cell}>
-                  Post code
-                  <QuietInput name="post_code" maxLength={20} autoComplete="off" spellCheck={false} value={postCode} onChange={(event) => setPostCode(event.target.value)} className={styles.mono} />
-                </label>
-                <label className={recordStyles.cell}>
-                  Country
-                  <select name="country_code" autoComplete="off" value={countryCode} onChange={(event) => setCountryCode(event.target.value)}>
-                    {orderedCountries.map((country) => (
-                      <option key={country.code} value={country.code}>
-                        {country.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            </div>
+            {currencies.length === 0 ? (
+              <span className={styles.panelMeta}>Add a currency for this organisation before saving.</span>
+            ) : null}
+          </div>
+          <p className={`${styles.sectionLabel} ${slot("left", 4, recordStyles.heading)}`}>Address</p>
+          <div className={`${recordStyles.row} ${slot("left", 5)}`}>
+            <label className={recordStyles.grow}>
+              <span>
+                Address line 1
+                {row?.addressNeedsReview ? <span className={styles.reviewBadge}>Needs review</span> : null}
+              </span>
+              <QuietInput name="address_line1" maxLength={100} autoComplete="off" spellCheck={false} value={addressLine1} onChange={(event) => setAddressLine1(event.target.value)} />
+            </label>
+          </div>
+          <div className={`${recordStyles.row} ${slot("left", 6)}`}>
+            <label className={recordStyles.grow}>
+              Address line 2
+              <QuietInput name="address_line2" maxLength={100} autoComplete="off" spellCheck={false} value={addressLine2} onChange={(event) => setAddressLine2(event.target.value)} />
+            </label>
+          </div>
+          <div className={`${recordStyles.row} ${slot("left", 7)}`}>
+            <label className={recordStyles.grow}>
+              Address line 3
+              <QuietInput name="address_line3" maxLength={100} autoComplete="off" spellCheck={false} value={addressLine3} onChange={(event) => setAddressLine3(event.target.value)} />
+            </label>
+          </div>
+          <div className={`${recordStyles.pair} ${slot("left", 8)}`}>
+            <label className={recordStyles.cell}>
+              City
+              <QuietInput name="city" maxLength={60} autoComplete="off" spellCheck={false} value={city} onChange={(event) => setCity(event.target.value)} />
+            </label>
+            <label className={recordStyles.cell}>
+              County
+              <QuietInput name="county" maxLength={60} autoComplete="off" spellCheck={false} value={county} onChange={(event) => setCounty(event.target.value)} />
+            </label>
+          </div>
+          <div className={`${recordStyles.pair} ${slot("left", 9)}`}>
+            <label className={recordStyles.cell}>
+              Post code
+              <QuietInput name="post_code" maxLength={20} autoComplete="off" spellCheck={false} value={postCode} onChange={(event) => setPostCode(event.target.value)} className={styles.mono} />
+            </label>
+            <label className={recordStyles.cell}>
+              Country
+              <select name="country_code" autoComplete="off" value={countryCode} onChange={(event) => setCountryCode(event.target.value)}>
+                {orderedCountries.map((country) => (
+                  <option key={country.code} value={country.code}>
+                    {country.name}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
 
-          <div className={recordStyles.column}>
-            <div className={recordStyles.section}>
-              <p className={styles.sectionLabel}>Contact</p>
-              <div className={recordStyles.row}>
-                <label className={recordStyles.grow}>
-                  Email
-                  <QuietInput
-                    name="email"
-                    type="text"
-                    inputMode="email"
-                    maxLength={200}
-                    autoComplete="off"
-                    spellCheck={false}
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    placeholder="accounts@northwind.example"
-                  />
-                </label>
-              </div>
-              <div className={recordStyles.pair}>
-                <label className={recordStyles.cell}>
-                  Phone
-                  <QuietInput
-                    name="phone"
-                    maxLength={40}
-                    autoComplete="off"
-                    spellCheck={false}
-                    value={phone}
-                    onChange={(event) => setPhone(event.target.value)}
-                    placeholder="+353 1 555 0100"
-                  />
-                </label>
-                <label className={recordStyles.cell}>
-                  Website
-                  <QuietInput
-                    name="website"
-                    maxLength={200}
-                    autoComplete="off"
-                    spellCheck={false}
-                    value={website}
-                    onChange={(event) => setWebsite(event.target.value)}
-                    placeholder="https://northwind.example"
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div className={recordStyles.section}>
-              <p className={styles.sectionLabel}>Registration</p>
-              <div className={recordStyles.pair}>
-                <label className={recordStyles.cell}>
-                  VAT number
-                  <QuietInput
-                    name="vat_number"
-                    maxLength={16}
-                    autoComplete="off"
-                    spellCheck={false}
-                    value={vatNumber}
-                    onChange={(event) => setVatNumber(event.target.value)}
-                    placeholder="IE1234567T"
-                    className={styles.mono}
-                  />
-                </label>
-                <label className={recordStyles.cell}>
-                  Company number
-                  <QuietInput
-                    name="company_number"
-                    maxLength={40}
-                    autoComplete="off"
-                    spellCheck={false}
-                    value={companyNumber}
-                    onChange={(event) => setCompanyNumber(event.target.value)}
-                    className={styles.mono}
-                  />
-                </label>
-              </div>
-              <div className={recordStyles.pair}>
-                <label className={recordStyles.cell}>
-                  Peppol scheme
-                  <SchemeLookup schemes={schemes} value={peppolScheme} onChange={setPeppolScheme} />
-                </label>
-                <label className={recordStyles.cell}>
-                  Peppol ID
-                  <QuietInput name="peppol_id" maxLength={100} autoComplete="off" spellCheck={false} value={peppolId} onChange={(event) => setPeppolId(event.target.value)} className={styles.mono} />
-                </label>
-              </div>
-            </div>
-
-            <div className={recordStyles.section}>
-              <p className={styles.sectionLabel}>Notes</p>
-              <div className={recordStyles.row}>
-                <label className={recordStyles.grow}>
-                  Contact details
-                  <QuietTextarea
-                    name="contact_details"
-                    maxLength={500}
-                    rows={3}
-                    autoComplete="off"
-                    spellCheck
-                    value={contactDetails}
-                    onChange={(event) => setContactDetails(event.target.value)}
-                    placeholder="Accounts, Jane Murphy"
-                  />
-                </label>
-              </div>
-              <div className={recordStyles.row}>
-                <label className={recordStyles.grow}>
-                  Notes
-                  <QuietTextarea
-                    name="notes"
-                    maxLength={4000}
-                    rows={4}
-                    autoComplete="off"
-                    spellCheck
-                    value={notes}
-                    onChange={(event) => setNotes(event.target.value)}
-                    placeholder="Delivery notes or anything else to keep with this record."
-                  />
-                </label>
-              </div>
-            </div>
+          {/* Right column */}
+          <p className={`${styles.sectionLabel} ${slot("right", 1)}`}>Contact</p>
+          <div className={`${recordStyles.row} ${slot("right", 2)}`}>
+            <label className={recordStyles.grow}>
+              Email
+              <QuietInput
+                name="email"
+                type="text"
+                inputMode="email"
+                maxLength={200}
+                autoComplete="off"
+                spellCheck={false}
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="accounts@northwind.example"
+              />
+            </label>
           </div>
+          <div className={`${recordStyles.pair} ${slot("right", 3)}`}>
+            <label className={recordStyles.cell}>
+              Phone
+              <QuietInput
+                name="phone"
+                maxLength={40}
+                autoComplete="off"
+                spellCheck={false}
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                placeholder="+353 1 555 0100"
+              />
+            </label>
+            <label className={recordStyles.cell}>
+              Website
+              <QuietInput
+                name="website"
+                maxLength={200}
+                autoComplete="off"
+                spellCheck={false}
+                value={website}
+                onChange={(event) => setWebsite(event.target.value)}
+                placeholder="https://northwind.example"
+              />
+            </label>
+          </div>
+          <p className={`${styles.sectionLabel} ${slot("right", 4, recordStyles.heading)}`}>Registration</p>
+          <div className={`${recordStyles.pair} ${slot("right", 5)}`}>
+            <label className={recordStyles.cell}>
+              VAT number
+              <QuietInput
+                name="vat_number"
+                maxLength={16}
+                autoComplete="off"
+                spellCheck={false}
+                value={vatNumber}
+                onChange={(event) => setVatNumber(event.target.value)}
+                placeholder="IE1234567T"
+                className={styles.mono}
+              />
+            </label>
+            <label className={recordStyles.cell}>
+              Company number
+              <QuietInput
+                name="company_number"
+                maxLength={40}
+                autoComplete="off"
+                spellCheck={false}
+                value={companyNumber}
+                onChange={(event) => setCompanyNumber(event.target.value)}
+                className={styles.mono}
+              />
+            </label>
+          </div>
+          <div className={`${recordStyles.pair} ${slot("right", 6)}`}>
+            <label className={recordStyles.cell}>
+              Peppol scheme
+              <SchemeLookup schemes={schemes} value={peppolScheme} onChange={setPeppolScheme} />
+            </label>
+            <label className={recordStyles.cell}>
+              Peppol ID
+              <QuietInput name="peppol_id" maxLength={100} autoComplete="off" spellCheck={false} value={peppolId} onChange={(event) => setPeppolId(event.target.value)} className={styles.mono} />
+            </label>
+          </div>
+
+          {/* Notes run under both columns */}
+          <p className={`${styles.sectionLabel} ${slot("left", 10, `${recordStyles.wideCell} ${recordStyles.heading}`)}`}>Notes</p>
+          <label className={`${recordStyles.cell} ${slot("left", 11)}`}>
+            Contact details
+            <QuietTextarea
+              name="contact_details"
+              maxLength={500}
+              rows={4}
+              autoComplete="off"
+              spellCheck
+              value={contactDetails}
+              onChange={(event) => setContactDetails(event.target.value)}
+              placeholder="Accounts, Jane Murphy"
+            />
+          </label>
+          <label className={`${recordStyles.cell} ${slot("right", 11)}`}>
+            Notes
+            <QuietTextarea
+              name="notes"
+              maxLength={4000}
+              rows={4}
+              autoComplete="off"
+              spellCheck
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              placeholder="Delivery notes or anything else to keep with this record."
+            />
+          </label>
         </div>
         <div className={styles.modalActions}>
           <button className={styles.quiet} type="button" onClick={onClose}>

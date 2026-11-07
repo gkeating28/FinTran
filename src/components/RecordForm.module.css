@@ -1,13 +1,18 @@
 /*
  * Layout for the supplier and customer form.
  *
- * Two columns of fixed width, each a stack of sections. A section is a heading and rows, and a row
- * is fields side by side. A field is one of two kinds:
+ * One grid of two columns. Each cell is placed on an explicit row (r1, r2, ...), so the left cell and
+ * the right cell of a row are always level, whatever their content: a hint under the code field makes
+ * its whole row taller on both sides and nothing below drifts out of line.
+ *
+ * The page lists every left cell first and then every right cell, so tabbing runs down the left
+ * column and then down the right one. Below 1200px the grid becomes a single column in that order.
+ *
+ * A cell holds a heading or a row of fields. In a row a field is one of two kinds:
  *   fixed  as wide as the value it accepts: set --chars to the number of characters it holds.
  *          Selects add room for their arrow with --pad.
  *   grow   free text (a name, an email, an address line): it fills what is left of the row.
- * Every row therefore starts and ends on the same two edges, and a three digit field is never wider
- * than three digits.
+ * A pair puts two fields on equal halves, so the second field of every pair starts on one line.
  */
 
 .layout {
@@ -16,25 +21,42 @@
   overflow: auto;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 560px));
-  gap: 24px 48px;
+  column-gap: 48px;
+  row-gap: 12px;
   align-content: start;
   align-items: start;
   /* Room for the focus ring, which the scroll area would otherwise clip. */
   padding: 4px;
 }
 
-.column {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  min-width: 0;
+.left {
+  grid-column: 1;
 }
 
-.section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.right {
+  grid-column: 2;
 }
+
+.wideCell {
+  grid-column: 1 / -1;
+}
+
+/* A heading that starts a new block gets a little more air above it. */
+.heading {
+  margin-top: 12px;
+}
+
+.r1 { grid-row: 1; }
+.r2 { grid-row: 2; }
+.r3 { grid-row: 3; }
+.r4 { grid-row: 4; }
+.r5 { grid-row: 5; }
+.r6 { grid-row: 6; }
+.r7 { grid-row: 7; }
+.r8 { grid-row: 8; }
+.r9 { grid-row: 9; }
+.r10 { grid-row: 10; }
+.r11 { grid-row: 11; }
 
 .row {
   display: flex;
@@ -91,5 +113,15 @@
 @media (max-width: 1200px) {
   .layout {
     grid-template-columns: minmax(0, 560px);
+  }
+
+  .left,
+  .right,
+  .wideCell {
+    grid-column: 1;
+  }
+
+  .r1, .r2, .r3, .r4, .r5, .r6, .r7, .r8, .r9, .r10, .r11 {
+    grid-row: auto;
   }
 }
