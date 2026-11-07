@@ -819,7 +819,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  height: 34px;
+  height: var(--control-height);
   border: 1px solid var(--ops-border);
   border-radius: var(--ops-radius);
   padding: 0 10px;

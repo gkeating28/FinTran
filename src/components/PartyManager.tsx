@@ -236,8 +236,7 @@ export function PartyForm({
         ) : null}
         <div className={recordStyles.layout}>
           {/* Left column */}
-          <p className={`${styles.sectionLabel} ${slot("left", 1)}`}>General</p>
-          <div className={`${recordStyles.row} ${slot("left", 2)}`}>
+          <div className={`${recordStyles.row} ${slot("left", 1)}`}>
             <CodeField
               locked={Boolean(row)}
               value={code}
@@ -262,7 +261,7 @@ export function PartyForm({
               />
             </label>
           </div>
-          <div className={slot("left", 3)}>
+          <div className={slot("left", 2)}>
             <div className={recordStyles.row}>
               <label className={recordStyles.fixed} style={width(8, 52)}>
                 Currency
@@ -314,8 +313,7 @@ export function PartyForm({
               <span className={styles.panelMeta}>Add a currency for this organisation before saving.</span>
             ) : null}
           </div>
-          <p className={`${styles.sectionLabel} ${slot("left", 4, recordStyles.heading)}`}>Address</p>
-          <div className={`${recordStyles.row} ${slot("left", 5)}`}>
+          <div className={`${recordStyles.row} ${slot("left", 3)}`}>
             <label className={recordStyles.grow}>
               <span>
                 Address line 1
@@ -324,19 +322,19 @@ export function PartyForm({
               <QuietInput name="address_line1" maxLength={100} autoComplete="off" spellCheck={false} value={addressLine1} onChange={(event) => setAddressLine1(event.target.value)} />
             </label>
           </div>
-          <div className={`${recordStyles.row} ${slot("left", 6)}`}>
+          <div className={`${recordStyles.row} ${slot("left", 4)}`}>
             <label className={recordStyles.grow}>
               Address line 2
               <QuietInput name="address_line2" maxLength={100} autoComplete="off" spellCheck={false} value={addressLine2} onChange={(event) => setAddressLine2(event.target.value)} />
             </label>
           </div>
-          <div className={`${recordStyles.row} ${slot("left", 7)}`}>
+          <div className={`${recordStyles.row} ${slot("left", 5)}`}>
             <label className={recordStyles.grow}>
               Address line 3
               <QuietInput name="address_line3" maxLength={100} autoComplete="off" spellCheck={false} value={addressLine3} onChange={(event) => setAddressLine3(event.target.value)} />
             </label>
           </div>
-          <div className={`${recordStyles.pair} ${slot("left", 8)}`}>
+          <div className={`${recordStyles.pair} ${slot("left", 6)}`}>
             <label className={recordStyles.cell}>
               City
               <QuietInput name="city" maxLength={60} autoComplete="off" spellCheck={false} value={city} onChange={(event) => setCity(event.target.value)} />
@@ -346,7 +344,7 @@ export function PartyForm({
               <QuietInput name="county" maxLength={60} autoComplete="off" spellCheck={false} value={county} onChange={(event) => setCounty(event.target.value)} />
             </label>
           </div>
-          <div className={`${recordStyles.pair} ${slot("left", 9)}`}>
+          <div className={`${recordStyles.pair} ${slot("left", 7)}`}>
             <label className={recordStyles.cell}>
               Post code
               <QuietInput name="post_code" maxLength={20} autoComplete="off" spellCheck={false} value={postCode} onChange={(event) => setPostCode(event.target.value)} className={styles.mono} />
@@ -364,8 +362,7 @@ export function PartyForm({
           </div>
 
           {/* Right column */}
-          <p className={`${styles.sectionLabel} ${slot("right", 1)}`}>Contact</p>
-          <div className={`${recordStyles.row} ${slot("right", 2)}`}>
+          <div className={`${recordStyles.row} ${slot("right", 1)}`}>
             <label className={recordStyles.grow}>
               Email
               <QuietInput
@@ -381,7 +378,7 @@ export function PartyForm({
               />
             </label>
           </div>
-          <div className={`${recordStyles.pair} ${slot("right", 3)}`}>
+          <div className={`${recordStyles.pair} ${slot("right", 2)}`}>
             <label className={recordStyles.cell}>
               Phone
               <QuietInput
@@ -421,8 +418,7 @@ export function PartyForm({
             />
           </label>
 
-          <p className={`${styles.sectionLabel} ${slot("right", 7, `${recordStyles.heading} ${recordStyles.headingEnd}`)}`}>Registration</p>
-          <div className={`${recordStyles.pair} ${slot("right", 8)}`}>
+          <div className={`${recordStyles.pair} ${slot("right", 6)}`}>
             <label className={recordStyles.cell}>
               VAT number
               <QuietInput
@@ -449,7 +445,7 @@ export function PartyForm({
               />
             </label>
           </div>
-          <div className={`${recordStyles.pair} ${slot("right", 9)}`}>
+          <div className={`${recordStyles.pair} ${slot("right", 7)}`}>
             <label className={recordStyles.cell}>
               Peppol scheme
               <SchemeLookup schemes={schemes} value={peppolScheme} onChange={setPeppolScheme} />
@@ -461,8 +457,7 @@ export function PartyForm({
           </div>
 
           {/* Notes run under both columns, full width */}
-          <p className={`${styles.sectionLabel} ${slot("left", 10, `${recordStyles.wideCell} ${recordStyles.heading}`)}`}>Notes</p>
-          <label className={`${recordStyles.cell} ${slot("left", 11, recordStyles.wideCell)}`}>
+          <label className={`${recordStyles.cell} ${slot("left", 8, recordStyles.wideCell)}`}>
             Notes
             <QuietTextarea
               name="notes"
