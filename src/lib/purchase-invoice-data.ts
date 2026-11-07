@@ -1,5 +1,5 @@
 import type { UnitChoice } from "@/lib/code-lists";
-import { getWorkspace } from "@/lib/data";
+import { getOrganisationScope, getWorkspace } from "@/lib/data";
 import { formatCurrencyRate, formatExchangeRate } from "@/lib/currencies";
 import { formatProductPrice } from "@/lib/products";
 import { parseAccountType, parseVatType } from "@/lib/reference";
@@ -113,11 +113,10 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
   choices: PurchaseInvoiceChoices;
   error: string | null;
 }> {
-  const workspace = await getWorkspace();
-  if (workspace.status !== "ready") return { rows: [], choices: emptyChoices, error: null };
+  const organisationId = await getOrganisationScope();
+  if (!organisationId) return { rows: [], choices: emptyChoices, error: null };
 
   const supabase = await createClient();
-  const organisationId = workspace.current.organisationId;
   const [headers, lineRows, types, suppliers, customers, currencies, defaults, products, glCodes, departments, costCentres, vatRates, units, paymentMeans] =
     await Promise.all([
       supabase

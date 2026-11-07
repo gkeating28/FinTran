@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import AccessGrid from "@/components/AccessGrid";
 import styles from "@/components/OpsPage.module.css";
-import { getWorkspace, listOrganisationMembers } from "@/lib/data";
+import { forOrganisation, getWorkspace, listOrganisationMembers } from "@/lib/data";
 import { canManage } from "@/lib/types";
 
 export const metadata = { title: "Access" };
@@ -11,15 +11,14 @@ export default async function AccessPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
+  const listed = forOrganisation(listOrganisationMembers);
   const workspace = await getWorkspace();
   if (workspace.status === "signed-out") redirect("/login");
   if (workspace.status !== "ready") redirect("/");
 
   const { current, profile } = workspace;
-  const [{ members, error }, params] = await Promise.all([
-    listOrganisationMembers(current.organisationId),
-    searchParams,
-  ]);
+  const [loaded, params] = await Promise.all([listed, searchParams]);
+  const { members, error } = loaded ?? { members: [], error: null };
 
   return (
     <section className={styles.stack}>

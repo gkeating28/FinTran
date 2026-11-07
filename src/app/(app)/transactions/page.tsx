@@ -11,11 +11,12 @@ import { documentKindLabel } from "@/lib/transaction-types";
 export const metadata = { title: "Transactions" };
 
 export default async function TransactionsPage() {
+  const menu = listTransactionMenu();
   const workspace = await getWorkspace();
   if (workspace.status === "signed-out") redirect("/login");
   if (workspace.status !== "ready") redirect("/");
 
-  const { tiles, error } = await listTransactionMenu();
+  const { tiles, error } = await menu;
 
   return (
     <section className={styles.stack}>

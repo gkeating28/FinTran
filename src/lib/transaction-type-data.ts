@@ -1,4 +1,4 @@
-import { getWorkspace } from "@/lib/data";
+import { getOrganisationScope } from "@/lib/data";
 import {
   parseDocumentKind,
   parseTransactionTypeKind,
@@ -12,11 +12,10 @@ export async function listTransactionTypes(): Promise<{
   rows: TransactionTypeRow[];
   error: string | null;
 }> {
-  const workspace = await getWorkspace();
-  if (workspace.status !== "ready") return { rows: [], error: null };
+  const organisationId = await getOrganisationScope();
+  if (!organisationId) return { rows: [], error: null };
 
   const supabase = await createClient();
-  const organisationId = workspace.current.organisationId;
   const [types, headers] = await Promise.all([
     supabase
       .from("transaction_types")
@@ -82,11 +81,10 @@ export async function listTransactionMenu(): Promise<{
   tiles: TransactionMenuTile[];
   error: string | null;
 }> {
-  const workspace = await getWorkspace();
-  if (workspace.status !== "ready") return { tiles: [], error: null };
+  const organisationId = await getOrganisationScope();
+  if (!organisationId) return { tiles: [], error: null };
 
   const supabase = await createClient();
-  const organisationId = workspace.current.organisationId;
   const [types, headers] = await Promise.all([
     supabase
       .from("transaction_types")

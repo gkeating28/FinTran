@@ -16,7 +16,7 @@ import styles from "@/components/OpsPage.module.css";
 import dashboardStyles from "@/components/Dashboard.module.css";
 import { adminCounts } from "@/lib/admin";
 import { formatInteger } from "@/lib/numbers";
-import { getWorkspace } from "@/lib/data";
+import { forOrganisation, getWorkspace } from "@/lib/data";
 import { canManage } from "@/lib/types";
 
 export const metadata = { title: "Admin" };
@@ -36,12 +36,14 @@ const TILES = [
 ] as const;
 
 export default async function AdminPage() {
+  const counted = forOrganisation(adminCounts);
   const workspace = await getWorkspace();
   if (workspace.status === "signed-out") redirect("/login");
   if (workspace.status !== "ready") redirect("/");
 
   const { current, memberships } = workspace;
-  const totals = await adminCounts(current.organisationId);
+  const totals = await counted;
+  if (!totals) redirect("/");
   const organisations = memberships.filter((membership) => membership.tenantId === current.tenantId).length;
   const counts = { ...totals, organisations };
 

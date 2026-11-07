@@ -1,4 +1,4 @@
-import { getWorkspace } from "@/lib/data";
+import { getOrganisationScope } from "@/lib/data";
 import { PARTY_META, type PartyCurrency, type PartyKind, type PartyRow } from "@/lib/parties";
 import { createClient } from "@/lib/supabase/server";
 
@@ -25,11 +25,10 @@ export async function listParties(kind: PartyKind): Promise<{
   error: string | null;
 }> {
   const empty = { rows: [], currencies: [], homeCurrencyId: null, error: null };
-  const workspace = await getWorkspace();
-  if (workspace.status !== "ready") return empty;
+  const organisationId = await getOrganisationScope();
+  if (!organisationId) return empty;
 
   const supabase = await createClient();
-  const organisationId = workspace.current.organisationId;
   const partyQuery =
     kind === "customers"
       ? supabase.from("customers").select(CUSTOMER_SELECT).eq("organisation_id", organisationId).order("code")

@@ -1,5 +1,5 @@
 import { formatPostalAddress } from "@/lib/address";
-import { getWorkspace } from "@/lib/data";
+import { getOrganisationScope, getWorkspace } from "@/lib/data";
 import {
   buildPrintView,
   emptyOrganisation,
@@ -303,16 +303,15 @@ export async function getFormType(code: string): Promise<{ type: FormType | null
 }
 
 export async function listFormMenu(): Promise<{ tiles: FormMenuTile[]; error: string | null }> {
-  const workspace = await getWorkspace();
-  if (workspace.status !== "ready") return { tiles: [], error: null };
-  const menu = await listTransactionMenu();
-  if (menu.error) return { tiles: [], error: menu.error };
-
+  const organisationId = await getOrganisationScope();
+  if (!organisationId) return { tiles: [], error: null };
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("transaction_forms")
-    .select("transaction_type_id")
-    .eq("organisation_id", workspace.current.organisationId);
+  const [menu, saved] = await Promise.all([
+    listTransactionMenu(),
+    supabase.from("transaction_forms").select("transaction_type_id").eq("organisation_id", organisationId),
+  ]);
+  if (menu.error) return { tiles: [], error: menu.error };
+  const { data, error } = saved;
   if (error) return { tiles: [], error: "Forms could not be loaded." };
 
   const custom = new Set((data ?? []).map((row) => row.transaction_type_id));

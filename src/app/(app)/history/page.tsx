@@ -2,12 +2,13 @@ import { redirect } from "next/navigation";
 import HistoryGrid from "@/components/HistoryGrid";
 import styles from "@/components/OpsPage.module.css";
 import { listAuditLog } from "@/lib/audit-data";
-import { getWorkspace } from "@/lib/data";
+import { forOrganisation, getWorkspace } from "@/lib/data";
 import { canManage } from "@/lib/types";
 
 export const metadata = { title: "Change history" };
 
 export default async function HistoryPage() {
+  const log = forOrganisation(listAuditLog);
   const workspace = await getWorkspace();
   if (workspace.status === "signed-out") redirect("/login");
   if (workspace.status !== "ready") redirect("/");
@@ -21,7 +22,7 @@ export default async function HistoryPage() {
     );
   }
 
-  const { rows, error } = await listAuditLog(workspace.current.organisationId);
+  const { rows, error } = (await log) ?? { rows: [], error: null };
 
   return (
     <section className={styles.stack}>

@@ -1,5 +1,5 @@
 import { formatCurrencyRate, type CurrencyChoice, type CurrencyRow } from "@/lib/currencies";
-import { getWorkspace } from "@/lib/data";
+import { getOrganisationScope, getWorkspace } from "@/lib/data";
 import { organisationLogoUrl } from "@/lib/organisation-logo";
 import { createClient } from "@/lib/supabase/server";
 
@@ -7,11 +7,10 @@ export async function listCurrencies(): Promise<{
   rows: CurrencyRow[];
   error: string | null;
 }> {
-  const workspace = await getWorkspace();
-  if (workspace.status !== "ready") return { rows: [], error: null };
+  const organisationId = await getOrganisationScope();
+  if (!organisationId) return { rows: [], error: null };
 
   const supabase = await createClient();
-  const organisationId = workspace.current.organisationId;
   const [currencies, defaults] = await Promise.all([
     supabase
       .from("currencies")
