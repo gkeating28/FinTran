@@ -407,8 +407,22 @@ export function PartyForm({
               />
             </label>
           </div>
-          <p className={`${styles.sectionLabel} ${slot("right", 4, recordStyles.heading)}`}>Registration</p>
-          <div className={`${recordStyles.pair} ${slot("right", 5)}`}>
+          <label className={`${recordStyles.cell} ${recordStyles.right} ${recordStyles.tall}`}>
+            Contact details
+            <QuietTextarea
+              name="contact_details"
+              maxLength={500}
+              rows={3}
+              autoComplete="off"
+              spellCheck
+              value={contactDetails}
+              onChange={(event) => setContactDetails(event.target.value)}
+              placeholder="Accounts, Jane Murphy"
+            />
+          </label>
+
+          <p className={`${styles.sectionLabel} ${slot("right", 7, `${recordStyles.heading} ${recordStyles.headingEnd}`)}`}>Registration</p>
+          <div className={`${recordStyles.pair} ${slot("right", 8)}`}>
             <label className={recordStyles.cell}>
               VAT number
               <QuietInput
@@ -435,7 +449,7 @@ export function PartyForm({
               />
             </label>
           </div>
-          <div className={`${recordStyles.pair} ${slot("right", 6)}`}>
+          <div className={`${recordStyles.pair} ${slot("right", 9)}`}>
             <label className={recordStyles.cell}>
               Peppol scheme
               <SchemeLookup schemes={schemes} value={peppolScheme} onChange={setPeppolScheme} />
@@ -445,20 +459,6 @@ export function PartyForm({
               <QuietInput name="peppol_id" maxLength={100} autoComplete="off" spellCheck={false} value={peppolId} onChange={(event) => setPeppolId(event.target.value)} className={styles.mono} />
             </label>
           </div>
-
-          <label className={`${recordStyles.cell} ${recordStyles.right} ${recordStyles.tall}`}>
-            Contact details
-            <QuietTextarea
-              name="contact_details"
-              maxLength={500}
-              rows={3}
-              autoComplete="off"
-              spellCheck
-              value={contactDetails}
-              onChange={(event) => setContactDetails(event.target.value)}
-              placeholder="Accounts, Jane Murphy"
-            />
-          </label>
 
           {/* Notes run under both columns, full width */}
           <p className={`${styles.sectionLabel} ${slot("left", 10, `${recordStyles.wideCell} ${recordStyles.heading}`)}`}>Notes</p>

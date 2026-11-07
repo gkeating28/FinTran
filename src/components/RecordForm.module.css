@@ -47,13 +47,18 @@
 }
 
 /*
- * A box that starts on row 7, level with the third address line, and runs down three rows to the
- * bottom of the address block. It takes the height of those rows, so it fills the gap without
- * making the left side taller.
+ * A box that starts on row 4, straight under the phone and website, and runs down three rows to
+ * the bottom of the second address line. It takes the height of those rows, so it fills the space
+ * without making the left side taller.
  */
 .tall {
-  grid-row: 7 / span 3;
+  grid-row: 4 / span 3;
   align-self: stretch;
+}
+
+/* A heading that sits at the bottom of its row, just above the fields it introduces. */
+.headingEnd {
+  align-self: end;
 }
 
 .tall textarea {
@@ -98,8 +103,8 @@
 
 /* Three classes deep on purpose: the core form rule ".partyForm .field input" sets width 100%, and
    inside a label that is as wide as its content that would resolve to the input's default width. */
-.layout .column .fixed input,
-.layout .column .fixed select {
+.layout .row .fixed input,
+.layout .row .fixed select {
   width: calc(var(--chars, 12) * 1ch + var(--pad, 28px));
   max-width: 100%;
 }
@@ -143,6 +148,10 @@
 
   .tall {
     grid-row: auto;
+    align-self: start;
+  }
+
+  .headingEnd {
     align-self: start;
   }
 
