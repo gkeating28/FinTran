@@ -242,7 +242,6 @@ export function PartyForm({
               value={code}
               onChange={setCode}
               maxLength={20}
-              placeholder="1000"
               autoFocus={!row}
               className={recordStyles.fixed}
               style={exact("var(--code-w)")}
@@ -257,7 +256,6 @@ export function PartyForm({
                 spellCheck={false}
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                placeholder="Enter the name"
               />
             </label>
           </div>
@@ -273,9 +271,7 @@ export function PartyForm({
                   onChange={(event) => setCurrencyId(event.target.value)}
                   disabled={currencies.length === 0}
                 >
-                  <option value="" disabled>
-                    Choose a currency
-                  </option>
+                  <option value="" disabled></option>
                   {currencies.map((currency) => (
                     <option key={currency.id} value={currency.id}>
                       {currency.code}
@@ -292,7 +288,6 @@ export function PartyForm({
                   autoComplete="off"
                   value={paymentTermsDays}
                   onChange={(event) => setPaymentTermsDays(event.target.value)}
-                  placeholder="30"
                 />
               </label>
               {kind === "customers" ? (
@@ -374,7 +369,6 @@ export function PartyForm({
                 spellCheck={false}
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                placeholder="accounts@northwind.example"
               />
             </label>
           </div>
@@ -388,7 +382,6 @@ export function PartyForm({
                 spellCheck={false}
                 value={phone}
                 onChange={(event) => setPhone(event.target.value)}
-                placeholder="+353 1 555 0100"
               />
             </label>
             <label className={recordStyles.cell}>
@@ -400,7 +393,6 @@ export function PartyForm({
                 spellCheck={false}
                 value={website}
                 onChange={(event) => setWebsite(event.target.value)}
-                placeholder="https://northwind.example"
               />
             </label>
           </div>
@@ -414,7 +406,6 @@ export function PartyForm({
               spellCheck
               value={contactDetails}
               onChange={(event) => setContactDetails(event.target.value)}
-              placeholder="Accounts, Jane Murphy"
             />
           </label>
 
@@ -428,7 +419,6 @@ export function PartyForm({
                 spellCheck={false}
                 value={vatNumber}
                 onChange={(event) => setVatNumber(event.target.value)}
-                placeholder="IE1234567T"
                 className={styles.mono}
               />
             </label>
@@ -467,7 +457,6 @@ export function PartyForm({
               spellCheck
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
-              placeholder="Delivery notes or anything else to keep with this record."
             />
           </label>
         </div>
