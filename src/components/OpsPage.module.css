@@ -498,6 +498,11 @@
   grid-column: 1 / -1;
 }
 
+/* Paired fields split on the same column lines as the form grid above and below them. */
+.partyFields .fieldPair {
+  column-gap: 16px;
+}
+
 .panel > .partyFields {
   padding: 14px 14px 16px;
 }
@@ -868,9 +873,32 @@
   background: transparent;
 }
 
-@media (max-width: 860px) {
+.field input.logoInput::file-selector-button {
+  height: var(--control-height);
+  margin-right: 12px;
+  padding: 0 12px;
+  border: 1px solid var(--ops-border);
+  border-radius: var(--ops-radius);
+  background: var(--ops-panel);
+  color: var(--ops-text-2);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.field input.logoInput::file-selector-button:hover {
+  background: var(--color-surface-muted);
+  border-color: #c3cad6;
+  color: var(--ops-text);
+}
+
+/* The sidebar takes 240px, so the four column form needs about 1200px of screen. Below that it goes
+   to two columns, and dense packing lets a short field fill the gap beside the one before a wide field. */
+@media (max-width: 1200px) {
   .partyFields.orgFields {
       grid-template-columns: 1fr 1fr;
+      grid-auto-flow: dense;
     }
 }
 
