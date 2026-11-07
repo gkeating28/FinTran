@@ -206,9 +206,15 @@ function accountSummary(rows: ReferenceRow[]) {
     .join(". ");
 }
 
+/** True when the text already shows the rate as its own number, so "0%" is not found inside "10%". */
+function mentionsRate(text: string, shown: string) {
+  const escaped = shown.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|[^0-9.,])${escaped}`).test(text);
+}
+
 function vatLabel(row: ReferenceRow) {
   const shown = row.rate ? formatRate(row.rate) : "";
-  const rate = shown && !row.description.includes(shown) ? ` (${shown})` : "";
+  const rate = shown && !mentionsRate(row.description, shown) ? ` (${shown})` : "";
   return `${row.code} — ${row.description}${rate}`;
 }
 
