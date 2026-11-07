@@ -101,7 +101,9 @@
 .layout .row .fixed input,
 .layout .row .fixed select,
 .stack .row .fixed input,
-.stack .row .fixed select {
+.stack .row .fixed select,
+.flow .fixed input,
+.flow .fixed select {
   width: var(--w, 12ch);
   max-width: 100%;
 }
