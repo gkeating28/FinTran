@@ -48,22 +48,22 @@ export default function HomeOverview({
 
       <h2 className={dashboardStyles.menuHeading}>Needs attention</h2>
       <div className={dashboardStyles.cards}>
-        <Link href="/transactions" className={`${dashboardStyles.card} ${dashboardStyles.cardLink}`}>
+        <Link prefetch href="/transactions" className={`${dashboardStyles.card} ${dashboardStyles.cardLink}`}>
           <div className={dashboardStyles.cardLabel}>Draft documents</div>
           <div className={dashboardStyles.cardValue}>{count(overview.draftDocuments)}</div>
           <div className={dashboardStyles.cardNote}>waiting to be posted</div>
         </Link>
-        <Link href="/e-documents" className={`${dashboardStyles.card} ${dashboardStyles.cardLink}`}>
+        <Link prefetch href="/e-documents" className={`${dashboardStyles.card} ${dashboardStyles.cardLink}`}>
           <div className={dashboardStyles.cardLabel}>E-invoices ready to import</div>
           <div className={dashboardStyles.cardValue}>{count(overview.eDocumentsReady)}</div>
           <div className={dashboardStyles.cardNote}>received and valid</div>
         </Link>
-        <Link href="/e-documents" className={`${dashboardStyles.card} ${dashboardStyles.cardLink}`}>
+        <Link prefetch href="/e-documents" className={`${dashboardStyles.card} ${dashboardStyles.cardLink}`}>
           <div className={dashboardStyles.cardLabel}>E-invoices to review</div>
           <div className={dashboardStyles.cardValue}>{count(overview.eDocumentsNeedReview)}</div>
           <div className={dashboardStyles.cardNote}>duplicates and invalid files</div>
         </Link>
-        <Link href="/transactions" className={`${dashboardStyles.card} ${dashboardStyles.cardLink}`}>
+        <Link prefetch href="/transactions" className={`${dashboardStyles.card} ${dashboardStyles.cardLink}`}>
           <div className={dashboardStyles.cardLabel}>Posted this month</div>
           <div className={dashboardStyles.cardValue}>{count(overview.postedThisMonth)}</div>
           <div className={dashboardStyles.cardNote}>documents</div>
@@ -73,7 +73,7 @@ export default function HomeOverview({
       <h2 className={dashboardStyles.menuHeading}>Go to</h2>
       <div className={dashboardStyles.shortcutGrid}>
         {SHORTCUTS.map((shortcut) => (
-          <Link key={shortcut.href} href={shortcut.href} className={`${dashboardStyles.adminTile} ${dashboardStyles.shortcut}`}>
+          <Link prefetch key={shortcut.href} href={shortcut.href} className={`${dashboardStyles.adminTile} ${dashboardStyles.shortcut}`}>
             <span className={dashboardStyles.adminTileLabel}>{shortcut.label}</span>
             <span className={dashboardStyles.adminTileMeta}>{shortcut.meta}</span>
           </Link>

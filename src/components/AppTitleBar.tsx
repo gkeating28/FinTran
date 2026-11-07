@@ -82,7 +82,7 @@ export default function AppTitleBar({
             <span className={styles.sep}>/</span>
             {formCode ? (
               <>
-                <Link href="/forms" className={styles.crumbLink}>
+                <Link href="/forms" prefetch className={styles.crumbLink}>
                   Forms
                 </Link>
                 <span className={styles.sep}>/</span>

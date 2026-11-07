@@ -55,7 +55,7 @@ function TransactionGroup({ title, tiles }: { title: string; tiles: TransactionM
       ) : (
         <div className={dashboardStyles.adminGrid}>
           {tiles.map((tile) => (
-            <Link key={tile.id} href={`/transactions/${tile.code}`} className={dashboardStyles.adminTile}>
+            <Link key={tile.id} prefetch href={`/transactions/${tile.code}`} className={dashboardStyles.adminTile}>
               <span className={dashboardStyles.adminTileIcon}>
                 <DocumentIcon size={22} />
               </span>
