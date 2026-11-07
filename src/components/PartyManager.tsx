@@ -446,14 +446,12 @@ export function PartyForm({
             </label>
           </div>
 
-          {/* Notes run under both columns */}
-          <p className={`${styles.sectionLabel} ${slot("left", 10, `${recordStyles.wideCell} ${recordStyles.heading}`)}`}>Notes</p>
-          <label className={`${recordStyles.cell} ${slot("left", 11)}`}>
+          <label className={`${recordStyles.cell} ${recordStyles.right} ${recordStyles.tall}`}>
             Contact details
             <QuietTextarea
               name="contact_details"
               maxLength={500}
-              rows={4}
+              rows={3}
               autoComplete="off"
               spellCheck
               value={contactDetails}
@@ -461,7 +459,10 @@ export function PartyForm({
               placeholder="Accounts, Jane Murphy"
             />
           </label>
-          <label className={`${recordStyles.cell} ${slot("right", 11)}`}>
+
+          {/* Notes run under both columns, full width */}
+          <p className={`${styles.sectionLabel} ${slot("left", 10, `${recordStyles.wideCell} ${recordStyles.heading}`)}`}>Notes</p>
+          <label className={`${recordStyles.cell} ${slot("left", 11, recordStyles.wideCell)}`}>
             Notes
             <QuietTextarea
               name="notes"
