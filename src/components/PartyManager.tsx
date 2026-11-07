@@ -1,6 +1,6 @@
 "use client";
 
-import { type CSSProperties, useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { CodeField } from "@/components/CodeField";
 import ConfirmSubmitButton from "@/components/ConfirmDialog";
 import DataGrid from "@/components/DataGrid";
@@ -13,6 +13,7 @@ import { PARTY_META, type PartyCurrency, type PartyKind, type PartyRow } from "@
 import { countryChoices, type CodeName } from "@/lib/code-lists";
 import styles from "@/components/OpsPage.module.css";
 import recordStyles from "@/components/RecordForm.module.css";
+import { exact, slot } from "@/components/recordForm";
 import type { ActionState } from "@/lib/types";
 
 export default function PartyManager({
@@ -149,16 +150,6 @@ export default function PartyManager({
   );
 }
 
-/** Sizes a field to the value it accepts: chars is how many characters it holds, pad adds room for a select arrow. */
-function width(chars: number, pad?: number): CSSProperties {
-  return { ["--chars" as string]: chars, ...(pad ? { ["--pad" as string]: `${pad}px` } : {}) };
-}
-
-/** Puts a cell of the form on its row in the left or the right column, so both sides of a row stay level. */
-function slot(side: "left" | "right", row: number, extra?: string) {
-  return [recordStyles[side], recordStyles[`r${row}`], extra].filter(Boolean).join(" ");
-}
-
 export function PartyForm({
   kind,
   row,
@@ -242,10 +233,9 @@ export function PartyForm({
               value={code}
               onChange={setCode}
               maxLength={20}
-              placeholder="1000"
               autoFocus={!row}
               className={recordStyles.fixed}
-              style={width(20)}
+              style={exact("var(--code-w)")}
             />
             <label className={recordStyles.grow}>
               Name
@@ -257,13 +247,12 @@ export function PartyForm({
                 spellCheck={false}
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                placeholder="Enter the name"
               />
             </label>
           </div>
           <div className={slot("left", 2)}>
             <div className={recordStyles.row}>
-              <label className={recordStyles.fixed} style={width(8, 52)}>
+              <label className={recordStyles.fixed} style={exact("calc(var(--code-w) - var(--terms-w) - var(--field-gap))")}>
                 Currency
                 <select
                   name="currency_id"
@@ -273,9 +262,7 @@ export function PartyForm({
                   onChange={(event) => setCurrencyId(event.target.value)}
                   disabled={currencies.length === 0}
                 >
-                  <option value="" disabled>
-                    Choose a currency
-                  </option>
+                  <option value="" disabled></option>
                   {currencies.map((currency) => (
                     <option key={currency.id} value={currency.id}>
                       {currency.code}
@@ -283,7 +270,7 @@ export function PartyForm({
                   ))}
                 </select>
               </label>
-              <label className={recordStyles.fixed} style={width(3)}>
+              <label className={recordStyles.fixed} style={exact("var(--terms-w)")}>
                 Payment terms (days)
                 <QuietInput
                   name="payment_terms_days"
@@ -292,7 +279,6 @@ export function PartyForm({
                   autoComplete="off"
                   value={paymentTermsDays}
                   onChange={(event) => setPaymentTermsDays(event.target.value)}
-                  placeholder="30"
                 />
               </label>
               {kind === "customers" ? (
@@ -374,7 +360,6 @@ export function PartyForm({
                 spellCheck={false}
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                placeholder="accounts@northwind.example"
               />
             </label>
           </div>
@@ -388,7 +373,6 @@ export function PartyForm({
                 spellCheck={false}
                 value={phone}
                 onChange={(event) => setPhone(event.target.value)}
-                placeholder="+353 1 555 0100"
               />
             </label>
             <label className={recordStyles.cell}>
@@ -400,7 +384,6 @@ export function PartyForm({
                 spellCheck={false}
                 value={website}
                 onChange={(event) => setWebsite(event.target.value)}
-                placeholder="https://northwind.example"
               />
             </label>
           </div>
@@ -414,7 +397,6 @@ export function PartyForm({
               spellCheck
               value={contactDetails}
               onChange={(event) => setContactDetails(event.target.value)}
-              placeholder="Accounts, Jane Murphy"
             />
           </label>
 
@@ -428,7 +410,6 @@ export function PartyForm({
                 spellCheck={false}
                 value={vatNumber}
                 onChange={(event) => setVatNumber(event.target.value)}
-                placeholder="IE1234567T"
                 className={styles.mono}
               />
             </label>
@@ -467,7 +448,6 @@ export function PartyForm({
               spellCheck
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
-              placeholder="Delivery notes or anything else to keep with this record."
             />
           </label>
         </div>

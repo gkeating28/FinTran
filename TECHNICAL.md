@@ -106,6 +106,19 @@ Every sales and purchase entry screen copies `src/components/PurchaseInvoiceMana
 
 Form buttons on the light page stay the purchase-invoice set: `quiet` (white, 1px border), `primary` (accent fill), and `danger`. In a grid row, Edit and View are text buttons in the accent colour and Remove is red.
 
+### Form layout principles
+
+These apply to the customer, supplier and organisation page forms and to the product, transaction type, currency, GL code and VAT rate dialogs. The purchase invoice shell keeps its own layout. The classes are in `src/components/RecordForm.module.css` and the helpers `exact`, `slot` and `tall` are in `src/components/recordForm.ts`.
+
+1. Two columns on a shared grid with explicit rows (`layout`, `left`, `right`, `r1` to `r10`), so the edit boxes on the left and the right share their top edges. Below 1200px the form falls back to one column.
+2. No section headings. Group fields by position instead.
+3. A width follows the value the field accepts. A short fixed value gets a fixed width (`fixed` with `exact`), free text grows (`grow`), and two related fields share equal halves (`pair`). Related edges line up, for example the payment terms right edge matches the code right edge.
+4. No placeholder text in any edit box. A placeholder looks like a real value. An empty select shows a blank option and an empty pick list shows a blank button.
+5. A tall text area fills the gap beside the rows it spans (`tall`). Long notes take the full width of the form.
+6. Tab order runs down the left column and then down the right. Dialogs use `flow` to fill two columns the same way.
+7. Every single line control is 36px high (`--control-height`).
+8. Verify by measuring the edit boxes with `getBoundingClientRect`, not the labels.
+
 ### Ask Qula
 
 The sparkle button opens a sheet fixed to the right edge, from the bottom of the title bar to the bottom of the viewport, 400px wide. It slides over 480ms. Escape, Close, and the sparkle button dismiss it. The conversation is kept in `sessionStorage` under `fintran.ask-qula.{organisationId}`.

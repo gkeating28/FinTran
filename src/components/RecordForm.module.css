@@ -1,23 +1,27 @@
 /*
- * Layout for the supplier and customer form.
+ * The layout every record form follows. See "Form layout principles" in TECHNICAL.md.
  *
- * One grid of two columns with no section headings. Each cell sits on an explicit row (r1, r2, ...),
- * so the edit boxes on the left and on the right of a row share the same top edge, whatever else is
- * in the row: a hint under the code field makes its whole row taller on both sides and nothing below
- * drifts out of line.
+ * Page forms (supplier, customer, organisation) are one grid of two columns with no section
+ * headings. Each cell sits on an explicit row (r1, r2, ...), so the edit boxes on the left and on
+ * the right of a row share the same top edge, whatever else is in the row: a hint under the code
+ * field makes its whole row taller on both sides and nothing below drifts out of line. The page lists
+ * every left cell, then every right cell, then anything underneath, so tabbing runs down the left
+ * column and then down the right one. Below 1200px the grid is one column in that order.
  *
- * Contact details is a tall box that starts level with the first address line and ends level with
- * the third. The page lists every left cell, then every right cell, then the notes, so tabbing runs
- * down the left column and then down the right one. Below 1200px the grid is one column in that order.
+ * Dialog forms are a plain stack of rows (stack) with the same row, pair and field kinds.
  *
  * In a row a field is one of two kinds:
- *   fixed  as wide as the value it accepts: set --chars to the number of characters it holds.
- *          Selects add room for their arrow with --pad.
+ *   fixed  as wide as the value it accepts: set --w to its exact width.
  *   grow   free text (a name, an email, an address line): it fills what is left of the row.
  * A pair puts two fields on equal halves, so the second field of every pair starts on one line.
+ * A tall box is a text area that starts on one row and runs down several (see tall()).
  */
 
 .layout {
+  /* Row 2 under the code is the currency, then the payment terms with its right edge on the code's. */
+  --code-w: 200px;
+  --terms-w: 56px;
+  --field-gap: 16px;
   flex: 1;
   min-height: 0;
   overflow: auto;
@@ -44,12 +48,12 @@
 }
 
 /*
- * Contact details: starts on row 3, level with the first address line, and runs down three rows to
- * the bottom of the third. It takes the height of those rows, so it fills the space without making
- * the left side taller.
+ * A text area that starts on a row and runs down several, so it fills a gap without making the other
+ * side taller. The start row and the number of rows come from tall() and default to rows 3 to 5, which
+ * is where the supplier and customer form puts its contact details.
  */
 .tall {
-  grid-row: 3 / span 3;
+  grid-row: var(--tall-start, 3) / span var(--tall-span, 3);
   align-self: stretch;
 }
 
@@ -67,12 +71,14 @@
 .r6 { grid-row: 6; }
 .r7 { grid-row: 7; }
 .r8 { grid-row: 8; }
+.r9 { grid-row: 9; }
+.r10 { grid-row: 10; }
 
 .row {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  gap: 12px 16px;
+  gap: 12px var(--field-gap);
 }
 
 .grow {
@@ -93,8 +99,10 @@
 /* Three classes deep on purpose: the core form rule ".partyForm .field input" sets width 100%, and
    inside a label that is as wide as its content that would resolve to the input's default width. */
 .layout .row .fixed input,
-.layout .row .fixed select {
-  width: calc(var(--chars, 12) * 1ch + var(--pad, 28px));
+.layout .row .fixed select,
+.stack .row .fixed input,
+.stack .row .fixed select {
+  width: var(--w, 12ch);
   max-width: 100%;
 }
 
@@ -120,6 +128,45 @@
   min-width: 0;
 }
 
+/* A dialog form: rows one under another. */
+.stack {
+  grid-column: 1 / -1;
+  --field-gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Two columns of fields filled down the first column and then the second, so tab order runs down
+   each side and the two sides stay level row by row. Set --rows to the number of fields per side. */
+.flow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: repeat(var(--rows, 3), auto);
+  grid-auto-flow: column;
+  align-items: start;
+  gap: 12px 16px;
+}
+
+/* Dialog widths. The default dialog is 440px, which is narrow for a row of two or three fields. */
+.dialogMedium {
+  composes: dialog from "./OpsPage.module.css";
+  width: min(640px, calc(100vw - 32px));
+}
+
+.dialogWide {
+  composes: dialog from "./OpsPage.module.css";
+  width: min(760px, calc(100vw - 32px));
+}
+
+@media (max-width: 640px) {
+  .flow {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    grid-auto-flow: row;
+  }
+}
+
 @media (max-width: 1200px) {
   .layout {
     grid-template-columns: minmax(0, 560px);
@@ -131,7 +178,7 @@
     grid-column: 1;
   }
 
-  .r1, .r2, .r3, .r4, .r5, .r6, .r7, .r8 {
+  .r1, .r2, .r3, .r4, .r5, .r6, .r7, .r8, .r9, .r10 {
     grid-row: auto;
   }
 

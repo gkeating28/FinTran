@@ -19,7 +19,7 @@ export function CodeField({
   value: string;
   onChange: (value: string) => void;
   maxLength: number;
-  placeholder: string;
+  placeholder?: string;
   autoFocus?: boolean;
   /** Replaces the default field class, for a form that sizes its own fields. */
   className?: string;

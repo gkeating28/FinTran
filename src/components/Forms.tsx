@@ -138,11 +138,11 @@ function TenantFields({ currencies }: { currencies: IsoCurrency[] }) {
       <Status state={state} />
       <label className={ops.field}>
         Tenant
-        <QuietInput name="tenantName" required minLength={2} maxLength={80} autoFocus placeholder="Northwind Group" />
+        <QuietInput name="tenantName" required minLength={2} maxLength={80} autoFocus />
       </label>
       <label className={ops.field}>
         First organisation
-        <QuietInput name="organisationName" required minLength={2} maxLength={80} placeholder="Northwind Ltd" />
+        <QuietInput name="organisationName" required minLength={2} maxLength={80} />
       </label>
       <HomeCurrencyField currencies={currencies} />
       <div className={ops.modalActions}>
@@ -186,7 +186,7 @@ function OrganisationFields({ tenantId, currencies }: { tenantId: string; curren
       <Status state={state} />
       <label className={ops.field}>
         Organisation
-        <QuietInput name="organisationName" required minLength={2} maxLength={80} autoFocus placeholder="Harbour Trading" />
+        <QuietInput name="organisationName" required minLength={2} maxLength={80} autoFocus />
       </label>
       <HomeCurrencyField currencies={currencies} />
       <div className={ops.modalActions}>
@@ -246,7 +246,7 @@ function AccessFields({
       <Status state={state} />
       <label className={ops.field}>
         Email
-        <QuietInput name="email" type="text" inputMode="email" required autoFocus placeholder="colleague@company.com" />
+        <QuietInput name="email" type="text" inputMode="email" required autoFocus />
       </label>
       <label className={ops.field}>
         Role
