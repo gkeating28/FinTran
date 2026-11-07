@@ -19,6 +19,8 @@ import {
   type VatexChoice,
 } from "@/lib/reference";
 import styles from "@/components/OpsPage.module.css";
+import recordStyles from "@/components/RecordForm.module.css";
+import { exact } from "@/components/recordForm";
 import type { ActionState } from "@/lib/types";
 
 export default function ReferenceManager({
@@ -196,7 +198,7 @@ function ReferenceForm({
   }, [state.message, onClose]);
 
   return (
-    <FormModal title={readOnly ? `View ${meta.singular}` : row ? `Edit ${meta.singular}` : `Add ${meta.singular}`} onClose={onClose}>
+    <FormModal title={readOnly ? `View ${meta.singular}` : row ? `Edit ${meta.singular}` : `Add ${meta.singular}`} onClose={onClose} className={recordStyles.dialogMedium}>
       <form className={`${styles.modalForm}${readOnly ? ` ${styles.formReadOnly}` : ""}`} action={action} autoComplete="off" noValidate>
         {row ? <input type="hidden" name="id" value={row.id} /> : null}
         {state.error ? (
@@ -204,8 +206,18 @@ function ReferenceForm({
             {state.error}
           </p>
         ) : null}
-        <CodeField locked={Boolean(row)} value={code} onChange={setCode} maxLength={20} placeholder="1000" autoFocus={!row} />
-        <label className={styles.field}>
+        <div className={recordStyles.stack}>
+          <div className={recordStyles.row}>
+            <CodeField
+              locked={Boolean(row)}
+              value={code}
+              onChange={setCode}
+              maxLength={20}
+              autoFocus={!row}
+              className={recordStyles.fixed}
+              style={exact("22ch")}
+            />
+            <label className={recordStyles.grow}>
           Description
           <QuietInput
             name="description"
@@ -215,12 +227,14 @@ function ReferenceForm({
             spellCheck
             value={description}
             onChange={(event) => setDescription(event.target.value)}
-            placeholder={kind === "vat_rates" ? "Standard rate" : "Sales income"}
+            
           />
         </label>
-        {kind === "vat_rates" ? (
-          <>
-            <label className={styles.field}>
+          </div>
+          {kind === "vat_rates" ? (
+            <>
+              <div className={recordStyles.row}>
+                <label className={recordStyles.fixed} style={exact("10ch")}>
               Rate (%)
               <QuietInput
                 name="rate"
@@ -236,10 +250,10 @@ function ReferenceForm({
                   const parsed = parseRate(event.target.value);
                   if (parsed) setRate(formatRate(parsed).replace(/%$/, ""));
                 }}
-                placeholder="23"
+                
               />
             </label>
-            <label className={styles.field}>
+                <label className={recordStyles.fixed} style={exact("16ch")}>
               Type
               <select
                 name="vat_type"
@@ -248,9 +262,7 @@ function ReferenceForm({
                 value={vatType}
                 onChange={(event) => setVatType(event.target.value)}
               >
-                <option value="" disabled>
-                  Choose a type
-                </option>
+                <option value="" disabled></option>
                 {VAT_TYPES.map((type) => (
                   <option key={type} value={type}>
                     {type}
@@ -258,7 +270,7 @@ function ReferenceForm({
                 ))}
               </select>
             </label>
-            <label className={styles.field}>
+                <label className={recordStyles.grow}>
               Category
               <select
                 name="vat_category"
@@ -274,7 +286,9 @@ function ReferenceForm({
                 ))}
               </select>
             </label>
-            <label className={styles.field}>
+              </div>
+              <div className={recordStyles.row}>
+                <label className={recordStyles.fixed} style={exact("16ch")}>
               Exemption code
               <select
                 name="exemption_code"
@@ -290,7 +304,7 @@ function ReferenceForm({
                 ))}
               </select>
             </label>
-            <label className={`${styles.field} ${styles.wide}`}>
+                <label className={recordStyles.grow}>
               Exemption reason
               <QuietInput
                 name="exemption_reason"
@@ -301,10 +315,12 @@ function ReferenceForm({
                 onChange={(event) => setExemptionReason(event.target.value)}
               />
             </label>
-          </>
-        ) : null}
-        {kind === "gl_codes" ? (
-          <label className={styles.field}>
+              </div>
+            </>
+          ) : null}
+          {kind === "gl_codes" ? (
+            <div className={recordStyles.row}>
+              <label className={recordStyles.fixed} style={exact("22ch")}>
             Account type
             <select
               name="account_type"
@@ -313,9 +329,7 @@ function ReferenceForm({
               value={accountType}
               onChange={(event) => setAccountType(event.target.value)}
             >
-              <option value="" disabled>
-                Choose an account type
-              </option>
+              <option value="" disabled></option>
               {ACCOUNT_TYPES.map((type) => (
                 <option key={type} value={type}>
                   {type}
@@ -323,7 +337,9 @@ function ReferenceForm({
               ))}
             </select>
           </label>
-        ) : null}
+            </div>
+          ) : null}
+        </div>
         <div className={styles.modalActions}>
           <button className={styles.quiet} type="button" onClick={onClose}>
             {readOnly ? "Close" : "Cancel"}

@@ -20,6 +20,8 @@ import {
   type TransactionTypeRow,
 } from "@/lib/transaction-types";
 import styles from "@/components/OpsPage.module.css";
+import recordStyles from "@/components/RecordForm.module.css";
+import { exact } from "@/components/recordForm";
 import type { ActionState } from "@/lib/types";
 
 export default function TransactionTypeManager({
@@ -184,7 +186,7 @@ function TransactionTypeForm({
   }, [state.message, onClose]);
 
   return (
-    <FormModal title={readOnly ? "View transaction type" : row ? "Edit transaction type" : "Add transaction type"} onClose={onClose} className={styles.partyDialog}>
+    <FormModal title={readOnly ? "View transaction type" : row ? "Edit transaction type" : "Add transaction type"} onClose={onClose} className={recordStyles.dialogWide}>
       <form className={`${styles.modalForm}${readOnly ? ` ${styles.formReadOnly}` : ""}`} action={action} autoComplete="off" noValidate>
         {row ? <input type="hidden" name="id" value={row.id} /> : null}
         {state.error ? (
@@ -192,8 +194,18 @@ function TransactionTypeForm({
             {state.error}
           </p>
         ) : null}
-        <CodeField locked={Boolean(row)} value={code} onChange={setCode} maxLength={20} placeholder="SI" autoFocus={!row} />
-        <label className={styles.field}>
+        <div className={recordStyles.stack}>
+          <div className={recordStyles.row}>
+            <CodeField
+              locked={Boolean(row)}
+              value={code}
+              onChange={setCode}
+              maxLength={20}
+              autoFocus={!row}
+              className={recordStyles.fixed}
+              style={exact("22ch")}
+            />
+            <label className={recordStyles.grow}>
           Description
           <QuietInput
             name="description"
@@ -202,15 +214,15 @@ function TransactionTypeForm({
             spellCheck
             value={description}
             onChange={(event) => setDescription(event.target.value)}
-            placeholder="Sales invoice"
+            
           />
         </label>
-        <label className={styles.field}>
+          </div>
+          <div className={recordStyles.row}>
+            <label className={recordStyles.grow}>
           Type
           <select name="type" required autoComplete="off" value={type} onChange={(event) => setType(event.target.value)}>
-            <option value="" disabled>
-              Choose a type
-            </option>
+            <option value="" disabled></option>
             {TRANSACTION_TYPE_KINDS.map((kind) => (
               <option key={kind} value={kind}>
                 {kind}
@@ -218,7 +230,7 @@ function TransactionTypeForm({
             ))}
           </select>
         </label>
-        <label className={styles.field}>
+            <label className={recordStyles.grow}>
           Kind
           {kindLocked ? <input type="hidden" name="document_kind" value={documentKind} /> : null}
           <select
@@ -236,18 +248,18 @@ function TransactionTypeForm({
             ))}
           </select>
         </label>
-        <label className={styles.field}>
+            <label className={recordStyles.fixed} style={exact("14ch")}>
           Number prefix
           <QuietInput
             name="reference_prefix"
             maxLength={10}
             value={referencePrefix}
             onChange={(event) => setReferencePrefix(event.target.value)}
-            placeholder="INV-"
+           
             className={styles.mono}
           />
         </label>
-        <label className={styles.field}>
+            <label className={recordStyles.fixed} style={exact("14ch")}>
           Number padding
           <QuietInput
             name="reference_padding"
@@ -256,12 +268,14 @@ function TransactionTypeForm({
             maxLength={2}
             value={referencePadding}
             onChange={(event) => setReferencePadding(event.target.value)}
-            placeholder="0"
+           
             className={styles.mono}
           />
         </label>
-        {flexLabels.map((label, index) => (
-          <label className={styles.field} key={index}>
+          </div>
+          <div className={recordStyles.flow} style={{ ["--rows" as string]: 3 }}>
+            {flexLabels.map((label, index) => (
+          <label className={recordStyles.cell} key={index}>
             {`Flex ${index + 1} label`}
             <QuietInput
               name={`flex${index + 1}_label`}
@@ -270,11 +284,12 @@ function TransactionTypeForm({
               onChange={(event) =>
                 setFlexLabels((current) => current.map((item, itemIndex) => (itemIndex === index ? event.target.value : item)))
               }
-              placeholder="Leave blank to hide"
+              
             />
           </label>
         ))}
-        <p className={styles.panelMeta}>
+          </div>
+<p className={styles.panelMeta}>
           Last reference: {formatInteger(row ? row.lastReference : 0)}. Next document number:{" "}
           {documentNumberPreview(
             referencePrefix.trim(),
@@ -285,6 +300,7 @@ function TransactionTypeForm({
           A blank flex label is not shown on the transaction.
           {kindLocked ? " The kind stays as it is because a document has been entered." : ""}
         </p>
+        </div>
         <div className={styles.modalActions}>
           <button className={styles.quiet} type="button" onClick={onClose}>
             {readOnly ? "Close" : "Cancel"}

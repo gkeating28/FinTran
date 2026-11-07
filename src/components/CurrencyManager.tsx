@@ -10,6 +10,8 @@ import { createCurrency, deleteCurrency, updateCurrency } from "@/lib/currency-a
 import { formatCurrencyRate, parseCurrencyRate, type CurrencyRow } from "@/lib/currencies";
 import type { CodeName } from "@/lib/code-lists";
 import styles from "@/components/OpsPage.module.css";
+import recordStyles from "@/components/RecordForm.module.css";
+import { exact } from "@/components/recordForm";
 import type { ActionState } from "@/lib/types";
 
 export default function CurrencyManager({
@@ -156,7 +158,7 @@ function CurrencyForm({
   }, [state.message, onClose]);
 
   return (
-    <FormModal title={readOnly ? "View currency" : row ? "Edit currency" : "Add currency"} onClose={onClose}>
+    <FormModal title={readOnly ? "View currency" : row ? "Edit currency" : "Add currency"} onClose={onClose} className={recordStyles.dialogMedium}>
       <form className={`${styles.modalForm}${readOnly ? ` ${styles.formReadOnly}` : ""}`} action={action} autoComplete="off" noValidate>
         {row ? <input type="hidden" name="id" value={row.id} /> : null}
         {state.error ? (
@@ -164,8 +166,18 @@ function CurrencyForm({
             {state.error}
           </p>
         ) : null}
-        <CodeField locked={Boolean(row)} value={code} onChange={setCode} maxLength={20} placeholder="EUR" autoFocus={!row} />
-        <label className={styles.field}>
+        <div className={recordStyles.stack}>
+          <div className={recordStyles.row}>
+            <CodeField
+              locked={Boolean(row)}
+              value={code}
+              onChange={setCode}
+              maxLength={20}
+              autoFocus={!row}
+              className={recordStyles.fixed}
+              style={exact("22ch")}
+            />
+            <label className={recordStyles.grow}>
           Name
           <QuietInput
             name="name"
@@ -175,15 +187,15 @@ function CurrencyForm({
             spellCheck={false}
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder="Euro"
+            
           />
         </label>
-        <label className={styles.field}>
+          </div>
+          <div className={recordStyles.row}>
+            <label className={recordStyles.grow}>
           ISO code
           <select name="iso_code" required autoComplete="off" value={isoCode} onChange={(event) => setIsoCode(event.target.value)}>
-            <option value="" disabled>
-              Choose an ISO currency
-            </option>
+            <option value="" disabled></option>
             {isoCurrencies.map((currency) => (
               <option key={currency.code} value={currency.code}>
                 {currency.code} — {currency.name}
@@ -191,7 +203,7 @@ function CurrencyForm({
             ))}
           </select>
         </label>
-        <label className={styles.field}>
+            <label className={recordStyles.fixed} style={exact("14ch")}>
           Rate
           <QuietInput
             name="rate"
@@ -203,9 +215,11 @@ function CurrencyForm({
             onBlur={(event) => {
               if (parseCurrencyRate(event.target.value)) setRate(formatCurrencyRate(event.target.value));
             }}
-            placeholder="1"
+            
           />
         </label>
+          </div>
+        </div>
         <div className={styles.modalActions}>
           <button className={styles.quiet} type="button" onClick={onClose}>
             {readOnly ? "Close" : "Cancel"}
