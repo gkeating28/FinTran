@@ -1,0 +1,95 @@
+/*
+ * Layout for the supplier and customer form.
+ *
+ * Two columns of fixed width, each a stack of sections. A section is a heading and rows, and a row
+ * is fields side by side. A field is one of two kinds:
+ *   fixed  as wide as the value it accepts: set --chars to the number of characters it holds.
+ *          Selects add room for their arrow with --pad.
+ *   grow   free text (a name, an email, an address line): it fills what is left of the row.
+ * Every row therefore starts and ends on the same two edges, and a three digit field is never wider
+ * than three digits.
+ */
+
+.layout {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 560px));
+  gap: 24px 48px;
+  align-content: start;
+  align-items: start;
+  /* Room for the focus ring, which the scroll area would otherwise clip. */
+  padding: 4px;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px 16px;
+}
+
+.grow {
+  composes: field from "./OpsPage.module.css";
+  flex: 1 1 140px;
+  min-width: 0;
+}
+
+.fixed {
+  composes: field from "./OpsPage.module.css";
+  flex: none;
+  /* As wide as the label or the input, whichever is wider, and never past the row. */
+  width: max-content;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Three classes deep on purpose: the core form rule ".partyForm .field input" sets width 100%, and
+   inside a label that is as wide as its content that would resolve to the input's default width. */
+.layout .column .fixed input,
+.layout .column .fixed select {
+  width: calc(var(--chars, 12) * 1ch + var(--pad, 28px));
+  max-width: 100%;
+}
+
+/* A short field with a long label ("Payment terms (days)") keeps the label on one line. */
+.fixed {
+  white-space: nowrap;
+}
+
+/*
+ * Two fields side by side on equal halves. Every pair in a column splits on the same line, so the
+ * second field of each pair lines up with the second field of the pair above and below it. A field
+ * that should stay small inside a pair is a "fixed" field and keeps its own width.
+ */
+.pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+  gap: 12px 16px;
+}
+
+.cell {
+  composes: field from "./OpsPage.module.css";
+  min-width: 0;
+}
+
+@media (max-width: 1200px) {
+  .layout {
+    grid-template-columns: minmax(0, 560px);
+  }
+}
