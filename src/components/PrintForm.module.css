@@ -5,40 +5,65 @@
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* The bar is as wide as the paper, so Back sits over the left edge and Print and PDF over the right edge.
+   It stays at the top while a long document scrolls. */
 .toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
   gap: 8px;
-  width: min(820px, calc(100% - 32px));
+  box-sizing: border-box;
+  width: min(var(--page-width, 210mm), calc(100% - 32px));
   margin: 0 auto;
-  padding: 16px 0 0;
+  padding: 12px 0;
+  background: #eef0f3;
 }
 
 .toolbar a,
 .toolbar button {
-  height: 34px;
+  height: var(--control-height);
   display: inline-flex;
   align-items: center;
-  border-radius: 3px;
+  gap: 8px;
+  border-radius: var(--radius);
   padding: 0 14px;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
+  font-family: var(--font-public-sans), system-ui, sans-serif;
+  font-size: var(--text-sm);
+  font-weight: 600;
   text-decoration: none;
   cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
 }
 
-.back {
-  border: 1px solid #dde1e8;
-  background: #fff;
-  color: #3a4356;
+.spacer {
+  flex: 1;
 }
 
-.print,
+.back,
 .pdf {
-  border: 0;
-  background: #2c4c78;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-2);
+}
+
+.back:hover,
+.pdf:hover:not(:disabled) {
+  border-color: #c3cad6;
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+.print {
+  border: 1px solid var(--color-accent);
+  background: var(--color-accent);
   color: #fff;
+}
+
+.print:hover {
+  border-color: var(--color-accent-hover);
+  background: var(--color-accent-hover);
 }
 
 .pdf:disabled {

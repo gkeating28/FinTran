@@ -127,7 +127,8 @@ Every page that lists rows starts its data read at the same time as the workspac
 2. A data function that lists rows calls `getOrganisationScope()` for the organisation id. It does not call `getWorkspace()`.
 3. A page starts the read first, then awaits the workspace to check the person is signed in and has an organisation, then awaits the read. For example `const listed = listParties("customers"); const workspace = await getWorkspace(); ... await listed`.
 4. Row level security limits every query to organisations the signed in person can open, so a stale cookie reads no rows. It never reads another person's rows.
-5. Pages that need the organisation name, role or memberships still await the workspace, because those come from it.
+5. A link to a page of rows uses `prefetch` on the `Link`, as the sidebar does, so the page is fetched before the click and a visited page is reused for five minutes. A link without it waits for the server after the click. The Admin tiles, the Transactions tiles and the Home shortcuts all use it. A save clears the cached page.
+6. Pages that need the organisation name, role or memberships still await the workspace, because those come from it.
 
 ### Ask Qula
 

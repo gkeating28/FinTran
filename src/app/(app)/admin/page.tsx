@@ -64,7 +64,7 @@ export default async function AdminPage() {
         {TILES.filter((tile) => tile.href !== "/history" || canManage(current.role)).map((tile) => {
           const count = counts[tile.count];
           return (
-            <Link key={tile.href} href={tile.href} className={dashboardStyles.adminTile}>
+            <Link key={tile.href} href={tile.href} prefetch className={dashboardStyles.adminTile}>
               <span className={dashboardStyles.adminTileIcon}>{tile.icon}</span>
               <span className={dashboardStyles.adminTileLabel}>{tile.label}</span>
               <span className={dashboardStyles.adminTileCount}>{count === null ? "—" : formatInteger(count)}</span>
@@ -75,11 +75,11 @@ export default async function AdminPage() {
       </div>
       {canManage(current.role) ? (
         <div className={dashboardStyles.adminGrid}>
-          <Link href="/ask-qula" className={dashboardStyles.adminTile}>
+          <Link href="/ask-qula" prefetch className={dashboardStyles.adminTile}>
             <span className={dashboardStyles.adminTileLabel}>Ask Qula</span>
             <span className={dashboardStyles.adminTileMeta}>AI settings</span>
           </Link>
-          <Link href="/access-point" className={dashboardStyles.adminTile}>
+          <Link href="/access-point" prefetch className={dashboardStyles.adminTile}>
             <span className={dashboardStyles.adminTileLabel}>Access Point</span>
             <span className={dashboardStyles.adminTileMeta}>Peppol settings</span>
           </Link>

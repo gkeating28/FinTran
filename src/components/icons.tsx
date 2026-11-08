@@ -216,6 +216,33 @@ export function CheckIcon({ size = 16, ...props }: IconProps) {
   );
 }
 
+export function ArrowLeftIcon({ size = 16, ...props }: IconProps) {
+  return (
+    <Outline size={size} strokeWidth={2.2} {...props}>
+      <path d="M19 12H5M11 6l-6 6 6 6" />
+    </Outline>
+  );
+}
+
+export function PrinterIcon(props: IconProps) {
+  return (
+    <Outline {...props}>
+      <path d="M7 9V3h10v6" />
+      <rect x="3" y="9" width="18" height="9" rx="2" />
+      <rect x="7" y="14" width="10" height="7" rx="1" />
+    </Outline>
+  );
+}
+
+export function DownloadIcon(props: IconProps) {
+  return (
+    <Outline {...props}>
+      <path d="M12 4v11M7 11l5 5 5-5" />
+      <path d="M5 20h14" />
+    </Outline>
+  );
+}
+
 /** First, previous, next and last page arrows for the grid pager. */
 export function PageIcon({ name, size = 16 }: { name: "first" | "previous" | "next" | "last"; size?: number }) {
   const bar = name === "first" || name === "last";

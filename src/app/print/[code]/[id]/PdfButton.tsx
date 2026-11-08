@@ -3,6 +3,7 @@
 import { useState } from "react";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
+import { DownloadIcon } from "@/components/icons";
 import styles from "@/components/PrintForm.module.css";
 import { PAGE_SIZE_OPTIONS, type PageSize } from "@/lib/form-layout";
 
@@ -55,6 +56,7 @@ export default function PdfButton({ fileName, pageSize }: { fileName: string; pa
 
   return (
     <button className={styles.pdf} type="button" onClick={download} disabled={pending}>
+      <DownloadIcon />
       {pending ? "Preparing…" : "PDF"}
     </button>
   );
