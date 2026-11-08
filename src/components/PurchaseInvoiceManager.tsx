@@ -43,6 +43,7 @@ import {
   type ReadinessItem,
 } from "@/lib/purchase-invoices";
 import { useAskContext } from "@/components/askContext";
+import { AskExplainButton } from "@/components/AskExplain";
 import styles from "@/components/OpsPage.module.css";
 import documentStyles from "@/components/Document.module.css";
 import type { ActionState } from "@/lib/types";
@@ -503,20 +504,24 @@ function readinessSummary(items: PurchaseInvoiceRow["readiness"], direction: "Sa
 }
 
 function ReadinessList({ items, direction }: { items: PurchaseInvoiceRow["readiness"]; direction: "Sales" | "Purchases" }) {
+  const question = `Explain these e-invoice issues on a ${direction === "Sales" ? "sales" : "purchase"} document and how to fix each: ${items.map((item) => `${item.ruleId} (${item.businessTerm})`).join(", ")}.`;
   return (
-    <ul className={documentStyles.readinessList}>
-      {items.map((item, index) => {
-        const href = readinessHref(item.businessTerm, direction);
-        const label = href === "/customers" ? "Open Customers" : href === "/suppliers" ? "Open Suppliers" : "Open Organisations";
-        return (
-          <li key={`${item.ruleId}-${item.businessTerm}-${index}`} className={documentStyles.readinessItem} data-status={item.severity}>
-            <div className={documentStyles.readinessRule}>{item.ruleId}</div>
-            <p>{item.message}</p>
-            {href ? <Link href={href}>{label}</Link> : <p className={styles.panelMeta}>Enter this on the document.</p>}
-          </li>
-        );
-      })}
-    </ul>
+    <>
+      <ul className={documentStyles.readinessList}>
+        {items.map((item, index) => {
+          const href = readinessHref(item.businessTerm, direction);
+          const label = href === "/customers" ? "Open Customers" : href === "/suppliers" ? "Open Suppliers" : "Open Organisations";
+          return (
+            <li key={`${item.ruleId}-${item.businessTerm}-${index}`} className={documentStyles.readinessItem} data-status={item.severity}>
+              <div className={documentStyles.readinessRule}>{item.ruleId}</div>
+              <p>{item.message}</p>
+              {href ? <Link href={href}>{label}</Link> : <p className={styles.panelMeta}>Enter this on the document.</p>}
+            </li>
+          );
+        })}
+      </ul>
+      <AskExplainButton question={question} />
+    </>
   );
 }
 

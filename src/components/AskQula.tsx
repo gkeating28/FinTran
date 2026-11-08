@@ -3,6 +3,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { usePathname, useRouter } from "next/navigation";
+import { onAskRequest } from "@/components/askBus";
 import { getAskContext } from "@/components/askContext";
 import { ASK_SUGGESTIONS, docHref, type AskBlock, type AskDoc } from "@/lib/ask-qula";
 import { applyEvent, EMPTY_LIVE, readAskStream, tableCsv, type LiveAnswer } from "@/lib/ask-stream";
@@ -150,6 +151,20 @@ export default function AskQula({
       inputRef.current?.focus();
     }
   }
+
+  // A button elsewhere on the screen can ask a question for the person. Keep the latest send for it to call.
+  const sendRef = useRef(send);
+  useEffect(() => {
+    sendRef.current = send;
+  });
+  useEffect(
+    () =>
+      onAskRequest((question) => {
+        writeStored(organisationId, { messages: clientSnapshot(organisationId).messages, open: true });
+        void sendRef.current(question);
+      }),
+    [organisationId],
+  );
 
   function openDocument(doc: AskDoc) {
     const href = docHref(doc);

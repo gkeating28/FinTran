@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import AppSidebar from "@/components/AppSidebar";
 import AppTitleBar from "@/components/AppTitleBar";
+import { AskProvider } from "@/components/AskExplain";
 import AskQula from "@/components/AskQula";
 import { FormChromeProvider } from "@/components/FormChrome";
 import { NavProvider } from "@/components/NavState";
@@ -36,7 +37,7 @@ export default function AppShell({
               }
             />
             <div className={styles.page} data-app-page="">
-              {children}
+              <AskProvider enabled={aiEnabled}>{children}</AskProvider>
             </div>
           </div>
         </FormChromeProvider>

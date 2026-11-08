@@ -35,6 +35,7 @@ const STATUS_LABELS: Record<string, string> = {
   search_e_documents: "Looking through e-documents",
   get_e_document: "Reading the e-document",
   readiness_issues: "Checking the drafts",
+  explain_rule: "Looking up the rule",
   help_search: "Searching the help",
 };
 

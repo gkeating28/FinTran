@@ -1,3 +1,4 @@
+import { AskExplainButton } from "@/components/AskExplain";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { EDocumentBody } from "@/components/EDocumentBody";
@@ -164,6 +165,9 @@ export default async function EDocumentPage({ params }: { params: Promise<{ id: 
         <div>
           <h2 className={styles.heading}>Validation</h2>
           <p className={styles.panelMeta}>Rules {row.rules_version ?? "—"}.</p>
+          {failures.length > 0 ? (
+            <AskExplainButton question="Why did this e-document fail validation, and how do I fix it?" />
+          ) : null}
           {failures.length === 0 ? (
             <p className={styles.panelMeta}>No rule failures.</p>
           ) : (

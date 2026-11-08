@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { listAuditLog } from "@/lib/audit-data";
+import { explainIssue } from "@/lib/einvoice/rule-help";
 
 type Client = SupabaseClient;
 type Row = Record<string, unknown>;
@@ -115,6 +116,15 @@ function within(document: Row, input: Record<string, unknown>) {
   return true;
 }
 
+/** Adds what each rule means and where to fix it, so the model does not have to guess at fixes. */
+function withHelp(items: Row[], direction: "Sales" | "Purchases") {
+  return items.map((item) => {
+    const term = text(item.business_term) || /\b(B[TG]-\d+)\b/.exec(text(item.message))?.[1] || "";
+    const help = explainIssue({ ruleId: text(item.rule_id), businessTerm: term, layer: text(item.layer), direction });
+    return help ? { ...item, help } : item;
+  });
+}
+
 function embedded(value: unknown) {
   return (Array.isArray(value) ? value[0] : value) as Row | undefined;
 }
@@ -177,8 +187,11 @@ async function runTool(supabase: Client, organisationId: string, name: string, i
     const documents = rowsOf(data).filter((document) => within(document, input));
     if (name === "get_transaction" && documents[0]?.id) {
       const lines = await supabase.from("transaction_lines").select("line_number, description, quantity, price, nett_amount, vat_amount, vat_percentage").eq("organisation_id", organisationId).eq("header_id", String(documents[0].id)).order("line_number").limit(LIST_LIMIT);
+      const direction = embedded(documents[0].transaction_types)?.type === "Sales" ? "Sales" : "Purchases";
+      const readiness = documents[0].status === "draft" ? await supabase.rpc("en16931_readiness", { p_header_id: String(documents[0].id) }) : null;
       return {
         document: shapeHeader(documents[0]),
+        ...(readiness ? { readiness: withHelp(rowsOf(readiness.data), direction) } : {}),
         lines: rowsOf(lines.data).map((line) => ({ ...line, nett_amount: money(line.nett_amount), vat_amount: money(line.vat_amount), price: money(line.price) })),
       };
     }
@@ -282,21 +295,30 @@ async function runTool(supabase: Client, organisationId: string, name: string, i
         supabase.from("e_document_validation_results").select("layer, rule_id, severity, message").eq("e_document_id", String(documents[0].id)).limit(LIST_LIMIT),
         supabase.from("e_document_events").select("from_status, to_status, detail").eq("e_document_id", String(documents[0].id)).limit(LIST_LIMIT),
       ]);
-      return { document: { ...documents[0], total_amount: money(documents[0].total_amount) }, results: rowsOf(results.data), events: rowsOf(events.data) };
+      const direction = documents[0].direction === "outbound" ? "Sales" : "Purchases";
+      return { document: { ...documents[0], total_amount: money(documents[0].total_amount) }, results: withHelp(rowsOf(results.data), direction), events: rowsOf(events.data) };
     }
     return { documents: documents.map((document) => ({ ...document, total_amount: money(document.total_amount) })), shown: documents.length, limit: LIST_LIMIT };
   }
 
   if (name === "readiness_issues") {
-    const { data } = await supabase.from("transaction_headers").select("id, document_number").eq("organisation_id", organisationId).eq("status", "draft").limit(LIST_LIMIT);
-    const drafts = rowsOf(data);
+    let query = supabase.from("transaction_headers").select("id, document_number, transaction_types!inner(type)").eq("organisation_id", organisationId).eq("status", "draft");
+    if (input.id) query = query.eq("id", String(input.id));
+    if (input.number) query = query.ilike("document_number", `%${String(input.number)}%`);
+    const { data } = await query.limit(LIST_LIMIT);
     const checked = await Promise.all(
-      drafts.map(async (header) => {
+      rowsOf(data).map(async (header) => {
         const result = await supabase.rpc("en16931_readiness", { p_header_id: String(header.id) });
-        return { document: header.document_number, issues: rowsOf(result.data) };
+        const direction = embedded(header.transaction_types)?.type === "Sales" ? "Sales" : "Purchases";
+        return { id: header.id, document: header.document_number, issues: withHelp(rowsOf(result.data), direction) };
       }),
     );
     return { drafts: checked };
+  }
+
+  if (name === "explain_rule") {
+    const help = explainIssue({ ruleId: String(input.ruleId ?? ""), businessTerm: String(input.businessTerm ?? ""), direction: direction(input.direction) === "Sales" ? "Sales" : "Purchases" });
+    return help ? { ruleId: input.ruleId, help } : { error: "That rule is not in the help. Explain it from the rule text only and say so." };
   }
 
   if (name === "help_search") {
