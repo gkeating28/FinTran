@@ -311,9 +311,33 @@ button.card:hover {
 }
 
 .text {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-wrap: anywhere;
+}
+
+.text p {
   margin: 0;
   white-space: pre-wrap;
-  overflow-wrap: anywhere;
+}
+
+.text ul,
+.text ol {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.text li + li {
+  margin-top: 2px;
+}
+
+.text code {
+  padding: 1px 4px;
+  border-radius: var(--radius-sm);
+  background: var(--color-hover);
+  font-family: var(--ops-mono, ui-monospace, monospace);
+  font-size: 12px;
 }
 
 .block {
