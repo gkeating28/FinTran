@@ -10,11 +10,28 @@ export type AskDoc = {
   instanceId?: string;
 };
 
+/** A table or chart the assistant chose to show with its answer. */
+export type AskBlock =
+  | { type: "table"; title?: string; columns: string[]; rows: string[][] }
+  | { type: "chart"; title?: string; unit?: string; labels: string[]; values: number[] };
+
 export type AskAnswer = {
   intent: AskIntent;
   text: string;
   docs?: AskDoc[];
+  blocks?: AskBlock[];
+  followups?: string[];
 };
+
+/** What the answer stream sends to the chat, one JSON object per line. */
+export type AskEvent =
+  | { type: "status"; text: string }
+  | { type: "text"; delta: string }
+  | { type: "docs"; docs: AskDoc[] }
+  | { type: "block"; block: AskBlock }
+  | { type: "followups"; items: string[] }
+  | { type: "done"; intent: AskIntent }
+  | { type: "error"; text: string };
 
 export type TransactionQuery = {
   status?: "draft" | "posted" | "void";

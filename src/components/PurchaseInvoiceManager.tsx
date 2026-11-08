@@ -42,6 +42,7 @@ import {
   type PurchaseInvoiceRow,
   type ReadinessItem,
 } from "@/lib/purchase-invoices";
+import { useAskContext } from "@/components/askContext";
 import styles from "@/components/OpsPage.module.css";
 import documentStyles from "@/components/Document.module.css";
 import type { ActionState } from "@/lib/types";
@@ -189,6 +190,7 @@ export default function PurchaseInvoiceManager({
   const pathname = usePathname();
   const sales = direction === "Sales";
   const [draft, setDraft] = useState<PurchaseInvoiceRow | "new" | null>(null);
+  useAskContext("transaction", draft && draft !== "new" ? draft.id : undefined, typeCode);
   const [lines, setLines] = useState<PurchaseInvoiceLine[] | null>(null);
   const [lineError, setLineError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("");

@@ -310,6 +310,122 @@ button.card:hover {
   border-color: transparent;
 }
 
+.text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  min-width: 0;
+}
+
+.blockTitle {
+  color: var(--ops-text-2, #3a4356);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.blockAction {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ops-accent, #2c4c78);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.blockAction:hover {
+  text-decoration: underline;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--ops-border, #dde1e8);
+  border-radius: var(--radius);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.table th,
+.table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--ops-border-soft, #e3e6ec);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.table th {
+  background: var(--ops-panel-muted, #f8f9fb);
+  color: var(--ops-text-2, #3a4356);
+  font-weight: 700;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.chart {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.chartRow {
+  display: grid;
+  grid-template-columns: minmax(56px, 30%) 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.chartLabel {
+  overflow: hidden;
+  color: var(--ops-text-2, #3a4356);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chartTrack {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--color-accent-soft);
+}
+
+.chartBar,
+.chartBarNegative {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.chartBar {
+  background: var(--color-accent);
+}
+
+.chartBarNegative {
+  background: var(--color-danger);
+}
+
+.chartValue {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .dots span {
     animation: none;

@@ -19,6 +19,8 @@ function query(data: unknown) {
     or: () => api,
     gte: () => api,
     lte: () => api,
+    lt: () => api,
+    gt: () => api,
     in: () => api,
     order: () => api,
     limit: () => api,

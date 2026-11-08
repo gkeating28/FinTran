@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { listAuditLog } from "@/lib/audit-data";
 
 type Client = SupabaseClient;
 type Row = Record<string, unknown>;
@@ -14,11 +15,49 @@ function money(value: unknown) {
   return Number.isFinite(number) ? number.toFixed(2) : "0.00";
 }
 
-function rowsOf(value: unknown) {
-  return Array.isArray(value) ? (value as Row[]).slice(0, 25) : [];
+/** Lists show this many rows. Totals read up to AGGREGATE_LIMIT rows and say so when that is not all of them. */
+const LIST_LIMIT = 25;
+const AGGREGATE_LIMIT = 5000;
+
+function rowsOf(value: unknown, limit = LIST_LIMIT) {
+  return Array.isArray(value) ? (value as Row[]).slice(0, limit) : [];
 }
 
-export function agingBands(documents: Row[], asOf = new Date().toISOString().slice(0, 10)) {
+function direction(value: unknown) {
+  const word = String(value ?? "").toLowerCase();
+  if (/^(purchase|purchases|supplier|suppliers|buying|bought|expense|expenses|cost|costs)/.test(word)) return "Purchases";
+  if (/^(sale|sales|customer|customers|selling|sold|income|revenue)/.test(word)) return "Sales";
+  return null;
+}
+
+function statusOf(value: unknown) {
+  const word = String(value ?? "").toLowerCase();
+  return word === "draft" || word === "posted" || word === "void" ? word : null;
+}
+
+function dateOf(value: unknown) {
+  const word = String(value ?? "");
+  return /^\d{4}-\d{2}-\d{2}$/.test(word) ? word : null;
+}
+
+type Filtered = { eq: (c: string, v: unknown) => Filtered; gte: (c: string, v: unknown) => Filtered; lte: (c: string, v: unknown) => Filtered; lt: (c: string, v: unknown) => Filtered; gt: (c: string, v: unknown) => Filtered; ilike: (c: string, v: string) => Filtered };
+
+/** The filters every document search and total shares, pushed into the query so a limit never hides rows. */
+function filterHeaders<T>(query: T, input: Record<string, unknown>, prefix = "", defaults: { status?: string } = {}): T {
+  let next = query as unknown as Filtered;
+  const column = (name: string) => `${prefix}${name}`;
+  const status = statusOf(input.status) ?? defaults.status;
+  if (status) next = next.eq(column("status"), status);
+  const dir = direction(input.direction);
+  if (dir) next = next.eq(prefix ? `${prefix.slice(0, -1)}.transaction_types.type` : "transaction_types.type", dir);
+  const from = dateOf(input.from);
+  const to = dateOf(input.to);
+  if (from) next = next.gte(column("transaction_date"), from);
+  if (to) next = next.lte(column("transaction_date"), to);
+  return next as unknown as T;
+}
+
+export function agingBands(documents: Row[], asOf = new Date().toISOString().slice(0, 10), keep = LIST_LIMIT) {
   const today = Date.parse(asOf);
   const parties = new Map<string, { current: number; d30: number; d60: number; d90: number; over: number }>();
   for (const document of documents) {
@@ -35,7 +74,10 @@ export function agingBands(documents: Row[], asOf = new Date().toISOString().sli
     else band.over += amount;
     parties.set(name, band);
   }
-  return [...parties.entries()].slice(0, 25).map(([party, band]) => ({
+  return [...parties.entries()]
+    .sort((a, b) => b[1].current + b[1].d30 + b[1].d60 + b[1].d90 + b[1].over - (a[1].current + a[1].d30 + a[1].d60 + a[1].d90 + a[1].over))
+    .slice(0, keep)
+    .map(([party, band]) => ({
     party,
     current: band.current.toFixed(2),
     days0to30: band.d30.toFixed(2),
@@ -53,12 +95,12 @@ export function periodTotals(documents: Row[], grain: "month" | "quarter" = "mon
       ? `${date.slice(0, 4)}-Q${Math.floor((Number(date.slice(5, 7)) - 1) / 3) + 1}`
       : date.slice(0, 7);
     const group = groups.get(key) ?? { nett: 0, vat: 0, total: 0 };
-    group.nett += Number(document.foreign_nett_amount ?? 0);
-    group.vat += Number(document.foreign_vat_amount ?? 0);
-    group.total += Number(document.foreign_total_amount ?? 0);
+    group.nett += Number(document.home_nett_amount ?? document.foreign_nett_amount ?? 0);
+    group.vat += Number(document.home_vat_amount ?? document.foreign_vat_amount ?? 0);
+    group.total += Number(document.home_total_amount ?? document.foreign_total_amount ?? 0);
     groups.set(key, group);
   }
-  return [...groups.entries()].slice(0, 25).map(([period, group]) => ({
+  return [...groups.entries()].sort().slice(-24).map(([period, group]) => ({
     period,
     nett: group.nett.toFixed(2),
     vat: group.vat.toFixed(2),
@@ -66,99 +108,195 @@ export function periodTotals(documents: Row[], grain: "month" | "quarter" = "mon
   }));
 }
 
-function typeName(document: Row) {
-  const type = document.transaction_types;
-  if (Array.isArray(type)) return text((type[0] as Row | undefined)?.type);
-  return text((type as Row | undefined)?.type);
-}
-
-function matchesDirection(document: Row, direction: unknown) {
-  if (!direction) return true;
-  return typeName(document).toLowerCase() === String(direction).toLowerCase();
-}
-
 function within(document: Row, input: Record<string, unknown>) {
-  const date = text(document.transaction_date || document.issue_date);
-  if (input.from && date < String(input.from)) return false;
-  if (input.to && date > String(input.to)) return false;
   const amount = Number(document.amount_due ?? document.foreign_total_amount ?? document.total_amount ?? 0);
   if (input.minAmount != null && amount < Number(input.minAmount)) return false;
   if (input.maxAmount != null && amount > Number(input.maxAmount)) return false;
   return true;
 }
 
+function embedded(value: unknown) {
+  return (Array.isArray(value) ? value[0] : value) as Row | undefined;
+}
+
+
+const HEADER_COLUMNS =
+  "id, document_number, status, party_name, transaction_date, due_date, amount_due, foreign_nett_amount, foreign_vat_amount, foreign_total_amount, home_nett_amount, home_vat_amount, home_total_amount, transaction_types!inner(type, code)";
+
+function shapeHeader(document: Row) {
+  const type = embedded(document.transaction_types);
+  return {
+    id: document.id,
+    document_number: document.document_number,
+    type: type?.type,
+    status: document.status,
+    party_name: document.party_name,
+    transaction_date: document.transaction_date,
+    due_date: document.due_date,
+    amount_due: money(document.amount_due),
+    total: money(document.foreign_total_amount),
+  };
+}
+
 export async function runAskTool(supabase: Client, organisationId: string, name: string, input: Record<string, unknown>) {
+  try {
+    return await runTool(supabase, organisationId, name, input);
+  } catch {
+    return { error: "That lookup failed. Say that you could not read the data." };
+  }
+}
+
+async function runTool(supabase: Client, organisationId: string, name: string, input: Record<string, unknown>) {
   if (name === "search_parties") {
-    const term = String(input.name ?? input.code ?? input.vat ?? input.peppol ?? "").trim();
+    const term = String(input.name ?? input.code ?? input.vat ?? input.peppol ?? "").trim().replace(/[,()%]/g, " ");
     const pattern = `%${term}%`;
     const [customers, suppliers] = await Promise.all([
-      supabase.from("customers").select("id, code, name, vat_number, peppol_scheme, peppol_id").eq("organisation_id", organisationId).or(`name.ilike.${pattern},code.ilike.${pattern},vat_number.ilike.${pattern},peppol_id.ilike.${pattern}`).limit(25),
-      supabase.from("suppliers").select("id, code, name, vat_number, peppol_scheme, peppol_id").eq("organisation_id", organisationId).or(`name.ilike.${pattern},code.ilike.${pattern},vat_number.ilike.${pattern},peppol_id.ilike.${pattern}`).limit(25),
+      supabase.from("customers").select("id, code, name, vat_number, peppol_scheme, peppol_id, payment_terms_days").eq("organisation_id", organisationId).or(`name.ilike.${pattern},code.ilike.${pattern},vat_number.ilike.${pattern},peppol_id.ilike.${pattern}`).limit(LIST_LIMIT),
+      supabase.from("suppliers").select("id, code, name, vat_number, peppol_scheme, peppol_id, payment_terms_days").eq("organisation_id", organisationId).or(`name.ilike.${pattern},code.ilike.${pattern},vat_number.ilike.${pattern},peppol_id.ilike.${pattern}`).limit(LIST_LIMIT),
     ]);
     return { customers: rowsOf(customers.data), suppliers: rowsOf(suppliers.data) };
   }
 
+  if (name === "search_products") {
+    const term = String(input.query ?? input.name ?? input.code ?? "").trim().replace(/[,()%]/g, " ");
+    const pattern = `%${term}%`;
+    const { data } = await supabase.from("products").select("code, description, unit_code, purchase_price, sales_price").eq("organisation_id", organisationId).or(`code.ilike.${pattern},description.ilike.${pattern}`).order("code").limit(LIST_LIMIT);
+    return { products: rowsOf(data).map((row) => ({ ...row, purchase_price: money(row.purchase_price), sales_price: money(row.sales_price) })) };
+  }
+
   if (name === "search_transactions" || name === "get_transaction") {
-    let query = supabase.from("transaction_headers").select("id, document_number, status, party_name, transaction_date, due_date, amount_due, foreign_nett_amount, foreign_vat_amount, foreign_total_amount, transaction_types(type, code)").eq("organisation_id", organisationId).limit(25);
+    let query = supabase.from("transaction_headers").select(HEADER_COLUMNS).eq("organisation_id", organisationId);
+    query = filterHeaders(query, input);
     if (input.id) query = query.eq("id", String(input.id));
     if (input.number) query = query.ilike("document_number", `%${String(input.number)}%`);
     if (input.party) query = query.ilike("party_name", `%${String(input.party)}%`);
-    if (input.status) query = query.eq("status", String(input.status));
-    const { data } = await query;
-    let documents = rowsOf(data).filter((document) => within(document, input) && matchesDirection(document, input.direction));
-    if (input.overdue) {
-      const asOf = String(input.asOf ?? new Date().toISOString().slice(0, 10));
-      documents = documents.filter((document) => text(document.due_date) && text(document.due_date) < asOf && Number(document.amount_due ?? 0) > 0);
-    }
+    if (input.overdue) query = query.lt("due_date", dateOf(input.asOf) ?? new Date().toISOString().slice(0, 10)).gt("amount_due", 0);
+    if (input.minAmount != null) query = query.gte("foreign_total_amount", Number(input.minAmount));
+    if (input.maxAmount != null) query = query.lte("foreign_total_amount", Number(input.maxAmount));
+    const { data } = await query.order("transaction_date", { ascending: false }).limit(LIST_LIMIT);
+    const documents = rowsOf(data).filter((document) => within(document, input));
     if (name === "get_transaction" && documents[0]?.id) {
-      const lines = await supabase.from("transaction_lines").select("line_number, description, quantity, price, nett_amount, vat_amount").eq("organisation_id", organisationId).eq("header_id", String(documents[0].id)).limit(25);
+      const lines = await supabase.from("transaction_lines").select("line_number, description, quantity, price, nett_amount, vat_amount, vat_percentage").eq("organisation_id", organisationId).eq("header_id", String(documents[0].id)).order("line_number").limit(LIST_LIMIT);
       return {
-        document: { ...documents[0], amount_due: money(documents[0].amount_due), foreign_total_amount: money(documents[0].foreign_total_amount) },
+        document: shapeHeader(documents[0]),
         lines: rowsOf(lines.data).map((line) => ({ ...line, nett_amount: money(line.nett_amount), vat_amount: money(line.vat_amount), price: money(line.price) })),
       };
     }
-    return { documents: documents.slice(0, 25).map((document) => ({ ...document, amount_due: money(document.amount_due), foreign_total_amount: money(document.foreign_total_amount) })) };
+    return { documents: documents.map(shapeHeader), shown: documents.length, limit: LIST_LIMIT };
   }
 
   if (name === "aging_summary") {
-    const { data } = await supabase.from("transaction_headers").select("party_name, due_date, amount_due, status, transaction_types(type)").eq("organisation_id", organisationId).eq("status", "posted").limit(25);
-    const documents = rowsOf(data).filter((document) => matchesDirection(document, input.direction));
-    return { parties: agingBands(documents, String(input.asOf ?? new Date().toISOString().slice(0, 10))) };
+    let query = supabase.from("transaction_headers").select("party_name, due_date, amount_due, transaction_types!inner(type)").eq("organisation_id", organisationId).eq("status", "posted").gt("amount_due", 0);
+    query = filterHeaders(query, { direction: input.direction }, "");
+    const { data } = await query.limit(AGGREGATE_LIMIT);
+    const documents = rowsOf(data, AGGREGATE_LIMIT);
+    const bands = agingBands(documents, dateOf(input.asOf) ?? new Date().toISOString().slice(0, 10), 1000);
+    return { parties: bands.slice(0, LIST_LIMIT), partyCount: bands.length, documentsRead: documents.length, truncated: documents.length >= AGGREGATE_LIMIT, note: "Amounts are in each document's own currency." };
   }
 
   if (name === "totals_by_period") {
-    const { data } = await supabase.from("transaction_headers").select("transaction_date, foreign_nett_amount, foreign_vat_amount, foreign_total_amount, party_name, status").eq("organisation_id", organisationId).limit(25);
-    let documents = rowsOf(data).filter((document) => within(document, input));
-    if (input.party) documents = documents.filter((document) => text(document.party_name).toLowerCase().includes(String(input.party).toLowerCase()));
-    return { periods: periodTotals(documents, input.grain === "quarter" ? "quarter" : "month") };
+    let query = supabase.from("transaction_headers").select("transaction_date, home_nett_amount, home_vat_amount, home_total_amount, party_name, transaction_types!inner(type)").eq("organisation_id", organisationId);
+    query = filterHeaders(query, input, "", { status: "posted" });
+    if (input.party) query = query.ilike("party_name", `%${String(input.party)}%`);
+    const { data } = await query.limit(AGGREGATE_LIMIT);
+    const documents = rowsOf(data, AGGREGATE_LIMIT);
+    return { periods: periodTotals(documents, input.grain === "quarter" ? "quarter" : "month"), documentsRead: documents.length, truncated: documents.length >= AGGREGATE_LIMIT, note: "Posted documents only unless a status was asked for. Amounts are in the home currency." };
+  }
+
+  if (name === "top_parties") {
+    let query = supabase.from("transaction_headers").select("party_name, home_nett_amount, home_total_amount, transaction_types!inner(type)").eq("organisation_id", organisationId);
+    query = filterHeaders(query, input, "", { status: "posted" });
+    const { data } = await query.limit(AGGREGATE_LIMIT);
+    const documents = rowsOf(data, AGGREGATE_LIMIT);
+    const totals = new Map<string, { total: number; nett: number; count: number }>();
+    for (const document of documents) {
+      const party = text(document.party_name) || "Unknown";
+      const entry = totals.get(party) ?? { total: 0, nett: 0, count: 0 };
+      entry.total += Number(document.home_total_amount ?? 0);
+      entry.nett += Number(document.home_nett_amount ?? 0);
+      entry.count += 1;
+      totals.set(party, entry);
+    }
+    const metric = input.metric === "count" || input.metric === "nett" ? String(input.metric) : "total";
+    const limit = Math.min(25, Math.max(1, Number(input.limit) || 10));
+    const ranked = [...totals.entries()]
+      .sort((a, b) => (metric === "count" ? b[1].count - a[1].count : metric === "nett" ? b[1].nett - a[1].nett : b[1].total - a[1].total))
+      .slice(0, limit)
+      .map(([party, entry]) => ({ party, documents: entry.count, nett: entry.nett.toFixed(2), total: entry.total.toFixed(2) }));
+    return { parties: ranked, partyCount: totals.size, documentsRead: documents.length, truncated: documents.length >= AGGREGATE_LIMIT, note: "Posted documents only unless a status was asked for. Amounts are in the home currency." };
+  }
+
+  if (name === "vat_summary") {
+    let query = supabase
+      .from("transaction_lines")
+      .select("nett_amount, vat_amount, vat_percentage, transaction_headers!inner(transaction_date, status, exchange_rate, transaction_types!inner(type))")
+      .eq("organisation_id", organisationId);
+    query = filterHeaders(query, input, "transaction_headers.", { status: "posted" });
+    const { data } = await query.limit(AGGREGATE_LIMIT);
+    const lines = rowsOf(data, AGGREGATE_LIMIT);
+    const groups = new Map<string, { nett: number; vat: number }>();
+    for (const line of lines) {
+      const header = embedded(line.transaction_headers);
+      const type = embedded(header?.transaction_types);
+      const rate = Number(header?.exchange_rate ?? 1) || 1;
+      const key = `${text(type?.type)} ${Number(line.vat_percentage ?? 0)}%${input.groupBy === "month" ? ` ${text(header?.transaction_date).slice(0, 7)}` : ""}`.trim();
+      const entry = groups.get(key) ?? { nett: 0, vat: 0 };
+      entry.nett += Number(line.nett_amount ?? 0) / rate;
+      entry.vat += Number(line.vat_amount ?? 0) / rate;
+      groups.set(key, entry);
+    }
+    return {
+      groups: [...groups.entries()].sort().slice(0, LIST_LIMIT).map(([group, entry]) => ({ group, nett: entry.nett.toFixed(2), vat: entry.vat.toFixed(2) })),
+      linesRead: lines.length,
+      truncated: lines.length >= AGGREGATE_LIMIT,
+      note: "Posted documents only unless a status was asked for. Amounts are in the home currency.",
+    };
+  }
+
+  if (name === "change_history") {
+    const history = await listAuditLog(organisationId, 200);
+    if (history.error) return { error: "Only owners and admins can read the change history." };
+    const word = String(input.table ?? input.what ?? "").toLowerCase();
+    const who = String(input.who ?? "").toLowerCase();
+    const rows = history.rows
+      .filter((row) => (!word || `${row.tableName} ${row.summary}`.toLowerCase().includes(word)) && (!who || row.who.toLowerCase().includes(who)))
+      .slice(0, Math.min(LIST_LIMIT, Math.max(1, Number(input.limit) || 10)))
+      .map((row) => ({ when: row.when, who: row.who, table: row.tableName, action: row.action, summary: row.summary.slice(0, 300) }));
+    return { changes: rows, note: "The latest 200 changes were searched." };
   }
 
   if (name === "search_e_documents" || name === "get_e_document") {
-    let query = supabase.from("e_documents").select("id, direction, status, document_number, seller_name, buyer_name, issue_date, total_amount").eq("organisation_id", organisationId).limit(25);
+    let query = supabase.from("e_documents").select("id, direction, status, document_number, seller_name, buyer_name, issue_date, total_amount, currency_code").eq("organisation_id", organisationId);
     if (input.id) query = query.eq("id", String(input.id));
     if (input.direction) query = query.eq("direction", String(input.direction));
     if (input.status) query = query.eq("status", String(input.status));
     if (input.number) query = query.ilike("document_number", `%${String(input.number)}%`);
-    const { data } = await query;
+    const from = dateOf(input.from);
+    const to = dateOf(input.to);
+    if (from) query = query.gte("issue_date", from);
+    if (to) query = query.lte("issue_date", to);
+    const { data } = await query.order("issue_date", { ascending: false }).limit(LIST_LIMIT);
     const documents = rowsOf(data).filter((document) => within(document, input) && (!input.party || `${text(document.seller_name)} ${text(document.buyer_name)}`.toLowerCase().includes(String(input.party).toLowerCase())));
     if (name === "get_e_document" && documents[0]?.id) {
       const [results, events] = await Promise.all([
-        supabase.from("e_document_validation_results").select("layer, rule_id, severity, message").eq("e_document_id", String(documents[0].id)).limit(25),
-        supabase.from("e_document_events").select("from_status, to_status, detail").eq("e_document_id", String(documents[0].id)).limit(25),
+        supabase.from("e_document_validation_results").select("layer, rule_id, severity, message").eq("e_document_id", String(documents[0].id)).limit(LIST_LIMIT),
+        supabase.from("e_document_events").select("from_status, to_status, detail").eq("e_document_id", String(documents[0].id)).limit(LIST_LIMIT),
       ]);
       return { document: { ...documents[0], total_amount: money(documents[0].total_amount) }, results: rowsOf(results.data), events: rowsOf(events.data) };
     }
-    return { documents: documents.slice(0, 25).map((document) => ({ ...document, total_amount: money(document.total_amount) })) };
+    return { documents: documents.map((document) => ({ ...document, total_amount: money(document.total_amount) })), shown: documents.length, limit: LIST_LIMIT };
   }
 
   if (name === "readiness_issues") {
-    const { data } = await supabase.from("transaction_headers").select("id, document_number").eq("organisation_id", organisationId).eq("status", "draft").limit(25);
-    const issues = [];
-    for (const header of rowsOf(data)) {
-      const result = await supabase.rpc("en16931_readiness", { p_header_id: String(header.id) });
-      issues.push({ document: header.document_number, issues: rowsOf(result.data) });
-    }
-    return { drafts: issues };
+    const { data } = await supabase.from("transaction_headers").select("id, document_number").eq("organisation_id", organisationId).eq("status", "draft").limit(LIST_LIMIT);
+    const drafts = rowsOf(data);
+    const checked = await Promise.all(
+      drafts.map(async (header) => {
+        const result = await supabase.rpc("en16931_readiness", { p_header_id: String(header.id) });
+        return { document: header.document_number, issues: rowsOf(result.data) };
+      }),
+    );
+    return { drafts: checked };
   }
 
   if (name === "help_search") {
