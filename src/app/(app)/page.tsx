@@ -3,15 +3,17 @@ import { CreateTenantForm } from "@/components/Forms";
 import HomeOverview from "@/components/HomeOverview";
 import styles from "@/components/OpsPage.module.css";
 import { listIsoCurrencies } from "@/lib/currency-data";
+import { listAuditLog } from "@/lib/audit-data";
 import { forOrganisation, getWorkspace, listOrganisationMembers } from "@/lib/data";
 import { getHomeOverview } from "@/lib/home-data";
-import { roleLabel } from "@/lib/types";
+import { canManage, roleLabel } from "@/lib/types";
 
 export const metadata = { title: "Home" };
 
 export default async function HomePage() {
   const people = forOrganisation(listOrganisationMembers);
   const summary = forOrganisation(getHomeOverview);
+  const activity = forOrganisation((organisationId) => listAuditLog(organisationId, 5));
   const workspace = await getWorkspace();
   if (workspace.status === "signed-out") redirect("/login");
   if (workspace.status === "error") return null;
@@ -43,9 +45,10 @@ export default async function HomePage() {
 
   const { current, memberships } = workspace;
   const inTenant = memberships.filter((membership) => membership.tenantId === current.tenantId);
-  const [{ members, error }, overview] = await Promise.all([
+  const [{ members, error }, overview, log] = await Promise.all([
     people.then((loaded) => loaded ?? listOrganisationMembers(current.organisationId)),
     summary.then((loaded) => loaded ?? getHomeOverview(current.organisationId)),
+    activity,
   ]);
 
   return (
@@ -57,6 +60,9 @@ export default async function HomePage() {
       memberCount={error ? null : members.length}
       error={error}
       overview={overview}
+      userName={workspace.profile.displayName}
+      people={error ? [] : members.map((member) => member.displayName || member.email)}
+      recent={canManage(current.role) && log && !log.error ? log.rows : null}
     />
   );
 }

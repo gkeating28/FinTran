@@ -21,14 +21,14 @@ const TABLE_LABELS: Record<string, string> = {
   transaction_headers: "Document",
 };
 
-export async function listAuditLog(organisationId: string): Promise<{ rows: AuditEntry[]; error: string | null }> {
+export async function listAuditLog(organisationId: string, limit = 200): Promise<{ rows: AuditEntry[]; error: string | null }> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("audit_log")
     .select("id, table_name, action, changed_by, changed_at, old_values, new_values")
     .eq("organisation_id", organisationId)
     .order("changed_at", { ascending: false })
-    .limit(200);
+    .limit(limit);
 
   if (error) return { rows: [], error: "Change history could not be loaded." };
 

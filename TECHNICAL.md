@@ -141,7 +141,7 @@ Ask Qula matches keywords. It does not call a language model. A transaction card
 | Path | What it shows |
 | --- | --- |
 | `/login`, `/signup` | Email sign-in and account creation |
-| `/` | Home for the open organisation |
+| `/` | Home dashboard for the open organisation: welcome banner, document counts, documents posted in each of the last six weeks, shortcuts, workspace facts, and the five latest changes for owners and admins. Styles are in `src/components/Home.module.css`, counts in `src/lib/home-data.ts`. |
 | `/transactions` | Transaction types, with draft, posted, and void counts |
 | `/transactions/{code}` | Document list for that type |
 | `/transactions/{code}` with a document open | The shared entry form |
