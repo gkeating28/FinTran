@@ -264,5 +264,41 @@
     "facts": [
       "post"
     ]
+  },
+  {
+    "question": "Who are our biggest suppliers this year?",
+    "tools": [
+      "top_parties"
+    ],
+    "facts": [
+      "Acme"
+    ]
+  },
+  {
+    "question": "What was our VAT by rate last quarter?",
+    "tools": [
+      "vat_summary"
+    ],
+    "facts": [
+      "VAT"
+    ]
+  },
+  {
+    "question": "What do we charge for the blue notebook?",
+    "tools": [
+      "search_products"
+    ],
+    "facts": [
+      "notebook"
+    ]
+  },
+  {
+    "question": "Who changed the VAT rates?",
+    "tools": [
+      "change_history"
+    ],
+    "facts": [
+      "VAT"
+    ]
   }
 ]

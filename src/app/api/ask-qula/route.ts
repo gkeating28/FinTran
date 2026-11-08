@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
-import { answerQuestion } from "@/lib/ask-qula-data";
-import { answerWithAi } from "@/lib/ai/route";
+import { answerAsk } from "@/lib/ai/route";
 import type { AiMessage } from "@/lib/ai/adapter";
+import { parseContext } from "@/lib/ai/context";
+import type { AskEvent } from "@/lib/ask-qula";
 import { getWorkspace } from "@/lib/data";
 import { accessErrorResponse, requireCurrentOrganisation, requireOrganisationMember } from "@/lib/organisation-guard";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -29,7 +31,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Ask a question." }, { status: 400 });
   }
 
-  const record = body && typeof body === "object" ? (body as { question?: unknown; organisationId?: unknown; history?: unknown }) : {};
+  const record = body && typeof body === "object" ? (body as { question?: unknown; organisationId?: unknown; history?: unknown; context?: unknown; stream?: unknown }) : {};
+  const context = parseContext(record.context);
   const question = typeof record.question === "string" ? record.question.trim() : "";
   const organisationId = typeof record.organisationId === "string" ? record.organisationId.trim() : "";
   const history = Array.isArray(record.history)
@@ -54,9 +57,40 @@ export async function POST(request: Request) {
     throw error;
   }
 
+  if (record.stream === true) {
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        let closed = false;
+        const emit = (event: AskEvent) => {
+          if (closed) return;
+          try {
+            controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
+          } catch {
+            closed = true;
+          }
+        };
+        try {
+          await answerAsk(organisationId, question, history, context, emit);
+        } catch (error) {
+          emit({ type: "error", text: error instanceof Error ? error.message : "That could not be answered." });
+        } finally {
+          closed = true;
+          try {
+            controller.close();
+          } catch {
+            // The reader has already gone.
+          }
+        }
+      },
+    });
+    return new Response(stream, {
+      headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store, no-transform", "X-Accel-Buffering": "no" },
+    });
+  }
+
   try {
-    const ai = await answerWithAi(organisationId, question, history);
-    return NextResponse.json(ai ?? await answerQuestion(organisationId, question));
+    return NextResponse.json(await answerAsk(organisationId, question, history, context));
   } catch (error) {
     const message = error instanceof Error ? error.message : "That could not be answered.";
     return NextResponse.json({ error: message }, { status: 500 });
