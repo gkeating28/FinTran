@@ -145,3 +145,13 @@ test("a streamed OpenAI turn gives its text and tool call", async () => {
     globalThis.fetch = original;
   }
 });
+
+test("answer text keeps its bold, lists and paragraphs, and an unclosed bold runs to the end", async () => {
+  const { parseRich, parseInline } = await import("../rich-text");
+  assert.deepEqual(parseInline("**Nothing is overdue.** All current"), [{ text: "Nothing is overdue.", bold: true }, { text: " All current" }]);
+  assert.deepEqual(parseInline("Owed **€4,920"), [{ text: "Owed " }, { text: "€4,920", bold: true }]);
+  assert.deepEqual(parseInline("5 * 3 = 15 and `x`"), [{ text: "5 * 3 = 15 and " }, { text: "x", code: true }]);
+  const blocks = parseRich("Two things:\n- one **a**\n- two\n\nDone");
+  assert.deepEqual(blocks.map((block) => block.type), ["p", "ul", "p"]);
+  assert.equal(blocks[1].type === "ul" ? blocks[1].items.length : 0, 2);
+});

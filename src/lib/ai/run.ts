@@ -46,6 +46,8 @@ export type AiRun = {
   toolCalls: number;
   inputTokens: number;
   outputTokens: number;
+  /** How long each model turn and each lookup took, in milliseconds, for the server log. */
+  timings: { turns: number[]; tools: { name: string; ms: number }[] };
 };
 
 function clip(value: unknown, length: number) {
@@ -131,7 +133,7 @@ export async function runAiStream(
   const system = systemPromptFor(options.context);
   const allowed = new Set<string>(ASK_TOOLS.map((tool) => tool.name));
   const messages: AiMessage[] = [...options.history.slice(-6), { role: "user", text: options.question }];
-  const run: AiRun = { text: "", cards: [], blocks: [], followups: [], toolCalls: 0, inputTokens: 0, outputTokens: 0 };
+  const run: AiRun = { text: "", cards: [], blocks: [], followups: [], toolCalls: 0, inputTokens: 0, outputTokens: 0, timings: { turns: [], tools: [] } };
   const seen = new Set<string>();
 
   const say = (delta: string) => {
@@ -142,10 +144,12 @@ export async function runAiStream(
 
   for (let step = 0; step < MAX_STEPS; step += 1) {
     let streamed = 0;
+    const turnStarted = Date.now();
     const turn = await adapter.complete({ system, messages, tools: [...ASK_TOOLS] }, (delta) => {
       streamed += delta.length;
       say(delta);
     });
+    run.timings.turns.push(Date.now() - turnStarted);
     run.inputTokens += turn.inputTokens;
     run.outputTokens += turn.outputTokens;
     if (streamed === 0 && turn.text) say(turn.text);
@@ -153,30 +157,24 @@ export async function runAiStream(
     const calls = turn.toolCalls;
     if (calls.length === 0) break;
 
+    // Lookups in one turn do not depend on each other, so they run together.
+    const lookups = calls.map((call) => {
+      if (!allowed.has(call.name) || PRESENTATION_TOOLS.has(call.name) || run.toolCalls >= MAX_TOOL_CALLS) return null;
+      run.toolCalls += 1;
+      emit({ type: "status", text: STATUS_LABELS[call.name] ?? "Looking that up" });
+      const started = Date.now();
+      return runAskTool(options.supabase, options.organisationId, call.name, call.input).then((output) => {
+        run.timings.tools.push({ name: call.name, ms: Date.now() - started });
+        return output;
+      });
+    });
+
     const results: AiToolResult[] = [];
-    for (const call of calls) {
+    for (const [index, call] of calls.entries()) {
       let output: unknown;
-      if (!allowed.has(call.name) || run.toolCalls >= MAX_TOOL_CALLS) {
-        output = { error: "That tool is not available." };
-      } else if (PRESENTATION_TOOLS.has(call.name)) {
-        if (call.name === "suggest_followups") {
-          const items = Array.isArray(call.input.questions) ? call.input.questions.slice(0, 3).map((question) => clip(question, 90)).filter(Boolean) : [];
-          if (items.length > 0) {
-            run.followups = items;
-            emit({ type: "followups", items });
-          }
-        } else {
-          const block = call.name === "show_table" ? tableBlock(call.input) : chartBlock(call.input);
-          if (block) {
-            run.blocks.push(block);
-            emit({ type: "block", block });
-          }
-        }
-        output = { shown: true };
-      } else {
-        run.toolCalls += 1;
-        emit({ type: "status", text: STATUS_LABELS[call.name] ?? "Looking that up" });
-        output = await runAskTool(options.supabase, options.organisationId, call.name, call.input);
+      const lookup = lookups[index];
+      if (lookup) {
+        output = await lookup;
         const fresh = cardsFrom(call.name, output).filter((card) => {
           const key = `${card.store}:${card.recordId}`;
           if (seen.has(key) || run.cards.length >= MAX_CARDS) return false;
@@ -184,6 +182,22 @@ export async function runAiStream(
           return true;
         });
         if (fresh.length > 0) run.cards.push(...fresh);
+      } else if (!allowed.has(call.name) || !PRESENTATION_TOOLS.has(call.name)) {
+        output = { error: "That tool is not available." };
+      } else if (call.name === "suggest_followups") {
+        const items = Array.isArray(call.input.questions) ? call.input.questions.slice(0, 3).map((question) => clip(question, 90)).filter(Boolean) : [];
+        if (items.length > 0) {
+          run.followups = items;
+          emit({ type: "followups", items });
+        }
+        output = { shown: true };
+      } else {
+        const block = call.name === "show_table" ? tableBlock(call.input) : chartBlock(call.input);
+        if (block) {
+          run.blocks.push(block);
+          emit({ type: "block", block });
+        }
+        output = { shown: true };
       }
       results.push({ id: call.id, name: call.name, output: JSON.stringify(output).slice(0, 16_000) });
     }

@@ -7,6 +7,7 @@ import { getAskContext } from "@/components/askContext";
 import { ASK_SUGGESTIONS, docHref, type AskBlock, type AskDoc } from "@/lib/ask-qula";
 import { applyEvent, EMPTY_LIVE, readAskStream, tableCsv, type LiveAnswer } from "@/lib/ask-stream";
 import { SparkleIcon } from "@/components/icons";
+import RichText from "@/components/RichText";
 import styles from "@/components/AskQula.module.css";
 
 type AskMessage = {
@@ -119,10 +120,18 @@ export default function AskQula({
         append({ id: newId(), role: "assistant", text: body.error || "That could not be answered." });
         return;
       }
-      await readAskStream(response, (event) => {
+      // The answer is complete at "done". The server may still be writing the usage record, so do not wait for it.
+      let finished: () => void = () => {};
+      const complete = new Promise<void>((resolve) => {
+        finished = resolve;
+      });
+      const reading = readAskStream(response, (event) => {
         answer = applyEvent(answer, event);
         setLive(answer);
+        if (event.type === "done" || event.type === "error") finished();
       });
+      reading.catch(() => {});
+      await Promise.race([reading, complete]);
       const reply = [answer.text.trim() || (answer.error ? "" : "Nothing matched that."), answer.error].filter(Boolean).join("\n\n");
       append({
         id: newId(),
@@ -266,7 +275,7 @@ export default function AskQula({
 function Answer({ text, blocks, docs, onOpen }: { text: string; blocks?: AskBlock[]; docs?: AskDoc[]; onOpen: (doc: AskDoc) => void }) {
   return (
     <>
-      {text ? <p className={styles.text}>{text}</p> : null}
+      {text ? <RichText className={styles.text} text={text} /> : null}
       {blocks?.map((block, index) => (block.type === "table" ? <TableBlock key={index} block={block} /> : <ChartBlock key={index} block={block} />))}
       {docs && docs.length > 0 ? (
         <div className={styles.cards}>

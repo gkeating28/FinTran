@@ -4,7 +4,7 @@ import type { AiMessage } from "@/lib/ai/adapter";
 import { parseContext } from "@/lib/ai/context";
 import type { AskEvent } from "@/lib/ask-qula";
 import { getWorkspace } from "@/lib/data";
-import { accessErrorResponse, requireCurrentOrganisation, requireOrganisationMember } from "@/lib/organisation-guard";
+import { accessErrorResponse, requireCurrentOrganisation } from "@/lib/organisation-guard";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -49,12 +49,9 @@ export async function POST(request: Request) {
   if (!UUID.test(organisationId)) {
     return NextResponse.json({ error: "Choose an organisation you can open." }, { status: 403 });
   }
-  try {
-    await requireOrganisationMember(organisationId);
-  } catch (error) {
-    const denied = accessErrorResponse(error);
-    if (denied) return NextResponse.json({ error: denied.message }, { status: denied.status });
-    throw error;
+  // The workspace already lists the organisations this person can open, so no second lookup is needed.
+  if (!workspace.memberships.some((membership) => membership.organisationId === organisationId)) {
+    return NextResponse.json({ error: "You cannot open that organisation." }, { status: 403 });
   }
 
   if (record.stream === true) {

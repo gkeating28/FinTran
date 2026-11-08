@@ -67,7 +67,11 @@ export async function answerAsk(
       p_outcome: outcome,
     });
 
-  const allowance = await supabase.rpc("ai_usage_allowance", { p_organisation_id: organisationId });
+  // The allowance and the key do not depend on each other.
+  const [allowance, apiKey] = await Promise.all([
+    supabase.rpc("ai_usage_allowance", { p_organisation_id: organisationId }),
+    getSecret(organisationId, "ai_api_key"),
+  ]);
   const counts = (Array.isArray(allowance.data) ? allowance.data[0] : allowance.data) as { user_hour?: number; organisation_month?: number } | null;
   const limited = Number(counts?.user_hour ?? 0) >= row.user_hourly_limit || (row.organisation_monthly_limit != null && Number(counts?.organisation_month ?? 0) >= row.organisation_monthly_limit);
   if (limited) {
@@ -75,10 +79,10 @@ export async function answerAsk(
     return keyword();
   }
 
-  const apiKey = await getSecret(organisationId, "ai_api_key");
   if (!apiKey) return keyword();
 
   let sent = false;
+  const started = Date.now();
   try {
     const run = await Promise.race([
       runAiStream(
@@ -90,8 +94,10 @@ export async function answerAsk(
       ),
       new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), TIMEOUT_MS)),
     ]);
-    await usage("ok", { input: run.inputTokens, output: run.outputTokens, tools: run.toolCalls });
+    // The chat has everything now, so tell it before the usage is written.
     record({ type: "done", intent: "ai" });
+    console.info(JSON.stringify({ askQula: { totalMs: Date.now() - started, turnsMs: run.timings.turns, tools: run.timings.tools, inputTokens: run.inputTokens, outputTokens: run.outputTokens } }));
+    await usage("ok", { input: run.inputTokens, output: run.outputTokens, tools: run.toolCalls });
     return collected;
   } catch {
     await usage("fallback");
