@@ -300,5 +300,33 @@
     "facts": [
       "VAT"
     ]
+  },
+  {
+    "question": "Why did e-document PINV-1 fail validation?",
+    "tools": [
+      "search_e_documents",
+      "get_e_document"
+    ],
+    "facts": [
+      "PINV-1"
+    ]
+  },
+  {
+    "question": "Why can't I send this draft as an e-invoice?",
+    "tools": [
+      "readiness_issues"
+    ],
+    "facts": [
+      "draft"
+    ]
+  },
+  {
+    "question": "What does BR-CO-15 mean?",
+    "tools": [
+      "explain_rule"
+    ],
+    "facts": [
+      "BR-CO-15"
+    ]
   }
 ]

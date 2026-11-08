@@ -138,6 +138,8 @@ Ask Qula has two modes. With AI off it matches a fixed set of keyword questions.
 
 The tools are in `src/lib/ai/tools.ts`: transactions, ageing, totals by period, top suppliers and customers, VAT by rate, parties, products, change history (owners and admins), e-documents, readiness and help. Totals read up to 5,000 rows with the filters in the query, and report when they were cut short. Amounts in totals are in the home currency. The model also has three presentation tools, `show_table`, `show_chart` and `suggest_followups`, which read nothing. A table can be downloaded as CSV. Cards for documents are added from the tool results.
 
+Ask Qula explains e-invoice problems. `src/lib/einvoice/rule-help.ts` holds plain English for the rules people hit most: what is wrong, what to change and where (a supplier, customer or organisation record, the document header or lines, or VAT rates). Rule families such as `BR-CL-`, `BR-E-` and `PEPPOL-` have a general entry. `get_e_document`, `get_transaction` (drafts), `readiness_issues` and `explain_rule` add this as a `help` object to each issue, and the prompt tells the model to use only that fix and screen. An "Ask Qula to explain" button (`AskExplainButton`, shown only when AI is on) sits on the e-document validation list and the readiness list. It opens the chat and sends the question through `src/components/askBus.ts`.
+
 Ask Qula knows the page. A screen that has a record open calls `useAskContext` (`src/components/askContext.ts`), and the chat sends it with the question so "this invoice" means the open one. The transaction screen does this. An e-document page is read from the address. The server only accepts a known shape for it. Ask Qula cannot create, change, post, or delete records.
 
 ## Screens
