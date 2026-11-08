@@ -134,7 +134,11 @@ Every page that lists rows starts its data read at the same time as the workspac
 
 The sparkle button opens a sheet fixed to the right edge, from the bottom of the title bar to the bottom of the viewport, 400px wide. It slides over 480ms. Escape, Close, and the sparkle button dismiss it. The conversation is kept in `sessionStorage` under `fintran.ask-qula.{organisationId}`.
 
-Ask Qula matches keywords. It does not call a language model. A transaction card opens that transaction. An e-document card opens that e-document.
+Ask Qula has two modes. With AI off it matches a fixed set of keyword questions. With AI on, an owner or admin has chosen a provider and the question goes to a model with read-only tools. The answer streams into the chat as it is written. The server sends one JSON event per line (`status`, `text`, `docs`, `block`, `followups`, `done`, `error`), and `src/lib/ask-stream.ts` reads them on the client. A limit, a missing key, or a provider failure before any text falls back to the keyword answer.
+
+The tools are in `src/lib/ai/tools.ts`: transactions, ageing, totals by period, top suppliers and customers, VAT by rate, parties, products, change history (owners and admins), e-documents, readiness and help. Totals read up to 5,000 rows with the filters in the query, and report when they were cut short. Amounts in totals are in the home currency. The model also has three presentation tools, `show_table`, `show_chart` and `suggest_followups`, which read nothing. A table can be downloaded as CSV. Cards for documents are added from the tool results.
+
+Ask Qula knows the page. A screen that has a record open calls `useAskContext` (`src/components/askContext.ts`), and the chat sends it with the question so "this invoice" means the open one. The transaction screen does this. An e-document page is read from the address. The server only accepts a known shape for it. Ask Qula cannot create, change, post, or delete records.
 
 ## Screens
 
@@ -168,7 +172,7 @@ These are the route handlers. Writes that belong to a form go through server act
 | Method and path | Auth | Behaviour |
 | --- | --- | --- |
 | `GET /auth/confirm` | Public | Exchanges an email `code`, or verifies `token_hash` and `type`, then redirects to `/`. A bad link redirects to `/login` with an error. |
-| `POST /api/ask-qula` | Member of the named organisation | Body `{ question, organisationId, history? }`. Question length 1–1,000. Returns `{ intent, text, docs? }`. `intent` is `transactions`, `documents`, `aging`, `help`, or `ai`. A tampered organisation cookie returns 403. |
+| `POST /api/ask-qula` | Member of the named organisation | Body `{ question, organisationId, history?, context?, stream? }`. Question length 1–1,000. With `stream: true` it returns `application/x-ndjson`, one event per line. Otherwise it returns `{ intent, text, docs?, blocks?, followups? }`. `intent` is `transactions`, `documents`, `aging`, `help`, or `ai`. A tampered organisation cookie returns 403. |
 | `POST /api/einvoice/inbound` | Signed in, open organisation | Multipart field `file`, a UBL Invoice or CreditNote. Stores it when the buyer Peppol ID, or the buyer VAT number when the organisation has no Peppol ID, matches that organisation. Returns `{ id }`. |
 | `POST /api/einvoice/outbound/{headerId}` | Signed in, open organisation | Builds UBL from `en16931_document`, runs the UBL XSD and then Schematron, and stores the file. Returns `{ id }`. |
 | `GET /api/einvoice/{id}/xml` | Signed in | Downloads the stored XML via `e_document_xml`. `Content-Type: application/xml`. |

@@ -2,8 +2,10 @@
 
 import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
-import { ASK_SUGGESTIONS, docHref, type AskAnswer, type AskDoc } from "@/lib/ask-qula";
+import { usePathname, useRouter } from "next/navigation";
+import { getAskContext } from "@/components/askContext";
+import { ASK_SUGGESTIONS, docHref, type AskBlock, type AskDoc } from "@/lib/ask-qula";
+import { applyEvent, EMPTY_LIVE, readAskStream, tableCsv, type LiveAnswer } from "@/lib/ask-stream";
 import { SparkleIcon } from "@/components/icons";
 import styles from "@/components/AskQula.module.css";
 
@@ -12,6 +14,8 @@ type AskMessage = {
   role: "user" | "assistant";
   text: string;
   docs?: AskDoc[];
+  blocks?: AskBlock[];
+  followups?: string[];
 };
 
 type StoredChat = {
@@ -33,6 +37,7 @@ export default function AskQula({
   aiEnabled?: boolean;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const panelId = useId();
   const titleId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -42,8 +47,11 @@ export default function AskQula({
   const drawerRef = useRef<HTMLElement>(null);
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState(false);
+  const [live, setLive] = useState<LiveAnswer>(EMPTY_LIVE);
   const isClient = useSyncExternalStore(subscribeClient, clientTrue, serverFalse);
   const { messages, open } = chat;
+  const last = messages[messages.length - 1];
+  const lastFollowups = !pending && last?.role === "assistant" && last.followups?.length ? last.followups : null;
 
   useLayoutEffect(() => {
     if (!isClient) return;
@@ -66,7 +74,7 @@ export default function AskQula({
     const log = logRef.current;
     if (!log || !open) return;
     log.scrollTop = log.scrollHeight;
-  }, [messages, pending, open]);
+  }, [messages, pending, live, open]);
 
   useEffect(() => {
     if (!open) return;
@@ -82,29 +90,54 @@ export default function AskQula({
     writeStored(organisationId, { messages: [...current.messages, message], open: true });
   }
 
+  /** What the person is looking at, so "this invoice" can mean the open one. */
+  function pageContext() {
+    const open = getAskContext();
+    if (open) return open;
+    const parts = pathname.split("/").filter(Boolean);
+    if (parts[0] === "e-documents" && parts[1]) return { kind: "e-document", id: parts[1] };
+    return parts[0] ? { kind: "page", section: parts[0] } : null;
+  }
+
   async function send(question: string) {
     const text = question.trim();
     if (!text || pending) return;
+    const history = clientSnapshot(organisationId).messages.slice(-6).map((message) => ({ role: message.role, text: message.text }));
     append({ id: newId(), role: "user", text });
     setDraft("");
     setPending(true);
+    let answer = EMPTY_LIVE;
+    setLive(answer);
     try {
       const response = await fetch("/api/ask-qula", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          question: text,
-          organisationId,
-          history: clientSnapshot(organisationId).messages.slice(-6).map((message) => ({ role: message.role, text: message.text })),
-        }),
+        body: JSON.stringify({ question: text, organisationId, history, context: pageContext(), stream: true }),
       });
-      const body = (await response.json()) as AskAnswer & { error?: string };
-      const reply = response.ok ? body.text || "Nothing matched that." : body.error || "That could not be answered.";
-      append({ id: newId(), role: "assistant", text: reply, docs: response.ok ? body.docs : undefined });
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { error?: string };
+        append({ id: newId(), role: "assistant", text: body.error || "That could not be answered." });
+        return;
+      }
+      await readAskStream(response, (event) => {
+        answer = applyEvent(answer, event);
+        setLive(answer);
+      });
+      const reply = [answer.text.trim() || (answer.error ? "" : "Nothing matched that."), answer.error].filter(Boolean).join("\n\n");
+      append({
+        id: newId(),
+        role: "assistant",
+        text: reply,
+        docs: answer.docs.length ? answer.docs : undefined,
+        blocks: answer.blocks.length ? answer.blocks : undefined,
+        followups: answer.followups.length ? answer.followups : undefined,
+      });
     } catch {
-      append({ id: newId(), role: "assistant", text: "Ask Qula could not be reached." });
+      const partial = answer.text.trim();
+      append({ id: newId(), role: "assistant", text: partial ? `${partial}\n\nThe answer stopped early.` : "Ask Qula could not be reached." });
     } finally {
       setPending(false);
+      setLive(EMPTY_LIVE);
       inputRef.current?.focus();
     }
   }
@@ -149,35 +182,35 @@ export default function AskQula({
           {messages.length === 0 ? (
             <p className={styles.intro}>
               {aiEnabled
-                ? "Ask Qula understands plain questions, such as which suppliers we owe more than €5,000, or what we invoiced a customer in September."
+                ? "Ask Qula understands plain questions, such as which suppliers we owe the most, VAT by rate this quarter, or what we invoiced a customer in September. Open a document and ask about this invoice."
                 : "Ask Qula answers a fixed set of questions: overdue items, recent transactions, drafts, and received e-documents."}
             </p>
           ) : null}
           {messages.map((message) => (
             <article key={message.id} className={message.role === "user" ? styles.user : styles.assistant}>
-              <p>{message.text}</p>
-              {message.docs && message.docs.length > 0 ? (
-                <div className={styles.cards}>
-                  {message.docs.map((doc) => (
-                    <DocCard key={`${doc.store}-${doc.recordId ?? doc.ref}`} doc={doc} onOpen={openDocument} />
-                  ))}
-                </div>
-              ) : null}
+              <Answer text={message.text} blocks={message.blocks} docs={message.docs} onOpen={openDocument} />
             </article>
           ))}
           {pending ? (
-            <p className={styles.typing} role="status">
-              Looking that up
-              <span className={styles.dots} aria-hidden="true">
-                <span />
-                <span />
-                <span />
-              </span>
-            </p>
+            <>
+              {live.text || live.blocks.length > 0 || live.docs.length > 0 ? (
+                <article className={styles.assistant} aria-live="off">
+                  <Answer text={live.text} blocks={live.blocks} docs={live.docs} onOpen={openDocument} />
+                </article>
+              ) : null}
+              <p className={styles.typing} role="status">
+                {live.status || (live.text ? "Writing" : "Thinking")}
+                <span className={styles.dots} aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                </span>
+              </p>
+            </>
           ) : null}
         </div>
         <div className={styles.chips} aria-label="Suggestions">
-          {ASK_SUGGESTIONS.map((suggestion) => (
+          {(lastFollowups ?? ASK_SUGGESTIONS).map((suggestion) => (
             <button key={suggestion} className={styles.chip} type="button" disabled={pending} onClick={() => void send(suggestion)}>
               {suggestion}
             </button>
@@ -229,6 +262,87 @@ export default function AskQula({
   );
 }
 
+
+function Answer({ text, blocks, docs, onOpen }: { text: string; blocks?: AskBlock[]; docs?: AskDoc[]; onOpen: (doc: AskDoc) => void }) {
+  return (
+    <>
+      {text ? <p className={styles.text}>{text}</p> : null}
+      {blocks?.map((block, index) => (block.type === "table" ? <TableBlock key={index} block={block} /> : <ChartBlock key={index} block={block} />))}
+      {docs && docs.length > 0 ? (
+        <div className={styles.cards}>
+          {docs.map((doc) => (
+            <DocCard key={`${doc.store}-${doc.recordId ?? doc.ref}`} doc={doc} onOpen={onOpen} />
+          ))}
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function TableBlock({ block }: { block: Extract<AskBlock, { type: "table" }> }) {
+  function download() {
+    const url = URL.createObjectURL(new Blob([`\uFEFF${tableCsv(block)}`], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${(block.title || "ask-qula").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "ask-qula"}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+  return (
+    <figure className={styles.block}>
+      {block.title ? <figcaption className={styles.blockTitle}>{block.title}</figcaption> : null}
+      <div className={styles.tableWrap} tabIndex={0} role="region" aria-label={block.title || "Table"}>
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              {block.columns.map((column, index) => (
+                <th key={index} scope="col">
+                  {column}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {block.rows.map((row, rowIndex) => (
+              <tr key={rowIndex}>
+                {row.map((cell, index) => (
+                  <td key={index}>{cell}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <button className={styles.blockAction} type="button" onClick={download}>
+        Download CSV
+      </button>
+    </figure>
+  );
+}
+
+function ChartBlock({ block }: { block: Extract<AskBlock, { type: "chart" }> }) {
+  const peak = Math.max(...block.values.map((value) => Math.abs(value)), 1);
+  return (
+    <figure className={styles.block}>
+      {block.title ? <figcaption className={styles.blockTitle}>{block.title}</figcaption> : null}
+      <ul className={styles.chart}>
+        {block.labels.map((label, index) => (
+          <li key={index} className={styles.chartRow}>
+            <span className={styles.chartLabel}>{label}</span>
+            <span className={styles.chartTrack} aria-hidden="true">
+              <span className={block.values[index] < 0 ? styles.chartBarNegative : styles.chartBar} style={{ width: `${Math.max(2, Math.round((Math.abs(block.values[index]) / peak) * 100))}%` }} />
+            </span>
+            <span className={styles.chartValue}>
+              {block.unit === "€" || block.unit === "$" || block.unit === "£" ? block.unit : ""}
+              {block.values[index].toLocaleString("en-IE", { minimumFractionDigits: Number.isInteger(block.values[index]) ? 0 : 2, maximumFractionDigits: 2 })}
+              {block.unit && !["€", "$", "£"].includes(block.unit) ? ` ${block.unit}` : ""}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </figure>
+  );
+}
 
 function DocCard({ doc, onOpen }: { doc: AskDoc; onOpen: (doc: AskDoc) => void }) {
   const href = docHref(doc);
@@ -325,7 +439,17 @@ function isMessage(value: unknown): value is AskMessage {
     return false;
   }
   if (message.docs != null && (!Array.isArray(message.docs) || !message.docs.every(isDoc))) return false;
+  if (message.blocks != null && (!Array.isArray(message.blocks) || !message.blocks.every(isBlock))) return false;
+  if (message.followups != null && (!Array.isArray(message.followups) || !message.followups.every((item) => typeof item === "string"))) return false;
   return true;
+}
+
+function isBlock(value: unknown): value is AskBlock {
+  if (!value || typeof value !== "object") return false;
+  const block = value as AskBlock;
+  if (block.type === "table") return Array.isArray(block.columns) && Array.isArray(block.rows) && block.rows.every(Array.isArray);
+  if (block.type === "chart") return Array.isArray(block.labels) && Array.isArray(block.values) && block.values.every((item) => typeof item === "number");
+  return false;
 }
 
 function isDoc(value: unknown): value is AskDoc {
