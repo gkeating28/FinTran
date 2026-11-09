@@ -26,6 +26,7 @@ export default function GridPager({
   onPageSize,
   summary,
   className,
+  start,
 }: {
   page: number;
   pageCount: number;
@@ -34,13 +35,18 @@ export default function GridPager({
   onPageSize: (pageSize: GridPageSize) => void;
   summary?: string;
   className?: string;
+  /** Controls shown beside the rows per page menu. */
+  start?: ReactNode;
 }) {
   const atStart = page <= 0;
   const atEnd = page >= pageCount - 1;
 
   return (
     <div className={[pagerStyles.gridFooter, className].filter(Boolean).join(" ")}>
-      <RowsPerPage pageSize={pageSize} onPageSize={onPageSize} />
+      <div className={pagerStyles.footerStart}>
+        <RowsPerPage pageSize={pageSize} onPageSize={onPageSize} />
+        {start}
+      </div>
       <div className={pagerStyles.pager}>
         {summary ? <span className={pagerStyles.pagerSummary}>{summary}</span> : null}
         <span aria-live="polite">
