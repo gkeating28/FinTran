@@ -122,7 +122,6 @@ export default function DataGrid<T extends { id: string }>({
             }}
           />
         </label>
-        <GridExport form={form} rows={filtered} fields={fields} />
         {toolbar}
       </div>
       <div className={styles.tableScroll}>
@@ -209,6 +208,7 @@ export default function DataGrid<T extends { id: string }>({
         pageSize={pageSize}
         onPage={setPageIndex}
         onPageSize={changePageSize}
+        start={<GridExport form={form} rows={filtered} fields={fields} />}
         summary={
           filtered.length === 0
             ? "No rows"

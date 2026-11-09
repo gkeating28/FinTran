@@ -136,7 +136,7 @@ A page whose main content is a `DataGrid` is laid out so the grid fills the scre
 
 #### Excel export
 
-Every `DataGrid` has an Excel button and a Fields menu in its toolbar. The button downloads the rows that match the search, sorted as shown, across all pages. The grid does not call an API of its own. A page loads its rows on the server and hands them to the grid, and a row can carry more than the columns display. The export only reads what the row already holds.
+Every `DataGrid` has an Excel button and a Fields menu in its footer, beside the rows per page menu. The button downloads the rows that match the search, sorted as shown, across all pages. The grid does not call an API of its own. A page loads its rows on the server and hands them to the grid, and a row can carry more than the columns display. The export only reads what the row already holds.
 
 Fields offered are the displayed columns, which are ticked, plus the grid's `exportFields`, which are off until ticked. A column can set `exportValue` for a plain value, otherwise its `sortValue` is used. Right aligned columns whose values are all numbers are written as numbers. The choice is remembered in the browser under `fintran.grid-fields.{form}`. `src/lib/xlsx.ts` writes the file with fflate. It has no other dependency.
 
