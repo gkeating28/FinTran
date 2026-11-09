@@ -53,6 +53,7 @@ export async function answerAsk(
     return { ...answer, text } as AskAnswer;
   };
 
+  const prepStarted = Date.now();
   const supabase = await createClient();
   const settings = await supabase.from("ai_settings").select("enabled, provider_code, model, config, user_hourly_limit, organisation_monthly_limit").eq("organisation_id", organisationId).maybeSingle();
   const row = settings.data as SettingsRow | null;
@@ -83,6 +84,7 @@ export async function answerAsk(
 
   if (!apiKey) return keyword();
 
+  const prepMs = Date.now() - prepStarted;
   const claims = await readClaims(supabase);
   const userId = typeof claims.data?.claims?.sub === "string" ? claims.data.claims.sub : undefined;
   let sent = false;
@@ -100,7 +102,7 @@ export async function answerAsk(
     ]);
     // The chat has everything now, so tell it before the usage is written.
     record({ type: "done", intent: "ai" });
-    console.info(JSON.stringify({ askQula: { totalMs: Date.now() - started, turnsMs: run.timings.turns, tools: run.timings.tools, inputTokens: run.inputTokens, outputTokens: run.outputTokens } }));
+    console.info(JSON.stringify({ askQula: { prepMs, totalMs: Date.now() - started, firstTextMs: run.timings.firstTextMs, turnsMs: run.timings.turns, tools: run.timings.tools, inputTokens: run.inputTokens, cachedTokens: run.cachedTokens, outputTokens: run.outputTokens } }));
     await usage("ok", { input: run.inputTokens, output: run.outputTokens, tools: run.toolCalls });
     return collected;
   } catch {

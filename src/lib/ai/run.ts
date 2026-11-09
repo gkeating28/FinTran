@@ -1,7 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AskBlock, AskDoc, AskEvent, AskProposal } from "@/lib/ask-qula";
 import { proposeAction } from "./actions";
-import { ACTION_TOOLS, ASK_TOOLS, PRESENTATION_TOOLS, systemPromptFor, type AskContext } from "./prompt";
+import { autoBlock, SHOWN_NOTE } from "./blocks";
+import { ACTION_TOOLS, ASK_SYSTEM_PROMPT, ASK_TOOLS, PRESENTATION_TOOLS, systemPromptFor, type AskContext } from "./prompt";
 import { adapterFor } from "./providers";
 import { runAskTool } from "./tools";
 import type { AiAdapter, AiMessage, AiToolResult } from "./adapter";
@@ -51,8 +52,9 @@ export type AiRun = {
   toolCalls: number;
   inputTokens: number;
   outputTokens: number;
+  cachedTokens: number;
   /** How long each model turn and each lookup took, in milliseconds, for the server log. */
-  timings: { turns: number[]; tools: { name: string; ms: number }[] };
+  timings: { turns: number[]; tools: { name: string; ms: number }[]; firstTextMs: number | null };
 };
 
 function clip(value: unknown, length: number) {
@@ -140,11 +142,13 @@ export async function runAiStream(
   const system = systemPromptFor(options.context);
   const allowed = new Set<string>(ASK_TOOLS.map((tool) => tool.name));
   const messages: AiMessage[] = [...options.history.slice(-6), { role: "user", text: options.question }];
-  const run: AiRun = { text: "", cards: [], blocks: [], followups: [], proposal: null, toolCalls: 0, inputTokens: 0, outputTokens: 0, timings: { turns: [], tools: [] } };
+  const run: AiRun = { text: "", cards: [], blocks: [], followups: [], proposal: null, toolCalls: 0, inputTokens: 0, outputTokens: 0, cachedTokens: 0, timings: { turns: [], tools: [], firstTextMs: null } };
   const seen = new Set<string>();
 
+  const began = Date.now();
   const say = (delta: string) => {
     if (!delta) return;
+    if (run.timings.firstTextMs === null) run.timings.firstTextMs = Date.now() - began;
     run.text += delta;
     emit({ type: "text", delta });
   };
@@ -152,13 +156,14 @@ export async function runAiStream(
   for (let step = 0; step < MAX_STEPS; step += 1) {
     let streamed = 0;
     const turnStarted = Date.now();
-    const turn = await adapter.complete({ system, messages, tools: [...ASK_TOOLS] }, (delta) => {
+    const turn = await adapter.complete({ system, messages, tools: [...ASK_TOOLS], cachePrefix: ASK_SYSTEM_PROMPT }, (delta) => {
       streamed += delta.length;
       say(delta);
     });
     run.timings.turns.push(Date.now() - turnStarted);
     run.inputTokens += turn.inputTokens;
     run.outputTokens += turn.outputTokens;
+    run.cachedTokens += turn.cachedTokens ?? 0;
     if (streamed === 0 && turn.text) say(turn.text);
 
     const calls = turn.toolCalls;
@@ -182,6 +187,12 @@ export async function runAiStream(
       const lookup = lookups[index];
       if (lookup) {
         output = await lookup;
+        const table = autoBlock(call.name, output);
+        if (table) {
+          run.blocks.push(table);
+          emit({ type: "block", block: table });
+          output = { ...(output as Record<string, unknown>), alreadyShown: SHOWN_NOTE };
+        }
         const fresh = cardsFrom(call.name, output).filter((card) => {
           const key = `${card.store}:${card.recordId}`;
           if (seen.has(key) || run.cards.length >= MAX_CARDS) return false;

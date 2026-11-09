@@ -22,6 +22,8 @@ export type AiTurn = {
   toolCalls: AiToolCall[];
   inputTokens: number;
   outputTokens: number;
+  /** Input tokens the provider read from its cache, for the server log. */
+  cachedTokens?: number;
 };
 
 export type AiAdapter = {
@@ -30,7 +32,7 @@ export type AiAdapter = {
    * it arrives. It always returns the whole turn.
    */
   complete(
-    input: { system: string; messages: AiMessage[]; tools: AiTool[] },
+    input: { system: string; messages: AiMessage[]; tools: AiTool[]; cachePrefix?: string },
     onText?: (delta: string) => void,
   ): Promise<AiTurn>;
 };

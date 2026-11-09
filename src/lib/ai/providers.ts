@@ -1,7 +1,7 @@
 import type { AiAdapter, AiMessage, AiTool, AiToolCall, AiTurn } from "./adapter";
 
 type Settings = { provider: string; model: string; config: Record<string, string>; apiKey: string };
-type Input = { system: string; messages: AiMessage[]; tools: AiTool[] };
+type Input = { system: string; messages: AiMessage[]; tools: AiTool[]; cachePrefix?: string };
 type Json = Record<string, unknown>;
 
 async function failure(response: Response) {
@@ -93,7 +93,23 @@ function anthropicMessages(messages: AiMessage[]) {
   });
 }
 
-async function anthropic(settings: Settings, { system, messages, tools }: Input, onText?: (delta: string) => void): Promise<AiTurn> {
+/**
+ * The instructions and tools are the same for every question, so they are marked to be cached. The provider then
+ * does not have to read about 2,500 tokens again on every turn. The parts that change, today's date and the page
+ * the person is on, come after the marked block so they do not spoil it.
+ */
+export function anthropicSystem(system: string, cachePrefix?: string) {
+  if (cachePrefix && system.startsWith(cachePrefix)) {
+    const rest = system.slice(cachePrefix.length).trim();
+    return [
+      { type: "text", text: cachePrefix, cache_control: { type: "ephemeral" } },
+      ...(rest ? [{ type: "text", text: rest }] : []),
+    ];
+  }
+  return system;
+}
+
+async function anthropic(settings: Settings, { system, messages, tools, cachePrefix }: Input, onText?: (delta: string) => void): Promise<AiTurn> {
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -104,7 +120,7 @@ async function anthropic(settings: Settings, { system, messages, tools }: Input,
     body: JSON.stringify({
       model: settings.model,
       max_tokens: 1500,
-      system,
+      system: anthropicSystem(system, cachePrefix),
       stream: Boolean(onText),
       messages: anthropicMessages(messages),
       ...(tools.length
@@ -118,6 +134,7 @@ async function anthropic(settings: Settings, { system, messages, tools }: Input,
     const content = Array.isArray(body.content) ? body.content : [];
     const usage = typeof body.usage === "object" && body.usage ? (body.usage as Json) : {};
     return {
+      cachedTokens: Number(usage.cache_read_input_tokens ?? 0),
       text: content.filter((item) => item && typeof item === "object" && (item as { type?: string }).type === "text").map((item) => String((item as { text?: string }).text ?? "")).join("\n"),
       toolCalls: content.flatMap((item) => {
         if (!item || typeof item !== "object" || (item as { type?: string }).type !== "tool_use") return [];
@@ -132,13 +149,15 @@ async function anthropic(settings: Settings, { system, messages, tools }: Input,
   let text = "";
   let inputTokens = 0;
   let outputTokens = 0;
+  let cachedTokens = 0;
   const blocks = new Map<number, { id: string; name: string; json: string }>();
   await readEvents(response, (event) => {
     const type = String(event.type ?? "");
     const index = Number(event.index ?? 0);
     if (type === "message_start") {
-      const message = (event.message ?? {}) as { usage?: { input_tokens?: number } };
+      const message = (event.message ?? {}) as { usage?: { input_tokens?: number; cache_read_input_tokens?: number } };
       inputTokens = Number(message.usage?.input_tokens ?? 0);
+      cachedTokens = Number(message.usage?.cache_read_input_tokens ?? 0);
     } else if (type === "content_block_start") {
       const block = (event.content_block ?? {}) as { type?: string; id?: string; name?: string };
       if (block.type === "tool_use") blocks.set(index, { id: String(block.id ?? block.name), name: String(block.name ?? ""), json: "" });
@@ -159,7 +178,7 @@ async function anthropic(settings: Settings, { system, messages, tools }: Input,
     }
   });
   const toolCalls: AiToolCall[] = [...blocks.values()].map((block) => ({ id: block.id, name: block.name, input: parseInput(block.json) }));
-  return { text, toolCalls, inputTokens, outputTokens };
+  return { text, toolCalls, inputTokens, outputTokens, cachedTokens };
 }
 
 function openAiMessages(system: string, messages: AiMessage[]) {
