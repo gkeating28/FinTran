@@ -168,6 +168,51 @@ async function runTool(supabase: Client, organisationId: string, name: string, i
     return { customers: rowsOf(customers.data), suppliers: rowsOf(suppliers.data) };
   }
 
+  if (name === "draft_reminder") {
+    let query = supabase
+      .from("transaction_headers")
+      .select("id, document_number, status, party_name, transaction_date, due_date, amount_due, foreign_total_amount, customer_id, currencies(code), transaction_types!inner(type)")
+      .eq("organisation_id", organisationId)
+      .eq("status", "posted")
+      .eq("transaction_types.type", "Sales");
+    if (input.id) query = query.eq("id", String(input.id));
+    if (input.number) query = query.ilike("document_number", `%${String(input.number)}%`);
+    const { data } = await query.gt("amount_due", 0).order("due_date", { ascending: true }).limit(2);
+    const rows = rowsOf(data);
+    if (rows.length === 0) return { error: "No posted sales document with an amount still due matches that." };
+    if (rows.length > 1 && !input.id) return { error: "More than one document matches. Ask which one, by its number.", candidates: rows.map(shapeHeader) };
+    const header = rows[0];
+    const [customer, organisation] = await Promise.all([
+      supabase.from("customers").select("email").eq("organisation_id", organisationId).eq("id", String(header.customer_id)).maybeSingle(),
+      supabase.from("organisations").select("name").eq("id", organisationId).maybeSingle(),
+    ]);
+    const code = text(embedded(header.currencies)?.code);
+    const amount = (value: unknown) => `${code === "EUR" || !code ? "€" : `${code} `}${Number(value ?? 0).toLocaleString("en-IE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const today = new Date().toISOString().slice(0, 10);
+    const due = text(header.due_date);
+    const late = due && due < today ? Math.round((Date.parse(today) - Date.parse(due)) / 86_400_000) : 0;
+    const when = (iso: string) => new Date(Date.parse(iso)).toLocaleDateString("en-IE", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+    const number = text(header.document_number) || "the invoice";
+    const body = [
+      `Dear ${text(header.party_name)},`,
+      "",
+      `Our records show that invoice ${number}, dated ${when(text(header.transaction_date))} for ${amount(header.foreign_total_amount)}, has ${amount(header.amount_due)} still outstanding${due ? `. It was due on ${when(due)}${late > 0 ? `, ${late} ${late === 1 ? "day" : "days"} ago` : ""}` : ""}.`,
+      "",
+      late > 30
+        ? "We would be grateful if you could arrange payment by return, or tell us if there is a query we can help with."
+        : "Please arrange payment, or let us know if it has already been paid or if there is a query.",
+      "",
+      "Kind regards,",
+      text(embedded(organisation.data)?.name ?? (organisation.data as Row | null)?.name),
+    ].join("\n");
+    const email = text((customer.data as Row | null)?.email);
+    return {
+      document: shapeHeader(header),
+      reminder: { to: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : "", subject: `Payment reminder: invoice ${number}`, body },
+      note: "The reminder is shown to the person with buttons to copy it or open it in their email. Nothing is sent.",
+    };
+  }
+
   if (name === "insights") {
     return { insights: await getInsights(supabase, organisationId), note: "Worked out from the last year of documents with fixed rules." };
   }

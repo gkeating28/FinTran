@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { AskBlock, AskDoc, AskEvent } from "@/lib/ask-qula";
-import { ASK_TOOLS, PRESENTATION_TOOLS, systemPromptFor, type AskContext } from "./prompt";
+import type { AskBlock, AskDoc, AskEvent, AskProposal } from "@/lib/ask-qula";
+import { proposeAction } from "./actions";
+import { ACTION_TOOLS, ASK_TOOLS, PRESENTATION_TOOLS, systemPromptFor, type AskContext } from "./prompt";
 import { adapterFor } from "./providers";
 import { runAskTool } from "./tools";
 import type { AiAdapter, AiMessage, AiToolResult } from "./adapter";
@@ -37,6 +38,7 @@ const STATUS_LABELS: Record<string, string> = {
   get_e_document: "Reading the e-document",
   readiness_issues: "Checking the drafts",
   explain_rule: "Looking up the rule",
+  draft_reminder: "Writing the reminder",
   help_search: "Searching the help",
 };
 
@@ -45,6 +47,7 @@ export type AiRun = {
   cards: AskDoc[];
   blocks: AskBlock[];
   followups: string[];
+  proposal: AskProposal | null;
   toolCalls: number;
   inputTokens: number;
   outputTokens: number;
@@ -115,6 +118,8 @@ export async function runAiStream(
   options: {
     supabase: SupabaseClient;
     organisationId: string;
+    /** The signed in person. Without it no action can be proposed. */
+    userId?: string;
     question: string;
     history: AiMessage[];
     context?: AskContext | null;
@@ -135,7 +140,7 @@ export async function runAiStream(
   const system = systemPromptFor(options.context);
   const allowed = new Set<string>(ASK_TOOLS.map((tool) => tool.name));
   const messages: AiMessage[] = [...options.history.slice(-6), { role: "user", text: options.question }];
-  const run: AiRun = { text: "", cards: [], blocks: [], followups: [], toolCalls: 0, inputTokens: 0, outputTokens: 0, timings: { turns: [], tools: [] } };
+  const run: AiRun = { text: "", cards: [], blocks: [], followups: [], proposal: null, toolCalls: 0, inputTokens: 0, outputTokens: 0, timings: { turns: [], tools: [] } };
   const seen = new Set<string>();
 
   const say = (delta: string) => {
@@ -161,7 +166,7 @@ export async function runAiStream(
 
     // Lookups in one turn do not depend on each other, so they run together.
     const lookups = calls.map((call) => {
-      if (!allowed.has(call.name) || PRESENTATION_TOOLS.has(call.name) || run.toolCalls >= MAX_TOOL_CALLS) return null;
+      if (!allowed.has(call.name) || PRESENTATION_TOOLS.has(call.name) || ACTION_TOOLS.has(call.name) || run.toolCalls >= MAX_TOOL_CALLS) return null;
       run.toolCalls += 1;
       emit({ type: "status", text: STATUS_LABELS[call.name] ?? "Looking that up" });
       const started = Date.now();
@@ -184,6 +189,21 @@ export async function runAiStream(
           return true;
         });
         if (fresh.length > 0) run.cards.push(...fresh);
+        const reminder = call.name === "draft_reminder" && output && typeof output === "object" ? (output as { reminder?: { to?: string; subject?: string; body?: string } }).reminder : undefined;
+        if (reminder?.subject && reminder.body) {
+          const block: AskBlock = { type: "message", title: "Payment reminder", to: String(reminder.to ?? ""), subject: reminder.subject, body: reminder.body };
+          run.blocks.push(block);
+          emit({ type: "block", block });
+        }
+      } else if (call.name === "propose_action" && allowed.has(call.name)) {
+        const proposed = options.userId ? await proposeAction(options.supabase, options.organisationId, options.userId, call.input) : { error: "Actions are not available." };
+        if ("proposal" in proposed) {
+          run.proposal = proposed.proposal;
+          emit({ type: "proposal", proposal: proposed.proposal });
+          output = { proposed: true, note: "Waiting for the person to confirm. It has not been done." };
+        } else {
+          output = { error: proposed.error };
+        }
       } else if (!allowed.has(call.name) || !PRESENTATION_TOOLS.has(call.name)) {
         output = { error: "That tool is not available." };
       } else if (call.name === "suggest_followups") {

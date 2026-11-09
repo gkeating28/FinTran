@@ -13,7 +13,16 @@ export type AskDoc = {
 /** A table or chart the assistant chose to show with its answer. */
 export type AskBlock =
   | { type: "table"; title?: string; columns: string[]; rows: string[][] }
-  | { type: "chart"; title?: string; unit?: string; labels: string[]; values: number[] };
+  | { type: "chart"; title?: string; unit?: string; labels: string[]; values: number[] }
+  | { type: "message"; title?: string; to: string; subject: string; body: string };
+
+/** Something Ask Qula can do once the person confirms. The token is signed by the server and says exactly what will happen. */
+export type AskProposal = {
+  token: string;
+  title: string;
+  lines: string[];
+  confirmLabel: string;
+};
 
 export type AskAnswer = {
   intent: AskIntent;
@@ -21,6 +30,7 @@ export type AskAnswer = {
   docs?: AskDoc[];
   blocks?: AskBlock[];
   followups?: string[];
+  proposal?: AskProposal;
 };
 
 /** What the answer stream sends to the chat, one JSON object per line. */
@@ -30,6 +40,7 @@ export type AskEvent =
   | { type: "docs"; docs: AskDoc[] }
   | { type: "block"; block: AskBlock }
   | { type: "followups"; items: string[] }
+  | { type: "proposal"; proposal: AskProposal }
   | { type: "done"; intent: AskIntent }
   | { type: "error"; text: string };
 

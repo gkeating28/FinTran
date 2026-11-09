@@ -382,6 +382,83 @@ button.card:hover {
   font-size: 12px;
 }
 
+.proposal {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius);
+  background: var(--color-accent-soft);
+}
+
+.proposal[data-state="done"] {
+  border-color: var(--color-ok-border);
+  background: var(--color-ok-soft);
+}
+
+.proposal[data-state="failed"] {
+  border-color: var(--color-warn-border);
+  background: var(--color-warn-soft);
+}
+
+.proposal[data-state="cancelled"] {
+  border-color: var(--ops-border, #dde1e8);
+  background: var(--color-surface-muted);
+}
+
+.proposalTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.proposalLines {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+}
+
+.proposalActions {
+  display: flex;
+  gap: 8px;
+}
+
+.proposalResult {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.message {
+  padding: 10px;
+  border: 1px solid var(--ops-border, #dde1e8);
+  border-radius: var(--radius);
+  background: var(--color-surface-muted);
+}
+
+.messageHead {
+  margin: 0 0 8px;
+  color: var(--ops-text-2, #3a4356);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.messageBody {
+  margin: 0;
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+
+.messageActions {
+  display: flex;
+  gap: 14px;
+}
+
+.messageActions a {
+  text-decoration: none;
+}
+
 .block {
   display: flex;
   flex-direction: column;

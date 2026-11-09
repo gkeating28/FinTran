@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { usePathname, useRouter } from "next/navigation";
 import { onAskRequest } from "@/components/askBus";
 import { getAskContext } from "@/components/askContext";
-import { ASK_SUGGESTIONS, docHref, type AskBlock, type AskDoc } from "@/lib/ask-qula";
+import { ASK_SUGGESTIONS, docHref, type AskBlock, type AskDoc, type AskProposal } from "@/lib/ask-qula";
 import { applyEvent, EMPTY_LIVE, readAskStream, tableCsv, type LiveAnswer } from "@/lib/ask-stream";
 import { SparkleIcon } from "@/components/icons";
 import RichText from "@/components/RichText";
@@ -23,6 +23,10 @@ type AskMessage = {
   /** The question the answer replies to, kept so a rating can say what it was about. */
   question?: string;
   rated?: 1 | -1;
+  /** Something Ask Qula proposed, and what became of it. */
+  proposal?: AskProposal;
+  proposalState?: "done" | "failed" | "cancelled";
+  proposalResult?: string;
 };
 
 type StoredChat = {
@@ -146,6 +150,7 @@ export default function AskQula({
         docs: answer.docs.length ? answer.docs : undefined,
         blocks: answer.blocks.length ? answer.blocks : undefined,
         followups: answer.followups.length ? answer.followups : undefined,
+        proposal: answer.proposal ?? undefined,
         ...(answer.intent === "ai" && answer.text.trim() ? { ai: true, question: text } : {}),
       });
     } catch {
@@ -178,6 +183,36 @@ export default function AskQula({
     writeStored(organisationId, { messages: clientSnapshot(organisationId).messages, open: true });
     const stamp = Date.now().toString(36);
     router.push(`${href}${href.includes("?") ? "&" : "?"}ask=${stamp}`);
+  }
+
+  function patchMessage(id: string, patch: Partial<AskMessage>) {
+    const current = clientSnapshot(organisationId);
+    writeStored(organisationId, { messages: current.messages.map((item) => (item.id === id ? { ...item, ...patch } : item)), open: current.open });
+  }
+
+  /** Confirms or cancels something Ask Qula proposed. Nothing happens until the person confirms. */
+  async function decide(message: AskMessage, confirm: boolean) {
+    if (!message.proposal) return;
+    if (!confirm) {
+      patchMessage(message.id, { proposalState: "cancelled", proposalResult: "Cancelled. Nothing was changed." });
+      return;
+    }
+    try {
+      const response = await fetch("/api/ask-qula/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: message.proposal.token }),
+      });
+      const body = (await response.json().catch(() => ({}))) as { ok?: boolean; message?: string; error?: string };
+      if (response.ok && body.ok) {
+        patchMessage(message.id, { proposalState: "done", proposalResult: body.message ?? "Done." });
+        router.refresh();
+      } else {
+        patchMessage(message.id, { proposalState: "failed", proposalResult: body.error ?? "That could not be done." });
+      }
+    } catch {
+      patchMessage(message.id, { proposalState: "failed", proposalResult: "Ask Qula could not be reached. Nothing was changed." });
+    }
   }
 
   async function rate(message: AskMessage, rating: 1 | -1, comment: string) {
@@ -245,6 +280,7 @@ export default function AskQula({
           {messages.map((message) => (
             <article key={message.id} className={message.role === "user" ? styles.user : styles.assistant}>
               <Answer text={message.text} blocks={message.blocks} docs={message.docs} onOpen={openDocument} />
+              {message.proposal ? <ProposalCard message={message} onDecide={decide} /> : null}
               {message.ai ? <RatingRow message={message} onRate={rate} /> : null}
             </article>
           ))}
@@ -324,7 +360,7 @@ function Answer({ text, blocks, docs, onOpen }: { text: string; blocks?: AskBloc
   return (
     <>
       {text ? <RichText className={styles.text} text={text} /> : null}
-      {blocks?.map((block, index) => (block.type === "table" ? <TableBlock key={index} block={block} /> : <ChartBlock key={index} block={block} />))}
+      {blocks?.map((block, index) => (block.type === "table" ? <TableBlock key={index} block={block} /> : block.type === "chart" ? <ChartBlock key={index} block={block} /> : <MessageBlock key={index} block={block} />))}
       {docs && docs.length > 0 ? (
         <div className={styles.cards}>
           {docs.map((doc) => (
@@ -333,6 +369,86 @@ function Answer({ text, blocks, docs, onOpen }: { text: string; blocks?: AskBloc
         </div>
       ) : null}
     </>
+  );
+}
+
+function ProposalCard({ message, onDecide }: { message: AskMessage; onDecide: (message: AskMessage, confirm: boolean) => Promise<void> }) {
+  const [busy, setBusy] = useState(false);
+  const proposal = message.proposal;
+  if (!proposal) return null;
+  const state = message.proposalState;
+  return (
+    <section className={styles.proposal} aria-label={proposal.title} data-state={state ?? "waiting"}>
+      <h3 className={styles.proposalTitle}>{proposal.title}</h3>
+      <ul className={styles.proposalLines}>
+        {proposal.lines.map((line, index) => (
+          <li key={index}>{line}</li>
+        ))}
+      </ul>
+      {state ? (
+        <p className={styles.proposalResult} role="status">
+          {message.proposalResult}
+        </p>
+      ) : (
+        <div className={styles.proposalActions}>
+          <button
+            className={styles.send}
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              await onDecide(message, true);
+              setBusy(false);
+            }}
+          >
+            {busy ? "Working" : proposal.confirmLabel}
+          </button>
+          <button className={styles.close} type="button" disabled={busy} onClick={() => void onDecide(message, false)}>
+            Cancel
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function MessageBlock({ block }: { block: Extract<AskBlock, { type: "message" }> }) {
+  const [copied, setCopied] = useState(false);
+  const href = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(block.to) || block.to === ""
+    ? `mailto:${block.to}?subject=${encodeURIComponent(block.subject)}&body=${encodeURIComponent(block.body)}`
+    : null;
+  return (
+    <figure className={styles.block}>
+      {block.title ? <figcaption className={styles.blockTitle}>{block.title}</figcaption> : null}
+      <div className={styles.message}>
+        <p className={styles.messageHead}>
+          {block.to ? `To ${block.to}. ` : "No email address is saved for this customer. "}
+          Subject: {block.subject}
+        </p>
+        <p className={styles.messageBody}>{block.body}</p>
+      </div>
+      <div className={styles.messageActions}>
+        <button
+          className={styles.blockAction}
+          type="button"
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(`Subject: ${block.subject}\n\n${block.body}`);
+              setCopied(true);
+            } catch {
+              setCopied(false);
+            }
+          }}
+        >
+          {copied ? "Copied" : "Copy"}
+        </button>
+        {href ? (
+          <a className={styles.blockAction} href={href}>
+            Open in email
+          </a>
+        ) : null}
+      </div>
+    </figure>
   );
 }
 
@@ -551,6 +667,7 @@ function isBlock(value: unknown): value is AskBlock {
   if (!value || typeof value !== "object") return false;
   const block = value as AskBlock;
   if (block.type === "table") return Array.isArray(block.columns) && Array.isArray(block.rows) && block.rows.every(Array.isArray);
+  if (block.type === "message") return typeof block.to === "string" && typeof block.subject === "string" && typeof block.body === "string";
   if (block.type === "chart") return Array.isArray(block.labels) && Array.isArray(block.values) && block.values.every((item) => typeof item === "number");
   return false;
 }
