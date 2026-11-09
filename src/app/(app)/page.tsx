@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { CreateTenantForm } from "@/components/Forms";
+import { Suspense } from "react";
+import HomeInsights, { HomeInsightsSkeleton } from "@/components/HomeInsights";
 import HomeOverview from "@/components/HomeOverview";
 import styles from "@/components/OpsPage.module.css";
 import { listIsoCurrencies } from "@/lib/currency-data";
@@ -63,6 +65,11 @@ export default async function HomePage() {
       userName={workspace.profile.displayName}
       people={error ? [] : members.map((member) => member.displayName || member.email)}
       recent={canManage(current.role) && log && !log.error ? log.rows : null}
+      insights={
+        <Suspense fallback={<HomeInsightsSkeleton />}>
+          <HomeInsights organisationId={current.organisationId} />
+        </Suspense>
+      }
     />
   );
 }

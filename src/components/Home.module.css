@@ -479,3 +479,62 @@ a.bigNumber:hover {
   color: var(--color-muted);
   font-size: var(--text-sm);
 }
+
+/* Worth a look */
+
+.insights {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.insight {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: var(--color-page);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.insight:hover {
+  border-color: var(--color-border);
+  background: var(--color-hover);
+}
+
+.insightDot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+.insight[data-tone="attention"] .insightDot {
+  background: var(--color-warn);
+}
+
+.insightText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.insightTitle {
+  font-weight: 600;
+}
+
+.insightDetail {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+}

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { DocumentIcon, EDocumentIcon } from "@/components/icons";
 import styles from "@/components/OpsPage.module.css";
 import homeStyles from "@/components/Home.module.css";
@@ -60,6 +61,7 @@ export default function HomeOverview({
   userName,
   people,
   recent,
+  insights,
 }: {
   organisationName: string;
   tenantName: string;
@@ -72,6 +74,8 @@ export default function HomeOverview({
   people: string[];
   /** The latest changes, or null when this person cannot read the change history. */
   recent: AuditEntry[] | null;
+  /** The "Worth a look" card, streamed in by the page. */
+  insights?: ReactNode;
 }) {
   const drafts = overview.draftDocuments;
   const posted = overview.postedThisMonth;
@@ -209,6 +213,8 @@ export default function HomeOverview({
               </div>
             </section>
           </div>
+
+          {insights}
 
           <section className={homeStyles.card} aria-label="Go to">
             <h2 className={homeStyles.cardTitle}>Go to</h2>
