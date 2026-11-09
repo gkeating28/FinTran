@@ -28,7 +28,8 @@ export function parseCurrencyName(value: string) {
 }
 
 export function parseCurrencyRate(value: string) {
-  const trimmed = plainDecimal(value);
+  const typed = plainDecimal(value);
+  const trimmed = typed.startsWith(".") ? `0${typed}` : typed.endsWith(".") ? typed.slice(0, -1) : typed;
   if (!/^\d{1,8}(?:\.\d{1,8})?$/.test(trimmed)) return null;
   if (!(Number(trimmed) > 0)) return null;
   return trimmed;
