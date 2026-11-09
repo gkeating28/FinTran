@@ -174,6 +174,13 @@ export default function AskQula({
     router.push(`${href}${href.includes("?") ? "&" : "?"}ask=${stamp}`);
   }
 
+  /** Forgets the conversation. It lives only in this browser session, so nothing is kept elsewhere. */
+  function clearChat() {
+    writeStored(organisationId, { messages: [], open: true });
+    setDraft("");
+    requestAnimationFrame(() => inputRef.current?.focus());
+  }
+
   function setOpen(next: boolean) {
     writeStored(organisationId, { messages: clientSnapshot(organisationId).messages, open: next });
     if (next) requestAnimationFrame(() => inputRef.current?.focus());
@@ -198,9 +205,14 @@ export default function AskQula({
             </h2>
             <p className={styles.subtitle}>Records for {organisationName}.</p>
           </div>
-          <button className={styles.close} type="button" onClick={() => setOpen(false)} aria-label="Close Ask Qula">
-            Close
-          </button>
+          <div className={styles.headActions}>
+            <button className={styles.close} type="button" onClick={clearChat} disabled={pending || messages.length === 0} aria-label="Clear the conversation">
+              Clear
+            </button>
+            <button className={styles.close} type="button" onClick={() => setOpen(false)} aria-label="Close Ask Qula">
+              Close
+            </button>
+          </div>
         </header>
         <div className={styles.log} ref={logRef} role="log" aria-live="polite" aria-relevant="additions">
           {messages.length === 0 ? (

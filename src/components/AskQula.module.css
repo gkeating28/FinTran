@@ -90,6 +90,11 @@
   font-size: 12px;
 }
 
+.headActions {
+  display: flex;
+  gap: 6px;
+}
+
 .close {
   height: 28px;
   padding: 0 8px;
@@ -101,6 +106,11 @@
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
+}
+
+.close:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .log {
