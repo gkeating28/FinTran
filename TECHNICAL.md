@@ -147,7 +147,7 @@ Ask Qula knows the page. A screen that has a record open calls `useAskContext` (
 | Path | What it shows |
 | --- | --- |
 | `/login`, `/signup` | Email sign-in and account creation |
-| `/` | Home dashboard for the open organisation: welcome banner, document counts, documents posted in each of the last six weeks, shortcuts, workspace facts, and the five latest changes for owners and admins. Styles are in `src/components/Home.module.css`, counts in `src/lib/home-data.ts`. |
+| `/` | Home dashboard for the open organisation: welcome banner, document counts, documents posted in each of the last six weeks, shortcuts, workspace facts, and the five latest changes for owners and admins. Styles are in `src/components/Home.module.css`, counts in `src/lib/home-data.ts`. A "Worth a look" card (`HomeInsights`, rules in `src/lib/insights.ts`) streams in after the rest: past due documents, drafts that cannot be sent as e-invoices (newest 10 checked), possible duplicates, unusually large documents and what falls due in 7 days. The rules are fixed and use no AI. Ask Qula reads the same list through its `insights` tool. |
 | `/transactions` | Transaction types, with draft, posted, and void counts |
 | `/transactions/{code}` | Document list for that type |
 | `/transactions/{code}` with a document open | The shared entry form |
@@ -243,6 +243,8 @@ These are the `public` functions the app is allowed to call. Arguments match `sr
 ## Database schema
 
 SQL lives in `supabase/migrations` and is applied in filename order. Almost every business table has `tenant_id` and `organisation_id`. A trigger checks that the organisation belongs to that tenant and blocks a move to another organisation. Codes are trimmed and uppercased there.
+
+The files for the sales migrations (`20261020150759` to `20261020181824`) are the statements as the database recorded them, so the repo and `supabase_migrations.schema_migrations` agree for those versions. Six older files still differ from what the database recorded: `20261010090335`, `20261020101837`, `20261020102015`, `20261020102119`, `20261020102135` and `20261022114948`. The four e-document migrations of 25 October have no recorded text to compare. The database is the source of truth until those are reconciled.
 
 A code is unique inside one organisation. After insert it cannot change (`private.guard_code_unchanged`). Referenced rows use `ON DELETE RESTRICT`. Deleting an organisation cascades the rows that belong only to it. `transaction_headers.tenant_id` and `transaction_lines.tenant_id` are `ON DELETE RESTRICT`, so a tenant with documents cannot be deleted. There is no API for deleting a tenant.
 

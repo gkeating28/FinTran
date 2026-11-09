@@ -3,6 +3,7 @@ import path from "node:path";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { listAuditLog } from "@/lib/audit-data";
 import { explainIssue } from "@/lib/einvoice/rule-help";
+import { getInsights } from "@/lib/insights";
 
 type Client = SupabaseClient;
 type Row = Record<string, unknown>;
@@ -165,6 +166,10 @@ async function runTool(supabase: Client, organisationId: string, name: string, i
       supabase.from("suppliers").select("id, code, name, vat_number, peppol_scheme, peppol_id, payment_terms_days").eq("organisation_id", organisationId).or(`name.ilike.${pattern},code.ilike.${pattern},vat_number.ilike.${pattern},peppol_id.ilike.${pattern}`).limit(LIST_LIMIT),
     ]);
     return { customers: rowsOf(customers.data), suppliers: rowsOf(suppliers.data) };
+  }
+
+  if (name === "insights") {
+    return { insights: await getInsights(supabase, organisationId), note: "Worked out from the last year of documents with fixed rules." };
   }
 
   if (name === "search_products") {

@@ -1,0 +1,2 @@
+-- Sales phase 1 applied from supabase/migrations/20261020143000_sales_phase1_schema.sql
+-- This record is a placeholder. The statements ran as the migrations that follow it.
