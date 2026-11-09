@@ -102,44 +102,62 @@ export default function HomeOverview({
         </p>
       ) : null}
 
+      <section className={homeStyles.banner} aria-label="Welcome">
+        <div className={homeStyles.bannerText}>
+          <h1 className={homeStyles.greeting}>
+            {greeting(userName)}
+            {firstName(userName) ? <span className={homeStyles.greetingName}>{firstName(userName)}</span> : null}
+          </h1>
+          <p className={homeStyles.bannerLede}>
+            {organisationName}{" "}
+            {waiting === 0
+              ? "has nothing waiting for you."
+              : `has ${drafts ?? 0} draft${drafts === 1 ? "" : "s"} and ${overview.eDocumentsReady ?? 0} e-invoice${overview.eDocumentsReady === 1 ? "" : "s"} ready to import.`}
+          </p>
+          <div className={homeStyles.bannerActions}>
+            <Link prefetch href="/transactions" className={homeStyles.bannerPrimary}>
+              Transactions
+            </Link>
+            <Link prefetch href="/e-documents" className={homeStyles.bannerSecondary}>
+              E-documents
+            </Link>
+          </div>
+        </div>
+        <dl className={homeStyles.bannerFacts} aria-label="Workspace">
+          <div>
+            <dt>Organisation</dt>
+            <dd>{organisationName}</dd>
+          </div>
+          <div>
+            <dt>Tenant</dt>
+            <dd>{tenantName}</dd>
+          </div>
+          <div>
+            <dt>Your role</dt>
+            <dd>{role}</dd>
+          </div>
+          <div>
+            <dt>Organisations</dt>
+            <dd>{organisationCount}</dd>
+          </div>
+        </dl>
+        <div className={homeStyles.bannerPeople}>
+          <div className={homeStyles.avatars} aria-hidden="true">
+            {shown.map((name, index) => (
+              <span key={`${name}-${index}`} className={`${homeStyles.avatar} ${homeStyles[AVATAR_TONES[index % AVATAR_TONES.length]]}`}>
+                {initials(name)}
+              </span>
+            ))}
+            {more > 0 ? <span className={`${homeStyles.avatar} ${homeStyles.toneSlate}`}>+{more}</span> : null}
+          </div>
+          <span className={homeStyles.pill}>
+            {memberCount === null ? "People with access unavailable" : `${memberCount} ${memberCount === 1 ? "person has" : "people have"} access`}
+          </span>
+        </div>
+      </section>
+
       <div className={homeStyles.layout}>
         <div className={homeStyles.main}>
-          <section className={homeStyles.banner} aria-label="Welcome">
-            <div className={homeStyles.bannerText}>
-              <h1 className={homeStyles.greeting}>
-                {greeting(userName)}
-                {firstName(userName) ? <span className={homeStyles.greetingName}>{firstName(userName)}</span> : null}
-              </h1>
-              <p className={homeStyles.bannerLede}>
-                {organisationName}{" "}
-                {waiting === 0
-                  ? "has nothing waiting for you."
-                  : `has ${drafts ?? 0} draft${drafts === 1 ? "" : "s"} and ${overview.eDocumentsReady ?? 0} e-invoice${overview.eDocumentsReady === 1 ? "" : "s"} ready to import.`}
-              </p>
-              <div className={homeStyles.bannerActions}>
-                <Link prefetch href="/transactions" className={homeStyles.bannerPrimary}>
-                  Transactions
-                </Link>
-                <Link prefetch href="/e-documents" className={homeStyles.bannerSecondary}>
-                  E-documents
-                </Link>
-              </div>
-            </div>
-            <div className={homeStyles.bannerPeople}>
-              <div className={homeStyles.avatars} aria-hidden="true">
-                {shown.map((name, index) => (
-                  <span key={`${name}-${index}`} className={`${homeStyles.avatar} ${homeStyles[AVATAR_TONES[index % AVATAR_TONES.length]]}`}>
-                    {initials(name)}
-                  </span>
-                ))}
-                {more > 0 ? <span className={`${homeStyles.avatar} ${homeStyles.toneSlate}`}>+{more}</span> : null}
-              </div>
-              <span className={homeStyles.pill}>
-                {memberCount === null ? "People with access unavailable" : `${memberCount} ${memberCount === 1 ? "person has" : "people have"} access`}
-              </span>
-            </div>
-          </section>
-
           <div className={homeStyles.cardGrid}>
             <section className={homeStyles.card} aria-label="Documents">
               <div className={homeStyles.cardHead}>
@@ -230,22 +248,6 @@ export default function HomeOverview({
         </div>
 
         <aside className={homeStyles.side}>
-          <section className={homeStyles.card} aria-label="Workspace">
-            <h2 className={homeStyles.cardTitle}>Workspace</h2>
-            <dl className={homeStyles.facts}>
-              <dt>Organisation</dt>
-              <dd>{organisationName}</dd>
-              <dt>Tenant</dt>
-              <dd>{tenantName}</dd>
-              <dt>Your role</dt>
-              <dd>{role}</dd>
-              <dt>Organisations</dt>
-              <dd>{organisationCount}</dd>
-              <dt>People with access</dt>
-              <dd>{count(memberCount)}</dd>
-            </dl>
-          </section>
-
           {recent ? (
             <section className={homeStyles.card} aria-label="Recent activity">
               <div className={homeStyles.cardHead}>
