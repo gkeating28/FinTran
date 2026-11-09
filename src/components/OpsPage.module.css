@@ -250,6 +250,50 @@
   border-bottom: 1px solid var(--ops-border-soft);
 }
 
+.exportMenu {
+  position: relative;
+  display: flex;
+  gap: 8px;
+}
+
+.exportMenu .quiet {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.exportPanel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  display: grid;
+  gap: 2px;
+  min-width: 220px;
+  max-height: 340px;
+  overflow-y: auto;
+  padding: 8px;
+  border: 1px solid var(--ops-border);
+  border-radius: var(--ops-radius);
+  background: var(--ops-panel);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+}
+
+.exportPanel label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: 6px;
+  font-size: var(--text-sm);
+  color: var(--ops-text);
+  cursor: pointer;
+}
+
+.exportPanel label:hover {
+  background: var(--color-surface-muted);
+}
+
 .search {
   margin-right: auto;
   width: min(280px, 100%);

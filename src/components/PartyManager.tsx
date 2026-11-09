@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { CodeField } from "@/components/CodeField";
 import ConfirmSubmitButton from "@/components/ConfirmDialog";
+import type { ExportField } from "@/components/GridExport";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
 import SchemeLookup from "@/components/SchemeLookup";
@@ -15,6 +16,27 @@ import styles from "@/components/OpsPage.module.css";
 import recordStyles from "@/components/RecordForm.module.css";
 import { exact, slot } from "@/components/recordForm";
 import type { ActionState } from "@/lib/types";
+
+const PARTY_EXPORT_FIELDS: ExportField<PartyRow>[] = [
+  { key: "addressLine1", label: "Address line 1", value: (row) => row.addressLine1 },
+  { key: "addressLine2", label: "Address line 2", value: (row) => row.addressLine2 },
+  { key: "addressLine3", label: "Address line 3", value: (row) => row.addressLine3 },
+  { key: "city", label: "City", value: (row) => row.city },
+  { key: "county", label: "County", value: (row) => row.county },
+  { key: "postCode", label: "Post code", value: (row) => row.postCode },
+  { key: "countryCode", label: "Country", value: (row) => row.countryCode },
+  { key: "phone", label: "Phone", value: (row) => row.phone },
+  { key: "email", label: "Email", value: (row) => row.email },
+  { key: "website", label: "Website", value: (row) => row.website },
+  { key: "contactDetails", label: "Contact details", value: (row) => row.contactDetails },
+  { key: "vatNumber", label: "VAT number", value: (row) => row.vatNumber },
+  { key: "companyNumber", label: "Company number", value: (row) => row.companyNumber },
+  { key: "peppolScheme", label: "Peppol scheme", value: (row) => row.peppolScheme },
+  { key: "peppolId", label: "Peppol ID", value: (row) => row.peppolId },
+  { key: "paymentTermsDays", label: "Payment terms (days)", value: (row) => row.paymentTermsDays, type: "number" },
+  { key: "defaultBuyerReference", label: "Default buyer reference", value: (row) => row.defaultBuyerReference },
+  { key: "notes", label: "Notes", value: (row) => row.notes },
+];
 
 export default function PartyManager({
   kind,
@@ -59,6 +81,7 @@ export default function PartyManager({
       ) : null}
       <DataGrid
         form={kind}
+        exportFields={PARTY_EXPORT_FIELDS}
         onOpen={setDraft}
         rows={rows}
         searchPlaceholder={`Search ${meta.title.toLowerCase()}`}

@@ -134,6 +134,12 @@ Every page that lists rows starts its data read at the same time as the workspac
 
 A page whose main content is a `DataGrid` is laid out so the grid fills the screen. The page is a column, the page's section takes the height that is left, and the grid panel (`gridPanel` in `OpsPage.module.css`) takes what the heading leaves. The rows scroll inside the panel and the header stays at the top. The footer, with the rows per page menu and the page buttons, stays at the bottom of the screen, also when there are only a few rows. This needs the `DataGrid` to be a direct child of the page's section. Below 860px wide the page scrolls as a whole and the grid keeps its natural height.
 
+#### Excel export
+
+Every `DataGrid` has an Excel button and a Fields menu in its toolbar. The button downloads the rows that match the search, sorted as shown, across all pages. The grid does not call an API of its own. A page loads its rows on the server and hands them to the grid, and a row can carry more than the columns display. The export only reads what the row already holds.
+
+Fields offered are the displayed columns, which are ticked, plus the grid's `exportFields`, which are off until ticked. A column can set `exportValue` for a plain value, otherwise its `sortValue` is used. Right aligned columns whose values are all numbers are written as numbers. The choice is remembered in the browser under `fintran.grid-fields.{form}`. `src/lib/xlsx.ts` writes the file with fflate. It has no other dependency.
+
 ### Ask Qula
 
 The sparkle button opens a sheet fixed to the right edge, from the bottom of the title bar to the bottom of the viewport, 400px wide. It slides over 480ms. Escape, Close, and the sparkle button dismiss it. The conversation is kept in `sessionStorage` under `fintran.ask-qula.{organisationId}`.

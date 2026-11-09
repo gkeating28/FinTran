@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useActionState, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import ConfirmSubmitButton from "@/components/ConfirmDialog";
 import DataGrid from "@/components/DataGrid";
+import type { ExportField } from "@/components/GridExport";
 import GridPager from "@/components/GridPager";
 import { useGridPageSize } from "@/components/useGridPageSize";
 import { EInvoicePanel } from "@/components/EInvoicePanel";
@@ -91,6 +92,28 @@ function useHydrated() {
 }
 const SPLIT_HANDLE = 10;
 const SPLIT_MIN = 280;
+
+const INVOICE_EXPORT_FIELDS: ExportField<PurchaseInvoiceRow>[] = [
+  { key: "dueDate", label: "Due date", value: (row) => row.dueDate || null, type: "date" },
+  { key: "supplyDate", label: "Supply date", value: (row) => row.supplyDate || null, type: "date" },
+  { key: "currencyCode", label: "Currency", value: (row) => row.currencyCode },
+  { key: "exchangeRate", label: "Exchange rate", value: (row) => row.exchangeRate, type: "number" },
+  { key: "foreignNett", label: "Nett", value: (row) => row.foreignNettAmount, type: "money" },
+  { key: "foreignVat", label: "VAT", value: (row) => row.foreignVatAmount, type: "money" },
+  { key: "foreignTotal", label: "Total", value: (row) => row.foreignTotalAmount, type: "money" },
+  { key: "homeNett", label: "Nett (home)", value: (row) => row.homeNettAmount, type: "money" },
+  { key: "homeVat", label: "VAT (home)", value: (row) => row.homeVatAmount, type: "money" },
+  { key: "homeTotal", label: "Total (home)", value: (row) => row.homeTotalAmount, type: "money" },
+  { key: "paid", label: "Paid", value: (row) => row.paidAmount, type: "money" },
+  { key: "due", label: "Amount due", value: (row) => row.amountDue, type: "money" },
+  { key: "orderNumber", label: "Order number", value: (row) => row.orderNumber },
+  { key: "supplierReference", label: "Supplier reference", value: (row) => row.supplierReference },
+  { key: "buyerReference", label: "Buyer reference", value: (row) => row.buyerReference },
+  { key: "contractReference", label: "Contract reference", value: (row) => row.contractReference },
+  { key: "paymentTerms", label: "Payment terms", value: (row) => row.paymentTerms },
+  { key: "voidReason", label: "Void reason", value: (row) => row.voidReason },
+  { key: "notes", label: "Notes", value: (row) => row.notes },
+];
 
 type HeaderTab = "document" | "notes" | "payment";
 
@@ -285,6 +308,7 @@ export default function PurchaseInvoiceManager({
       ) : null}
       <DataGrid
         form={typeCode ? `transactions/${typeCode}` : "transactions"}
+        exportFields={INVOICE_EXPORT_FIELDS}
         onOpen={edit}
         rows={visibleRows}
         searchPlaceholder={`Search ${title.toLowerCase()}`}
