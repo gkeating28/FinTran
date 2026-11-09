@@ -1,5 +1,5 @@
 import { answerQuestion } from "@/lib/ask-qula-data";
-import type { AskAnswer, AskBlock, AskDoc, AskEvent } from "@/lib/ask-qula";
+import { ASK_SUGGESTIONS, type AskAnswer, type AskBlock, type AskDoc, type AskEvent } from "@/lib/ask-qula";
 import { getSecret } from "@/lib/secrets";
 import { readClaims } from "@/lib/supabase/claims";
 import { createClient } from "@/lib/supabase/server";
@@ -52,6 +52,9 @@ export async function answerAsk(
     replay({ ...answer, text }, record);
     return { ...answer, text } as AskAnswer;
   };
+
+  // The four fixed suggestions have set answers, so they need no model and come back at once.
+  if ((ASK_SUGGESTIONS as readonly string[]).includes(question.trim())) return keyword();
 
   const prepStarted = Date.now();
   const supabase = await createClient();
