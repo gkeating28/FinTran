@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
+import GridExport, { type ExportField } from "@/components/GridExport";
 import GridPager from "@/components/GridPager";
 import { SortIcon } from "@/components/icons";
 import { useGridPageSize } from "@/components/useGridPageSize";
@@ -18,6 +19,8 @@ export type GridColumn<T> = {
   mono?: boolean;
   align?: "right";
   width?: string;
+  /** Plain value for the Excel export. Defaults to the sort value. */
+  exportValue?: (row: T) => string | number | null;
 };
 
 export default function DataGrid<T extends { id: string }>({
@@ -33,6 +36,7 @@ export default function DataGrid<T extends { id: string }>({
   minWidth,
   onOpen,
   rowOpens,
+  exportFields,
 }: {
   rows: T[];
   columns: GridColumn<T>[];
@@ -46,6 +50,8 @@ export default function DataGrid<T extends { id: string }>({
   minWidth?: string;
   onOpen?: (row: T) => void;
   rowOpens?: (row: T) => boolean;
+  /** Extra fields offered in the Excel export that the grid does not show. Off until ticked. */
+  exportFields?: ExportField<T>[];
 }) {
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState(columns[0]?.key ?? "");
@@ -69,6 +75,18 @@ export default function DataGrid<T extends { id: string }>({
       return sortDirection === "asc" ? result : -result;
     });
   }, [columns, query, rows, searchText, sortDirection, sortKey]);
+
+  const fields = useMemo<ExportField<T>[]>(
+    () => [
+      ...columns.map((column) => ({
+        key: column.key,
+        label: column.label,
+        value: column.exportValue ?? column.sortValue,
+      })),
+      ...(exportFields ?? []).map((field) => ({ ...field, key: `x.${field.key}`, defaultOn: field.defaultOn ?? false })),
+    ],
+    [columns, exportFields],
+  );
 
   const paged = gridPageSlice(filtered, pageIndex, pageSize);
   const { page, pageCount, rows: visible, from, to } = paged;
@@ -104,6 +122,7 @@ export default function DataGrid<T extends { id: string }>({
             }}
           />
         </label>
+        <GridExport form={form} rows={filtered} fields={fields} />
         {toolbar}
       </div>
       <div className={styles.tableScroll}>
