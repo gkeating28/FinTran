@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getWorkspace } from "@/lib/data";
 import { requireCurrentOrganisation } from "@/lib/organisation-guard";
-import { postedEInvoiceError, shouldGenerateEInvoice } from "@/lib/posted-einvoice";
+import { friendlyError } from "@/lib/purchase-invoice-errors";
 import {
   optionalText,
   parseExchangeRate,
@@ -13,38 +13,13 @@ import {
   parseUuid,
   type PurchaseInvoiceLine,
 } from "@/lib/purchase-invoices";
-import { ORGANISATION_LOGO_BUCKET, organisationSnapshotPath } from "@/lib/organisation-logo";
+import { postDocumentNow } from "@/lib/post-document";
 import { parseAmount } from "@/lib/products";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionState } from "@/lib/types";
 
 function text(formData: FormData, name: string) {
   return String(formData.get(name) ?? "");
-}
-
-function friendlyError(error: { code?: string; message: string } | null, fallback: string) {
-  if (!error) return fallback;
-  if (error.code === "23505" && error.message.includes("supplier_reference")) {
-    return "This supplier invoice number has already been entered for this supplier.";
-  }
-  if (error.code === "23505") return "That reference is already used for this transaction type.";
-  if (error.code === "23503" && error.message.includes("suppliers")) {
-    return "Choose a supplier from this organisation.";
-  }
-  if (error.code === "23503" && error.message.includes("currencies")) {
-    return "Choose a currency from this organisation.";
-  }
-  if (error.code === "23503" && error.message.includes("unit_code")) return "Choose a unit.";
-  if (error.code === "23503" && error.message.includes("preceding_header")) {
-    return "Choose a posted invoice from this organisation.";
-  }
-  if (error.code === "23503") return "Choose a code from this organisation.";
-  if (error.code === "P0001") return error.message;
-  if (error.message.includes("Discount cannot")) return "Discount cannot be more than quantity times price.";
-  if (error.message.includes("Purchases transaction type")) return "Choose a Purchases transaction type.";
-  if (error.message.includes("exchange rate")) return "Enter an exchange rate greater than 0.";
-  if (error.message.includes("Expense rate")) return "Choose an Expense VAT rate.";
-  return error.message || fallback;
 }
 
 async function currentOrganisation() {
@@ -286,40 +261,9 @@ export async function postPurchaseInvoice(formData: FormData) {
   if (workspace.status !== "ready") redirect("/login");
   const current = await currentOrganisation();
   const supabase = await createClient();
-  const defaults = await supabase
-    .from("organisation_defaults")
-    .select("logo_path")
-    .eq("organisation_id", current.organisationId)
-    .maybeSingle();
-  let logoPath: string | null = null;
-  if (defaults.data?.logo_path) {
-    logoPath = organisationSnapshotPath(current.organisationId, id);
-    const copied = await supabase.storage.from(ORGANISATION_LOGO_BUCKET).copy(defaults.data.logo_path, logoPath);
-    if (copied.error) {
-      redirect(`${next}?error=${encodeURIComponent("The organisation logo could not be copied, so the document was not posted.")}`);
-    }
-  }
-  const { error } = await supabase.rpc("post_document", { p_header_id: id, p_logo_path: logoPath });
-  if (error) {
-    if (logoPath) await supabase.storage.from(ORGANISATION_LOGO_BUCKET).remove([logoPath]);
-    redirect(`${next}?error=${encodeURIComponent(friendlyError(error, "That document could not be posted."))}`);
-  }
-
-  const posted = await supabase
-    .from("transaction_headers")
-    .select("transaction_types(type, document_kind)")
-    .eq("id", id)
-    .maybeSingle();
-  const kind = posted.data?.transaction_types as { type?: string; document_kind?: string } | { type?: string; document_kind?: string }[] | null;
-  const typeRow = Array.isArray(kind) ? kind[0] : kind;
-  if (shouldGenerateEInvoice(typeRow?.type, typeRow?.document_kind)) {
-    try {
-      const { createOutbound } = await import("@/lib/einvoice/store");
-      await createOutbound(supabase, id, current.organisationId);
-    } catch (generationError) {
-      redirect(`${next}?error=${encodeURIComponent(postedEInvoiceError(generationError))}`);
-    }
-  }
+  const result = await postDocumentNow(supabase, current.organisationId, id);
+  if (result.error) redirect(`${next}?error=${encodeURIComponent(result.error)}`);
+  if (result.warning) redirect(`${next}?error=${encodeURIComponent(result.warning)}`);
 
   revalidatePath("/transactions");
   revalidatePath("/transactions/[code]", "page");

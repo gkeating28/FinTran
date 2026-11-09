@@ -1,4 +1,4 @@
-import type { AskBlock, AskDoc, AskEvent } from "@/lib/ask-qula";
+import type { AskBlock, AskDoc, AskEvent, AskProposal } from "@/lib/ask-qula";
 
 /** The answer as it builds up while the stream arrives. */
 export type LiveAnswer = {
@@ -7,10 +7,13 @@ export type LiveAnswer = {
   docs: AskDoc[];
   blocks: AskBlock[];
   followups: string[];
+  proposal: AskProposal | null;
   error: string;
+  /** "ai" when a model wrote the answer, so it can be rated. */
+  intent: string;
 };
 
-export const EMPTY_LIVE: LiveAnswer = { text: "", status: "", docs: [], blocks: [], followups: [], error: "" };
+export const EMPTY_LIVE: LiveAnswer = { text: "", status: "", docs: [], blocks: [], followups: [], proposal: null, error: "", intent: "" };
 
 export function applyEvent(live: LiveAnswer, event: AskEvent): LiveAnswer {
   switch (event.type) {
@@ -24,6 +27,10 @@ export function applyEvent(live: LiveAnswer, event: AskEvent): LiveAnswer {
       return { ...live, blocks: [...live.blocks, event.block] };
     case "followups":
       return { ...live, followups: event.items };
+    case "proposal":
+      return { ...live, proposal: event.proposal };
+    case "done":
+      return { ...live, intent: event.intent };
     case "error":
       return { ...live, error: event.text, status: "" };
     default:

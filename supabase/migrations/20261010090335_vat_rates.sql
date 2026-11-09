@@ -41,4 +41,3 @@ create policy vat_rates_delete on public.vat_rates
 
 revoke all on table public.vat_rates from public, anon;
 grant select, insert, update, delete on table public.vat_rates to authenticated;
-revoke truncate, references, trigger on table public.vat_rates from authenticated;

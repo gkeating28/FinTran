@@ -1,6 +1,7 @@
 import { answerQuestion } from "@/lib/ask-qula-data";
 import type { AskAnswer, AskBlock, AskDoc, AskEvent } from "@/lib/ask-qula";
 import { getSecret } from "@/lib/secrets";
+import { readClaims } from "@/lib/supabase/claims";
 import { createClient } from "@/lib/supabase/server";
 import { runAiStream } from "./run";
 import type { AiMessage } from "./adapter";
@@ -42,6 +43,7 @@ export async function answerAsk(
     else if (event.type === "docs") collected.docs = event.docs;
     else if (event.type === "block") collected.blocks = [...(collected.blocks ?? []), event.block as AskBlock];
     else if (event.type === "followups") collected.followups = event.items;
+    else if (event.type === "proposal") collected.proposal = event.proposal;
     emit(event);
   };
   const keyword = async (note?: string) => {
@@ -81,12 +83,14 @@ export async function answerAsk(
 
   if (!apiKey) return keyword();
 
+  const claims = await readClaims(supabase);
+  const userId = typeof claims.data?.claims?.sub === "string" ? claims.data.claims.sub : undefined;
   let sent = false;
   const started = Date.now();
   try {
     const run = await Promise.race([
       runAiStream(
-        { supabase, organisationId, question, history, context, provider: row.provider_code, model: row.model, config: row.config ?? {}, apiKey },
+        { supabase, organisationId, userId, question, history, context, provider: row.provider_code, model: row.model, config: row.config ?? {}, apiKey },
         (event) => {
           if (event.type === "text") sent = true;
           record(event);
