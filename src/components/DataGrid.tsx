@@ -89,7 +89,7 @@ export default function DataGrid<T extends { id: string }>({
   }
 
   return (
-    <div className={styles.panel}>
+    <div className={`${styles.panel} ${styles.gridPanel}`}>
       <div className={styles.gridToolbar}>
         <label className={styles.search}>
           <span className="sr-only">Search</span>

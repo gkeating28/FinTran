@@ -55,7 +55,7 @@ export default function OrganisationGrid({
   const [editing, setEditing] = useState<OrganisationGridRow | null>(null);
 
   return (
-    <div>
+    <>
       <DataGrid
         form="organisations"
         onOpen={setEditing}
@@ -119,7 +119,7 @@ export default function OrganisationGrid({
           onClose={() => setEditing(null)}
         />
       ) : null}
-    </div>
+    </>
   );
 }
 

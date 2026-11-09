@@ -130,6 +130,10 @@ Every page that lists rows starts its data read at the same time as the workspac
 5. A link to a page of rows uses `prefetch` on the `Link`, as the sidebar does, so the page is fetched before the click and a visited page is reused for five minutes. A link without it waits for the server after the click. The Admin tiles, the Transactions tiles and the Home shortcuts all use it. A save clears the cached page.
 6. Pages that need the organisation name, role or memberships still await the workspace, because those come from it.
 
+### Grids
+
+A page whose main content is a `DataGrid` is laid out so the grid fills the screen. The page is a column, the page's section takes the height that is left, and the grid panel (`gridPanel` in `OpsPage.module.css`) takes what the heading leaves. The rows scroll inside the panel and the header stays at the top. The footer, with the rows per page menu and the page buttons, stays at the bottom of the screen, also when there are only a few rows. This needs the `DataGrid` to be a direct child of the page's section. Below 860px wide the page scrolls as a whole and the grid keeps its natural height.
+
 ### Ask Qula
 
 The sparkle button opens a sheet fixed to the right edge, from the bottom of the title bar to the bottom of the viewport, 400px wide. It slides over 480ms. Escape, Close, and the sparkle button dismiss it. The conversation is kept in `sessionStorage` under `fintran.ask-qula.{organisationId}`.
