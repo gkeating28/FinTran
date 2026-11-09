@@ -350,6 +350,38 @@ button.card:hover {
   font-size: 12px;
 }
 
+.rating,
+.commentForm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.thumb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--ops-border, #dde1e8);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--ops-text-2, #3a4356);
+  cursor: pointer;
+}
+
+.thumb:hover {
+  border-color: var(--ops-accent, #2c4c78);
+  color: var(--ops-accent, #2c4c78);
+}
+
+.rated {
+  margin: 0;
+  color: var(--ops-muted, #8891a0);
+  font-size: 12px;
+}
+
 .block {
   display: flex;
   flex-direction: column;

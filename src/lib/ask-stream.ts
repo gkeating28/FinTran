@@ -8,9 +8,11 @@ export type LiveAnswer = {
   blocks: AskBlock[];
   followups: string[];
   error: string;
+  /** "ai" when a model wrote the answer, so it can be rated. */
+  intent: string;
 };
 
-export const EMPTY_LIVE: LiveAnswer = { text: "", status: "", docs: [], blocks: [], followups: [], error: "" };
+export const EMPTY_LIVE: LiveAnswer = { text: "", status: "", docs: [], blocks: [], followups: [], error: "", intent: "" };
 
 export function applyEvent(live: LiveAnswer, event: AskEvent): LiveAnswer {
   switch (event.type) {
@@ -24,6 +26,8 @@ export function applyEvent(live: LiveAnswer, event: AskEvent): LiveAnswer {
       return { ...live, blocks: [...live.blocks, event.block] };
     case "followups":
       return { ...live, followups: event.items };
+    case "done":
+      return { ...live, intent: event.intent };
     case "error":
       return { ...live, error: event.text, status: "" };
     default:

@@ -25,10 +25,12 @@ export default async function AskQulaSettingsPage({
   const params = await searchParams;
   const supabase = await createClient();
   const organisationId = workspace.current.organisationId;
-  const [settings, secrets, usage] = await Promise.all([
-    supabase.from("ai_settings").select("enabled, provider_code, model, config, user_hourly_limit, organisation_monthly_limit, data_notice_accepted_at").eq("organisation_id", organisationId).maybeSingle(),
+  const [settings, secrets, usage, feedback, actions] = await Promise.all([
+    supabase.from("ai_settings").select("enabled, provider_code, model, config, user_hourly_limit, organisation_monthly_limit, data_notice_accepted_at, log_answers").eq("organisation_id", organisationId).maybeSingle(),
     supabase.rpc("organisation_secret_status", { p_organisation_id: organisationId }),
     supabase.from("ai_usage").select("user_id, outcome, input_tokens, output_tokens").eq("organisation_id", organisationId),
+    supabase.from("ai_feedback").select("rating, at, comment, question, answer").eq("organisation_id", organisationId).order("at", { ascending: false }).limit(200),
+    supabase.from("ai_actions").select("at, action, summary, outcome, detail, user_id").eq("organisation_id", organisationId).order("at", { ascending: false }).limit(20),
   ]);
   const row = (settings.data ?? {}) as {
     enabled?: boolean;
@@ -38,6 +40,7 @@ export default async function AskQulaSettingsPage({
     user_hourly_limit?: number;
     organisation_monthly_limit?: number | null;
     data_notice_accepted_at?: string | null;
+    log_answers?: boolean;
   };
   const hint = ((secrets.data ?? []) as { kind: string; hint: string | null }[]).find((secret) => secret.kind === "ai_api_key")?.hint;
   const byUser = new Map<string, { questions: number; tokens: number; errors: number }>();
@@ -49,6 +52,18 @@ export default async function AskQulaSettingsPage({
     if (item.outcome === "error" || item.outcome === "fallback") current.errors += 1;
     byUser.set(key, current);
   }
+  const ratings = (feedback.data ?? []) as { rating: number; at: string; comment: string | null; question: string | null; answer: string | null }[];
+  const thumbsUp = ratings.filter((item) => item.rating === 1).length;
+  const thumbsDown = ratings.length - thumbsUp;
+  const lowRated = ratings.filter((item) => item.rating === -1).slice(0, 8);
+  const done = (actions.data ?? []) as { at: string; action: string; summary: string; outcome: string; detail: string | null; user_id: string | null }[];
+  const actionUsers = [...new Set(done.map((item) => item.user_id).filter((id): id is string => Boolean(id)))];
+  const names = new Map<string, string>();
+  if (actionUsers.length > 0) {
+    const profiles = await supabase.from("profiles").select("id, display_name, email").in("id", actionUsers);
+    for (const profile of (profiles.data ?? []) as { id: string; display_name: string | null; email: string }[]) names.set(profile.id, profile.display_name || profile.email);
+  }
+  const when = (value: string) => new Date(value).toLocaleString("en-IE", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Dublin" });
   const providerName = PROVIDERS.find((provider) => provider.code === row.provider_code)?.name ?? "Anthropic";
   const status = params.error ?? params.message ?? (row.enabled ? "Ask Qula is enabled for this organisation." : "Ask Qula answers the fixed questions until you enable a provider.");
 
@@ -109,6 +124,10 @@ export default async function AskQulaSettingsPage({
             Questions, and the organisation&apos;s data needed to answer them, will be sent to {providerName}. Check this meets your data protection obligations.
           </label>
           <label className={`${styles.checkLine} ${styles.wide}`}>
+            <input type="checkbox" name="logAnswers" defaultChecked={Boolean(row.log_answers)} />
+            When someone rates an answer, keep the question and the answer with the rating so you can review it. Off by default. With it off only the thumb and any comment are kept.
+          </label>
+          <label className={`${styles.checkLine} ${styles.wide}`}>
             <input type="checkbox" name="enabled" defaultChecked={row.enabled} />
             Enable
           </label>
@@ -154,6 +173,66 @@ export default async function AskQulaSettingsPage({
             ))}
           </tbody>
         </table>
+      </div>
+      <div className={styles.panel}>
+        <div className={styles.panelHead}>
+          Feedback
+          <span className={styles.panelMeta}>{ratings.length === 0 ? "No ratings yet" : `${thumbsUp} helpful, ${thumbsDown} not helpful (latest ${ratings.length})`}</span>
+        </div>
+        {lowRated.length === 0 ? (
+          <p className={styles.empty}>Answers rated not helpful will show here. {row.log_answers ? "The question and answer are kept with each rating." : "Only the rating and any comment are kept, because keeping the question and answer is switched off above."}</p>
+        ) : (
+          <table className={styles.lineTable}>
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>Comment</th>
+                <th>Question</th>
+                <th>Answer</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lowRated.map((item) => (
+                <tr key={item.at}>
+                  <td>{when(item.at)}</td>
+                  <td>{item.comment ?? ""}</td>
+                  <td>{item.question ?? ""}</td>
+                  <td>{item.answer ?? ""}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+      <div className={styles.panel}>
+        <div className={styles.panelHead}>
+          Actions Ask Qula carried out
+          <span className={styles.panelMeta}>{done.length === 0 ? "None yet" : `Latest ${done.length}`}</span>
+        </div>
+        {done.length === 0 ? (
+          <p className={styles.empty}>When someone confirms an action Ask Qula proposed, such as posting a draft, it is recorded here.</p>
+        ) : (
+          <table className={styles.lineTable}>
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>Person</th>
+                <th>What</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              {done.map((item) => (
+                <tr key={`${item.at}-${item.summary}`}>
+                  <td>{when(item.at)}</td>
+                  <td>{item.user_id ? (names.get(item.user_id) ?? "Unknown") : "System"}</td>
+                  <td>{item.summary}</td>
+                  <td>{item.outcome === "done" ? "Done" : `Failed${item.detail ? `: ${item.detail}` : ""}`}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </section>
   );

@@ -18,6 +18,11 @@ type AskMessage = {
   docs?: AskDoc[];
   blocks?: AskBlock[];
   followups?: string[];
+  /** True when a model wrote the answer. Only those can be rated. */
+  ai?: boolean;
+  /** The question the answer replies to, kept so a rating can say what it was about. */
+  question?: string;
+  rated?: 1 | -1;
 };
 
 type StoredChat = {
@@ -141,6 +146,7 @@ export default function AskQula({
         docs: answer.docs.length ? answer.docs : undefined,
         blocks: answer.blocks.length ? answer.blocks : undefined,
         followups: answer.followups.length ? answer.followups : undefined,
+        ...(answer.intent === "ai" && answer.text.trim() ? { ai: true, question: text } : {}),
       });
     } catch {
       const partial = answer.text.trim();
@@ -172,6 +178,20 @@ export default function AskQula({
     writeStored(organisationId, { messages: clientSnapshot(organisationId).messages, open: true });
     const stamp = Date.now().toString(36);
     router.push(`${href}${href.includes("?") ? "&" : "?"}ask=${stamp}`);
+  }
+
+  async function rate(message: AskMessage, rating: 1 | -1, comment: string) {
+    const current = clientSnapshot(organisationId);
+    writeStored(organisationId, { messages: current.messages.map((item) => (item.id === message.id ? { ...item, rated: rating } : item)), open: current.open });
+    try {
+      await fetch("/api/ask-qula/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ organisationId, rating, question: message.question ?? "", answer: message.text, comment }),
+      });
+    } catch {
+      // The thumb stays on screen. A lost rating is not worth interrupting the chat for.
+    }
   }
 
   /** Forgets the conversation. It lives only in this browser session, so nothing is kept elsewhere. */
@@ -225,6 +245,7 @@ export default function AskQula({
           {messages.map((message) => (
             <article key={message.id} className={message.role === "user" ? styles.user : styles.assistant}>
               <Answer text={message.text} blocks={message.blocks} docs={message.docs} onOpen={openDocument} />
+              {message.ai ? <RatingRow message={message} onRate={rate} /> : null}
             </article>
           ))}
           {pending ? (
@@ -312,6 +333,50 @@ function Answer({ text, blocks, docs, onOpen }: { text: string; blocks?: AskBloc
         </div>
       ) : null}
     </>
+  );
+}
+
+function RatingRow({ message, onRate }: { message: AskMessage; onRate: (message: AskMessage, rating: 1 | -1, comment: string) => void }) {
+  const [commenting, setCommenting] = useState(false);
+  const [comment, setComment] = useState("");
+  if (message.rated) {
+    return <p className={styles.rated}>{message.rated === 1 ? "Thanks, glad it helped." : "Thanks, that helps us improve it."}</p>;
+  }
+  if (commenting) {
+    return (
+      <form
+        className={styles.commentForm}
+        onSubmit={(event) => {
+          event.preventDefault();
+          onRate(message, -1, comment);
+        }}
+      >
+        <label className={styles.questionLabel} htmlFor={`${message.id}-comment`}>
+          What was wrong
+        </label>
+        <input id={`${message.id}-comment`} className={styles.question} value={comment} maxLength={300} autoComplete="off" autoFocus onChange={(event) => setComment(event.target.value)} />
+        <button className={styles.send} type="submit">
+          Send
+        </button>
+        <button className={styles.close} type="button" onClick={() => onRate(message, -1, "")}>
+          Skip
+        </button>
+      </form>
+    );
+  }
+  return (
+    <div className={styles.rating} role="group" aria-label="Was this answer helpful?">
+      <button className={styles.thumb} type="button" aria-label="Helpful" title="Helpful" onClick={() => onRate(message, 1, "")}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M7 11v9H4v-9h3zm0 0 4-8c1.7 0 3 1.3 3 3v3h5.3a2 2 0 0 1 2 2.3l-1.2 7A2 2 0 0 1 18.1 20H7" />
+        </svg>
+      </button>
+      <button className={styles.thumb} type="button" aria-label="Not helpful" title="Not helpful" onClick={() => setCommenting(true)}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ transform: "rotate(180deg)" }}>
+          <path d="M7 11v9H4v-9h3zm0 0 4-8c1.7 0 3 1.3 3 3v3h5.3a2 2 0 0 1 2 2.3l-1.2 7A2 2 0 0 1 18.1 20H7" />
+        </svg>
+      </button>
+    </div>
   );
 }
 
@@ -476,6 +541,8 @@ function isMessage(value: unknown): value is AskMessage {
   }
   if (message.docs != null && (!Array.isArray(message.docs) || !message.docs.every(isDoc))) return false;
   if (message.blocks != null && (!Array.isArray(message.blocks) || !message.blocks.every(isBlock))) return false;
+  if (message.ai != null && typeof message.ai !== "boolean") return false;
+  if (message.rated != null && message.rated !== 1 && message.rated !== -1) return false;
   if (message.followups != null && (!Array.isArray(message.followups) || !message.followups.every((item) => typeof item === "string"))) return false;
   return true;
 }
