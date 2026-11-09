@@ -4,7 +4,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-5);
-  align-items: flex-start;
+  align-items: stretch;
 }
 
 .main {
@@ -23,7 +23,12 @@
   gap: 20px;
 }
 
-/* Banner */
+/* Recent activity runs from the top of the cards to the bottom of Go to. */
+.side > .card {
+  flex: 1;
+}
+
+/* Banner, full width above the cards */
 
 .banner {
   display: flex;
@@ -38,6 +43,7 @@
 }
 
 .bannerText {
+  flex: 1 1 280px;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -107,6 +113,27 @@
 .bannerSecondary:focus-visible {
   outline: 2px solid var(--chrome-focus);
   outline-offset: 2px;
+}
+
+.bannerFacts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(120px, auto));
+  gap: 14px 40px;
+  margin: 0;
+  padding: 0 0 0 32px;
+  border-left: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.bannerFacts dt {
+  color: var(--chrome-text);
+  font-size: var(--text-xs);
+}
+
+.bannerFacts dd {
+  margin: 2px 0 0;
+  color: var(--chrome-text-strong);
+  font-size: var(--text-base);
+  font-weight: 600;
 }
 
 .bannerPeople {
