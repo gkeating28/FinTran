@@ -155,3 +155,12 @@ test("answer text keeps its bold, lists and paragraphs, and an unclosed bold run
   assert.deepEqual(blocks.map((block) => block.type), ["p", "ul", "p"]);
   assert.equal(blocks[1].type === "ul" ? blocks[1].items.length : 0, 2);
 });
+
+test("the fixed instructions are marked for caching and the changing part is not", async () => {
+  const { anthropicSystem } = await import("./providers");
+  const blocks = anthropicSystem("Fixed rules.\nToday is 2026-11-09.", "Fixed rules.") as { text: string; cache_control?: unknown }[];
+  assert.equal(blocks.length, 2);
+  assert.deepEqual(blocks[0], { type: "text", text: "Fixed rules.", cache_control: { type: "ephemeral" } });
+  assert.equal(blocks[1].cache_control, undefined);
+  assert.equal(anthropicSystem("Something else", "Fixed rules."), "Something else");
+});
