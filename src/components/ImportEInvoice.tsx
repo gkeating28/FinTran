@@ -559,7 +559,7 @@ export function ImportEInvoice({
       ? `Import ${documentTitle}`
       : "Import e-invoice";
   const statusText = unsupported.length
-    ? `This e-invoice uses features Qula Tran cannot import yet: ${unsupported.join(", ")}`
+    ? `This e-invoice uses features Qula Plus cannot import yet: ${unsupported.join(", ")}`
     : typesReady && !typeId
       ? purchaseTypes.length === 0
         ? `Add a Purchases ${creditNote ? "credit note" : "invoice"} under Transaction types before importing.`
@@ -589,7 +589,7 @@ export function ImportEInvoice({
               if (saving) return;
               setError(null);
               if (unsupported.length) {
-                setError(`This e-invoice uses features Qula Tran cannot import yet: ${unsupported.join(", ")}`);
+                setError(`This e-invoice uses features Qula Plus cannot import yet: ${unsupported.join(", ")}`);
                 return;
               }
               if (!typeId) {

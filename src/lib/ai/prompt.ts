@@ -8,7 +8,7 @@ export type AskContext = {
   section?: string;
 };
 
-export const ASK_SYSTEM_PROMPT = `You answer only about this organisation's Qula Tran data and how to use Qula Tran.
+export const ASK_SYSTEM_PROMPT = `You answer only about this organisation's Qula Plus data and how to use Qula Plus.
 Use only figures returned by tools, and say when you do not have the data. Never work out a total yourself when a tool returns it.
 Use British English. Show money in Euro by default, with the € symbol, unless a document is in another currency. Show dates as 6 Nov 2026. In tool inputs write dates as YYYY-MM-DD.
 Refer to documents by document number and return cards for documents you mention.
@@ -56,7 +56,7 @@ export const ASK_TOOLS = [
   { name: "get_e_document", description: "Read one e-document with its validation results. Each result says what it means and where to fix it.", parameters: { type: "object", properties: { id: { type: "string" } } } },
   { name: "readiness_issues", description: "What stops drafts being sent as e-invoices, with what each issue means and where to fix it. Give an id or number for one draft.", parameters: { type: "object", properties: { id: { type: "string" }, number: { type: "string" } } } },
   { name: "explain_rule", description: "Explain one e-invoice rule, such as BR-CO-15 or PEPPOL-EN16931-R003, and where to fix it.", parameters: { type: "object", properties: { ruleId: { type: "string" }, businessTerm: { type: "string" }, direction: DIRECTION }, required: ["ruleId"] } },
-  { name: "help_search", description: "Search Qula Tran help.", parameters: { type: "object", properties: { query: { type: "string" } } } },
+  { name: "help_search", description: "Search Qula Plus help.", parameters: { type: "object", properties: { query: { type: "string" } } } },
   { name: "show_table", description: "Show a table to the person, only for figures that no lookup already shows. Every cell is text and amounts are already formatted.", parameters: { type: "object", properties: { title: { type: "string" }, columns: { type: "array", items: { type: "string" } }, rows: { type: "array", items: { type: "array", items: { type: "string" } } } }, required: ["columns", "rows"] } },
   { name: "show_chart", description: "Show a bar chart. One value for each label.", parameters: { type: "object", properties: { title: { type: "string" }, unit: { type: "string", description: "For example € or documents." }, labels: { type: "array", items: { type: "string" } }, values: { type: "array", items: { type: "number" } } }, required: ["labels", "values"] } },
   { name: "suggest_followups", description: "Offer two short follow up questions as buttons.", parameters: { type: "object", properties: { questions: { type: "array", items: { type: "string" } } }, required: ["questions"] } },

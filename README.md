@@ -1,6 +1,6 @@
-# Qula Tran
+# Qula Plus
 
-Qula Tran is the shell for defining and managing financial transactions separately for each organisation. The repository and the hosted Supabase project keep the name FinTran.
+Qula Plus is the shell for defining and managing financial transactions separately for each organisation. The repository and the hosted Supabase project keep the name FinTran.
 
 A tenant owns organisations. People sign in and are granted access to particular organisations inside that tenant. Transaction definitions themselves come later; this version holds the account structure and the place those definitions will live.
 
