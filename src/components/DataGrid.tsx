@@ -51,7 +51,6 @@ export default function DataGrid<T extends { id: string }>({
   onOpen,
   rowOpens,
   exportFields,
-  gridLinesSwitch = false,
 }: {
   rows: T[];
   columns: GridColumn<T>[];
@@ -67,8 +66,6 @@ export default function DataGrid<T extends { id: string }>({
   rowOpens?: (row: T) => boolean;
   /** Extra fields offered in the Excel export that the grid does not show. Off until ticked. */
   exportFields?: ExportField<T>[];
-  /** Trial: a toolbar button that steps through row lines, both, column lines and none. */
-  gridLinesSwitch?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState(columns[0]?.key ?? "");
@@ -78,7 +75,6 @@ export default function DataGrid<T extends { id: string }>({
   const [gridLines, setGridLines] = useState<GridLines>("rows");
 
   useEffect(() => {
-    if (!gridLinesSwitch) return;
     // Read after mount so the server and first client render agree.
     void Promise.resolve().then(() => {
       try {
@@ -89,7 +85,7 @@ export default function DataGrid<T extends { id: string }>({
         // The choice is only a convenience.
       }
     });
-  }, [form, gridLinesSwitch]);
+  }, [form]);
 
   function nextGridLines() {
     const next = GRID_LINES[(GRID_LINES.indexOf(gridLines) + 1) % GRID_LINES.length];
@@ -165,23 +161,12 @@ export default function DataGrid<T extends { id: string }>({
           />
         </label>
         {toolbar}
-        {gridLinesSwitch ? (
-          <button
-            className={styles.quiet}
-            type="button"
-            onClick={nextGridLines}
-            aria-label={`Grid lines: ${GRID_LINES_LABEL[gridLines]}. Change`}
-            title={`${GRID_LINES_LABEL[gridLines]}. Click to change.`}
-          >
-            <GridLinesIcon size={16} />
-          </button>
-        ) : null}
       </div>
       <div className={styles.tableScroll}>
         <table
           className={actionsWidth ? `${styles.table} ${styles.tableFixed}` : styles.table}
           style={minWidth ? { minWidth } : undefined}
-          data-lines={gridLinesSwitch ? gridLines : undefined}
+          data-lines={gridLines}
         >
           {actionsWidth ? (
             <colgroup>
@@ -262,7 +247,22 @@ export default function DataGrid<T extends { id: string }>({
         pageSize={pageSize}
         onPage={setPageIndex}
         onPageSize={changePageSize}
-        start={<GridExport form={form} rows={filtered} fields={fields} />}
+        start={
+          <>
+            <div className={styles.exportMenu}>
+              <button
+                className={styles.quiet}
+                type="button"
+                onClick={nextGridLines}
+                aria-label={`Grid lines: ${GRID_LINES_LABEL[gridLines]}. Change`}
+                title={`${GRID_LINES_LABEL[gridLines]}. Click to change.`}
+              >
+                <GridLinesIcon size={16} />
+              </button>
+            </div>
+            <GridExport form={form} rows={filtered} fields={fields} />
+          </>
+        }
         summary={
           filtered.length === 0
             ? "No rows"
