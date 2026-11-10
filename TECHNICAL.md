@@ -144,6 +144,10 @@ Every `DataGrid` has an Excel button and a Fields menu in its footer, beside the
 
 Fields offered are the displayed columns, which are ticked, plus the grid's `exportFields`, which are off until ticked. A column can set `exportValue` for a plain value, otherwise its `sortValue` is used. Right aligned columns whose values are all numbers are written as numbers. The choice is remembered in the browser under `fintran.grid-fields.{form}`. `src/lib/xlsx.ts` writes the file with fflate. It has no other dependency.
 
+#### Grid lines (trial)
+
+The Suppliers grid has a grid lines button at the right of its toolbar, turned on with the `gridLinesSwitch` prop of `DataGrid`. Each click steps through row lines (the standard look), row and column lines, column lines and no lines. The choice is remembered in the browser under `fintran.grid-lines.{form}`. Other grids do not show the button.
+
 ### Ask Qula
 
 The sparkle button opens a sheet fixed to the right edge, from the bottom of the title bar to the bottom of the viewport, 400px wide. It slides over 480ms. Escape, Close, and the sparkle button dismiss it. The conversation is kept in `sessionStorage` under `fintran.ask-qula.{organisationId}`.
