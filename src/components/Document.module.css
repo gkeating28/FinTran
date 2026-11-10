@@ -180,6 +180,33 @@
   cursor: default;
 }
 
+/* A status shown in a grid, in the same colours as the Readiness button. It is not a button. */
+.statusTag {
+  display: inline-block;
+  border-radius: var(--ops-radius);
+  background: #e7ebf0;
+  color: var(--ops-text-2);
+  font-weight: 700;
+  line-height: 1;
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+
+.statusTag[data-status="ready"] {
+  background: var(--ops-ok);
+  color: #fff;
+}
+
+.statusTag[data-status="warning"] {
+  background: var(--ops-warn);
+  color: #fff;
+}
+
+.statusTag[data-status="error"] {
+  background: var(--ops-danger);
+  color: #fff;
+}
+
 .readinessButton:hover {
   filter: brightness(0.92);
 }
