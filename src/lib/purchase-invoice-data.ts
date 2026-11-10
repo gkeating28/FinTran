@@ -20,6 +20,8 @@ import {
   type SupplierChoice,
 } from "@/lib/purchase-invoices";
 import { listUnits } from "@/lib/reference-data";
+import { numberValue } from "@/lib/numbers";
+import { orderProgress } from "@/lib/order-progress";
 import { parseDocumentKind } from "@/lib/transaction-types";
 import { createClient } from "@/lib/supabase/server";
 
@@ -289,6 +291,16 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
 
   const rows = (headers.data ?? []).flatMap((row) => {
       if (typeCode && !typeIds.has(row.transaction_type_id)) return [];
+      const progress =
+        embeddedType(row.transaction_types)?.document_kind === "order"
+          ? orderProgress(
+              (linesByHeader.get(row.id) ?? []).map((line) => ({
+                quantity: numberValue(line.quantity),
+                nett: numberValue(line.nettAmount),
+                drawn: numberValue(line.drawnQuantity),
+              })),
+            )
+          : null;
       return [{
       id: row.id,
       transactionTypeId: row.transaction_type_id,
@@ -345,6 +357,9 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
       lines: linesByHeader.get(row.id) ?? [],
       credits: creditLists.get(row.id) ?? [],
       remainingAmount: formatMoney(Math.max(0, Number(row.foreign_total_amount) - (postedCreditTotals.get(row.id) ?? 0))),
+      invoicing: (progress?.state ?? "") as PurchaseInvoiceRow["invoicing"],
+      invoicedNett: progress ? formatMoney(progress.invoiced) : "",
+      remainingNett: progress ? formatMoney(progress.remaining) : "",
       followOns: linked(followOnIds.get(row.id)),
       sources: linked(sourceIds.get(row.id)),
     }];

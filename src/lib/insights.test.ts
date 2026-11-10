@@ -56,3 +56,18 @@ test("insights read in plain words and link to a document", () => {
   assert.equal(insights[0].href, "/transactions/PI?open=late");
   assert.deepEqual(buildInsights([], [], today), []);
 });
+
+test("open orders are reported as still to invoice or ready to close", () => {
+  const order = { typeCode: "PO", direction: "Purchases" as const, party: "Acme", date: "2026-10-01", ordered: 100 };
+  const insights = buildInsights([], [], today, [
+    { ...order, id: "a", number: "PO-1", invoiced: 0, remaining: 100, state: "none" },
+    { ...order, id: "b", number: "PO-2", invoiced: 40, remaining: 60, state: "part" },
+    { ...order, id: "c", number: "PO-3", invoiced: 100, remaining: 0, state: "full" },
+  ]);
+  assert.deepEqual(insights.map((item) => item.id), ["orders-to-invoice", "orders-to-close"]);
+  assert.match(insights[0].title, /2 open orders still to invoice/);
+  assert.match(insights[0].detail, /€160\.00 nett is left/);
+  assert.match(insights[0].detail, /1 order is part invoiced/);
+  assert.equal(insights[0].href, "/transactions/PO?open=a");
+  assert.match(insights[1].detail, /PO-3 for Acme has nothing left to invoice/);
+});

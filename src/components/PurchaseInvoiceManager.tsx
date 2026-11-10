@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useActionState, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { keepEntries } from "@/components/keepEntries";
 import ConfirmSubmitButton from "@/components/ConfirmDialog";
-import DataGrid from "@/components/DataGrid";
+import DataGrid, { type GridColumn } from "@/components/DataGrid";
 import type { ExportField } from "@/components/GridExport";
 import GridPager from "@/components/GridPager";
 import { useGridLines } from "@/components/GridLines";
@@ -28,6 +28,7 @@ import { loadTransactionReadiness } from "@/lib/readiness-actions";
 import type { PurchaseInvoiceChoices } from "@/lib/purchase-invoice-data";
 import { documentStatusLabel, isOrderKind, statusesForKind } from "@/lib/transaction-types";
 import { readinessHref } from "@/lib/en16931";
+import { ORDER_PROGRESS_LABEL } from "@/lib/order-progress";
 import { gridPageSlice, pageIndexForSize, type GridPageSize } from "@/lib/grid-page";
 import { formatInteger, groupThousands, numberValue } from "@/lib/numbers";
 import { clickOpensRow } from "@/lib/row-click";
@@ -227,6 +228,7 @@ export default function PurchaseInvoiceManager({
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [readinessFilter, setReadinessFilter] = useState("");
+  const [invoicingFilter, setInvoicingFilter] = useState("");
   // Readiness is read after the rows arrive. It belongs to one set of rows, so a save that brings
   // new rows shows it as pending until it has been read again.
   const [loadedReadiness, setLoadedReadiness] = useState<{ rows: PurchaseInvoiceRow[]; value: Record<string, ReadinessItem[]> } | null>(null);
@@ -277,6 +279,8 @@ export default function PurchaseInvoiceManager({
     kindsShown.size === 1
       ? statusesForKind(choices.types[0]?.documentKind)
       : (["draft", "posted", "void", "open", "closed", "cancelled"] as const);
+  // A page that only lists orders shows how far each is invoiced, in place of readiness and payment.
+  const ordersOnly = choices.types.length > 0 && choices.types.every((type) => type.documentKind === "order");
   const listedRows = readinessById
     ? rows.map((row) => ({ ...row, readiness: readinessById[row.id] ?? row.readiness }))
     : rows;
@@ -286,7 +290,8 @@ export default function PurchaseInvoiceManager({
     if (partyFilter && partyId !== partyFilter) return false;
     if (fromDate && row.transactionDate < fromDate) return false;
     if (toDate && row.transactionDate > toDate) return false;
-    if (sales && readinessFilter) {
+    if (ordersOnly && invoicingFilter && row.invoicing !== invoicingFilter) return false;
+    if (sales && readinessFilter && !ordersOnly) {
       const status = readinessStatus(row.readiness);
       if (status !== readinessFilter) return false;
     }
@@ -349,7 +354,15 @@ export default function PurchaseInvoiceManager({
             </select>
             <input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} aria-label="From date" />
             <input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} aria-label="To date" />
-            {sales ? (
+            {ordersOnly ? (
+              <select value={invoicingFilter} onChange={(event) => setInvoicingFilter(event.target.value)} aria-label="Invoicing">
+                <option value="">Any invoicing</option>
+                <option value="none">{ORDER_PROGRESS_LABEL.none}</option>
+                <option value="part">{ORDER_PROGRESS_LABEL.part}</option>
+                <option value="full">{ORDER_PROGRESS_LABEL.full}</option>
+              </select>
+            ) : null}
+            {sales && !ordersOnly ? (
               <select value={readinessFilter} onChange={(event) => setReadinessFilter(event.target.value)} aria-label="Readiness">
                 <option value="">Any readiness</option>
                 <option value="error">Errors</option>
@@ -370,7 +383,7 @@ export default function PurchaseInvoiceManager({
             </button>
           </>
         }
-        columns={[
+        columns={([
           {
             key: "type",
             label: "Type",
@@ -458,7 +471,33 @@ export default function PurchaseInvoiceManager({
             sortValue: (row) => row.amountDue.replace(/,/g, ""),
             render: (row) => row.amountDue,
           },
-        ]}
+          {
+            key: "invoicing",
+            label: "Invoicing",
+            sortValue: (row) => row.invoicing,
+            render: (row) => (row.invoicing ? ORDER_PROGRESS_LABEL[row.invoicing] : ""),
+          },
+          {
+            key: "invoiced",
+            label: "Invoiced",
+            mono: true,
+            align: "right",
+            sortValue: (row) => row.invoicedNett.replace(/,/g, ""),
+            render: (row) => row.invoicedNett,
+          },
+          {
+            key: "toInvoice",
+            label: "To invoice",
+            mono: true,
+            align: "right",
+            sortValue: (row) => row.remainingNett.replace(/,/g, ""),
+            render: (row) => row.remainingNett,
+          },
+        ] satisfies GridColumn<PurchaseInvoiceRow>[]).filter((column) =>
+          ordersOnly
+            ? !["readiness", "paid", "dueAmount"].includes(column.key)
+            : !["invoicing", "invoiced", "toInvoice"].includes(column.key),
+        )}
         actions={(row) => (
           <>
             <Link className={styles.quiet} href={`/print/${row.transactionTypeCode}/${row.id}`}>
