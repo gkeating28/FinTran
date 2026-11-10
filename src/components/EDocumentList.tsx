@@ -135,7 +135,7 @@ export function EDocumentList({
           },
           {
             key: "party",
-            label: "Party",
+            label: direction === "inbound" ? "Supplier" : "Customer",
             sortValue: (row) => row.party,
             render: (row) => row.party || "—",
           },
