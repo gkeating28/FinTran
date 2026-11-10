@@ -2057,6 +2057,10 @@ export type Database = {
         Args: { p_header_id: string; p_logo_path?: string }
         Returns: undefined
       }
+      set_order_status: {
+        Args: { p_header_id: string; p_action: string }
+        Returns: undefined
+      }
       revoke_organisation_access: {
         Args: { p_organisation_id: string; p_user_id: string }
         Returns: undefined
@@ -2078,8 +2082,8 @@ export type Database = {
       }
     }
     Enums: {
-      document_kind: "invoice" | "credit_note" | "order"
-      document_status: "draft" | "posted" | "void"
+      document_kind: "invoice" | "credit_note" | "order" | "requisition"
+      document_status: "draft" | "posted" | "void" | "open" | "closed" | "cancelled"
       e_document_direction: "outbound" | "inbound"
       e_document_status: "generated" | "received" | "invalid" | "valid" | "duplicate" | "imported" | "rejected"
       numbering_rule: "on_insert" | "on_post"
@@ -2210,8 +2214,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      document_kind: ["invoice", "credit_note", "order"],
-      document_status: ["draft", "posted", "void"],
+      document_kind: ["invoice", "credit_note", "order", "requisition"],
+      document_status: ["draft", "posted", "void", "open", "closed", "cancelled"],
       numbering_rule: ["on_insert", "on_post"],
     },
   },

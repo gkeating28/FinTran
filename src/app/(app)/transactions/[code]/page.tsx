@@ -5,6 +5,7 @@ import { getWorkspace } from "@/lib/data";
 import { canManage } from "@/lib/types";
 import { listPurchaseInvoices } from "@/lib/purchase-invoice-data";
 import { getTransactionTypeByCode } from "@/lib/transaction-type-data";
+import { isOrderKind } from "@/lib/transaction-types";
 
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
@@ -52,7 +53,7 @@ export default async function TransactionTypePage({
       openId={query.open}
       openStamp={query.ask}
       canVoid={canManage(workspace.current.role) && tile.type === "Purchases"}
-      canDownload={canManage(workspace.current.role) && tile.documentKind !== "order"}
+      canDownload={canManage(workspace.current.role) && !isOrderKind(tile.documentKind)}
     />
   );
 }

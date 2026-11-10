@@ -185,6 +185,7 @@ export function headerFieldLabel(field: HeaderField, flexLabels: readonly string
 
 export function documentNumberLabel(code: string, description: string) {
   const text = `${code} ${description}`.toLowerCase();
+  if (text.includes("requisition")) return "Requisition";
   if (text.includes("order")) return "Order";
   if (text.includes("return") || text.includes("credit")) return "Credit";
   if (text.includes("invoice")) return "Invoice";

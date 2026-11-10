@@ -1,7 +1,7 @@
 import { parseCurrencyRate } from "@/lib/currencies";
 import { numberValue } from "@/lib/numbers";
 import { formatProductPrice, parseProductPrice } from "@/lib/products";
-import type { DocumentKind } from "@/lib/transaction-types";
+import type { DocumentKind, DocumentStatus } from "@/lib/transaction-types";
 
 export type PurchaseInvoiceLine = {
   lineNumber: number;
@@ -28,7 +28,7 @@ export type LinkedCredit = {
   documentNumber: string;
   transactionDate: string;
   total: string;
-  status: "draft" | "posted" | "void";
+  status: DocumentStatus;
 };
 
 export type PurchaseInvoiceRow = {
@@ -71,7 +71,7 @@ export type PurchaseInvoiceRow = {
   paymentMeansCode: string;
   breakdown: VatBreakdownRow[];
   readiness: ReadinessItem[];
-  status: "draft" | "posted" | "void";
+  status: DocumentStatus;
   voidReason: string;
   flex1: string;
   flex2: string;
