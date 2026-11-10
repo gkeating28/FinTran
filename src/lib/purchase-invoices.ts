@@ -127,6 +127,16 @@ export type CreditInvoice = {
   typeCode: string;
 };
 
+/** An active order an invoice can bring lines in from, with the lines that still have something left. */
+export type OrderSource = {
+  id: string;
+  typeCode: string;
+  documentNumber: string;
+  transactionDate: string;
+  partyId: string;
+  lines: (PurchaseInvoiceLine & { remainingQuantity: string })[];
+};
+
 /** A type a document can be turned into: an invoice type for an order, an order type for a requisition. */
 export type FollowOnType = {
   id: string;

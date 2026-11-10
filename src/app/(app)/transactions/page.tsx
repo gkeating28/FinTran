@@ -1,3 +1,4 @@
+import { documentStatusLabel } from "@/lib/transaction-types";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DocumentIcon } from "@/components/icons";
@@ -65,7 +66,7 @@ function TransactionGroup({ title, tiles }: { title: string; tiles: TransactionM
                 {tile.code} · {documentKindLabel(tile.documentKind)}
               </span>
               <span className={dashboardStyles.adminTileMeta}>
-                {tile.statusCounts.map((item) => `${formatInteger(item.count)} ${item.status}`).join(" · ")}
+                {tile.statusCounts.map((item) => `${formatInteger(item.count)} ${documentStatusLabel(item.status).toLowerCase()}`).join(" · ")}
               </span>
             </Link>
           ))}

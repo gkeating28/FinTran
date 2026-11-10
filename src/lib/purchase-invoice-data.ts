@@ -16,6 +16,7 @@ import {
   type CreditNoteType,
   type FollowOnType,
   type LinkedDocument,
+  type OrderSource,
   type PurchaseTypeChoice,
   type SupplierChoice,
 } from "@/lib/purchase-invoices";
@@ -88,6 +89,7 @@ export type PurchaseInvoiceChoices = {
   customers: SupplierChoice[];
   creditNoteTypes: CreditNoteType[];
   followOnTypes: FollowOnType[];
+  orderSources: OrderSource[];
   currencies: InvoiceCurrency[];
   homeCurrencyCode: string;
   products: InvoiceProduct[];
@@ -106,6 +108,7 @@ const emptyChoices: PurchaseInvoiceChoices = {
   customers: [],
   creditNoteTypes: [],
   followOnTypes: [],
+  orderSources: [],
   currencies: [],
   homeCurrencyCode: "",
   products: [],
@@ -407,6 +410,25 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
         paymentTermsDays: row.payment_terms_days == null ? "" : String(row.payment_terms_days),
         buyerReference: row.default_buyer_reference ?? "",
       })),
+      orderSources: (headers.data ?? []).flatMap((row): OrderSource[] => {
+        const kind = embeddedType(row.transaction_types);
+        if (!kind || kind.type !== direction || kind.document_kind !== "order" || row.status !== "open") return [];
+        const left = (linesByHeader.get(row.id) ?? []).flatMap((line) => {
+          const remaining = numberValue(line.quantity) - numberValue(line.drawnQuantity);
+          return remaining > 0 ? [{ ...line, remainingQuantity: formatMoney(remaining) }] : [];
+        });
+        if (left.length === 0) return [];
+        return [
+          {
+            id: row.id,
+            typeCode: kind.code,
+            documentNumber: row.document_number ?? "",
+            transactionDate: row.transaction_date,
+            partyId: row.supplier_id ?? row.customer_id ?? "",
+            lines: left,
+          },
+        ];
+      }),
       followOnTypes: (types.data ?? []).flatMap((row) => {
         const documentKind = parseDocumentKind(row.document_kind);
         if (row.type !== direction || (documentKind !== "invoice" && documentKind !== "order")) return [];

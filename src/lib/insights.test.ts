@@ -65,7 +65,7 @@ test("open orders are reported as still to invoice or ready to close", () => {
     { ...order, id: "c", number: "PO-3", invoiced: 100, remaining: 0, state: "full" },
   ]);
   assert.deepEqual(insights.map((item) => item.id), ["orders-to-invoice", "orders-to-close"]);
-  assert.match(insights[0].title, /2 open orders still to invoice/);
+  assert.match(insights[0].title, /2 active orders still to invoice/);
   assert.match(insights[0].detail, /€160\.00 nett is left/);
   assert.match(insights[0].detail, /1 order is part invoiced/);
   assert.equal(insights[0].href, "/transactions/PO?open=a");

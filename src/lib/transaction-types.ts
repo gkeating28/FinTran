@@ -11,12 +11,14 @@ export const DOCUMENT_STATUSES = ["draft", "posted", "void", "open", "closed", "
 
 export type DocumentStatus = (typeof DOCUMENT_STATUSES)[number];
 
-/** An order or a requisition is opened and closed. It is never posted. */
+/** An order or a requisition is activated and closed. It is never posted. */
 export function isOrderKind(kind: DocumentKind | string | null | undefined) {
   return kind === "order" || kind === "requisition";
 }
 
+/** The stored value 'open' is shown as Active, because open also means looking at a document. */
 export function documentStatusLabel(status: DocumentStatus) {
+  if (status === "open") return "Active";
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 

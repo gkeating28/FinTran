@@ -47,6 +47,7 @@ import {
   type InvoiceVat,
   type PurchaseInvoiceLine,
   type PurchaseInvoiceRow,
+  type OrderSource,
   type ReadinessItem,
 } from "@/lib/purchase-invoices";
 import { useAskContext } from "@/components/askContext";
@@ -509,7 +510,7 @@ export default function PurchaseInvoiceManager({
                   Edit
                 </button>
                 {rowIsOrder(row) ? (
-                  <OrderStatusButton id={row.id} action="open" label="Open" typeCode={typeCode} className={styles.quiet} />
+                  <OrderStatusButton id={row.id} action="open" label="Activate" typeCode={typeCode} className={styles.quiet} />
                 ) : (
                   <form action={postPurchaseInvoice}>
                     <input type="hidden" name="id" value={row.id} />
@@ -768,6 +769,7 @@ function InvoiceForm({
   const [voidOpen, setVoidOpen] = useState(false);
   const [creditOpen, setCreditOpen] = useState(false);
   const [linksOpen, setLinksOpen] = useState(false);
+  const [ordersOpen, setOrdersOpen] = useState(false);
   const splitRef = useRef<HTMLDivElement>(null);
   const headerWidthRef = useRef<number | null>(headerWidth);
   const sideBySideRef = useRef(true);
@@ -1033,6 +1035,40 @@ function InvoiceForm({
   const followOnTypes = choices.followOnTypes.filter((type) => type.documentKind === (requisition ? "order" : "invoice"));
   // Only an order limits what can be taken from it, so only an order shows what is left.
   const showDrawn = selectedType?.documentKind === "order" && Boolean(header) && header?.status !== "draft";
+  // An invoice can bring lines in from the active orders of the supplier or customer chosen on it.
+  const canBringIn = selectedType?.documentKind === "invoice" && !locked;
+  const partyOrders = choices.orderSources.filter((order) => order.partyId === supplierId);
+
+  function bringIn(order: OrderSource) {
+    setInvoiceLines((current) => {
+      const present = new Set(current.map((line) => line.sourceLineId).filter(Boolean));
+      const added = order.lines.flatMap((line) => {
+        if (!line.id || present.has(line.id)) return [];
+        const whole = numberValue(line.quantity);
+        const share = whole > 0 ? numberValue(line.remainingQuantity) / whole : 1;
+        const discount = formatMoney(Math.round(numberValue(line.discountAmount) * share * 100) / 100);
+        const vat = lineVat.find((rate) => rate.id === line.vatRateId);
+        const amounts = lineAmounts(line.remainingQuantity, line.price, discount || "0", vat?.rate ?? null);
+        const { remainingQuantity, ...rest } = line;
+        return [
+          {
+            ...rest,
+            drawnQuantity: "",
+            id: "",
+            sourceLineId: line.id,
+            quantity: remainingQuantity,
+            discountAmount: discount,
+            nettAmount: amounts && !("error" in amounts) ? formatMoney(amounts.nett) : line.nettAmount,
+            vatAmount: amounts && !("error" in amounts) ? formatMoney(amounts.vat) : line.vatAmount,
+          },
+        ];
+      });
+      return [...current, ...added].map((line, index) => ({ ...line, lineNumber: index + 1 }));
+    });
+    if (!orderNumber.trim() && order.documentNumber) setOrderNumber(order.documentNumber);
+    setOrdersOpen(false);
+  }
+
   const showLinks = Boolean(header) && (orderDocument || (header?.sources.length ?? 0) > 0);
   const paymentMeans =
     !paymentMeansCode || choices.paymentMeans.some((means) => means.code === paymentMeansCode)
@@ -1061,7 +1097,8 @@ function InvoiceForm({
     setLinePageSize(next);
   }
 
-  function openPanel(panel: "void" | "credit" | "links") {
+  function openPanel(panel: "void" | "credit" | "links" | "orders") {
+    setOrdersOpen(panel === "orders" ? !ordersOpen : false);
     setVoidOpen(panel === "void" ? !voidOpen : false);
     setCreditOpen(panel === "credit" ? !creditOpen : false);
     setLinksOpen(panel === "links" ? !linksOpen : false);
@@ -1080,7 +1117,7 @@ function InvoiceForm({
             : closed
               ? { tone: "notice" as const, text: "Closed. Reopen the order to change it." }
               : opened
-                ? { tone: "notice" as const, text: "Open. The order can still be changed. Close it when it is complete." }
+                ? { tone: "notice" as const, text: "Active. It can still be changed. An order closes by itself when posted invoices cover every line." }
           : choices.types.length === 0
             ? { tone: "alert" as const, text: `Add a ${sales ? "Sales" : "Purchases"} transaction type before saving a document.` }
             : parties.length === 0
@@ -1498,6 +1535,11 @@ function InvoiceForm({
               Lines ({invoiceLines.length})
               {locked && invoiceLines.length > 0 ? <span className={documentStyles.lineHint}>Select a line to see its details.</span> : null}
             </span>
+            {canBringIn ? (
+              <button className={styles.quiet} type="button" aria-expanded={ordersOpen} onClick={() => openPanel("orders")}>
+                From order
+              </button>
+            ) : null}
             {locked ? null : (
               <button
                 className={styles.primary}
@@ -1640,6 +1682,37 @@ function InvoiceForm({
           <button className={styles.danger} type="submit">Void</button>
         </form>
       ) : null}
+      {ordersOpen && canBringIn ? (
+        <div className={documentStyles.sideSheet} role="dialog" aria-label="Bring in from an order">
+          <div className={documentStyles.sideSheetHead}>
+            <strong>Bring in from an order</strong>
+            <button className={styles.quiet} type="button" onClick={() => setOrdersOpen(false)}>Close</button>
+          </div>
+          {!supplierId ? (
+            <p className={styles.panelMeta}>Choose a {sales ? "customer" : "supplier"} first.</p>
+          ) : partyOrders.length === 0 ? (
+            <p className={styles.panelMeta}>This {sales ? "customer" : "supplier"} has no active order with anything left to invoice.</p>
+          ) : (
+            <>
+              <p className={styles.panelMeta}>The lines come in with what is left on the order. Change a quantity for a part invoice.</p>
+              <ul>
+                {partyOrders.map((order) => {
+                  const taken = order.lines.filter((line) => invoiceLines.some((item) => item.sourceLineId === line.id)).length;
+                  return (
+                    <li key={order.id}>
+                      {order.typeCode} {order.documentNumber || order.transactionDate} · {order.transactionDate} ·{" "}
+                      {order.lines.length} line{order.lines.length === 1 ? "" : "s"} left{" "}
+                      <button className={styles.quiet} type="button" disabled={taken === order.lines.length} onClick={() => bringIn(order)}>
+                        {taken === order.lines.length ? "Brought in" : "Bring in"}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
+        </div>
+      ) : null}
       {linksOpen && showLinks && header ? (
         <div className={documentStyles.sideSheet} role="dialog" aria-label="Linked documents">
           <div className={documentStyles.sideSheetHead}>
@@ -1680,7 +1753,7 @@ function InvoiceForm({
               )}
               {!opened ? (
                 <p className={styles.panelMeta}>
-                  {header.status === "draft" ? `Open it to create ${requisition ? "a purchase order" : "an invoice"} from it.` : `It is ${header.status}, so nothing more can be created from it.`}
+                  {header.status === "draft" ? `Activate it to create ${requisition ? "a purchase order" : "an invoice"} from it.` : `It is ${header.status}, so nothing more can be created from it.`}
                 </p>
               ) : followOnTypes.length === 0 ? (
                 <p className={styles.panelMeta}>
@@ -1783,14 +1856,38 @@ function InvoiceForm({
               Linked documents
             </button>
           ) : null}
+          {header && opened && followOnTypes.length === 1 ? (
+            <form action={createFromOrder}>
+              <input type="hidden" name="id" value={header.id} />
+              <input type="hidden" name="target_type_id" value={followOnTypes[0].id} />
+              {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
+              <ConfirmSubmitButton
+                className={styles.quiet}
+                title={`Create ${requisition ? "a purchase order" : "an invoice"}?`}
+                message={
+                  requisition
+                    ? "The new purchase order starts with every line. Save first. Changes on this screen that are not saved are not kept."
+                    : "The new invoice starts with what is left on each line. Save first. Changes on this screen that are not saved are not kept."
+                }
+                confirmLabel={`Create ${followOnNoun}`}
+              >
+                Create {followOnNoun}
+              </ConfirmSubmitButton>
+            </form>
+          ) : null}
+          {header && opened && followOnTypes.length > 1 ? (
+            <button className={styles.quiet} type="button" aria-expanded={linksOpen} onClick={() => openPanel("links")}>
+              Create {followOnNoun}
+            </button>
+          ) : null}
           {header && orderDocument && header.status === "draft" ? (
             <OrderStatusButton
               id={header.id}
               action="open"
-              label="Open order"
+              label={requisition ? "Activate requisition" : "Activate order"}
               typeCode={typeCode}
               className={styles.quiet}
-              confirm={{ title: "Open this order?", message: "Save first. Changes on this screen that are not saved are not kept." }}
+              confirm={{ title: requisition ? "Activate this requisition?" : "Activate this order?", message: "Save first. Changes on this screen that are not saved are not kept." }}
             />
           ) : null}
           {header && opened ? (

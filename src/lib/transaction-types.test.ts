@@ -21,4 +21,5 @@ test("a requisition is a known kind with a label", () => {
   assert.equal(parseDocumentKind("requisition"), "requisition");
   assert.equal(documentKindLabel("requisition"), "Requisition");
   assert.equal(documentStatusLabel("cancelled"), "Cancelled");
+  assert.equal(documentStatusLabel("open"), "Active");
 });
