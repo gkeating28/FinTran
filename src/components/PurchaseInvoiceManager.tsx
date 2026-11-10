@@ -222,17 +222,16 @@ export default function PurchaseInvoiceManager({
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [readinessFilter, setReadinessFilter] = useState("");
-  const [loadedReadiness, setLoadedReadiness] = useState<{ key: string; value: Record<string, ReadinessItem[]> } | null>(null);
-  const readinessKey = rows.map((row) => row.id).join("\0");
-  const readinessById = loadedReadiness?.key === readinessKey ? loadedReadiness.value : rows.length === 0 ? {} : null;
+  // Readiness is read after the rows arrive. It belongs to one set of rows, so a save that brings
+  // new rows shows it as pending until it has been read again.
+  const [loadedReadiness, setLoadedReadiness] = useState<{ rows: PurchaseInvoiceRow[]; value: Record<string, ReadinessItem[]> } | null>(null);
+  const readinessById = loadedReadiness?.rows === rows ? loadedReadiness.value : rows.length === 0 ? {} : null;
 
   useEffect(() => {
     if (rows.length === 0) return;
     let cancelled = false;
-    const ids = rows.map((row) => row.id);
-    const key = ids.join("\0");
-    loadTransactionReadiness(ids).then((result) => {
-      if (!cancelled) setLoadedReadiness({ key, value: result });
+    loadTransactionReadiness(rows.map((row) => row.id)).then((result) => {
+      if (!cancelled) setLoadedReadiness({ rows, value: result });
     });
     return () => {
       cancelled = true;
@@ -487,6 +486,8 @@ export default function PurchaseInvoiceManager({
           key={draft === "new" ? "new" : draft.id}
           title={title}
           header={draft === "new" ? null : draft}
+          readiness={draft === "new" ? [] : (readinessById?.[draft.id] ?? draft.readiness)}
+          readinessPending={draft !== "new" && readinessById == null}
           lines={lines}
           lineError={lineError}
           choices={choices}
@@ -589,6 +590,8 @@ function ReadinessControl({
 function InvoiceForm({
   title,
   header,
+  readiness,
+  readinessPending,
   lines,
   lineError,
   choices,
@@ -600,6 +603,9 @@ function InvoiceForm({
 }: {
   title: string;
   header: PurchaseInvoiceRow | null;
+  /** Read by the list after the rows arrive, so it is passed in and not taken from the header. */
+  readiness: ReadinessItem[];
+  readinessPending: boolean;
   lines: PurchaseInvoiceLine[] | null;
   lineError: string | null;
   choices: PurchaseInvoiceChoices;
@@ -984,7 +990,7 @@ function InvoiceForm({
           )}
           {header ? (
             <div className={styles.readinessBar}>
-              <ReadinessControl items={header.readiness} direction={direction} />
+              <ReadinessControl items={readiness} direction={direction} pending={readinessPending} />
               {canDownload ? (
                 <a className={styles.quiet} href={`/transactions/${header.transactionTypeCode}/${header.id}/en16931`}>
                   Download EN 16931 JSON
