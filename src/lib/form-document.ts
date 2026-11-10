@@ -86,7 +86,7 @@ export type FormSource = {
   flexLabels: [string, string, string, string, string];
   numberLabel: string;
   downloadName: string;
-  watermark: "DRAFT" | "VOID" | null;
+  watermark: "DRAFT" | "VOID" | "CANCELLED" | null;
   vatBreakdown: { category: string; rate: string; taxable: number; vat: number; exemption: string }[];
 };
 
@@ -124,7 +124,7 @@ export type PrintView = {
   footerTitle: string;
   footerBody: string;
   showFooter: boolean;
-  watermark: "DRAFT" | "VOID" | null;
+  watermark: "DRAFT" | "VOID" | "CANCELLED" | null;
 };
 
 function linesOf(value: string) {

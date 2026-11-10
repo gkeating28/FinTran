@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import GridExport, { type ExportField } from "@/components/GridExport";
 import GridPager from "@/components/GridPager";
-import { GridLinesIcon, SortIcon } from "@/components/icons";
+import { useGridLines } from "@/components/GridLines";
+import { SortIcon } from "@/components/icons";
 import { useGridPageSize } from "@/components/useGridPageSize";
 import { gridPageSlice, pageIndexForSize, type GridPageSize } from "@/lib/grid-page";
 import { formatInteger } from "@/lib/numbers";
@@ -22,20 +23,6 @@ export type GridColumn<T> = {
   /** Plain value for the Excel export. Defaults to the sort value. */
   exportValue?: (row: T) => string | number | null;
 };
-
-/** Which lines the grid draws. Rows only is the standard look. */
-const GRID_LINES = ["rows", "both", "columns", "none"] as const;
-type GridLines = (typeof GRID_LINES)[number];
-const GRID_LINES_LABEL: Record<GridLines, string> = {
-  rows: "Row lines",
-  both: "Row and column lines",
-  columns: "Column lines",
-  none: "No lines",
-};
-
-function gridLinesKey(form: string) {
-  return `fintran.grid-lines.${form}`;
-}
 
 export default function DataGrid<T extends { id: string }>({
   rows,
@@ -72,30 +59,7 @@ export default function DataGrid<T extends { id: string }>({
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [pageSize, setPageSize] = useGridPageSize(form);
   const [pageIndex, setPageIndex] = useState(0);
-  const [gridLines, setGridLines] = useState<GridLines>("rows");
-
-  useEffect(() => {
-    // Read after mount so the server and first client render agree.
-    void Promise.resolve().then(() => {
-      try {
-        const saved = window.localStorage.getItem(gridLinesKey(form));
-        const found = GRID_LINES.find((item) => item === saved);
-        if (found) setGridLines(found);
-      } catch {
-        // The choice is only a convenience.
-      }
-    });
-  }, [form]);
-
-  function nextGridLines() {
-    const next = GRID_LINES[(GRID_LINES.indexOf(gridLines) + 1) % GRID_LINES.length];
-    setGridLines(next);
-    try {
-      window.localStorage.setItem(gridLinesKey(form), next);
-    } catch {
-      // The choice is only a convenience.
-    }
-  }
+  const gridLines = useGridLines(form);
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -166,7 +130,7 @@ export default function DataGrid<T extends { id: string }>({
         <table
           className={actionsWidth ? `${styles.table} ${styles.tableFixed}` : styles.table}
           style={minWidth ? { minWidth } : undefined}
-          data-lines={gridLines}
+          data-lines={gridLines.lines}
         >
           {actionsWidth ? (
             <colgroup>
@@ -249,17 +213,7 @@ export default function DataGrid<T extends { id: string }>({
         onPageSize={changePageSize}
         start={
           <>
-            <div className={styles.exportMenu}>
-              <button
-                className={styles.quiet}
-                type="button"
-                onClick={nextGridLines}
-                aria-label={`Grid lines: ${GRID_LINES_LABEL[gridLines]}. Change`}
-                title={`${GRID_LINES_LABEL[gridLines]}. Click to change.`}
-              >
-                <GridLinesIcon size={16} />
-              </button>
-            </div>
+            {gridLines.button}
             <GridExport form={form} rows={filtered} fields={fields} />
           </>
         }

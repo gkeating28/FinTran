@@ -238,7 +238,7 @@ function TransactionTypeForm({
             disabled={kindLocked}
             onChange={(event) => setDocumentKind(event.target.value as TransactionTypeRow["documentKind"])}
           >
-            {DOCUMENT_KINDS.map((kind) => (
+            {DOCUMENT_KINDS.filter((kind) => kind !== "requisition" || type === "Purchases" || documentKind === "requisition").map((kind) => (
               <option key={kind} value={kind}>
                 {documentKindLabel(kind)}
               </option>

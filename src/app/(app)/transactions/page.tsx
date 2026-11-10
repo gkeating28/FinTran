@@ -65,7 +65,7 @@ function TransactionGroup({ title, tiles }: { title: string; tiles: TransactionM
                 {tile.code} · {documentKindLabel(tile.documentKind)}
               </span>
               <span className={dashboardStyles.adminTileMeta}>
-                {formatInteger(tile.draftCount)} draft · {formatInteger(tile.postedCount)} posted · {formatInteger(tile.voidCount)} void
+                {tile.statusCounts.map((item) => `${formatInteger(item.count)} ${item.status}`).join(" · ")}
               </span>
             </Link>
           ))}

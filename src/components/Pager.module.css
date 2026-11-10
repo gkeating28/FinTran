@@ -18,7 +18,8 @@
 .footerStart {
   display: flex;
   align-items: center;
-  gap: 12px 24px;
+  /* The same gap as between Excel and Fields, so every control in the row is evenly spaced. */
+  gap: 8px;
   flex-wrap: wrap;
 }
 

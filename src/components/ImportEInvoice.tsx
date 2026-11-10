@@ -8,6 +8,7 @@ import GridPager from "@/components/GridPager";
 import { QuietInput, QuietTextarea } from "@/components/QuietField";
 import { RejectEInvoice } from "@/components/RejectEInvoice";
 import UnitSelect from "@/components/UnitSelect";
+import { useGridLines } from "@/components/GridLines";
 import { useGridPageSize } from "@/components/useGridPageSize";
 import styles from "@/components/OpsPage.module.css";
 import documentStyles from "@/components/Document.module.css";
@@ -232,6 +233,7 @@ export function ImportEInvoice({
   const [openLine, setOpenLine] = useState<OpenLine | null>(null);
   const [lineMessage, setLineMessage] = useState<string | null>(null);
   const [linePageSize, setLinePageSize] = useGridPageSize("e-documents/import/lines", "all");
+  const lineGridLines = useGridLines("e-documents/import/lines");
   const [linePageIndex, setLinePageIndex] = useState(0);
   const splitRef = useRef<HTMLDivElement>(null);
   const headerWidthRef = useRef<number | null>(null);
@@ -1017,7 +1019,7 @@ export function ImportEInvoice({
                   </span>
                 </div>
                 <div className={documentStyles.lineScroll}>
-                  <table className={styles.lineTable}>
+                  <table className={styles.lineTable} data-lines={lineGridLines.lines}>
                     <thead>
                       <tr>
                         <th>Line</th>
@@ -1081,6 +1083,7 @@ export function ImportEInvoice({
                 </div>
                 <GridPager
                   className={documentStyles.linePager}
+                  start={lineGridLines.button}
                   page={linePage.page}
                   pageCount={linePage.pageCount}
                   pageSize={linePageSize}

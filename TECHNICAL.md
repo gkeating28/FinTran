@@ -130,6 +130,10 @@ Every page that lists rows starts its data read at the same time as the workspac
 5. A link to a page of rows uses `prefetch` on the `Link`, as the sidebar does, so the page is fetched before the click and a visited page is reused for five minutes. A link without it waits for the server after the click. The Admin tiles, the Transactions tiles and the Home shortcuts all use it. A save clears the cached page.
 6. Pages that need the organisation name, role or memberships still await the workspace, because those come from it.
 
+### Orders and requisitions
+
+Every transaction type runs through the one document screen, `PurchaseInvoiceManager`. The type's kind decides the lifecycle. `isOrderKind` in `src/lib/transaction-types.ts` is true for an order or a requisition. For those the screen shows Open, Close, Reopen and Cancel in place of Post and Void, offers the statuses Draft, Open, Closed and Cancelled in the status filter, and leaves out Readiness, the EN 16931 download and the e-invoice panel. An open order is still editable. A closed or cancelled one is read-only. The buttons call the `setOrderStatus` action, which calls the `set_order_status` database function. The rules are enforced in the database, so the screen only decides what to show. `supabase/tests/order_lifecycle.sql` checks them.
+
 ### Forms that can fail
 
 React resets a form after its `action` runs, which wipes the entries when a save returns an error. A form whose save can fail uses `onSubmit={keepEntries(action)}` from `src/components/keepEntries.ts` with the action from `useActionState`, in place of the form's `action`. The data goes through a transition and the form stays as the person filled it in. The sign in and sign up forms, and the one button forms that remove or post a row, keep the plain `action`.
@@ -146,7 +150,7 @@ Fields offered are the displayed columns, which are ticked, plus the grid's `exp
 
 #### Grid lines
 
-Every `DataGrid` has a grid lines button in its footer, beside the rows per page menu. Each click steps through row lines (the standard look), row and column lines, column lines and no lines. The choice is remembered in the browser for each grid under `fintran.grid-lines.{form}`.
+Every `DataGrid` has a grid lines button in its footer, beside the rows per page menu. So do the line item grids on a transaction document and on the e-invoice import. The hook is `useGridLines` in `src/components/GridLines.tsx`. Each click steps through row lines (the standard look), row and column lines, column lines and no lines. The choice is remembered in the browser for each grid under `fintran.grid-lines.{form}`.
 
 ### Ask Qula
 

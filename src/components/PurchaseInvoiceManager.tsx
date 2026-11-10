@@ -8,6 +8,7 @@ import ConfirmSubmitButton from "@/components/ConfirmDialog";
 import DataGrid from "@/components/DataGrid";
 import type { ExportField } from "@/components/GridExport";
 import GridPager from "@/components/GridPager";
+import { useGridLines } from "@/components/GridLines";
 import { useGridPageSize } from "@/components/useGridPageSize";
 import { EInvoicePanel } from "@/components/EInvoicePanel";
 import FormModal from "@/components/FormModal";
@@ -18,11 +19,13 @@ import {
   deletePurchaseInvoice,
   postPurchaseInvoice,
   savePurchaseInvoice,
+  setOrderStatus,
   updatePaidAmount,
   voidPurchaseInvoice,
 } from "@/lib/purchase-invoice-actions";
 import { loadTransactionReadiness } from "@/lib/readiness-actions";
 import type { PurchaseInvoiceChoices } from "@/lib/purchase-invoice-data";
+import { documentStatusLabel, isOrderKind, statusesForKind } from "@/lib/transaction-types";
 import { readinessHref } from "@/lib/en16931";
 import { gridPageSlice, pageIndexForSize, type GridPageSize } from "@/lib/grid-page";
 import { formatInteger, groupThousands, numberValue } from "@/lib/numbers";
@@ -265,6 +268,14 @@ export default function PurchaseInvoiceManager({
   }
 
   const parties = sales ? choices.customers : choices.suppliers;
+  const kindByType = new Map(choices.types.map((type) => [type.id, type.documentKind]));
+  const rowIsOrder = (row: PurchaseInvoiceRow) => isOrderKind(kindByType.get(row.transactionTypeId));
+  // A page for one type offers that kind's statuses. A page of mixed types offers them all.
+  const kindsShown = new Set(choices.types.map((type) => isOrderKind(type.documentKind)));
+  const statusChoices =
+    kindsShown.size === 1
+      ? statusesForKind(choices.types[0]?.documentKind)
+      : (["draft", "posted", "void", "open", "closed", "cancelled"] as const);
   const listedRows = readinessById
     ? rows.map((row) => ({ ...row, readiness: readinessById[row.id] ?? row.readiness }))
     : rows;
@@ -321,9 +332,11 @@ export default function PurchaseInvoiceManager({
           <>
             <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Status">
               <option value="">Any status</option>
-              <option value="draft">Draft</option>
-              <option value="posted">Posted</option>
-              <option value="void">Void</option>
+              {statusChoices.map((status) => (
+                <option key={status} value={status}>
+                  {documentStatusLabel(status)}
+                </option>
+              ))}
             </select>
             <select value={partyFilter} onChange={(event) => setPartyFilter(event.target.value)} aria-label={sales ? "Customer" : "Supplier"}>
               <option value="">{sales ? "Any customer" : "Any supplier"}</option>
@@ -455,13 +468,17 @@ export default function PurchaseInvoiceManager({
                 <button className={styles.quiet} type="button" onClick={() => edit(row)}>
                   Edit
                 </button>
-                <form action={postPurchaseInvoice}>
-                  <input type="hidden" name="id" value={row.id} />
-                  {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
-                  <button className={styles.quiet} type="submit">
-                    Post
-                  </button>
-                </form>
+                {rowIsOrder(row) ? (
+                  <OrderStatusButton id={row.id} action="open" label="Open" typeCode={typeCode} className={styles.quiet} />
+                ) : (
+                  <form action={postPurchaseInvoice}>
+                    <input type="hidden" name="id" value={row.id} />
+                    {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
+                    <button className={styles.quiet} type="submit">
+                      Post
+                    </button>
+                  </form>
+                )}
                 <form action={deletePurchaseInvoice}>
                   <input type="hidden" name="id" value={row.id} />
                   {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
@@ -473,6 +490,13 @@ export default function PurchaseInvoiceManager({
                     Remove
                   </ConfirmSubmitButton>
                 </form>
+              </>
+            ) : row.status === "open" ? (
+              <>
+                <button className={styles.quiet} type="button" onClick={() => edit(row)}>
+                  Edit
+                </button>
+                <OrderStatusButton id={row.id} action="close" label="Close" typeCode={typeCode} className={styles.quiet} />
               </>
             ) : (
               <button className={styles.quiet} type="button" onClick={() => edit(row)}>
@@ -504,9 +528,41 @@ export default function PurchaseInvoiceManager({
 }
 
 function statusLabel(status: PurchaseInvoiceRow["status"]) {
-  if (status === "posted") return "Posted";
-  if (status === "void") return "Void";
-  return "Draft";
+  return documentStatusLabel(status);
+}
+
+/** One button that opens, closes, reopens or cancels an order. */
+function OrderStatusButton({
+  id,
+  action,
+  label,
+  typeCode,
+  confirm,
+  className,
+}: {
+  id: string;
+  action: "open" | "close" | "reopen" | "cancel";
+  label: string;
+  typeCode?: string;
+  confirm?: { title: string; message: string };
+  className: string;
+}) {
+  return (
+    <form action={setOrderStatus}>
+      <input type="hidden" name="id" value={id} />
+      <input type="hidden" name="order_action" value={action} />
+      {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
+      {confirm ? (
+        <ConfirmSubmitButton className={className} title={confirm.title} message={confirm.message} confirmLabel={label}>
+          {label}
+        </ConfirmSubmitButton>
+      ) : (
+        <button className={className} type="submit">
+          {label}
+        </button>
+      )}
+    </form>
+  );
 }
 
 function readinessStatus(items: PurchaseInvoiceRow["readiness"]) {
@@ -619,7 +675,10 @@ function InvoiceForm({
   const sales = direction === "Sales";
   const posted = header?.status === "posted";
   const voided = header?.status === "void";
-  const locked = posted || voided;
+  const opened = header?.status === "open";
+  const closed = header?.status === "closed";
+  const cancelled = header?.status === "cancelled";
+  const locked = posted || voided || closed || cancelled;
   const [saveState, saveAction, savePending] = useActionState(savePurchaseInvoice, {} as ActionState);
   const [paidState, paidAction, paidPending] = useActionState(updatePaidAmount, {} as ActionState);
   const state = posted ? paidState : saveState;
@@ -658,6 +717,7 @@ function InvoiceForm({
   ]);
   const [invoiceLines, setInvoiceLines] = useState<PurchaseInvoiceLine[]>(lines ?? []);
   const [linePageSize, setLinePageSize] = useGridPageSize(`transactions/${typeCode ?? "document"}/lines`, "all");
+  const lineGridLines = useGridLines(`transactions/${typeCode ?? "document"}/lines`);
   const [linePageIndex, setLinePageIndex] = useState(0);
   const [lineDraft, setLineDraft] = useState<PurchaseInvoiceLine | null>(null);
   const [lineMessage, setLineMessage] = useState<string | null>(null);
@@ -924,6 +984,8 @@ function InvoiceForm({
   const blocked =
     choices.types.length === 0 || parties.length === 0 || choices.currencies.length === 0 || lines === null;
   const creditNote = selectedType?.documentKind === "credit_note";
+  // An order or a requisition is opened and closed. It has no readiness, e-invoice or posting.
+  const orderDocument = isOrderKind(selectedType?.documentKind);
   const paymentMeans =
     !paymentMeansCode || choices.paymentMeans.some((means) => means.code === paymentMeansCode)
       ? choices.paymentMeans
@@ -964,6 +1026,12 @@ function InvoiceForm({
         ? { tone: "alert" as const, text: `Void${header?.voidReason ? ` — ${header.voidReason}` : ""}. This document cannot be changed.` }
         : posted
           ? { tone: "notice" as const, text: "Posted. The document is read-only, except the paid amount." }
+          : cancelled
+            ? { tone: "alert" as const, text: "Cancelled. This order cannot be changed." }
+            : closed
+              ? { tone: "notice" as const, text: "Closed. Reopen the order to change it." }
+              : opened
+                ? { tone: "notice" as const, text: "Open. The order can still be changed. Close it when it is complete." }
           : choices.types.length === 0
             ? { tone: "alert" as const, text: `Add a ${sales ? "Sales" : "Purchases"} transaction type before saving a document.` }
             : parties.length === 0
@@ -989,7 +1057,7 @@ function InvoiceForm({
           ) : (
             <span />
           )}
-          {header ? (
+          {header && !orderDocument ? (
             <div className={styles.readinessBar}>
               <ReadinessControl items={readiness} direction={direction} pending={readinessPending} />
               {canDownload ? (
@@ -1200,7 +1268,7 @@ function InvoiceForm({
             </p>
           </>
         ) : null}
-        {header ? (
+        {header && !orderDocument ? (
           <div className={styles.wide}>
             <EInvoicePanel
               headerId={header.id}
@@ -1290,7 +1358,7 @@ function InvoiceForm({
             name="paid_amount"
             required
             inputMode="decimal"
-            disabled={voided}
+            disabled={voided || closed || cancelled}
             value={paidAmount}
             onChange={(event) => setPaidAmount(event.target.value)}
             onBlur={(event) => {
@@ -1395,7 +1463,7 @@ function InvoiceForm({
             )}
           </div>
             <div className={documentStyles.lineScroll}>
-              <table className={styles.lineTable}>
+              <table className={styles.lineTable} data-lines={lineGridLines.lines}>
                 <thead>
                   <tr>
                     <th>Line</th>
@@ -1485,6 +1553,7 @@ function InvoiceForm({
             </div>
             <GridPager
               className={documentStyles.linePager}
+              start={lineGridLines.button}
               page={linePage.page}
               pageCount={linePage.pageCount}
               pageSize={linePageSize}
@@ -1575,12 +1644,45 @@ function InvoiceForm({
               Credit notes
             </button>
           ) : null}
+          {header && orderDocument && header.status === "draft" ? (
+            <OrderStatusButton
+              id={header.id}
+              action="open"
+              label="Open order"
+              typeCode={typeCode}
+              className={styles.quiet}
+              confirm={{ title: "Open this order?", message: "Save first. Changes on this screen that are not saved are not kept." }}
+            />
+          ) : null}
+          {header && opened ? (
+            <>
+              <OrderStatusButton
+                id={header.id}
+                action="close"
+                label="Close order"
+                typeCode={typeCode}
+                className={styles.quiet}
+                confirm={{ title: "Close this order?", message: "Save first. Changes on this screen that are not saved are not kept. A closed order can be reopened." }}
+              />
+              <OrderStatusButton
+                id={header.id}
+                action="cancel"
+                label="Cancel order"
+                typeCode={typeCode}
+                className={styles.quiet}
+                confirm={{ title: "Cancel this order?", message: "A cancelled order cannot be reopened or changed. Changes on this screen that are not saved are not kept." }}
+              />
+            </>
+          ) : null}
+          {header && closed ? (
+            <OrderStatusButton id={header.id} action="reopen" label="Reopen order" typeCode={typeCode} className={styles.quiet} />
+          ) : null}
         </div>
         <div className={documentStyles.actionCluster}>
           <button className={styles.quiet} type="button" onClick={onClose}>
             {locked && !posted ? "Close" : "Cancel"}
           </button>
-          {voided ? null : (
+          {voided || closed || cancelled ? null : (
             <button className={styles.primary} type="submit" form="purchase-document" disabled={pending || (!posted && (blocked || !supplierId))}>
               {pending ? "Saving…" : posted ? "Save paid amount" : "Save"}
             </button>

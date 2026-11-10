@@ -1,8 +1,10 @@
 import { getOrganisationScope } from "@/lib/data";
 import {
   parseDocumentKind,
+  statusesForKind,
   parseTransactionTypeKind,
   type DocumentKind,
+  type DocumentStatus,
   type TransactionTypeKind,
   type TransactionTypeRow,
 } from "@/lib/transaction-types";
@@ -72,9 +74,8 @@ export type TransactionMenuTile = {
   type: TransactionTypeKind;
   documentKind: DocumentKind;
   count: number;
-  draftCount: number;
-  postedCount: number;
-  voidCount: number;
+  /** A count for each status this kind of document can have, in the order they happen. */
+  statusCounts: { status: DocumentStatus; count: number }[];
 };
 
 export async function listTransactionMenu(): Promise<{
@@ -98,12 +99,10 @@ export async function listTransactionMenu(): Promise<{
     return { tiles: [], error: "Transaction types could not be loaded." };
   }
 
-  const counts = new Map<string, { draft: number; posted: number; void: number }>();
+  const counts = new Map<string, Map<string, number>>();
   for (const header of headers.data ?? []) {
-    const current = counts.get(header.transaction_type_id) ?? { draft: 0, posted: 0, void: 0 };
-    if (header.status === "posted") current.posted += 1;
-    else if (header.status === "void") current.void += 1;
-    else current.draft += 1;
+    const current = counts.get(header.transaction_type_id) ?? new Map<string, number>();
+    current.set(header.status, (current.get(header.status) ?? 0) + 1);
     counts.set(header.transaction_type_id, current);
   }
 
@@ -111,7 +110,8 @@ export async function listTransactionMenu(): Promise<{
     const type = parseTransactionTypeKind(row.type);
     const documentKind = parseDocumentKind(row.document_kind);
     if (!type || !documentKind) return [];
-    const count = counts.get(row.id) ?? { draft: 0, posted: 0, void: 0 };
+    const count = counts.get(row.id) ?? new Map<string, number>();
+    const statusCounts = statusesForKind(documentKind).map((status) => ({ status, count: count.get(status) ?? 0 }));
     return [
       {
         id: row.id,
@@ -119,10 +119,8 @@ export async function listTransactionMenu(): Promise<{
         description: row.description,
         type,
         documentKind,
-        draftCount: count.draft,
-        postedCount: count.posted,
-        voidCount: count.void,
-        count: count.draft + count.posted + count.void,
+        statusCounts,
+        count: statusCounts.reduce((sum, item) => sum + item.count, 0),
       },
     ];
   });

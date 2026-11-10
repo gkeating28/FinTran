@@ -2,9 +2,28 @@ export const TRANSACTION_TYPE_KINDS = ["Sales", "Purchases"] as const;
 
 export type TransactionTypeKind = (typeof TRANSACTION_TYPE_KINDS)[number];
 
-export const DOCUMENT_KINDS = ["invoice", "credit_note", "order"] as const;
+export const DOCUMENT_KINDS = ["invoice", "credit_note", "order", "requisition"] as const;
 
 export type DocumentKind = (typeof DOCUMENT_KINDS)[number];
+
+/** Draft, posted and void belong to invoices and credit notes. Draft, open, closed and cancelled belong to orders and requisitions. */
+export const DOCUMENT_STATUSES = ["draft", "posted", "void", "open", "closed", "cancelled"] as const;
+
+export type DocumentStatus = (typeof DOCUMENT_STATUSES)[number];
+
+/** An order or a requisition is opened and closed. It is never posted. */
+export function isOrderKind(kind: DocumentKind | string | null | undefined) {
+  return kind === "order" || kind === "requisition";
+}
+
+export function documentStatusLabel(status: DocumentStatus) {
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
+/** The statuses a document of this kind can have, in the order they happen. */
+export function statusesForKind(kind: DocumentKind | string | null | undefined): DocumentStatus[] {
+  return isOrderKind(kind) ? ["draft", "open", "closed", "cancelled"] : ["draft", "posted", "void"];
+}
 
 export type TransactionTypeRow = {
   id: string;
@@ -45,6 +64,7 @@ export function parseDocumentKind(value: string): DocumentKind | null {
 export function documentKindLabel(kind: DocumentKind) {
   if (kind === "credit_note") return "Credit note";
   if (kind === "order") return "Order";
+  if (kind === "requisition") return "Requisition";
   return "Invoice";
 }
 

@@ -270,6 +270,27 @@ export async function postPurchaseInvoice(formData: FormData) {
   redirect(next);
 }
 
+const ORDER_ACTIONS = ["open", "close", "reopen", "cancel"] as const;
+
+/** Opens, closes, reopens or cancels an order or a requisition. */
+export async function setOrderStatus(formData: FormData) {
+  const id = text(formData, "id").trim();
+  const action = ORDER_ACTIONS.find((item) => item === text(formData, "order_action").trim());
+  const next = returnPath(formData);
+  if (!id || !action) redirect(next);
+
+  await currentOrganisation();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_order_status", { p_header_id: id, p_action: action });
+  if (error) {
+    redirect(`${next}?error=${encodeURIComponent(friendlyError(error, "That order could not be changed."))}`);
+  }
+
+  revalidatePath("/transactions");
+  revalidatePath("/transactions/[code]", "page");
+  redirect(action === "open" || action === "reopen" ? `${next}?open=${id}` : next);
+}
+
 export async function voidPurchaseInvoice(formData: FormData) {
   const id = text(formData, "id").trim();
   const reason = text(formData, "reason").trim();

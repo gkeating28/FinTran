@@ -46,7 +46,7 @@ export type FormType = {
   code: string;
   description: string;
   kind: TransactionTypeKind;
-  documentKind: "invoice" | "credit_note" | "order";
+  documentKind: "invoice" | "credit_note" | "order" | "requisition";
   flexLabels: [string, string, string, string, string];
 };
 
@@ -262,7 +262,14 @@ function sourceFromHeader(row: Loose, type: FormType, organisation: FormOrganisa
     flexLabels: type.flexLabels,
     numberLabel: documentNumberLabel(type.code, type.description),
     downloadName: text(row.document_number) || `draft-${text(row.id)}`,
-    watermark: status === "void" ? "VOID" : status === "posted" ? null : row.id ? "DRAFT" : null,
+    watermark:
+      status === "void"
+        ? "VOID"
+        : status === "cancelled"
+          ? "CANCELLED"
+          : status === "draft" && row.id
+            ? "DRAFT"
+            : null,
     vatBreakdown: (Array.isArray(row.transaction_vat_breakdown) ? row.transaction_vat_breakdown : []).map((item) => ({
       category: text(item.vat_category),
       rate: `${amount(item.vat_percentage).toFixed(2)}%`,
@@ -295,7 +302,10 @@ export async function getFormType(code: string): Promise<{ type: FormType | null
       code: data.code,
       description: data.description,
       kind,
-      documentKind: data.document_kind === "credit_note" || data.document_kind === "order" ? data.document_kind : "invoice",
+      documentKind:
+        data.document_kind === "credit_note" || data.document_kind === "order" || data.document_kind === "requisition"
+          ? data.document_kind
+          : "invoice",
       flexLabels: flexLabels(data),
     },
     error: null,
