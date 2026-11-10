@@ -14,6 +14,8 @@ import {
   type PurchaseInvoiceRow,
   type CreditInvoice,
   type CreditNoteType,
+  type FollowOnType,
+  type LinkedDocument,
   type PurchaseTypeChoice,
   type SupplierChoice,
 } from "@/lib/purchase-invoices";
@@ -37,6 +39,8 @@ function embeddedCode(value: { code: string } | { code: string }[] | null) {
 }
 
 function toPurchaseInvoiceLine(row: {
+  id: string;
+  source_line_id: string | null;
   line_number: number;
   product_id: string | null;
   description: string;
@@ -71,6 +75,8 @@ function toPurchaseInvoiceLine(row: {
     unitCode: row.unit_code || "C62",
     lineNote: row.line_note ?? "",
     sellerItemId: row.seller_item_id ?? "",
+    id: row.id,
+    sourceLineId: row.source_line_id ?? "",
   };
 }
 
@@ -79,6 +85,7 @@ export type PurchaseInvoiceChoices = {
   suppliers: SupplierChoice[];
   customers: SupplierChoice[];
   creditNoteTypes: CreditNoteType[];
+  followOnTypes: FollowOnType[];
   currencies: InvoiceCurrency[];
   homeCurrencyCode: string;
   products: InvoiceProduct[];
@@ -96,6 +103,7 @@ const emptyChoices: PurchaseInvoiceChoices = {
   suppliers: [],
   customers: [],
   creditNoteTypes: [],
+  followOnTypes: [],
   currencies: [],
   homeCurrencyCode: "",
   products: [],
@@ -139,7 +147,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
       supabase
         .from("transaction_lines")
         .select(
-          `header_id, line_number, product_id, description, gl_code_id, department_id, cost_centre_id, vat_rate_id,
+          `id, source_line_id, header_id, line_number, product_id, description, gl_code_id, department_id, cost_centre_id, vat_rate_id,
            quantity, price, discount_amount, nett_amount, vat_amount, unit_code, line_note, seller_item_id, products(code)`,
         )
         .eq("organisation_id", organisationId)
@@ -239,10 +247,43 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
     }
   }
 
+  // What other documents have taken from each line, and which documents are linked through their lines.
+  const headerById = new Map((headers.data ?? []).map((row) => [row.id, row]));
+  const headerOfLine = new Map((lineRows.data ?? []).map((line) => [line.id, line.header_id]));
+  const drawnByLine = new Map<string, number>();
+  const followOnIds = new Map<string, Set<string>>();
+  const sourceIds = new Map<string, Set<string>>();
+  for (const line of lineRows.data ?? []) {
+    if (!line.source_line_id) continue;
+    const sourceHeader = headerOfLine.get(line.source_line_id);
+    if (!sourceHeader) continue;
+    if (headerById.get(line.header_id)?.status !== "void") {
+      drawnByLine.set(line.source_line_id, (drawnByLine.get(line.source_line_id) ?? 0) + Number(line.quantity));
+    }
+    followOnIds.set(sourceHeader, (followOnIds.get(sourceHeader) ?? new Set()).add(line.header_id));
+    sourceIds.set(line.header_id, (sourceIds.get(line.header_id) ?? new Set()).add(sourceHeader));
+  }
+  const linked = (ids: Set<string> | undefined): LinkedDocument[] =>
+    [...(ids ?? [])].flatMap((id) => {
+      const row = headerById.get(id);
+      if (!row) return [];
+      return [
+        {
+          id: row.id,
+          typeCode: embeddedCode(row.transaction_types),
+          documentNumber: row.document_number ?? "",
+          transactionDate: row.transaction_date,
+          total: formatMoney(row.foreign_total_amount),
+          status: row.status,
+        },
+      ];
+    });
+
   const linesByHeader = new Map<string, PurchaseInvoiceLine[]>();
   for (const line of lineRows.data ?? []) {
     const list = linesByHeader.get(line.header_id) ?? [];
-    list.push(toPurchaseInvoiceLine(line));
+    const drawn = drawnByLine.get(line.id);
+    list.push({ ...toPurchaseInvoiceLine(line), drawnQuantity: drawn ? formatMoney(drawn) : "" });
     linesByHeader.set(line.header_id, list);
   }
 
@@ -304,6 +345,8 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
       lines: linesByHeader.get(row.id) ?? [],
       credits: creditLists.get(row.id) ?? [],
       remainingAmount: formatMoney(Math.max(0, Number(row.foreign_total_amount) - (postedCreditTotals.get(row.id) ?? 0))),
+      followOns: linked(followOnIds.get(row.id)),
+      sources: linked(sourceIds.get(row.id)),
     }];
     });
 
@@ -349,6 +392,11 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
         paymentTermsDays: row.payment_terms_days == null ? "" : String(row.payment_terms_days),
         buyerReference: row.default_buyer_reference ?? "",
       })),
+      followOnTypes: (types.data ?? []).flatMap((row) => {
+        const documentKind = parseDocumentKind(row.document_kind);
+        if (row.type !== direction || (documentKind !== "invoice" && documentKind !== "order")) return [];
+        return [{ id: row.id, code: row.code, description: row.description, documentKind }];
+      }),
       creditNoteTypes: (types.data ?? []).flatMap((row) => {
         if (row.type !== "Sales" || row.document_kind !== "credit_note") return [];
         return [{ id: row.id, code: row.code, description: row.description }];
@@ -431,7 +479,7 @@ export async function listPurchaseInvoiceLines(headerId: string): Promise<{
   const { data, error } = await supabase
     .from("transaction_lines")
     .select(
-      `line_number, product_id, description, gl_code_id, department_id, cost_centre_id, vat_rate_id,
+      `id, source_line_id, line_number, product_id, description, gl_code_id, department_id, cost_centre_id, vat_rate_id,
        quantity, price, discount_amount, nett_amount, vat_amount, unit_code, line_note, seller_item_id, products(code)`,
     )
     .eq("header_id", headerId)

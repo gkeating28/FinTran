@@ -1574,6 +1574,7 @@ export type Database = {
           product_id: string | null
           quantity: number
           seller_item_id: string | null
+          source_line_id: string | null
           tenant_id: string
           transaction_type_id: string
           unit_code: string
@@ -1604,6 +1605,7 @@ export type Database = {
           product_id?: string | null
           quantity: number
           seller_item_id?: string | null
+          source_line_id?: string | null
           tenant_id: string
           transaction_type_id: string
           unit_code?: string
@@ -1634,6 +1636,7 @@ export type Database = {
           product_id?: string | null
           quantity?: number
           seller_item_id?: string | null
+          source_line_id?: string | null
           tenant_id?: string
           transaction_type_id?: string
           unit_code?: string
@@ -2056,6 +2059,10 @@ export type Database = {
       post_document: {
         Args: { p_header_id: string; p_logo_path?: string }
         Returns: undefined
+      }
+      create_from_order: {
+        Args: { p_header_id: string; p_type_id: string }
+        Returns: string
       }
       set_order_status: {
         Args: { p_header_id: string; p_action: string }

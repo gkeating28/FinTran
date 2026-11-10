@@ -20,6 +20,22 @@ export type PurchaseInvoiceLine = {
   unitCode: string;
   lineNote: string;
   sellerItemId: string;
+  /** The stored line. A save keeps it, so other documents can point at this line. */
+  id?: string;
+  /** The order line an invoice line came from, or the requisition line an order line came from. */
+  sourceLineId?: string;
+  /** The quantity other documents have already taken from this line. Void documents do not count. */
+  drawnQuantity?: string;
+};
+
+/** A document made from another one, or the one it was made from. */
+export type LinkedDocument = {
+  id: string;
+  typeCode: string;
+  documentNumber: string;
+  transactionDate: string;
+  total: string;
+  status: DocumentStatus;
 };
 
 export type LinkedCredit = {
@@ -81,6 +97,10 @@ export type PurchaseInvoiceRow = {
   lines: PurchaseInvoiceLine[];
   credits: LinkedCredit[];
   remainingAmount: string;
+  /** Documents made from this one: purchase orders from a requisition, invoices from an order. */
+  followOns: LinkedDocument[];
+  /** The order or requisition this document was made from. */
+  sources: LinkedDocument[];
 };
 
 export type PurchaseTypeChoice = {
@@ -101,6 +121,14 @@ export type CreditInvoice = {
   customerId: string;
   currencyId: string;
   typeCode: string;
+};
+
+/** A type a document can be turned into: an invoice type for an order, an order type for a requisition. */
+export type FollowOnType = {
+  id: string;
+  code: string;
+  description: string;
+  documentKind: DocumentKind;
 };
 
 export type CreditNoteType = {

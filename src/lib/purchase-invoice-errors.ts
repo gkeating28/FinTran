@@ -15,6 +15,9 @@ export function friendlyError(error: { code?: string; message: string } | null, 
   if (error.code === "23503" && error.message.includes("preceding_header")) {
     return "Choose a posted invoice from this organisation.";
   }
+  if (error.code === "23503" && error.message.includes("source_line")) {
+    return "A line that another document was created from cannot be removed.";
+  }
   if (error.code === "23503") return "Choose a code from this organisation.";
   if (error.code === "P0001") return error.message;
   if (error.message.includes("Discount cannot")) return "Discount cannot be more than quantity times price.";

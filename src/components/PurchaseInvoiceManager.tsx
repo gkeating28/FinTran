@@ -16,6 +16,7 @@ import { QuietInput, QuietTextarea } from "@/components/QuietField";
 import UnitSelect from "@/components/UnitSelect";
 import {
   createCreditNote,
+  createFromOrder,
   deletePurchaseInvoice,
   postPurchaseInvoice,
   savePurchaseInvoice,
@@ -727,6 +728,7 @@ function InvoiceForm({
   const [sideBySide, setSideBySide] = useState(true);
   const [voidOpen, setVoidOpen] = useState(false);
   const [creditOpen, setCreditOpen] = useState(false);
+  const [linksOpen, setLinksOpen] = useState(false);
   const splitRef = useRef<HTMLDivElement>(null);
   const headerWidthRef = useRef<number | null>(headerWidth);
   const sideBySideRef = useRef(true);
@@ -986,6 +988,13 @@ function InvoiceForm({
   const creditNote = selectedType?.documentKind === "credit_note";
   // An order or a requisition is opened and closed. It has no readiness, e-invoice or posting.
   const orderDocument = isOrderKind(selectedType?.documentKind);
+  // An order becomes invoices and a requisition becomes purchase orders.
+  const requisition = selectedType?.documentKind === "requisition";
+  const followOnNoun = requisition ? "purchase order" : "invoice";
+  const followOnTypes = choices.followOnTypes.filter((type) => type.documentKind === (requisition ? "order" : "invoice"));
+  // Only an order limits what can be taken from it, so only an order shows what is left.
+  const showDrawn = selectedType?.documentKind === "order" && Boolean(header) && header?.status !== "draft";
+  const showLinks = Boolean(header) && (orderDocument || (header?.sources.length ?? 0) > 0);
   const paymentMeans =
     !paymentMeansCode || choices.paymentMeans.some((means) => means.code === paymentMeansCode)
       ? choices.paymentMeans
@@ -1013,9 +1022,10 @@ function InvoiceForm({
     setLinePageSize(next);
   }
 
-  function openPanel(panel: "void" | "credit") {
+  function openPanel(panel: "void" | "credit" | "links") {
     setVoidOpen(panel === "void" ? !voidOpen : false);
     setCreditOpen(panel === "credit" ? !creditOpen : false);
+    setLinksOpen(panel === "links" ? !linksOpen : false);
   }
 
   const banner = state.error
@@ -1473,6 +1483,8 @@ function InvoiceForm({
                     <th>GL</th>
                     <th>VAT</th>
                     <th className={styles.num}>Qty</th>
+                    {showDrawn ? <th className={styles.num}>Invoiced</th> : null}
+                    {showDrawn ? <th className={styles.num}>Left</th> : null}
                     <th className={styles.num}>Nett</th>
                     <th className={styles.num}>VAT amount</th>
                     {locked ? null : <th className={styles.actions}>&nbsp;</th>}
@@ -1481,7 +1493,7 @@ function InvoiceForm({
                 <tbody>
                   {invoiceLines.length === 0 ? (
                     <tr>
-                      <td colSpan={locked ? 9 : 10}>No lines yet.</td>
+                      <td colSpan={(locked ? 9 : 10) + (showDrawn ? 2 : 0)}>No lines yet.</td>
                     </tr>
                   ) : (
                     linePage.rows.map((line) => (
@@ -1514,6 +1526,12 @@ function InvoiceForm({
                         <td className={styles.mono}>{choices.glCodes.find((code) => code.id === line.glCodeId)?.code ?? ""}</td>
                         <td className={styles.mono}>{choices.vatRates.find((rate) => rate.id === line.vatRateId)?.code ?? ""}</td>
                         <td className={`${styles.mono} ${styles.num}`}>{line.quantity}</td>
+                        {showDrawn ? <td className={`${styles.mono} ${styles.num}`}>{line.drawnQuantity || "0.00"}</td> : null}
+                        {showDrawn ? (
+                          <td className={`${styles.mono} ${styles.num}`}>
+                            {formatMoney(Math.max(0, numberValue(line.quantity) - numberValue(line.drawnQuantity)))}
+                          </td>
+                        ) : null}
                         <td className={`${styles.mono} ${styles.num}`}>{line.nettAmount}</td>
                         <td className={`${styles.mono} ${styles.num}`}>{line.vatAmount}</td>
                         {locked ? null : (
@@ -1543,7 +1561,7 @@ function InvoiceForm({
                 </tbody>
                 <tfoot>
                   <tr>
-                    <th colSpan={7}>Total</th>
+                    <th colSpan={showDrawn ? 9 : 7}>Total</th>
                     <td className={`${styles.mono} ${styles.num}`}>{formatMoney(totals.foreignNett)}</td>
                     <td className={`${styles.mono} ${styles.num}`}>{formatMoney(totals.foreignVat)}</td>
                     {locked ? null : <td />}
@@ -1582,6 +1600,83 @@ function InvoiceForm({
           </label>
           <button className={styles.danger} type="submit">Void</button>
         </form>
+      ) : null}
+      {linksOpen && showLinks && header ? (
+        <div className={documentStyles.sideSheet} role="dialog" aria-label="Linked documents">
+          <div className={documentStyles.sideSheetHead}>
+            <strong>Linked documents</strong>
+            <button className={styles.quiet} type="button" onClick={() => setLinksOpen(false)}>Close</button>
+          </div>
+          {header.sources.length > 0 ? (
+            <>
+              <p>Created from</p>
+              <ul>
+                {header.sources.map((source) => (
+                  <li key={source.id}>
+                    <Link href={`/transactions/${source.typeCode}?open=${source.id}`}>
+                      {source.typeCode} {source.documentNumber || source.transactionDate}
+                    </Link>
+                    {" "}· {source.status} · {source.total}
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+          {orderDocument ? (
+            <>
+              <p>{requisition ? "Purchase orders" : "Invoices"} created from this</p>
+              {header.followOns.length > 0 ? (
+                <ul>
+                  {header.followOns.map((item) => (
+                    <li key={item.id}>
+                      <Link href={`/transactions/${item.typeCode}?open=${item.id}`}>
+                        {item.typeCode} {item.documentNumber || item.transactionDate}
+                      </Link>
+                      {" "}· {item.status} · {item.total}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className={styles.panelMeta}>None yet.</p>
+              )}
+              {!opened ? (
+                <p className={styles.panelMeta}>
+                  {header.status === "draft" ? `Open it to create ${requisition ? "a purchase order" : "an invoice"} from it.` : `It is ${header.status}, so nothing more can be created from it.`}
+                </p>
+              ) : followOnTypes.length === 0 ? (
+                <p className={styles.panelMeta}>
+                  This organisation has no {sales ? "Sales" : "Purchases"} {followOnNoun} type. <Link href="/transaction-types">Add one</Link> first.
+                </p>
+              ) : (
+                <form action={createFromOrder}>
+                  <input type="hidden" name="id" value={header.id} />
+                  {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
+                  {followOnTypes.length > 1 ? (
+                    <label className={styles.field}>
+                      Type
+                      <select name="target_type_id" required defaultValue="">
+                        <option value="">Choose a type</option>
+                        {followOnTypes.map((type) => (
+                          <option key={type.id} value={type.id}>
+                            {type.code} — {type.description}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : (
+                    <input type="hidden" name="target_type_id" value={followOnTypes[0]?.id ?? ""} />
+                  )}
+                  <p className={styles.panelMeta}>
+                    {requisition
+                      ? "The new purchase order starts with every line. Save changes here first."
+                      : "The new invoice starts with what is left on each line. Reduce a quantity for a part invoice. Save changes here first."}
+                  </p>
+                  <button className={styles.primary} type="submit">Create {followOnNoun}</button>
+                </form>
+              )}
+            </>
+          ) : null}
+        </div>
       ) : null}
       {creditOpen && showCreditNote && header ? (
         <div className={documentStyles.sideSheet} role="dialog" aria-label="Credit notes">
@@ -1642,6 +1737,11 @@ function InvoiceForm({
           {showCreditNote ? (
             <button className={styles.quiet} type="button" aria-expanded={creditOpen} onClick={() => openPanel("credit")}>
               Credit notes
+            </button>
+          ) : null}
+          {showLinks ? (
+            <button className={styles.quiet} type="button" aria-expanded={linksOpen} onClick={() => openPanel("links")}>
+              Linked documents
             </button>
           ) : null}
           {header && orderDocument && header.status === "draft" ? (

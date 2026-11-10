@@ -57,6 +57,8 @@ function linesFrom(value: string): PurchaseInvoiceLine[] | { error: string } {
         unitCode: textValue("unitCode"),
         lineNote: textValue("lineNote"),
         sellerItemId: textValue("sellerItemId"),
+        id: textValue("id"),
+        sourceLineId: textValue("sourceLineId"),
       },
     ];
   });
@@ -194,6 +196,9 @@ function documentFrom(formData: FormData) {
       unitCode: line.unitCode.trim().toUpperCase(),
       lineNote: line.lineNote.trim(),
       sellerItemId: line.sellerItemId.trim(),
+      // Keeping the id lets other documents go on pointing at this line after the save.
+      id: parseUuid(line.id ?? "") ?? "",
+      sourceLineId: parseUuid(line.sourceLineId ?? "") ?? "",
     })),
   } as const;
 }
@@ -268,6 +273,27 @@ export async function postPurchaseInvoice(formData: FormData) {
   revalidatePath("/transactions");
   revalidatePath("/transactions/[code]", "page");
   redirect(next);
+}
+
+/** Starts an invoice from an open order, or a purchase order from an open requisition, with what is left on each line. */
+export async function createFromOrder(formData: FormData) {
+  const id = parseUuid(text(formData, "id"));
+  const typeId = parseUuid(text(formData, "target_type_id"));
+  const next = returnPath(formData);
+  if (!id) redirect(next);
+  if (!typeId) redirect(`${next}?error=${encodeURIComponent("Choose which type of document to create.")}`);
+
+  await currentOrganisation();
+  const supabase = await createClient();
+  const created = await supabase.rpc("create_from_order", { p_header_id: id, p_type_id: typeId });
+  if (created.error || !created.data) {
+    redirect(`${next}?error=${encodeURIComponent(friendlyError(created.error, "That document could not be created."))}`);
+  }
+  const type = await supabase.from("transaction_types").select("code").eq("id", typeId).maybeSingle();
+
+  revalidatePath("/transactions");
+  revalidatePath("/transactions/[code]", "page");
+  redirect(type.data?.code ? `/transactions/${type.data.code}?open=${created.data}` : next);
 }
 
 const ORDER_ACTIONS = ["open", "close", "reopen", "cancel"] as const;
