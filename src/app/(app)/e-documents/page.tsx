@@ -23,7 +23,9 @@ type Row = {
 async function loadEDocuments() {
   const organisationId = await getOrganisationScope();
   const links = new Map<string, string>();
-  if (!organisationId) return { source: [] as Row[], links, error: null };
+  // The supplier or customer on the linked document, for a file stored without a party name.
+  const parties = new Map<string, string>();
+  if (!organisationId) return { source: [] as Row[], links, parties, error: null };
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("e_documents")
@@ -33,14 +35,21 @@ async function loadEDocuments() {
   const source = (data ?? []) as Row[];
   const headerIds = source.flatMap((row) => (row.header_id ? [row.header_id] : []));
   if (headerIds.length) {
-    const headers = await supabase.from("transaction_headers").select("id, transaction_types(code)").in("id", headerIds);
+    const headers = await supabase.from("transaction_headers").select("id, transaction_types(code), suppliers(name), customers(name)").in("id", headerIds);
     for (const header of headers.data ?? []) {
       const type = header.transaction_types as { code?: string } | { code?: string }[] | null;
       const code = Array.isArray(type) ? type[0]?.code : type?.code;
       if (code) links.set(header.id, `/transactions/${code}?open=${header.id}`);
+      const name = one(header.suppliers)?.name || one(header.customers)?.name;
+      if (name) parties.set(header.id, name);
     }
   }
-  return { source, links, error };
+  return { source, links, parties, error };
+}
+
+function one(value: unknown) {
+  const item = Array.isArray(value) ? value[0] : value;
+  return item && typeof item === "object" ? (item as { name?: string }) : null;
 }
 
 export default async function EDocumentsPage({
@@ -54,14 +63,17 @@ export default async function EDocumentsPage({
   if (workspace.status !== "ready") redirect("/");
   const query = await searchParams;
   const direction = query.direction === "outbound" ? "outbound" : "inbound";
-  const { source, links, error } = await loaded;
+  const { source, links, parties, error } = await loaded;
   const rows: EDocumentListRow[] = source.map((row) => ({
     id: row.id,
     direction: row.direction === "outbound" ? "outbound" : "inbound",
     status: row.status,
     documentNumber: row.document_number ?? "Untitled",
     issueDate: row.issue_date ?? "",
-    party: row.direction === "inbound" ? (row.seller_name ?? "") : (row.buyer_name ?? ""),
+    party:
+      (row.direction === "inbound" ? row.seller_name : row.buyer_name) ||
+      (row.header_id ? parties.get(row.header_id) : "") ||
+      "",
     total: row.total_amount == null ? "" : `${row.total_amount}${row.currency_code ? ` ${row.currency_code}` : ""}`,
     documentHref: row.header_id ? (links.get(row.header_id) ?? null) : null,
   }));
