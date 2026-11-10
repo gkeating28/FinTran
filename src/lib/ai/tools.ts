@@ -237,7 +237,7 @@ async function runTool(supabase: Client, organisationId: string, name: string, i
       totalLeftToInvoice: money(matched.reduce((sum, order) => sum + order.remaining, 0)),
       shown: Math.min(matched.length, LIST_LIMIT),
       truncated,
-      note: "Open orders only. Amounts are nett, in the home currency. An order is limited by quantity, so what is left is valued at the order's prices.",
+      note: "Active orders only. Active is the status after draft, stored as open. Amounts are nett, in the home currency. An order is limited by quantity, so what is left is valued at the order's prices.",
     };
   }
 

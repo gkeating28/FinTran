@@ -186,7 +186,7 @@ export function buildInsights(docs: InsightDoc[], notReady: NotReady[], today: s
     insights.push({
       id: "orders-to-invoice",
       tone: "info",
-      title: `${plural(toInvoice.length, "open order")} still to invoice`,
+      title: `${plural(toInvoice.length, "active order")} still to invoice`,
       detail: `${euro(toInvoice.reduce((sum, order) => sum + order.remaining, 0))} nett is left on them${part ? `, and ${plural(part, "order")} ${part === 1 ? "is" : "are"} part invoiced` : ""}. The oldest is ${oldest.number} for ${oldest.party}, dated ${shortDate(oldest.date)}.`,
       href: `/transactions/${oldest.typeCode}?open=${oldest.id}`,
     });
@@ -198,7 +198,7 @@ export function buildInsights(docs: InsightDoc[], notReady: NotReady[], today: s
     insights.push({
       id: "orders-to-close",
       tone: "info",
-      title: `${plural(complete.length, "open order")} fully invoiced`,
+      title: `${plural(complete.length, "active order")} fully invoiced`,
       detail: `${first.number} for ${first.party} has nothing left to invoice${complete.length > 1 ? ", and so have the others" : ""}. ${complete.length === 1 ? "It" : "They"} can be closed.`,
       href: `/transactions/${first.typeCode}?open=${first.id}`,
     });
