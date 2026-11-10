@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useId, useState, type ChangeEvent } from "react";
+import { keepEntries } from "@/components/keepEntries";
 import DataGrid from "@/components/DataGrid";
 import { CreateOrganisationForm } from "@/components/Forms";
 import FormModal from "@/components/FormModal";
@@ -217,7 +218,7 @@ function OrganisationForm({
           </p>
         ) : null}
         <div className={recordStyles.layout}>
-          <form id={formId} className={styles.displayContents} action={action} autoComplete="off" noValidate>
+          <form id={formId} className={styles.displayContents} onSubmit={keepEntries(action)} autoComplete="off" noValidate>
             {/* Left column: who and where */}
             <div className={`${recordStyles.row} ${slot("left", 1)}`}>
               <label className={recordStyles.grow}>

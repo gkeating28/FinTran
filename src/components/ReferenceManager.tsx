@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { keepEntries } from "@/components/keepEntries";
 import { CodeField } from "@/components/CodeField";
 import ConfirmSubmitButton from "@/components/ConfirmDialog";
 import DataGrid from "@/components/DataGrid";
@@ -199,7 +200,7 @@ function ReferenceForm({
 
   return (
     <FormModal title={readOnly ? `View ${meta.singular}` : row ? `Edit ${meta.singular}` : `Add ${meta.singular}`} onClose={onClose} className={recordStyles.dialogMedium}>
-      <form className={`${styles.modalForm}${readOnly ? ` ${styles.formReadOnly}` : ""}`} action={action} autoComplete="off" noValidate>
+      <form className={`${styles.modalForm}${readOnly ? ` ${styles.formReadOnly}` : ""}`} onSubmit={keepEntries(action)} autoComplete="off" noValidate>
         {row ? <input type="hidden" name="id" value={row.id} /> : null}
         {state.error ? (
           <p className={styles.alert} role="alert">

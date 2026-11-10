@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { keepEntries } from "@/components/keepEntries";
 import {
   createOrganisation,
   createTenant,
@@ -134,7 +135,7 @@ function TenantFields({ currencies }: { currencies: IsoCurrency[] }) {
   const [state, action, pending] = useActionState(createTenant, {});
 
   return (
-    <form className={ops.modalForm} action={action} autoComplete="off" noValidate>
+    <form className={ops.modalForm} onSubmit={keepEntries(action)} autoComplete="off" noValidate>
       <Status state={state} />
       <label className={ops.field}>
         Tenant
@@ -181,7 +182,7 @@ function OrganisationFields({ tenantId, currencies }: { tenantId: string; curren
   const [state, action, pending] = useActionState(createOrganisation, {});
 
   return (
-    <form className={ops.modalForm} action={action} autoComplete="off" noValidate>
+    <form className={ops.modalForm} onSubmit={keepEntries(action)} autoComplete="off" noValidate>
       <input type="hidden" name="tenantId" value={tenantId} />
       <Status state={state} />
       <label className={ops.field}>
@@ -241,7 +242,7 @@ function AccessFields({
   }, [state.message, onSaved]);
 
   return (
-    <form className={ops.modalForm} action={action} autoComplete="off" noValidate>
+    <form className={ops.modalForm} onSubmit={keepEntries(action)} autoComplete="off" noValidate>
       <input type="hidden" name="organisationId" value={organisationId} />
       <Status state={state} />
       <label className={ops.field}>

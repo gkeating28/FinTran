@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { keepEntries } from "@/components/keepEntries";
 import { CodeField } from "@/components/CodeField";
 import ConfirmSubmitButton from "@/components/ConfirmDialog";
 import type { ExportField } from "@/components/GridExport";
@@ -240,7 +241,7 @@ export function PartyForm({
       onClose={onClose}
       fillPage
     >
-      <form className={`${styles.modalForm} ${styles.partyForm}`} action={action} autoComplete="off" noValidate>
+      <form className={`${styles.modalForm} ${styles.partyForm}`} onSubmit={keepEntries(action)} autoComplete="off" noValidate>
         {row ? <input type="hidden" name="id" value={row.id} /> : null}
         {notice ? <p className={styles.alert}>{notice} <a href="/currencies">Add a currency</a></p> : null}
         {state.error ? (

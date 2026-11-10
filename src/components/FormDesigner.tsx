@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { keepEntries } from "@/components/keepEntries";
 import PrintedForm from "@/components/PrintedForm";
 import { QuietInput } from "@/components/QuietField";
 import styles from "@/components/OpsPage.module.css";
@@ -76,7 +77,7 @@ export default function FormDesigner({
 
   return (
     <div className={printStyles.designer}>
-      <form action={action} autoComplete="off" noValidate style={{ display: "contents" }}>
+      <form onSubmit={keepEntries(action)} autoComplete="off" noValidate style={{ display: "contents" }}>
         <fieldset disabled={!canEdit} className={printStyles.controls}>
         <input type="hidden" name="code" value={type.code} />
         <input type="hidden" name="layout" value={JSON.stringify(salesLayout(layout, sales, creditNote))} />
