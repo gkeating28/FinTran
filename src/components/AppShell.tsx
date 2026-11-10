@@ -28,7 +28,7 @@ export default function AppShell({
         <FormChromeProvider>
           <div className={styles.main}>
             <AppTitleBar
-              organisationName={current?.organisationName ?? "Qula Tran"}
+              organisationName={current?.organisationName ?? "Qula Plus"}
               setup={!current}
               toolbar={
                 current ? (

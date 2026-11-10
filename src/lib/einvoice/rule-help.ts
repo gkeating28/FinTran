@@ -96,7 +96,7 @@ function prefixed(ruleId: string): RuleHelp | null {
     return { title: "A required invoice field is missing or wrong", why: "The European e-invoice standard needs a field that is missing or invalid.", fix: "Read the rule text, correct that part of the document and regenerate. On a received invoice ask the sender for a corrected file.", place: "sender" };
   }
   if (/^XSD/i.test(ruleId)) {
-    return { title: "The file is not a valid e-invoice", why: "The file does not follow the UBL layout, so it cannot be read as an invoice.", fix: "Ask the sender for a new file. If Qula Tran made it, regenerate it.", place: "sender" };
+    return { title: "The file is not a valid e-invoice", why: "The file does not follow the UBL layout, so it cannot be read as an invoice.", fix: "Ask the sender for a new file. If Qula Plus made it, regenerate it.", place: "sender" };
   }
   return null;
 }

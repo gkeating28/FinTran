@@ -23,7 +23,7 @@ export default async function LoginPage({
         <div className={styles.brand}>
           <Image src="/qula-logo.png" alt="" width={40} height={40} priority className={styles.brandMark} />
           <div>
-            <strong>Qula Tran</strong>
+            <strong>Qula Plus</strong>
             <span>TRANSACTIONS</span>
           </div>
         </div>

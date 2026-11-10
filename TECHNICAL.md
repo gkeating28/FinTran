@@ -1,12 +1,12 @@
-# Qula Tran technical description
+# Qula Plus technical description
 
-Qula Tran keeps financial setup and documents separate for each organisation. A tenant owns one or more organisations. A person signs in once and is granted access to particular organisations as an owner, an admin, or a member.
+Qula Plus keeps financial setup and documents separate for each organisation. A tenant owns one or more organisations. A person signs in once and is granted access to particular organisations as an owner, an admin, or a member.
 
-Purchases and sales share one document store and one entry form. The transaction type decides the direction. Posted sales invoices and credit notes can be stored as Peppol BIS Billing 3.0 UBL. A received UBL file can be imported as a Purchases draft. Orders stay in Qula Tran and are not exported as EN 16931 invoices.
+Purchases and sales share one document store and one entry form. The transaction type decides the direction. Posted sales invoices and credit notes can be stored as Peppol BIS Billing 3.0 UBL. A received UBL file can be imported as a Purchases draft. Orders stay in Qula Plus and are not exported as EN 16931 invoices.
 
 ## Naming
 
-The product name on screens, page titles, print, and messages is Qula Tran. These internal identifiers keep the previous name so existing sessions, files, and database behaviour do not change:
+The product name on screens, page titles, print, and messages is Qula Plus. These internal identifiers keep the previous name so existing sessions, files, and database behaviour do not change:
 
 | Identifier | Why it stays |
 | --- | --- |
@@ -392,7 +392,7 @@ Ordinary inserts are not granted. Status changes go through `store_e_document`, 
 | `status` | `generated`, `received`, `invalid`, `valid`, `duplicate`, `imported`, `rejected` |
 | `source` | `generated` or `manual_upload` |
 | `ubl_root` | `Invoice` or `CreditNote` |
-| `header_id` | Linked Qula Tran document. One valid outbound file per header. One imported inbound file per header. |
+| `header_id` | Linked Qula Plus document. One valid outbound file per header. One imported inbound file per header. |
 | `duplicate_of` | An earlier inbound file with the same document kind, number, and seller. An identical file is not stored again; its existing id is returned. |
 | `sha256` | 64 hex characters. Unique per organisation and direction. |
 | `byte_size` | 1 to 4 MiB |
