@@ -146,7 +146,7 @@ Fields offered are the displayed columns, which are ticked, plus the grid's `exp
 
 #### Grid lines
 
-Every `DataGrid` has a grid lines button in its footer, beside the rows per page menu. Each click steps through row lines (the standard look), row and column lines, column lines and no lines. The choice is remembered in the browser for each grid under `fintran.grid-lines.{form}`.
+Every `DataGrid` has a grid lines button in its footer, beside the rows per page menu. So do the line item grids on a transaction document and on the e-invoice import. The hook is `useGridLines` in `src/components/GridLines.tsx`. Each click steps through row lines (the standard look), row and column lines, column lines and no lines. The choice is remembered in the browser for each grid under `fintran.grid-lines.{form}`.
 
 ### Ask Qula
 

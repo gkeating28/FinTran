@@ -8,6 +8,7 @@ import ConfirmSubmitButton from "@/components/ConfirmDialog";
 import DataGrid from "@/components/DataGrid";
 import type { ExportField } from "@/components/GridExport";
 import GridPager from "@/components/GridPager";
+import { useGridLines } from "@/components/GridLines";
 import { useGridPageSize } from "@/components/useGridPageSize";
 import { EInvoicePanel } from "@/components/EInvoicePanel";
 import FormModal from "@/components/FormModal";
@@ -658,6 +659,7 @@ function InvoiceForm({
   ]);
   const [invoiceLines, setInvoiceLines] = useState<PurchaseInvoiceLine[]>(lines ?? []);
   const [linePageSize, setLinePageSize] = useGridPageSize(`transactions/${typeCode ?? "document"}/lines`, "all");
+  const lineGridLines = useGridLines(`transactions/${typeCode ?? "document"}/lines`);
   const [linePageIndex, setLinePageIndex] = useState(0);
   const [lineDraft, setLineDraft] = useState<PurchaseInvoiceLine | null>(null);
   const [lineMessage, setLineMessage] = useState<string | null>(null);
@@ -1395,7 +1397,7 @@ function InvoiceForm({
             )}
           </div>
             <div className={documentStyles.lineScroll}>
-              <table className={styles.lineTable}>
+              <table className={styles.lineTable} data-lines={lineGridLines.lines}>
                 <thead>
                   <tr>
                     <th>Line</th>
@@ -1485,6 +1487,7 @@ function InvoiceForm({
             </div>
             <GridPager
               className={documentStyles.linePager}
+              start={lineGridLines.button}
               page={linePage.page}
               pageCount={linePage.pageCount}
               pageSize={linePageSize}

@@ -182,12 +182,18 @@
 .table[data-lines="both"] th:not(:last-child),
 .table[data-lines="both"] td:not(:last-child),
 .table[data-lines="columns"] th:not(:last-child),
-.table[data-lines="columns"] td:not(:last-child) {
+.table[data-lines="columns"] td:not(:last-child),
+.lineTable[data-lines="both"] th:not(:last-child),
+.lineTable[data-lines="both"] td:not(:last-child),
+.lineTable[data-lines="columns"] th:not(:last-child),
+.lineTable[data-lines="columns"] td:not(:last-child) {
   border-right: 1px solid var(--ops-border-soft);
 }
 
 .table[data-lines="columns"] td,
-.table[data-lines="none"] td {
+.table[data-lines="none"] td,
+.lineTable[data-lines="columns"] tbody td,
+.lineTable[data-lines="none"] tbody td {
   border-bottom-color: transparent;
 }
 
