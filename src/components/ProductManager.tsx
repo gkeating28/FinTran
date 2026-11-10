@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { keepEntries } from "@/components/keepEntries";
 import { CodeField } from "@/components/CodeField";
 import ConfirmSubmitButton from "@/components/ConfirmDialog";
 import DataGrid from "@/components/DataGrid";
@@ -332,7 +333,7 @@ function ProductForm({
 
   return (
     <FormModal title={readOnly ? "View product" : row ? "Edit product" : "Add product"} onClose={onClose} className={recordStyles.dialogWide}>
-      <form className={`${styles.modalForm} ${styles.partyForm}${readOnly ? ` ${styles.formReadOnly}` : ""}`} action={action} autoComplete="off" noValidate>
+      <form className={`${styles.modalForm} ${styles.partyForm}${readOnly ? ` ${styles.formReadOnly}` : ""}`} onSubmit={keepEntries(action)} autoComplete="off" noValidate>
         {row ? <input type="hidden" name="id" value={row.id} /> : null}
         {state.error ? (
           <p className={styles.alert} role="alert">

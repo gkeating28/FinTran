@@ -130,6 +130,10 @@ Every page that lists rows starts its data read at the same time as the workspac
 5. A link to a page of rows uses `prefetch` on the `Link`, as the sidebar does, so the page is fetched before the click and a visited page is reused for five minutes. A link without it waits for the server after the click. The Admin tiles, the Transactions tiles and the Home shortcuts all use it. A save clears the cached page.
 6. Pages that need the organisation name, role or memberships still await the workspace, because those come from it.
 
+### Forms that can fail
+
+React resets a form after its `action` runs, which wipes the entries when a save returns an error. A form whose save can fail uses `onSubmit={keepEntries(action)}` from `src/components/keepEntries.ts` with the action from `useActionState`, in place of the form's `action`. The data goes through a transition and the form stays as the person filled it in. The sign in and sign up forms, and the one button forms that remove or post a row, keep the plain `action`.
+
 ### Grids
 
 A page whose main content is a `DataGrid` is laid out so the grid fills the screen. The page is a column, the page's section takes the height that is left, and the grid panel (`gridPanel` in `OpsPage.module.css`) takes what the heading leaves. The rows scroll inside the panel and the header stays at the top. The footer, with the rows per page menu and the page buttons, stays at the bottom of the screen, also when there are only a few rows. This needs the `DataGrid` to be a direct child of the page's section. Below 860px wide the page scrolls as a whole and the grid keeps its natural height.
@@ -169,7 +173,7 @@ Ask Qula knows the page. A screen that has a record open calls `useAskContext` (
 | `/transactions/{code}` with a document open | The shared entry form |
 | `/customers`, `/suppliers` | Parties |
 | `/e-documents` | Received and sent e-documents, filtered by status, party, date, and number |
-| `/e-documents/{id}` | Validation and history, or the import form when the file is an inbound valid invoice |
+| `/e-documents/{id}` | The import form when the file is an inbound valid invoice. Otherwise a read-only view (`EDocumentView`, styles in `EDocument.module.css`): the invoice facts, seller and buyer, lines and totals, then validation and history, with a link to the purchase or sales document it belongs to. The view reads the stored XML again, so a file stored by an earlier reader shows what the current reader finds. |
 | `/admin` | Links to setup lists |
 | `/gl-codes`, `/departments`, `/cost-centres`, `/vat-rates`, `/currencies`, `/products`, `/transaction-types` | Setup grids |
 | `/organisations` | Organisations in the tenant, defaults, and logo |

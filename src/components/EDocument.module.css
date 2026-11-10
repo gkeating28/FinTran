@@ -1,0 +1,117 @@
+/* The read-only view of a stored e-invoice: facts, parties, lines, then validation and history. */
+
+.pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  font-size: var(--text-sm);
+}
+
+.body p {
+  margin: 0;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px 24px;
+  margin: 0;
+  padding: 14px;
+}
+
+.facts dt {
+  color: var(--ops-muted);
+  font-size: var(--text-xs);
+}
+
+.facts dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+}
+
+.partyName {
+  font-weight: 600;
+}
+
+.muted {
+  color: var(--ops-muted);
+}
+
+.totals {
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: end;
+  gap: 6px 32px;
+  margin: 0;
+  padding: 12px 14px;
+  border-top: 1px solid var(--ops-border-soft);
+  font-size: var(--text-sm);
+}
+
+.totals dt {
+  color: var(--ops-muted);
+}
+
+.totals dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.totals .strong {
+  color: var(--ops-text);
+  font-weight: 700;
+}
+
+.status {
+  padding: 3px 10px;
+  border: 1px solid var(--ops-border);
+  border-radius: 999px;
+  background: var(--color-surface-muted);
+  color: var(--ops-text-2);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status[data-tone="ok"] {
+  border-color: var(--color-ok-border);
+  background: var(--color-ok-soft);
+  color: var(--color-ok);
+}
+
+.status[data-tone="warn"] {
+  border-color: var(--color-warn-border);
+  background: var(--color-warn-soft);
+  color: var(--color-warn);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list li {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.when {
+  flex: none;
+  width: 104px;
+  color: var(--ops-muted);
+  font-variant-numeric: tabular-nums;
+}

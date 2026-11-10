@@ -1,6 +1,7 @@
 "use client";
 
-import { startTransition, useActionState, useEffect, useState, type FormEvent } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { keepEntries } from "@/components/keepEntries";
 import { CodeField } from "@/components/CodeField";
 import ConfirmSubmitButton from "@/components/ConfirmDialog";
 import DataGrid from "@/components/DataGrid";
@@ -153,21 +154,13 @@ function CurrencyForm({
   const [rate, setRate] = useState(row?.rate ?? "");
   const [isoCode, setIsoCode] = useState(row?.isoCode ?? "");
 
-  // React 19 resets a form after its action runs, which wipes the choices when a save fails.
-  // Submitting through a transition keeps what the person entered.
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    startTransition(() => action(data));
-  }
-
   useEffect(() => {
     if (state.message) onClose();
   }, [state.message, onClose]);
 
   return (
     <FormModal title={readOnly ? "View currency" : row ? "Edit currency" : "Add currency"} onClose={onClose} className={recordStyles.dialogMedium}>
-      <form className={`${styles.modalForm}${readOnly ? ` ${styles.formReadOnly}` : ""}`} onSubmit={submit} autoComplete="off" noValidate>
+      <form className={`${styles.modalForm}${readOnly ? ` ${styles.formReadOnly}` : ""}`} onSubmit={keepEntries(action)} autoComplete="off" noValidate>
         {row ? <input type="hidden" name="id" value={row.id} /> : null}
         {state.error ? (
           <p className={styles.alert} role="alert">

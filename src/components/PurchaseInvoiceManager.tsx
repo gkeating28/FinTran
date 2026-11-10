@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useActionState, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
+import { keepEntries } from "@/components/keepEntries";
 import ConfirmSubmitButton from "@/components/ConfirmDialog";
 import DataGrid from "@/components/DataGrid";
 import type { ExportField } from "@/components/GridExport";
@@ -977,7 +978,7 @@ function InvoiceForm({
       fillPage
     >
       <div className={styles.modalForm}>
-      <form id="purchase-document" className={styles.documentFields} action={action} autoComplete="off" noValidate>
+      <form id="purchase-document" className={styles.documentFields} onSubmit={keepEntries(action)} autoComplete="off" noValidate>
         {header ? <input type="hidden" name="id" value={header.id} /> : null}
         {locked ? null : <input type="hidden" name="lines" value={JSON.stringify(invoiceLines)} />}
         <div className={styles.statusRow}>
