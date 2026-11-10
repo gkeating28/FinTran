@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { listAuditLog } from "@/lib/audit-data";
 import { explainIssue } from "@/lib/einvoice/rule-help";
 import { getInsights } from "@/lib/insights";
+import { listOpenOrders } from "@/lib/order-data";
 
 type Client = SupabaseClient;
 type Row = Record<string, unknown>;
@@ -34,7 +35,7 @@ function direction(value: unknown) {
 
 function statusOf(value: unknown) {
   const word = String(value ?? "").toLowerCase();
-  return word === "draft" || word === "posted" || word === "void" ? word : null;
+  return word === "draft" || word === "posted" || word === "void" || word === "open" || word === "closed" || word === "cancelled" ? word : null;
 }
 
 function dateOf(value: unknown) {
@@ -210,6 +211,33 @@ async function runTool(supabase: Client, organisationId: string, name: string, i
       document: shapeHeader(header),
       reminder: { to: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : "", subject: `Payment reminder: invoice ${number}`, body },
       note: "The reminder is shown to the person with buttons to copy it or open it in their email. Nothing is sent.",
+    };
+  }
+
+  if (name === "open_orders") {
+    const { orders, truncated } = await listOpenOrders(supabase, organisationId);
+    const dir = direction(input.direction);
+    const wanted = input.state === "none" || input.state === "part" || input.state === "full" ? input.state : null;
+    const party = String(input.party ?? "").toLowerCase();
+    const matched = orders.filter((order) => (!dir || order.direction === dir) && (!wanted || order.state === wanted) && (!party || order.party.toLowerCase().includes(party)));
+    return {
+      orders: matched.slice(0, LIST_LIMIT).map((order) => ({
+        id: order.id,
+        document: order.number,
+        type: order.typeCode,
+        direction: order.direction,
+        party: order.party,
+        date: order.date,
+        ordered: money(order.ordered),
+        invoiced: money(order.invoiced),
+        leftToInvoice: money(order.remaining),
+        invoicing: order.state === "none" ? "not invoiced" : order.state === "part" ? "part invoiced" : "fully invoiced",
+      })),
+      count: matched.length,
+      totalLeftToInvoice: money(matched.reduce((sum, order) => sum + order.remaining, 0)),
+      shown: Math.min(matched.length, LIST_LIMIT),
+      truncated,
+      note: "Open orders only. Amounts are nett, in the home currency. An order is limited by quantity, so what is left is valued at the order's prices.",
     };
   }
 

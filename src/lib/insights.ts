@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { listOpenOrders, type OpenOrder } from "@/lib/order-data";
 
 /** Things worth a person's attention, worked out from the documents with plain rules. No AI is involved. */
 export type Insight = {
@@ -104,7 +105,7 @@ export function findDueSoon(docs: InsightDoc[], today: string) {
 
 export type NotReady = { id: string; number: string; direction: "Purchases" | "Sales"; typeCode: string; errors: string[] };
 
-export function buildInsights(docs: InsightDoc[], notReady: NotReady[], today: string): Insight[] {
+export function buildInsights(docs: InsightDoc[], notReady: NotReady[], today: string, openOrders: OpenOrder[] = []): Insight[] {
   const insights: Insight[] = [];
 
   const overdue = findOverdue(docs, today);
@@ -178,6 +179,31 @@ export function buildInsights(docs: InsightDoc[], notReady: NotReady[], today: s
     });
   }
 
+  const toInvoice = openOrders.filter((order) => order.state !== "full" && order.remaining > 0);
+  if (toInvoice.length > 0) {
+    const oldest = toInvoice[0];
+    const part = toInvoice.filter((order) => order.state === "part").length;
+    insights.push({
+      id: "orders-to-invoice",
+      tone: "info",
+      title: `${plural(toInvoice.length, "open order")} still to invoice`,
+      detail: `${euro(toInvoice.reduce((sum, order) => sum + order.remaining, 0))} nett is left on them${part ? `, and ${plural(part, "order")} ${part === 1 ? "is" : "are"} part invoiced` : ""}. The oldest is ${oldest.number} for ${oldest.party}, dated ${shortDate(oldest.date)}.`,
+      href: `/transactions/${oldest.typeCode}?open=${oldest.id}`,
+    });
+  }
+
+  const complete = openOrders.filter((order) => order.state === "full");
+  if (complete.length > 0) {
+    const first = complete[0];
+    insights.push({
+      id: "orders-to-close",
+      tone: "info",
+      title: `${plural(complete.length, "open order")} fully invoiced`,
+      detail: `${first.number} for ${first.party} has nothing left to invoice${complete.length > 1 ? ", and so have the others" : ""}. ${complete.length === 1 ? "It" : "They"} can be closed.`,
+      href: `/transactions/${first.typeCode}?open=${first.id}`,
+    });
+  }
+
   return insights;
 }
 
@@ -194,7 +220,7 @@ export async function getInsights(supabase: SupabaseClient, organisationId: stri
   const since = new Date(Date.parse(today) - 365 * DAY).toISOString().slice(0, 10);
   const { data, error } = await supabase
     .from("transaction_headers")
-    .select("id, document_number, reference, status, party_name, supplier_id, customer_id, transaction_date, due_date, amount_due, home_total_amount, supplier_reference, transaction_types!inner(type, code)")
+    .select("id, document_number, reference, status, party_name, supplier_id, customer_id, transaction_date, due_date, amount_due, home_total_amount, supplier_reference, transaction_types!inner(type, code, document_kind)")
     .eq("organisation_id", organisationId)
     .gte("transaction_date", since)
     .order("transaction_date", { ascending: false })
@@ -204,6 +230,8 @@ export async function getInsights(supabase: SupabaseClient, organisationId: stri
   const docs: InsightDoc[] = ((data ?? []) as Row[]).flatMap((row) => {
     const type = embedded(row.transaction_types);
     const status = row.status === "draft" || row.status === "posted" || row.status === "void" ? row.status : null;
+    // Orders and requisitions are not financial documents, so the invoice rules leave them out.
+    if (type?.document_kind === "order" || type?.document_kind === "requisition") return [];
     if (!status || (type?.type !== "Purchases" && type?.type !== "Sales")) return [];
     return [
       {
@@ -224,6 +252,7 @@ export async function getInsights(supabase: SupabaseClient, organisationId: stri
   });
 
   const drafts = docs.filter((doc) => doc.status === "draft").slice(0, READINESS_CHECKS);
+  const openOrders = listOpenOrders(supabase, organisationId);
   const checked = await Promise.all(
     drafts.map(async (draft): Promise<NotReady | null> => {
       const result = await supabase.rpc("en16931_readiness", { p_header_id: draft.id });
@@ -231,5 +260,5 @@ export async function getInsights(supabase: SupabaseClient, organisationId: stri
       return errors.length ? { id: draft.id, number: draft.number, direction: draft.direction, typeCode: draft.typeCode, errors } : null;
     }),
   );
-  return buildInsights(docs, checked.filter((item): item is NotReady => item !== null), today);
+  return buildInsights(docs, checked.filter((item): item is NotReady => item !== null), today, (await openOrders).orders);
 }

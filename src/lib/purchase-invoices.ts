@@ -97,6 +97,10 @@ export type PurchaseInvoiceRow = {
   lines: PurchaseInvoiceLine[];
   credits: LinkedCredit[];
   remainingAmount: string;
+  /** For an order: how far it has been invoiced, and the nett value on invoices and still to invoice. Empty for other kinds. */
+  invoicing: "none" | "part" | "full" | "";
+  invoicedNett: string;
+  remainingNett: string;
   /** Documents made from this one: purchase orders from a requisition, invoices from an order. */
   followOns: LinkedDocument[];
   /** The order or requisition this document was made from. */
