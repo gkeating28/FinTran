@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import GridExport, { type ExportField } from "@/components/GridExport";
 import GridPager from "@/components/GridPager";
-import { SortIcon } from "@/components/icons";
+import { GridLinesIcon, SortIcon } from "@/components/icons";
 import { useGridPageSize } from "@/components/useGridPageSize";
 import { gridPageSlice, pageIndexForSize, type GridPageSize } from "@/lib/grid-page";
 import { formatInteger } from "@/lib/numbers";
@@ -23,6 +23,20 @@ export type GridColumn<T> = {
   exportValue?: (row: T) => string | number | null;
 };
 
+/** Which lines the grid draws. Rows only is the standard look. */
+const GRID_LINES = ["rows", "both", "columns", "none"] as const;
+type GridLines = (typeof GRID_LINES)[number];
+const GRID_LINES_LABEL: Record<GridLines, string> = {
+  rows: "Row lines",
+  both: "Row and column lines",
+  columns: "Column lines",
+  none: "No lines",
+};
+
+function gridLinesKey(form: string) {
+  return `fintran.grid-lines.${form}`;
+}
+
 export default function DataGrid<T extends { id: string }>({
   rows,
   columns,
@@ -37,6 +51,7 @@ export default function DataGrid<T extends { id: string }>({
   onOpen,
   rowOpens,
   exportFields,
+  gridLinesSwitch = false,
 }: {
   rows: T[];
   columns: GridColumn<T>[];
@@ -52,12 +67,39 @@ export default function DataGrid<T extends { id: string }>({
   rowOpens?: (row: T) => boolean;
   /** Extra fields offered in the Excel export that the grid does not show. Off until ticked. */
   exportFields?: ExportField<T>[];
+  /** Trial: a toolbar button that steps through row lines, both, column lines and none. */
+  gridLinesSwitch?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState(columns[0]?.key ?? "");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [pageSize, setPageSize] = useGridPageSize(form);
   const [pageIndex, setPageIndex] = useState(0);
+  const [gridLines, setGridLines] = useState<GridLines>("rows");
+
+  useEffect(() => {
+    if (!gridLinesSwitch) return;
+    // Read after mount so the server and first client render agree.
+    void Promise.resolve().then(() => {
+      try {
+        const saved = window.localStorage.getItem(gridLinesKey(form));
+        const found = GRID_LINES.find((item) => item === saved);
+        if (found) setGridLines(found);
+      } catch {
+        // The choice is only a convenience.
+      }
+    });
+  }, [form, gridLinesSwitch]);
+
+  function nextGridLines() {
+    const next = GRID_LINES[(GRID_LINES.indexOf(gridLines) + 1) % GRID_LINES.length];
+    setGridLines(next);
+    try {
+      window.localStorage.setItem(gridLinesKey(form), next);
+    } catch {
+      // The choice is only a convenience.
+    }
+  }
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -123,11 +165,23 @@ export default function DataGrid<T extends { id: string }>({
           />
         </label>
         {toolbar}
+        {gridLinesSwitch ? (
+          <button
+            className={styles.quiet}
+            type="button"
+            onClick={nextGridLines}
+            aria-label={`Grid lines: ${GRID_LINES_LABEL[gridLines]}. Change`}
+            title={`${GRID_LINES_LABEL[gridLines]}. Click to change.`}
+          >
+            <GridLinesIcon size={16} />
+          </button>
+        ) : null}
       </div>
       <div className={styles.tableScroll}>
         <table
           className={actionsWidth ? `${styles.table} ${styles.tableFixed}` : styles.table}
           style={minWidth ? { minWidth } : undefined}
+          data-lines={gridLinesSwitch ? gridLines : undefined}
         >
           {actionsWidth ? (
             <colgroup>

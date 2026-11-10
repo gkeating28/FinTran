@@ -178,6 +178,24 @@
   border-bottom: 0;
 }
 
+/* Trial: the grid lines switch. Rows only is the standard look and needs no rule. */
+.table[data-lines="both"] th:not(:last-child),
+.table[data-lines="both"] td:not(:last-child),
+.table[data-lines="columns"] th:not(:last-child),
+.table[data-lines="columns"] td:not(:last-child) {
+  border-right: 1px solid var(--ops-border-soft);
+}
+
+.table[data-lines="columns"] td,
+.table[data-lines="none"] td {
+  border-bottom-color: transparent;
+}
+
+.gridToolbar .quiet:has(> svg:only-child) {
+  display: inline-flex;
+  align-items: center;
+}
+
 /*
  * A page whose main content is a grid. The grid fills the page, the rows scroll inside it, and the footer stays at the
  * bottom of the screen, also when there are only a few rows. The page is a column, the page's section takes the height

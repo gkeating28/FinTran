@@ -83,6 +83,7 @@ export default function PartyManager({
       <DataGrid
         form={kind}
         exportFields={PARTY_EXPORT_FIELDS}
+        gridLinesSwitch={kind === "suppliers"}
         onOpen={setDraft}
         rows={rows}
         searchPlaceholder={`Search ${meta.title.toLowerCase()}`}

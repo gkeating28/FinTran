@@ -243,6 +243,15 @@ export function DownloadIcon(props: IconProps) {
   );
 }
 
+/** Two lines each way, for the grid lines switch. */
+export function GridLinesIcon(props: IconProps) {
+  return (
+    <Outline {...props}>
+      <path d="M9 4v16M15 4v16M4 9h16M4 15h16" />
+    </Outline>
+  );
+}
+
 /** First, previous, next and last page arrows for the grid pager. */
 export function PageIcon({ name, size = 16 }: { name: "first" | "previous" | "next" | "last"; size?: number }) {
   const bar = name === "first" || name === "last";
