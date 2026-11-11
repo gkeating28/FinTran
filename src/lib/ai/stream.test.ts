@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { applyEvent, EMPTY_LIVE, readAskStream, tableCsv } from "../ask-stream";
+import { applyEvent, EMPTY_LIVE, readAskStream } from "../ask-stream";
 import type { AskEvent } from "../ask-qula";
 import { parseContext } from "./context";
 import { systemPromptFor } from "./prompt";
@@ -28,11 +28,6 @@ test("the chat stream reader joins events split across chunks", async () => {
   let live = EMPTY_LIVE;
   for (const event of events) live = applyEvent(live, event);
   assert.equal(live.text, "Hello");
-});
-
-test("a table downloads as CSV with formulas kept as text", () => {
-  const csv = tableCsv({ type: "table", columns: ["Party", "Total"], rows: [["=SUM(A1)", "-12.00"], ['Say "hi", Ltd', "5.00"]] });
-  assert.equal(csv, "Party,Total\r\n'=SUM(A1),-12.00\r\n\"Say \"\"hi\"\", Ltd\",5.00");
 });
 
 test("presentation blocks are cleaned before they are drawn", () => {

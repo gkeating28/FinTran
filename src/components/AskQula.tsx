@@ -6,7 +6,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { onAskRequest } from "@/components/askBus";
 import { getAskContext } from "@/components/askContext";
 import { ASK_SUGGESTIONS, docHref, type AskBlock, type AskDoc, type AskProposal } from "@/lib/ask-qula";
-import { applyEvent, EMPTY_LIVE, readAskStream, tableCsv, type LiveAnswer } from "@/lib/ask-stream";
+import { applyEvent, EMPTY_LIVE, readAskStream, type LiveAnswer } from "@/lib/ask-stream";
+import { downloadCsv } from "@/lib/export/download";
 import { SparkleIcon } from "@/components/icons";
 import RichText from "@/components/RichText";
 import styles from "@/components/AskQula.module.css";
@@ -498,12 +499,8 @@ function RatingRow({ message, onRate }: { message: AskMessage; onRate: (message:
 
 function TableBlock({ block }: { block: Extract<AskBlock, { type: "table" }> }) {
   function download() {
-    const url = URL.createObjectURL(new Blob([`\uFEFF${tableCsv(block)}`], { type: "text/csv;charset=utf-8" }));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${(block.title || "ask-qula").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "ask-qula"}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+    const name = (block.title || "ask-qula").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "ask-qula";
+    downloadCsv(`${name}.csv`, block.columns, block.rows);
   }
   return (
     <figure className={styles.block}>

@@ -1,4 +1,5 @@
 import { strToU8, zipSync } from "fflate";
+import { isPlainNumber } from "./safe-cell";
 
 /**
  * A small writer for .xlsx files, enough for one sheet of text, numbers and dates with a bold header row, a frozen
@@ -42,15 +43,25 @@ function sheetName(name: string) {
   return cleaned || "Sheet1";
 }
 
+/** An explicit string cell. Its content is never read as a formula, whatever it starts with. */
+function textCell(value: string, reference: string) {
+  return `<c r="${reference}" t="inlineStr"><is><t xml:space="preserve">${xml(value)}</t></is></c>`;
+}
+
+/**
+ * One cell. A number is a numeric cell and a date is a date cell. Everything else, including a value that does not fit
+ * its column, is an explicit string cell. No formula cell (`<f>`) is ever written.
+ */
 function cell(column: XlsxColumn, value: XlsxCell, reference: string) {
   if (value === null || value === "") return "";
-  if (column.type === "text") return `<c r="${reference}" t="inlineStr"><is><t xml:space="preserve">${xml(String(value))}</t></is></c>`;
+  if (column.type === "text") return textCell(String(value), reference);
   if (column.type === "date") {
     const serial = typeof value === "number" ? value : excelDate(String(value));
-    return serial === null ? `<c r="${reference}" t="inlineStr"><is><t>${xml(String(value))}</t></is></c>` : `<c r="${reference}" s="${STYLE.date}"><v>${serial}</v></c>`;
+    return serial === null ? textCell(String(value), reference) : `<c r="${reference}" s="${STYLE.date}"><v>${serial}</v></c>`;
   }
   const number = typeof value === "number" ? value : Number(String(value).replace(/,/g, ""));
-  if (!Number.isFinite(number)) return `<c r="${reference}" t="inlineStr"><is><t>${xml(String(value))}</t></is></c>`;
+  if (typeof value === "string" && !isPlainNumber(value.trim())) return textCell(value, reference);
+  if (!Number.isFinite(number)) return textCell(String(value), reference);
   return `<c r="${reference}"${column.type === "money" ? ` s="${STYLE.money}"` : ""}><v>${number}</v></c>`;
 }
 
