@@ -11,6 +11,7 @@ import GridPager from "@/components/GridPager";
 import { useGridLines } from "@/components/GridLines";
 import { useGridPageSize } from "@/components/useGridPageSize";
 import { EInvoicePanel } from "@/components/EInvoicePanel";
+import { BringInDialog, LinkedDocumentsDialog } from "@/components/OrderDialogs";
 import FormModal from "@/components/FormModal";
 import { QuietInput, QuietTextarea } from "@/components/QuietField";
 import UnitSelect from "@/components/UnitSelect";
@@ -1065,34 +1066,37 @@ function InvoiceForm({
     setInvoiceLines(next);
   }
 
-  function bringIn(order: OrderSource) {
+  function bringIn(chosen: { order: OrderSource; lineIds: Set<string> }[]) {
     const present = new Set(invoiceLines.map((line) => line.sourceLineId).filter(Boolean));
-    const added = order.lines.flatMap((line) => {
-      if (!line.id || present.has(line.id)) return [];
-      const whole = numberValue(line.quantity);
-      const share = whole > 0 ? numberValue(line.remainingQuantity) / whole : 1;
-      const discount = formatMoney(Math.round(numberValue(line.discountAmount) * share * 100) / 100);
-      const vat = lineVat.find((rate) => rate.id === line.vatRateId);
-      const amounts = lineAmounts(line.remainingQuantity, line.price, discount || "0", vat?.rate ?? null);
-      const { remainingQuantity, ...rest } = line;
-      return [
-        {
-          ...rest,
-          drawnQuantity: "",
-          id: "",
-          sourceLineId: line.id,
-          sourceNumber: order.documentNumber,
-          sourceDocument: `${order.typeCode} ${order.documentNumber}`.trim(),
-          quantity: remainingQuantity,
-          discountAmount: discount,
-          nettAmount: amounts && !("error" in amounts) ? formatMoney(amounts.nett) : line.nettAmount,
-          vatAmount: amounts && !("error" in amounts) ? formatMoney(amounts.vat) : line.vatAmount,
-        },
-      ];
-    });
+    const added = chosen.flatMap(({ order, lineIds }) =>
+      order.lines.flatMap((line) => {
+        if (!line.id || present.has(line.id) || !lineIds.has(line.id)) return [];
+        const whole = numberValue(line.quantity);
+        const share = whole > 0 ? numberValue(line.remainingQuantity) / whole : 1;
+        const discount = formatMoney(Math.round(numberValue(line.discountAmount) * share * 100) / 100);
+        const vat = lineVat.find((rate) => rate.id === line.vatRateId);
+        const amounts = lineAmounts(line.remainingQuantity, line.price, discount || "0", vat?.rate ?? null);
+        const { remainingQuantity, ...rest } = line;
+        return [
+          {
+            ...rest,
+            drawnQuantity: "",
+            id: "",
+            sourceLineId: line.id,
+            sourceNumber: order.documentNumber,
+            sourceDocument: `${order.typeCode} ${order.documentNumber}`.trim(),
+            quantity: remainingQuantity,
+            discountAmount: discount,
+            nettAmount: amounts && !("error" in amounts) ? formatMoney(amounts.nett) : line.nettAmount,
+            vatAmount: amounts && !("error" in amounts) ? formatMoney(amounts.vat) : line.vatAmount,
+          },
+        ];
+      }),
+    );
     replaceLines([...invoiceLines, ...added].map((line, index) => ({ ...line, lineNumber: index + 1 })));
-    // On a sale the order number is the customer's, taken from the sales order when it is still empty.
-    if (sales && !orderNumber.trim() && order.orderNumber) setOrderNumber(order.orderNumber);
+    // On a sale the order number is the customer's, taken from the first sales order that has one when it is still empty.
+    const customerOrder = chosen.find(({ order, lineIds }) => order.orderNumber && order.lines.some((line) => line.id && lineIds.has(line.id)))?.order.orderNumber;
+    if (sales && !orderNumber.trim() && customerOrder) setOrderNumber(customerOrder);
     setOrdersOpen(false);
   }
 
@@ -1735,112 +1739,68 @@ function InvoiceForm({
         </form>
       ) : null}
       {ordersOpen && canBringIn ? (
-        <div className={`${documentStyles.sideSheet} ${documentStyles.sideSheetStart}`} role="dialog" aria-label="Bring in from an order">
-          <div className={documentStyles.sideSheetHead}>
-            <strong>Bring in from an order</strong>
-            <button className={styles.quiet} type="button" onClick={() => setOrdersOpen(false)}>Close</button>
-          </div>
-          {!supplierId ? (
-            <p className={styles.panelMeta}>Choose a {sales ? "customer" : "supplier"} first.</p>
-          ) : partyOrders.length === 0 ? (
-            <p className={styles.panelMeta}>This {sales ? "customer" : "supplier"} has no active order with anything left to invoice.</p>
-          ) : (
-            <>
-              <p className={styles.panelMeta}>The lines come in with what is left on the order. Change a quantity for a part invoice.</p>
-              <ul>
-                {partyOrders.map((order) => {
-                  const taken = order.lines.filter((line) => invoiceLines.some((item) => item.sourceLineId === line.id)).length;
-                  return (
-                    <li key={order.id}>
-                      {order.typeCode} {order.documentNumber || formatDate(order.transactionDate, region)} · {formatDate(order.transactionDate, region)} ·{" "}
-                      {order.lines.length} line{order.lines.length === 1 ? "" : "s"} left{" "}
-                      <button className={styles.quiet} type="button" disabled={taken === order.lines.length} onClick={() => bringIn(order)}>
-                        {taken === order.lines.length ? "Brought in" : "Bring in"}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </>
-          )}
-        </div>
+        <BringInDialog
+          orders={partyOrders}
+          takenLineIds={new Set(invoiceLines.flatMap((line) => (line.sourceLineId ? [line.sourceLineId] : [])))}
+          partyNoun={sales ? "customer" : "supplier"}
+          hasParty={Boolean(supplierId)}
+          region={region}
+          onBringIn={bringIn}
+          onClose={() => setOrdersOpen(false)}
+        />
       ) : null}
       {linksOpen && showLinks && header ? (
-        <div className={documentStyles.sideSheet} role="dialog" aria-label="Linked documents">
-          <div className={documentStyles.sideSheetHead}>
-            <strong>Linked documents</strong>
-            <button className={styles.quiet} type="button" onClick={() => setLinksOpen(false)}>Close</button>
-          </div>
-          {header.sources.length > 0 ? (
-            <>
-              <p>Created from</p>
-              <ul>
-                {header.sources.map((source) => (
-                  <li key={source.id}>
-                    <Link href={`/transactions/${source.typeCode}?open=${source.id}`}>
-                      {source.typeCode} {source.documentNumber || formatDate(source.transactionDate, region)}
-                    </Link>
-                    {" "}· {source.status} · {source.total}
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : null}
-          {orderDocument ? (
-            <>
-              <p>{requisition ? "Purchase orders" : "Invoices"} created from this</p>
-              {header.followOns.length > 0 ? (
-                <ul>
-                  {header.followOns.map((item) => (
-                    <li key={item.id}>
-                      <Link href={`/transactions/${item.typeCode}?open=${item.id}`}>
-                        {item.typeCode} {item.documentNumber || formatDate(item.transactionDate, region)}
-                      </Link>
-                      {" "}· {item.status} · {item.total}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className={styles.panelMeta}>None yet.</p>
-              )}
-              {!opened ? (
-                <p className={styles.panelMeta}>
-                  {header.status === "draft" ? `Activate it to create ${requisition ? "a purchase order" : "an invoice"} from it.` : `It is ${header.status}, so nothing more can be created from it.`}
-                </p>
-              ) : followOnTypes.length === 0 ? (
-                <p className={styles.panelMeta}>
-                  This organisation has no {sales ? "Sales" : "Purchases"} {followOnNoun} type. <Link href="/transaction-types">Add one</Link> first.
-                </p>
-              ) : (
-                <form action={createFromOrder}>
-                  <input type="hidden" name="id" value={header.id} />
-                  {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
-                  {followOnTypes.length > 1 ? (
-                    <label className={styles.field}>
-                      Type
-                      <select name="target_type_id" required defaultValue="">
-                        <option value="">Choose a type</option>
-                        {followOnTypes.map((type) => (
-                          <option key={type.id} value={type.id}>
-                            {type.code} — {type.description}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  ) : (
-                    <input type="hidden" name="target_type_id" value={followOnTypes[0]?.id ?? ""} />
-                  )}
-                  <p className={styles.panelMeta}>
-                    {requisition
-                      ? "The new purchase order starts with every line. Save changes here first."
-                      : "The new invoice starts with what is left on each line. Reduce a quantity for a part invoice. Save changes here first."}
-                  </p>
-                  <button className={styles.primary} type="submit">Create {followOnNoun}</button>
-                </form>
-              )}
-            </>
-          ) : null}
-        </div>
+        <LinkedDocumentsDialog
+          sources={header.sources}
+          followOns={orderDocument ? header.followOns : null}
+          followOnLabel={`${requisition ? "Purchase orders" : "Invoices"} created from this`}
+          region={region}
+          note={
+            !orderDocument
+              ? undefined
+              : header.status === "draft"
+                ? `Activate it to create ${requisition ? "a purchase order" : "an invoice"} from it.`
+                : !opened
+                  ? `It is ${documentStatusLabel(header.status).toLowerCase()}, so nothing more can be created from it.`
+                  : followOnTypes.length === 0
+                    ? `Add a ${sales ? "Sales" : "Purchases"} ${followOnNoun} type under Transaction types before creating one.`
+                    : requisition
+                      ? "A new purchase order starts with every line. Save changes on the requisition first."
+                      : "A new invoice starts with what is left on each line. Save changes on the order first."
+          }
+          create={
+            orderDocument && opened && followOnTypes.length > 0 ? (
+              <form action={createFromOrder} className={documentStyles.dialogCreate}>
+                <input type="hidden" name="id" value={header.id} />
+                {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
+                {followOnTypes.length > 1 ? (
+                  <label className={styles.field}>
+                    Type
+                    <select name="target_type_id" required defaultValue="">
+                      <option value="">Choose a type</option>
+                      {followOnTypes.map((type) => (
+                        <option key={type.id} value={type.id}>
+                          {type.code} — {type.description}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : (
+                  <input type="hidden" name="target_type_id" value={followOnTypes[0]?.id ?? ""} />
+                )}
+                <div className={styles.modalActions}>
+                  <button className={styles.quiet} type="button" onClick={() => setLinksOpen(false)}>
+                    Close
+                  </button>
+                  <button className={styles.primary} type="submit">
+                    Create {followOnNoun}
+                  </button>
+                </div>
+              </form>
+            ) : undefined
+          }
+          onClose={() => setLinksOpen(false)}
+        />
       ) : null}
       {creditOpen && showCreditNote && header ? (
         <div className={documentStyles.sideSheet} role="dialog" aria-label="Credit notes">
