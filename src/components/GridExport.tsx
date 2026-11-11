@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { DownloadIcon } from "@/components/icons";
-import { buildXlsx, type XlsxCell, type XlsxType } from "@/lib/xlsx";
+import { downloadXlsx } from "@/lib/export/download";
+import type { XlsxCell, XlsxType } from "@/lib/export/xlsx";
 import styles from "@/components/OpsPage.module.css";
 
 export type ExportField<T> = {
@@ -13,8 +14,6 @@ export type ExportField<T> = {
   /** Shown in the picker but ticked by default only when true. Displayed columns are always on by default. */
   defaultOn?: boolean;
 };
-
-const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
 function storageKey(form: string) {
   return `fintran.grid-fields.${form}`;
@@ -105,15 +104,7 @@ export default function GridExport<T>({
       }),
     );
     const name = form.replace(/[\\/]+/g, "-");
-    const bytes = buildXlsx({ sheet: name, columns, rows: cells });
-    const blob = new Blob([bytes as BlobPart], { type: XLSX_MIME });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `${name}-${new Date().toISOString().slice(0, 10)}.xlsx`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    downloadXlsx(`${name}-${new Date().toISOString().slice(0, 10)}.xlsx`, { sheet: name, columns, rows: cells });
   }
 
   return (

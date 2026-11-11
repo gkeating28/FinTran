@@ -65,12 +65,3 @@ export async function readAskStream(response: Response, onEvent: (event: AskEven
   }
   flush(buffer);
 }
-
-/** A table as CSV text. A cell that a spreadsheet would run as a formula is kept as text. */
-export function tableCsv(block: Extract<AskBlock, { type: "table" }>) {
-  const cell = (value: string) => {
-    const safe = /^[=+@]/.test(value) || /^-[^0-9.]/.test(value) ? `'${value}` : value;
-    return /[",\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
-  };
-  return [block.columns, ...block.rows].map((row) => row.map(cell).join(",")).join("\r\n");
-}
