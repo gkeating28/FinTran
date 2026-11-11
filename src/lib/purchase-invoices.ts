@@ -29,6 +29,8 @@ export type PurchaseInvoiceLine = {
   /** The number of the document the line came from, and that number with its type code for display. */
   sourceNumber?: string;
   sourceDocument?: string;
+  /** The line of the buyer's purchase order this line answers. */
+  orderLineReference?: string;
 };
 
 /** A document made from another one, or the one it was made from. */

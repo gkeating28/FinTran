@@ -76,6 +76,8 @@ export type FormLine = {
   costCentre: string;
   unit: string;
   lineNote: string;
+  /** The order this line came from, such as PO 2. Empty when it came from none. */
+  order: string;
 };
 
 export type FormSource = {
@@ -211,6 +213,7 @@ function lineValue(column: LineColumn, line: FormLine, date: string): PrintCell 
     if (column === "discount") return formatMoney(line.discount);
     if (column === "glCode") return line.glCode;
     if (column === "vatCode") return line.vatCode;
+    if (column === "order") return line.order;
     if (column === "department") return line.department;
     if (column === "costCentre") return line.costCentre;
     if (column === "unit") return line.unit;
@@ -371,6 +374,7 @@ export function sampleSource(organisation: FormOrganisation, currencyCode: strin
         costCentre: "",
         unit: "C62",
         lineNote: "",
+        order: "PO 12",
       },
     ],
     flexLabels: ["", "", "", "", ""],

@@ -1724,19 +1724,27 @@ function InvoiceForm({
         </div>
       </form>
       {voidOpen && canVoidDocument && header ? (
-        <form className={documentStyles.sideSheet} action={voidPurchaseInvoice} autoComplete="off">
-          <div className={documentStyles.sideSheetHead}>
-            <strong>Void document</strong>
-            <button className={styles.quiet} type="button" onClick={() => setVoidOpen(false)}>Close</button>
-          </div>
-          <input type="hidden" name="id" value={header.id} />
-          {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
-          <label className={styles.field}>
-            Void reason
-            <QuietInput name="reason" required maxLength={500} placeholder="Why this document is being voided" />
-          </label>
-          <button className={styles.danger} type="submit">Void</button>
-        </form>
+        <FormModal title="Void document" onClose={() => setVoidOpen(false)} className={styles.lineDialog}>
+          <form className={styles.modalForm} action={voidPurchaseInvoice} autoComplete="off">
+            <input type="hidden" name="id" value={header.id} />
+            {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
+            <p className={styles.panelMeta}>
+              Voiding {header.transactionTypeCode} {header.documentNumber} cannot be undone. The document stays on record, marked void, with the reason you give.
+            </p>
+            <label className={styles.field}>
+              Void reason
+              <QuietInput name="reason" required maxLength={500} placeholder="Why this document is being voided" />
+            </label>
+            <div className={styles.modalActions}>
+              <button className={styles.quiet} type="button" onClick={() => setVoidOpen(false)}>
+                Cancel
+              </button>
+              <button className={styles.danger} type="submit">
+                Void document
+              </button>
+            </div>
+          </form>
+        </FormModal>
       ) : null}
       {ordersOpen && canBringIn ? (
         <BringInDialog
@@ -1803,53 +1811,50 @@ function InvoiceForm({
         />
       ) : null}
       {creditOpen && showCreditNote && header ? (
-        <div className={documentStyles.sideSheet} role="dialog" aria-label="Credit notes">
-          <div className={documentStyles.sideSheetHead}>
-            <strong>Credit notes</strong>
-            <button className={styles.quiet} type="button" onClick={() => setCreditOpen(false)}>Close</button>
-          </div>
-          <p>Remaining that can be credited: {header.remainingAmount}</p>
-          {header.credits.length > 0 ? (
-            <ul>
-              {header.credits.map((credit) => (
-                <li key={credit.id}>
-                  <Link href={`/transactions/${credit.typeCode}?open=${credit.id}`}>
-                    {credit.typeCode} {credit.documentNumber || formatDate(credit.transactionDate, region)}
-                  </Link>
-                  {" "}· {credit.status} · {credit.total}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className={styles.panelMeta}>No credit notes yet.</p>
-          )}
-          {choices.creditNoteTypes.length === 0 ? (
-            <p className={styles.panelMeta}>
-              This organisation has no sales credit note type. <Link href="/transaction-types">Add one</Link> before raising a credit note.
-            </p>
-          ) : (
-            <form action={createCreditNote}>
-              <input type="hidden" name="id" value={header.id} />
-              {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
-              {choices.creditNoteTypes.length > 1 ? (
-                <label className={styles.field}>
-                  Credit note type
-                  <select name="credit_type_id" required defaultValue="">
-                    <option value="">Choose a type</option>
-                    {choices.creditNoteTypes.map((type) => (
-                      <option key={type.id} value={type.id}>
-                        {type.code} — {type.description}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : (
-                <input type="hidden" name="credit_type_id" value={choices.creditNoteTypes[0]?.id ?? ""} />
-              )}
-              <button className={styles.primary} type="submit">Create credit note</button>
-            </form>
-          )}
-        </div>
+        <LinkedDocumentsDialog
+          title="Credit notes"
+          sources={[]}
+          followOns={header.credits}
+          followOnLabel="Credit notes for this invoice"
+          region={region}
+          note={
+            choices.creditNoteTypes.length === 0
+              ? "Add a Sales credit note type under Transaction types before raising a credit note."
+              : `Remaining that can be credited: ${header.remainingAmount}`
+          }
+          create={
+            choices.creditNoteTypes.length > 0 ? (
+              <form action={createCreditNote} className={documentStyles.dialogCreate}>
+                <input type="hidden" name="id" value={header.id} />
+                {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
+                {choices.creditNoteTypes.length > 1 ? (
+                  <label className={styles.field}>
+                    Credit note type
+                    <select name="credit_type_id" required defaultValue="">
+                      <option value="">Choose a type</option>
+                      {choices.creditNoteTypes.map((type) => (
+                        <option key={type.id} value={type.id}>
+                          {type.code} — {type.description}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : (
+                  <input type="hidden" name="credit_type_id" value={choices.creditNoteTypes[0]?.id ?? ""} />
+                )}
+                <div className={styles.modalActions}>
+                  <button className={styles.quiet} type="button" onClick={() => setCreditOpen(false)}>
+                    Close
+                  </button>
+                  <button className={styles.primary} type="submit">
+                    Create credit note
+                  </button>
+                </div>
+              </form>
+            ) : undefined
+          }
+          onClose={() => setCreditOpen(false)}
+        />
       ) : null}
       <div className={styles.modalActions}>
         <div className={documentStyles.actionCluster}>
@@ -2073,6 +2078,16 @@ function LineEditor({
       <label className={styles.field}>
         Unit
         <UnitSelect units={unitChoices} value={draft.unitCode || "C62"} disabled={readOnly} onChange={(unitCode) => onChange({ ...draft, unitCode })} />
+      </label>
+      <label className={styles.field}>
+        {sales ? "Customer order line" : "Order line"}
+        <QuietInput
+          value={draft.orderLineReference ?? ""}
+          maxLength={60}
+          disabled={readOnly}
+          onChange={(event) => onChange({ ...draft, orderLineReference: event.target.value })}
+          placeholder={sales ? "Line on the customer's order" : "Line on the order"}
+        />
       </label>
       {sales ? null : (
       <label className={styles.field}>

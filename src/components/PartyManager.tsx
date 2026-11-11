@@ -7,6 +7,8 @@ import ConfirmSubmitButton from "@/components/ConfirmDialog";
 import type { ExportField } from "@/components/GridExport";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
+import PartySummary from "@/components/PartySummary";
+import summaryStyles from "@/components/PartySummary.module.css";
 import SchemeLookup from "@/components/SchemeLookup";
 import { QuietInput, QuietTextarea } from "@/components/QuietField";
 import { formatPostalAddress } from "@/lib/address";
@@ -249,6 +251,7 @@ export function PartyForm({
             {state.error}
           </p>
         ) : null}
+        <div className={summaryStyles.withSide}>
         <div className={recordStyles.layout}>
           {/* Left column */}
           <div className={`${recordStyles.row} ${slot("left", 1)}`}>
@@ -474,6 +477,13 @@ export function PartyForm({
               onChange={(event) => setNotes(event.target.value)}
             />
           </label>
+        </div>
+        <PartySummary
+          kind={kind}
+          partyId={row?.id ?? null}
+          currencyCode={currencies.find((currency) => currency.id === currencyId)?.code ?? ""}
+          values={{ name, addressLine1, city, countryCode, vatNumber, peppolScheme, peppolId }}
+        />
         </div>
         <div className={styles.modalActions}>
           <button className={styles.quiet} type="button" onClick={onClose}>

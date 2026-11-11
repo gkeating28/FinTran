@@ -31,24 +31,6 @@
   gap: 8px;
 }
 
-.sideSheet {
-  position: absolute;
-  z-index: 4;
-  right: 16px;
-  bottom: 62px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: min(440px, calc(100% - 32px));
-  max-height: min(420px, calc(100% - 96px));
-  overflow: auto;
-  padding: 14px;
-  border: 1px solid var(--ops-border);
-  border-radius: var(--ops-radius);
-  background: var(--ops-panel);
-  box-shadow: var(--shadow-lg);
-}
-
 /* A field with a button beside its input. The button lines up with the input, not the label. */
 .fieldWithAction {
   display: flex;
@@ -111,13 +93,6 @@
   color: var(--ops-text);
   font-size: var(--text-sm);
   font-weight: 700;
-}
-
-.sideSheetHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
 }
 
 .linePager {

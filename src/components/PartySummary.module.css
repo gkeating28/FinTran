@@ -1,0 +1,196 @@
+/* The summary beside the customer and supplier form: an e-invoicing check and what has been done with them. */
+
+.withSide {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 32px;
+  align-items: stretch;
+}
+
+.side {
+  flex: none;
+  width: 340px;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 2px 2px 2px 0;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--ops-border);
+  border-radius: var(--ops-radius-lg);
+  background: var(--ops-panel);
+  box-shadow: var(--shadow-sm);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 700;
+}
+
+.lede {
+  margin: 0;
+  color: var(--ops-text-2);
+  font-size: var(--text-sm);
+}
+
+.big {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.muted {
+  margin: 0;
+  color: var(--ops-muted);
+  font-size: var(--text-sm);
+}
+
+.checks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+}
+
+.checks li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.mark {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #e7ebf0;
+  color: var(--ops-text-2);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.checks li[data-ok="true"] .mark {
+  background: var(--ops-ok);
+  color: #fff;
+}
+
+.checks li[data-ok="false"][data-required="true"] .mark {
+  background: var(--ops-danger);
+  color: #fff;
+}
+
+.checks li[data-ok="false"][data-required="false"] .mark {
+  background: var(--ops-warn);
+  color: #fff;
+}
+
+.checkLabel {
+  display: block;
+  font-weight: 600;
+}
+
+.hint {
+  display: block;
+  color: var(--ops-muted);
+  font-size: var(--text-xs);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 12px;
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.facts dt {
+  color: var(--ops-muted);
+}
+
+.facts dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.facts dd[data-alert="true"] {
+  color: var(--ops-danger);
+}
+
+.documents {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+}
+
+.documents li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--ops-border-soft);
+}
+
+.documents li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.documentLink {
+  font-weight: 600;
+}
+
+.amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Beside the form needs room for both field columns, the summary and the sidebar. Below that the summary goes under the form, so the fields keep their width. */
+@media (max-width: 1860px) {
+  .withSide {
+    flex-direction: column;
+    overflow: auto;
+  }
+
+  .withSide > :first-child {
+    flex: none;
+    overflow: visible;
+  }
+
+  .side {
+    width: auto;
+    overflow: visible;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    align-items: start;
+  }
+}

@@ -82,7 +82,9 @@ function line(currency: string, row: RecordJson, credit: boolean) {
     quantity
       ? `<cbc:${credit ? "CreditedQuantity" : "InvoicedQuantity"}${unit ? ` unitCode="${xmlEscape(unit)}"` : ""}>${xmlEscape(quantity)}</cbc:${credit ? "CreditedQuantity" : "InvoicedQuantity"}>`
       : ""
-  }${amount(currency, text(row["BT-131"]), "LineExtensionAmount")}${allowances}<cac:Item>${element("Description", text(row["BT-154"]))}${element("Name", text(item?.["BT-153"] ?? null))}${
+  }${amount(currency, text(row["BT-131"]), "LineExtensionAmount")}${
+    text(row["BT-132"]) ? `<cac:OrderLineReference>${element("LineID", text(row["BT-132"]))}</cac:OrderLineReference>` : ""
+  }${allowances}<cac:Item>${element("Description", text(row["BT-154"]))}${element("Name", text(item?.["BT-153"] ?? null))}${
     text(item?.["BT-155"] ?? null)
       ? `<cac:SellersItemIdentification>${element("ID", text(item?.["BT-155"] ?? null))}</cac:SellersItemIdentification>`
       : ""
@@ -381,6 +383,7 @@ export function parseUbl(xml: string): RecordJson {
     const quantityNode = child(row, credit ? "CreditedQuantity" : "InvoicedQuantity") as { "@unitCode"?: string } | string | null;
     if (quantityNode && typeof quantityNode === "object" && quantityNode["@unitCode"]) lineJson["BT-130"] = quantityNode["@unitCode"];
     put("BT-131", childText(row, "LineExtensionAmount"));
+    put("BT-132", childText(child(row, "OrderLineReference"), "LineID"));
     const allowances = asList(child(row, "AllowanceCharge")).map((allowance) => {
       if (childText(allowance, "ChargeIndicator") === "true") unsupported.push("line charge");
       const allowanceJson: RecordJson = {};

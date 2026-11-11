@@ -65,6 +65,7 @@ export const LINE_COLUMNS = [
   "costCentre",
   "unit",
   "lineNote",
+  "order",
 ] as const;
 
 export type OrganisationField = (typeof ORGANISATION_FIELDS)[number];
@@ -160,6 +161,7 @@ const LINE_LABELS: Record<LineColumn, string> = {
   costCentre: "Cost centre",
   unit: "Unit",
   lineNote: "Note",
+  order: "Order",
 };
 
 export function organisationFieldLabel(field: OrganisationField) {

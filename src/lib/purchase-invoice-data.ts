@@ -44,6 +44,7 @@ function embeddedCode(value: { code: string } | { code: string }[] | null) {
 function toPurchaseInvoiceLine(row: {
   id: string;
   source_line_id: string | null;
+  order_line_reference: string | null;
   line_number: number;
   product_id: string | null;
   description: string;
@@ -80,6 +81,7 @@ function toPurchaseInvoiceLine(row: {
     sellerItemId: row.seller_item_id ?? "",
     id: row.id,
     sourceLineId: row.source_line_id ?? "",
+    orderLineReference: row.order_line_reference ?? "",
   };
 }
 
@@ -152,7 +154,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
       supabase
         .from("transaction_lines")
         .select(
-          `id, source_line_id, header_id, line_number, product_id, description, gl_code_id, department_id, cost_centre_id, vat_rate_id,
+          `id, source_line_id, order_line_reference, header_id, line_number, product_id, description, gl_code_id, department_id, cost_centre_id, vat_rate_id,
            quantity, price, discount_amount, nett_amount, vat_amount, unit_code, line_note, seller_item_id, products(code)`,
         )
         .eq("organisation_id", organisationId)
@@ -525,7 +527,7 @@ export async function listPurchaseInvoiceLines(headerId: string): Promise<{
   const { data, error } = await supabase
     .from("transaction_lines")
     .select(
-      `id, source_line_id, line_number, product_id, description, gl_code_id, department_id, cost_centre_id, vat_rate_id,
+      `id, source_line_id, order_line_reference, line_number, product_id, description, gl_code_id, department_id, cost_centre_id, vat_rate_id,
        quantity, price, discount_amount, nett_amount, vat_amount, unit_code, line_note, seller_item_id, products(code)`,
     )
     .eq("header_id", headerId)
