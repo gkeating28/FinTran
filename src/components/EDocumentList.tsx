@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import DataGrid from "@/components/DataGrid";
 import { UploadEInvoice } from "@/components/UploadEInvoice";
+import { useRegion } from "@/components/useRegion";
+import { formatDate } from "@/lib/dates";
 import styles from "@/components/OpsPage.module.css";
 import documentStyles from "@/components/Document.module.css";
 
@@ -41,6 +43,7 @@ export function EDocumentList({
   initialDirection: "inbound" | "outbound";
 }) {
   const router = useRouter();
+  const region = useRegion();
   const direction = initialDirection;
   const [status, setStatus] = useState("");
   const [fromDate, setFromDate] = useState("");
@@ -111,9 +114,8 @@ export function EDocumentList({
           {
             key: "date",
             label: "Date",
-            mono: true,
             sortValue: (row) => row.issueDate,
-            render: (row) => row.issueDate || "—",
+            render: (row) => formatDate(row.issueDate, region) || "—",
           },
           {
             key: "status",

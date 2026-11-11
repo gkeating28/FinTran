@@ -1,9 +1,12 @@
 "use client";
 
 import DataGrid from "@/components/DataGrid";
+import { useRegion } from "@/components/useRegion";
+import { formatDateTime } from "@/lib/dates";
 import type { AuditEntry } from "@/lib/audit-data";
 
 export default function HistoryGrid({ rows }: { rows: AuditEntry[] }) {
+  const region = useRegion();
   return (
     <DataGrid
       form="history"
@@ -17,7 +20,7 @@ export default function HistoryGrid({ rows }: { rows: AuditEntry[] }) {
           key: "when",
           label: "When",
           sortValue: (row) => row.when,
-          render: (row) => formatWhen(row.when),
+          render: (row) => formatDateTime(row.when, region),
         },
         {
           key: "who",
@@ -46,16 +49,4 @@ export default function HistoryGrid({ rows }: { rows: AuditEntry[] }) {
       ]}
     />
   );
-}
-
-function formatWhen(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
 }
