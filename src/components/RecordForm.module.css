@@ -1,8 +1,8 @@
 /*
  * The layout every record form follows. See "Form layout principles" in TECHNICAL.md.
  *
- * Page forms (supplier, customer, organisation) are one grid of two columns with no section
- * headings. Each cell sits on an explicit row (r1, r2, ...), so the edit boxes on the left and on
+ * Page forms (supplier, customer, organisation) are one grid of two columns. The supplier and
+ * customer form has light section headings, each on a row of its own (see sectionHeading). Each cell sits on an explicit row (r1, r2, ...), so the edit boxes on the left and on
  * the right of a row share the same top edge, whatever else is in the row: a hint under the code
  * field makes its whole row taller on both sides and nothing below drifts out of line. The page lists
  * every left cell, then every right cell, then anything underneath, so tabbing runs down the left
@@ -73,6 +73,28 @@
 .r8 { grid-row: 8; }
 .r9 { grid-row: 9; }
 .r10 { grid-row: 10; }
+.r11 { grid-row: 11; }
+.r12 { grid-row: 12; }
+
+/*
+ * A light heading over a group of rows. It takes a row of its own on its side, and the other side of that
+ * row is another heading or stays empty, so every row of fields below still lines up left and right.
+ */
+.sectionHeading {
+  margin: 6px 0 -4px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--ops-border-soft);
+  color: var(--ops-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.sectionHeading.r1 {
+  margin-top: 0;
+}
 
 .row {
   display: flex;
@@ -203,7 +225,7 @@
     grid-column: 1;
   }
 
-  .r1, .r2, .r3, .r4, .r5, .r6, .r7, .r8, .r9, .r10 {
+  .r1, .r2, .r3, .r4, .r5, .r6, .r7, .r8, .r9, .r10, .r11, .r12 {
     grid-row: auto;
   }
 
