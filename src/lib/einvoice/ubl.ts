@@ -138,7 +138,10 @@ export function generateUbl(semantic: RecordJson) {
     (period
       ? `<cac:InvoicePeriod>${element("StartDate", text(period["BT-73"]))}${element("EndDate", text(period["BT-74"]))}</cac:InvoicePeriod>`
       : "") +
-    (text(semantic["BT-13"]) ? `<cac:OrderReference>${element("ID", text(semantic["BT-13"]))}</cac:OrderReference>` : "") +
+    // The order reference needs an ID. With only a sales order reference the ID is NA.
+    (text(semantic["BT-13"]) || text(semantic["BT-14"])
+      ? `<cac:OrderReference>${element("ID", text(semantic["BT-13"]) || "NA")}${element("SalesOrderID", text(semantic["BT-14"]))}</cac:OrderReference>`
+      : "") +
     (preceding
       ? `<cac:BillingReference><cac:InvoiceDocumentReference>${element("ID", text(preceding["BT-25"]))}${element("IssueDate", text(preceding["BT-26"]))}</cac:InvoiceDocumentReference></cac:BillingReference>`
       : "") +
@@ -277,7 +280,10 @@ export function parseUbl(xml: string): RecordJson {
   set("BT-9", due);
   set("BT-10", childText(root, "BuyerReference"));
   set("BT-12", childText(child(root, "ContractDocumentReference"), "ID"));
-  set("BT-13", childText(child(root, "OrderReference"), "ID"));
+  // An ID of NA stands for no purchase order reference when only a sales order reference is given.
+  const orderId = childText(child(root, "OrderReference"), "ID");
+  set("BT-13", orderId === "NA" ? null : orderId);
+  set("BT-14", childText(child(root, "OrderReference"), "SalesOrderID"));
   set("BT-20", childText(child(root, "PaymentTerms"), "Note"));
   set("BT-22", childText(root, "Note"));
   set("BT-23", childText(root, "ProfileID"));

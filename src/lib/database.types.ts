@@ -1329,6 +1329,7 @@ export type Database = {
           issuer_snapshot: Json | null
           notes: string | null
           order_number: string | null
+          sales_order_reference: string | null
           organisation_id: string
           paid_amount: number
           party_snapshot: Json | null
@@ -1384,6 +1385,7 @@ export type Database = {
           issuer_snapshot?: Json | null
           notes?: string | null
           order_number?: string | null
+          sales_order_reference?: string | null
           organisation_id: string
           paid_amount?: number
           party_snapshot?: Json | null
@@ -1439,6 +1441,7 @@ export type Database = {
           issuer_snapshot?: Json | null
           notes?: string | null
           order_number?: string | null
+          sales_order_reference?: string | null
           organisation_id?: string
           paid_amount?: number
           party_snapshot?: Json | null

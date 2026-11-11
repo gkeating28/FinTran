@@ -736,6 +736,7 @@ function InvoiceForm({
   const [currencyId, setCurrencyId] = useState(header?.currencyId ?? "");
   const [exchangeRate, setExchangeRate] = useState(header?.exchangeRate ?? "");
   const [orderNumber, setOrderNumber] = useState(header?.orderNumber ?? "");
+  const [salesOrderReference, setSalesOrderReference] = useState(header?.salesOrderReference ?? "");
   const [supplierReference, setSupplierReference] = useState(header?.supplierReference ?? "");
   const [supplyDate, setSupplyDate] = useState(header?.supplyDate ?? "");
   const [paidAmount, setPaidAmount] = useState(header?.paidAmount || "0.00");
@@ -1039,36 +1040,62 @@ function InvoiceForm({
   const canBringIn = selectedType?.documentKind === "invoice" && !locked;
   const partyOrders = choices.orderSources.filter((order) => order.partyId === supplierId);
 
+  /** The numbers of the orders the lines came from, each once, in line order. */
+  function orderRefs(lines: PurchaseInvoiceLine[]) {
+    return [...new Set(lines.map((line) => line.sourceNumber ?? "").filter(Boolean))].join(", ");
+  }
+
+  /**
+   * Replaces the lines of an invoice and keeps its order reference in step with the orders they came from.
+   * On a purchase that is the order number. On a sale it is the sales order, because the order number there
+   * is the customer's. A reference the person typed themselves is left alone.
+   */
+  function replaceLines(next: PurchaseInvoiceLine[]) {
+    if (selectedType?.documentKind === "invoice") {
+      const before = orderRefs(invoiceLines);
+      const after = orderRefs(next).slice(0, 200);
+      const current = sales ? salesOrderReference.trim() : orderNumber.trim();
+      if (before !== after && (!current || current === before)) {
+        if (sales) setSalesOrderReference(after);
+        else setOrderNumber(after);
+      }
+    }
+    setInvoiceLines(next);
+  }
+
   function bringIn(order: OrderSource) {
-    setInvoiceLines((current) => {
-      const present = new Set(current.map((line) => line.sourceLineId).filter(Boolean));
-      const added = order.lines.flatMap((line) => {
-        if (!line.id || present.has(line.id)) return [];
-        const whole = numberValue(line.quantity);
-        const share = whole > 0 ? numberValue(line.remainingQuantity) / whole : 1;
-        const discount = formatMoney(Math.round(numberValue(line.discountAmount) * share * 100) / 100);
-        const vat = lineVat.find((rate) => rate.id === line.vatRateId);
-        const amounts = lineAmounts(line.remainingQuantity, line.price, discount || "0", vat?.rate ?? null);
-        const { remainingQuantity, ...rest } = line;
-        return [
-          {
-            ...rest,
-            drawnQuantity: "",
-            id: "",
-            sourceLineId: line.id,
-            quantity: remainingQuantity,
-            discountAmount: discount,
-            nettAmount: amounts && !("error" in amounts) ? formatMoney(amounts.nett) : line.nettAmount,
-            vatAmount: amounts && !("error" in amounts) ? formatMoney(amounts.vat) : line.vatAmount,
-          },
-        ];
-      });
-      return [...current, ...added].map((line, index) => ({ ...line, lineNumber: index + 1 }));
+    const present = new Set(invoiceLines.map((line) => line.sourceLineId).filter(Boolean));
+    const added = order.lines.flatMap((line) => {
+      if (!line.id || present.has(line.id)) return [];
+      const whole = numberValue(line.quantity);
+      const share = whole > 0 ? numberValue(line.remainingQuantity) / whole : 1;
+      const discount = formatMoney(Math.round(numberValue(line.discountAmount) * share * 100) / 100);
+      const vat = lineVat.find((rate) => rate.id === line.vatRateId);
+      const amounts = lineAmounts(line.remainingQuantity, line.price, discount || "0", vat?.rate ?? null);
+      const { remainingQuantity, ...rest } = line;
+      return [
+        {
+          ...rest,
+          drawnQuantity: "",
+          id: "",
+          sourceLineId: line.id,
+          sourceNumber: order.documentNumber,
+          sourceDocument: `${order.typeCode} ${order.documentNumber}`.trim(),
+          quantity: remainingQuantity,
+          discountAmount: discount,
+          nettAmount: amounts && !("error" in amounts) ? formatMoney(amounts.nett) : line.nettAmount,
+          vatAmount: amounts && !("error" in amounts) ? formatMoney(amounts.vat) : line.vatAmount,
+        },
+      ];
     });
-    if (!orderNumber.trim() && order.documentNumber) setOrderNumber(order.documentNumber);
+    replaceLines([...invoiceLines, ...added].map((line, index) => ({ ...line, lineNumber: index + 1 })));
+    // On a sale the order number is the customer's, taken from the sales order when it is still empty.
+    if (sales && !orderNumber.trim() && order.orderNumber) setOrderNumber(order.orderNumber);
     setOrdersOpen(false);
   }
 
+  // Lines that came from another document say which one.
+  const showSource = invoiceLines.some((line) => line.sourceDocument);
   const showLinks = Boolean(header) && (orderDocument || (header?.sources.length ?? 0) > 0);
   const paymentMeans =
     !paymentMeansCode || choices.paymentMeans.some((means) => means.code === paymentMeansCode)
@@ -1283,8 +1310,8 @@ function InvoiceForm({
         </div>
         <div className={documentStyles.fieldWithAction}>
           <label className={styles.field}>
-            Order number
-            <QuietInput name="order_number" maxLength={40} disabled={locked} value={orderNumber} onChange={(event) => setOrderNumber(event.target.value)} />
+            {sales ? "Customer order number" : "Order number"}
+            <QuietInput name="order_number" maxLength={200} disabled={locked} value={orderNumber} onChange={(event) => setOrderNumber(event.target.value)} />
           </label>
           {canBringIn ? (
             <button
@@ -1298,6 +1325,18 @@ function InvoiceForm({
             </button>
           ) : null}
         </div>
+        {sales && !orderDocument ? (
+          <label className={styles.field}>
+            Sales order
+            <QuietInput
+              name="sales_order_reference"
+              maxLength={200}
+              disabled={locked}
+              value={salesOrderReference}
+              onChange={(event) => setSalesOrderReference(event.target.value)}
+            />
+          </label>
+        ) : null}
         <label className={styles.field}>
           Buyer reference
           <QuietInput name="buyer_reference" maxLength={100} disabled={locked} value={buyerReference} onChange={(event) => setBuyerReference(event.target.value)} />
@@ -1576,13 +1615,14 @@ function InvoiceForm({
                     {showDrawn ? <th className={styles.num}>Left</th> : null}
                     <th className={styles.num}>Nett</th>
                     <th className={styles.num}>VAT amount</th>
+                    {showSource ? <th>Order</th> : null}
                     {locked ? null : <th className={styles.actions}>&nbsp;</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {invoiceLines.length === 0 ? (
                     <tr>
-                      <td colSpan={(locked ? 9 : 10) + (showDrawn ? 2 : 0)}>No lines yet.</td>
+                      <td colSpan={(locked ? 9 : 10) + (showDrawn ? 2 : 0) + (showSource ? 1 : 0)}>No lines yet.</td>
                     </tr>
                   ) : (
                     linePage.rows.map((line) => (
@@ -1623,6 +1663,7 @@ function InvoiceForm({
                         ) : null}
                         <td className={`${styles.mono} ${styles.num}`}>{line.nettAmount}</td>
                         <td className={`${styles.mono} ${styles.num}`}>{line.vatAmount}</td>
+                        {showSource ? <td className={styles.mono}>{line.sourceDocument ?? ""}</td> : null}
                         {locked ? null : (
                           <td className={styles.actions}>
                             <button className={styles.quiet} type="button" onClick={() => { setLineMessage(null); setLineDraft(line); }}>
@@ -1633,8 +1674,8 @@ function InvoiceForm({
                               type="button"
                               data-destructive="true"
                               onClick={() =>
-                                setInvoiceLines((current) =>
-                                  current
+                                replaceLines(
+                                  invoiceLines
                                     .filter((item) => item.lineNumber !== line.lineNumber)
                                     .map((item, index) => ({ ...item, lineNumber: index + 1 })),
                                 )
@@ -1653,6 +1694,7 @@ function InvoiceForm({
                     <th colSpan={showDrawn ? 9 : 7}>Total</th>
                     <td className={`${styles.mono} ${styles.num}`}>{formatMoney(totals.foreignNett)}</td>
                     <td className={`${styles.mono} ${styles.num}`}>{formatMoney(totals.foreignVat)}</td>
+                    {showSource ? <td /> : null}
                     {locked ? null : <td />}
                   </tr>
                 </tfoot>
