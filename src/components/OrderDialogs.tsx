@@ -52,6 +52,7 @@ function DocumentTable({ documents, region, onNavigate }: { documents: LinkedDoc
 
 /** What a document was made from and what has been made from it, with the way to make the next one. */
 export function LinkedDocumentsDialog({
+  title = "Linked documents",
   sources,
   followOns,
   followOnLabel,
@@ -60,6 +61,7 @@ export function LinkedDocumentsDialog({
   create,
   onClose,
 }: {
+  title?: string;
   sources: LinkedDocument[];
   /** Null when this kind of document is not turned into another. */
   followOns: LinkedDocument[] | null;
@@ -72,7 +74,7 @@ export function LinkedDocumentsDialog({
   onClose: () => void;
 }) {
   return (
-    <FormModal title="Linked documents" onClose={onClose} className={styles.lineDialog}>
+    <FormModal title={title} onClose={onClose} className={styles.lineDialog}>
       <div className={styles.modalForm}>
         {sources.length > 0 ? (
           <section className={documentStyles.dialogSection}>
