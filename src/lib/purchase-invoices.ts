@@ -26,6 +26,9 @@ export type PurchaseInvoiceLine = {
   sourceLineId?: string;
   /** The quantity other documents have already taken from this line. Void documents do not count. */
   drawnQuantity?: string;
+  /** The number of the document the line came from, and that number with its type code for display. */
+  sourceNumber?: string;
+  sourceDocument?: string;
 };
 
 /** A document made from another one, or the one it was made from. */
@@ -64,7 +67,10 @@ export type PurchaseInvoiceRow = {
   currencyId: string;
   currencyCode: string;
   exchangeRate: string;
+  /** The buyer's purchase order number or numbers. */
   orderNumber: string;
+  /** The seller's own order number or numbers. Used on sales documents. */
+  salesOrderReference: string;
   supplierReference: string;
   supplyDate: string;
   foreignNettAmount: string;
@@ -134,6 +140,8 @@ export type OrderSource = {
   documentNumber: string;
   transactionDate: string;
   partyId: string;
+  /** The customer's purchase order number entered on a sales order. */
+  orderNumber: string;
   lines: (PurchaseInvoiceLine & { remainingQuantity: string })[];
 };
 

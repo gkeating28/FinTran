@@ -77,7 +77,8 @@ function documentFrom(formData: FormData) {
   const roundingAmount = parseMoney(text(formData, "rounding_amount") || "0");
   const contactDetails = optionalText(text(formData, "contact_details"), 500);
   const notes = optionalText(text(formData, "notes"), 4000);
-  const orderNumber = optionalText(text(formData, "order_number"), 40);
+  const orderNumber = optionalText(text(formData, "order_number"), 200);
+  const salesOrderReference = optionalText(text(formData, "sales_order_reference"), 200);
   const supplierReference = optionalText(text(formData, "supplier_reference"), 60);
   const supplyDate = text(formData, "supply_date").trim();
   const precedingHeaderId = text(formData, "preceding_header_id").trim();
@@ -105,7 +106,8 @@ function documentFrom(formData: FormData) {
   if (!roundingAmount) return { error: "Enter a rounding amount of 0 or more." } as const;
   if (contactDetails === undefined) return { error: "Contact details can be up to 500 characters." } as const;
   if (notes === undefined) return { error: "Notes can be up to 4000 characters." } as const;
-  if (orderNumber === undefined) return { error: "Order number can be up to 40 characters." } as const;
+  if (orderNumber === undefined) return { error: "Order number can be up to 200 characters." } as const;
+  if (salesOrderReference === undefined) return { error: "Sales order can be up to 200 characters." } as const;
   if (supplierReference === undefined) return { error: "Supplier invoice number can be up to 60 characters." } as const;
   if (supplyDate && !parseInvoiceDate(supplyDate)) return { error: "Enter a valid supply date, or leave it blank." } as const;
   if (precedingHeaderId && !parseUuid(precedingHeaderId)) return { error: "Choose the invoice this credit note applies to." } as const;
@@ -165,6 +167,7 @@ function documentFrom(formData: FormData) {
     currencyId,
     exchangeRate,
     orderNumber,
+    salesOrderReference,
     supplierReference,
     supplyDate,
     precedingHeaderId,
@@ -223,6 +226,7 @@ export async function savePurchaseInvoice(_state: ActionState, formData: FormDat
       currencyId: document.currencyId,
       exchangeRate: document.exchangeRate,
       orderNumber: document.orderNumber,
+      salesOrderReference: document.salesOrderReference,
       supplierReference: document.supplierReference,
       supplyDate: document.supplyDate,
       precedingHeaderId: document.precedingHeaderId,

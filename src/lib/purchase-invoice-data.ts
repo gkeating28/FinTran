@@ -136,7 +136,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
         .from("transaction_headers")
         .select(
           `id, transaction_type_id, reference, document_number, transaction_date, due_date, supplier_id, customer_id, party_name,
-           contact_details, notes, currency_id, exchange_rate, order_number, supplier_reference, supply_date,
+           contact_details, notes, currency_id, exchange_rate, order_number, sales_order_reference, supplier_reference, supply_date,
            foreign_nett_amount, foreign_vat_amount, foreign_total_amount,
            home_nett_amount, home_vat_amount, home_total_amount, paid_amount,
            rounding_amount, amount_due, preceding_header_id, preceding_reference, preceding_date,
@@ -288,7 +288,14 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
   for (const line of lineRows.data ?? []) {
     const list = linesByHeader.get(line.header_id) ?? [];
     const drawn = drawnByLine.get(line.id);
-    list.push({ ...toPurchaseInvoiceLine(line), drawnQuantity: drawn ? formatMoney(drawn) : "" });
+    const source = line.source_line_id ? headerById.get(headerOfLine.get(line.source_line_id) ?? "") : undefined;
+    const sourceNumber = source?.document_number ?? "";
+    list.push({
+      ...toPurchaseInvoiceLine(line),
+      drawnQuantity: drawn ? formatMoney(drawn) : "",
+      sourceNumber,
+      sourceDocument: source ? `${embeddedCode(source.transaction_types)} ${sourceNumber}`.trim() : "",
+    });
     linesByHeader.set(line.header_id, list);
   }
 
@@ -322,6 +329,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
       currencyCode: embeddedCode(row.currencies),
       exchangeRate: formatExchangeRate(row.exchange_rate),
       orderNumber: row.order_number ?? "",
+      salesOrderReference: row.sales_order_reference ?? "",
       supplierReference: row.supplier_reference ?? "",
       supplyDate: row.supply_date ?? "",
       foreignNettAmount: formatMoney(row.foreign_nett_amount),
@@ -425,6 +433,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
             documentNumber: row.document_number ?? "",
             transactionDate: row.transaction_date,
             partyId: row.supplier_id ?? row.customer_id ?? "",
+            orderNumber: row.order_number ?? "",
             lines: left,
           },
         ];
