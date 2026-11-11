@@ -79,6 +79,8 @@ export async function saveAiSettings(formData: FormData): Promise<void> {
       model: model || null,
       config: { baseUrl, deployment: text(formData, "deployment"), apiVersion: text(formData, "apiVersion") },
       log_answers: formData.get("logAnswers") === "on",
+      // Actions are a separate switch, and they can only be on while AI answers are on.
+      actions_enabled: enabled && formData.get("actionsEnabled") === "on",
       ...(accepted ? { data_notice_accepted_at: new Date().toISOString() } : {}),
       user_hourly_limit: Math.min(500, Math.max(1, Number(text(formData, "hourly") || "30"))),
       organisation_monthly_limit: text(formData, "monthly") ? Number(text(formData, "monthly")) : null,

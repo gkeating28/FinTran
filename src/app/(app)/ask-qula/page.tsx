@@ -14,6 +14,14 @@ const PROVIDERS = [
   { code: "openai_compatible", name: "OpenAI-compatible endpoint" },
 ] as const;
 
+const ACTION_STATUS: Record<string, string> = {
+  proposed: "Waiting for confirmation",
+  confirmed: "Done",
+  failed: "Failed",
+  expired: "Expired, not confirmed",
+  superseded: "Replaced by a newer proposal",
+};
+
 export default async function AskQulaSettingsPage({
   searchParams,
 }: {
@@ -26,11 +34,11 @@ export default async function AskQulaSettingsPage({
   const supabase = await createClient();
   const organisationId = workspace.current.organisationId;
   const [settings, secrets, usage, feedback, actions] = await Promise.all([
-    supabase.from("ai_settings").select("enabled, provider_code, model, config, user_hourly_limit, organisation_monthly_limit, data_notice_accepted_at, log_answers").eq("organisation_id", organisationId).maybeSingle(),
+    supabase.from("ai_settings").select("enabled, provider_code, model, config, user_hourly_limit, organisation_monthly_limit, data_notice_accepted_at, log_answers, actions_enabled").eq("organisation_id", organisationId).maybeSingle(),
     supabase.rpc("organisation_secret_status", { p_organisation_id: organisationId }),
     supabase.from("ai_usage").select("user_id, outcome, input_tokens, output_tokens").eq("organisation_id", organisationId),
     supabase.from("ai_feedback").select("rating, at, comment, question, answer").eq("organisation_id", organisationId).order("at", { ascending: false }).limit(200),
-    supabase.from("ai_actions").select("at, action, summary, outcome, detail, user_id").eq("organisation_id", organisationId).order("at", { ascending: false }).limit(20),
+    supabase.from("ai_actions").select("at, action, summary, status, detail, user_id").eq("organisation_id", organisationId).order("at", { ascending: false }).limit(20),
   ]);
   const row = (settings.data ?? {}) as {
     enabled?: boolean;
@@ -41,6 +49,7 @@ export default async function AskQulaSettingsPage({
     organisation_monthly_limit?: number | null;
     data_notice_accepted_at?: string | null;
     log_answers?: boolean;
+    actions_enabled?: boolean;
   };
   const hint = ((secrets.data ?? []) as { kind: string; hint: string | null }[]).find((secret) => secret.kind === "ai_api_key")?.hint;
   const byUser = new Map<string, { questions: number; tokens: number; errors: number }>();
@@ -56,7 +65,7 @@ export default async function AskQulaSettingsPage({
   const thumbsUp = ratings.filter((item) => item.rating === 1).length;
   const thumbsDown = ratings.length - thumbsUp;
   const lowRated = ratings.filter((item) => item.rating === -1).slice(0, 8);
-  const done = (actions.data ?? []) as { at: string; action: string; summary: string; outcome: string; detail: string | null; user_id: string | null }[];
+  const done = (actions.data ?? []) as { at: string; action: string; summary: string; status: string; detail: string | null; user_id: string | null }[];
   const actionUsers = [...new Set(done.map((item) => item.user_id).filter((id): id is string => Boolean(id)))];
   const names = new Map<string, string>();
   if (actionUsers.length > 0) {
@@ -130,6 +139,10 @@ export default async function AskQulaSettingsPage({
           <label className={`${styles.checkLine} ${styles.wide}`}>
             <input type="checkbox" name="enabled" defaultChecked={row.enabled} />
             Enable
+          </label>
+          <label className={`${styles.checkLine} ${styles.wide}`}>
+            <input type="checkbox" name="actionsEnabled" defaultChecked={Boolean(row.actions_enabled)} />
+            Allow actions. Ask Qula may propose posting drafts and adding customers or suppliers. Nothing happens until a person confirms. Off by default, and only available while Ask Qula is enabled.
           </label>
           <div className={`${styles.modalActions} ${styles.wide}`}>
             {hint ? <button className={`${styles.quiet} ${styles.actionStart}`} type="submit" form="clear-ai-key">Remove key</button> : <span className={styles.actionStart} />}
@@ -206,7 +219,7 @@ export default async function AskQulaSettingsPage({
       </div>
       <div className={styles.panel}>
         <div className={styles.panelHead}>
-          Actions Ask Qula carried out
+          Actions Ask Qula proposed
           <span className={styles.panelMeta}>{done.length === 0 ? "None yet" : `Latest ${done.length}`}</span>
         </div>
         {done.length === 0 ? (
@@ -227,7 +240,7 @@ export default async function AskQulaSettingsPage({
                   <td>{when(item.at)}</td>
                   <td>{item.user_id ? (names.get(item.user_id) ?? "Unknown") : "System"}</td>
                   <td>{item.summary}</td>
-                  <td>{item.outcome === "done" ? "Done" : `Failed${item.detail ? `: ${item.detail}` : ""}`}</td>
+                  <td>{ACTION_STATUS[item.status] ?? item.status}{item.status === "failed" && item.detail ? `: ${item.detail}` : ""}</td>
                 </tr>
               ))}
             </tbody>

@@ -1,7 +1,8 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import type { AskProposal } from "@/lib/ask-qula";
+import { formatDate } from "@/lib/dates";
 import { signingKey } from "@/lib/einvoice/envelope";
 import { parseParty, PARTY_META, type PartyKind } from "@/lib/parties";
 import { createParty } from "@/lib/party-actions";
@@ -11,15 +12,22 @@ import { readinessMessages } from "./readiness";
 /**
  * Things Ask Qula can do for a person, and only after they press Confirm.
  *
- * The model can only propose. A proposal is checked against the data here, written up in words by this code, and signed.
- * The person sees that text and presses Confirm, which sends the signed token back. Nothing the model writes decides what
- * happens: the token carries ids and checked fields, it is tied to one person and one organisation, and it runs out.
+ * The model can only propose. A proposal is checked against the data here, written up from the database by this code,
+ * and signed. The person sees that card and presses Confirm, which sends the signed token back. Nothing the model writes
+ * decides what happens or what the card says: the token carries ids and checked fields, and it is tied to one person and
+ * one organisation.
+ *
+ * A proposal is also written to `ai_actions` before its token is handed out, with the SHA-256 of the token and not the
+ * token. The database lets a token be used once, for ten minutes, and only while the document it names is unchanged.
+ * Actions are off until an owner or admin switches them on for the organisation.
  */
 export type ActionPayload =
   | { kind: "post_draft"; id: string }
   | { kind: "add_party"; party: PartyKind; code: string; name: string; countryCode: string; vatNumber: string; email: string; phone: string; line1: string; city: string; postCode: string };
 
-type Token = { v: 1; o: string; u: string; e: number; a: ActionPayload };
+type Token = { v: 1; o: string; u: string; e: number; n: string; a: ActionPayload };
+
+export const PROPOSAL_LABEL = "Proposed by Ask Qula";
 
 const LIFETIME_MS = 10 * 60 * 1000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -33,8 +41,14 @@ function mac(body: string) {
   return createHmac("sha256", keyBytes()).update(`ask-qula-action:${body}`, "utf8").digest("base64url");
 }
 
+/** What is stored for a token: its SHA-256 in hex. The token itself is never stored. */
+export function hashToken(token: string) {
+  return createHash("sha256").update(token, "utf8").digest("hex");
+}
+
+/** A signed token. The random part makes every token different, even for the same action in the same moment. */
 export function signAction(organisationId: string, userId: string, action: ActionPayload, now = Date.now()) {
-  const body = Buffer.from(JSON.stringify({ v: 1, o: organisationId, u: userId, e: now + LIFETIME_MS, a: action } satisfies Token), "utf8").toString("base64url");
+  const body = Buffer.from(JSON.stringify({ v: 1, o: organisationId, u: userId, e: now + LIFETIME_MS, n: randomBytes(16).toString("base64url"), a: action } satisfies Token), "utf8").toString("base64url");
   return `${body}.${mac(body)}`;
 }
 
@@ -76,13 +90,31 @@ function euro(value: unknown, code: string) {
   return `${code === "EUR" || !code ? "€" : `${code} `}${number.toLocaleString("en-IE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-type Checked = { ok: true; action: ActionPayload; title: string; lines: string[]; confirmLabel: string } | { ok: false; error: string };
+type Card = Omit<AskProposal, "token">;
+
+type Checked = { ok: true; action: ActionPayload; card: Card; summary: string; targetId: string | null } | { ok: false; error: string };
+
+/** The number a draft will get. A type numbered on posting has none yet, so the next one is shown as a forecast. */
+function numberRow(header: Row, type: Row | undefined) {
+  const existing = str(header.document_number, 30);
+  if (existing) return { label: "Number", value: existing };
+  if (type?.numbering !== "on_post") return { label: "Number", value: "" };
+  const next = String(Number(type.last_reference ?? 0) + 1);
+  const padded = next.padStart(Math.max(Number(type.reference_padding ?? 0), next.length), "0");
+  return { label: "Next number", value: `${str(type.reference_prefix, 10)}${padded} (may change if another document posts first)` };
+}
+
+function percent(value: unknown) {
+  return `${Number(value ?? 0).toLocaleString("en-IE", { maximumFractionDigits: 2 })}%`;
+}
 
 async function checkPost(supabase: SupabaseClient, organisationId: string, id: string): Promise<Checked> {
   if (!UUID.test(id)) return { ok: false, error: "Say which draft to post, by its id or number." };
   const { data } = await supabase
     .from("transaction_headers")
-    .select("id, document_number, status, party_name, transaction_date, foreign_total_amount, currencies(code), transaction_types(type, description)")
+    .select(
+      "id, document_number, status, party_name, transaction_date, due_date, foreign_nett_amount, foreign_vat_amount, foreign_total_amount, currencies(code), transaction_types(type, description, numbering, last_reference, reference_prefix, reference_padding)",
+    )
     .eq("organisation_id", organisationId)
     .eq("id", id)
     .maybeSingle();
@@ -93,24 +125,56 @@ async function checkPost(supabase: SupabaseClient, organisationId: string, id: s
   if ((lines.count ?? 0) < 1) return { ok: false, error: "That draft has no lines yet, so it cannot be posted." };
   const type = one(header.transaction_types);
   const sales = type?.type === "Sales";
-  const issues = await readinessMessages(supabase, id);
-  if (sales && issues.errors.length > 0) {
-    return { ok: false, error: `This sales document is not ready to post. ${issues.errors.join(" ")}` };
-  }
+  const [issues, breakdown] = await Promise.all([
+    readinessMessages(supabase, id),
+    supabase.from("transaction_vat_breakdown").select("vat_category, vat_percentage, taxable_amount, vat_amount").eq("organisation_id", organisationId).eq("header_id", id).order("vat_percentage", { ascending: false }),
+  ]);
   const currency = str(one(header.currencies)?.code, 5);
-  return {
-    ok: true,
-    action: { kind: "post_draft", id },
+  const description = str(type?.description) || (sales ? "Sales document" : "Purchase document");
+  const vatRows = ((breakdown.data ?? []) as Row[]).map((row) => ({
+    label: `VAT ${str(row.vat_category, 3)} ${percent(row.vat_percentage)}`.replace(/\s+/g, " "),
+    value: `${euro(row.vat_amount, currency)} on ${euro(row.taxable_amount, currency)}`,
+  }));
+  const number = numberRow(header, type);
+  const card: Card = {
+    label: PROPOSAL_LABEL,
     title: `Post this ${sales ? "sales" : "purchase"} document?`,
+    rows: [
+      { label: "Type", value: description },
+      { label: sales ? "Customer" : "Supplier", value: str(header.party_name) },
+      { label: "Date", value: formatDate(str(header.transaction_date, 10)) },
+      { label: "Due date", value: formatDate(str(header.due_date, 10)) },
+      number,
+      { label: "Nett", value: euro(header.foreign_nett_amount, currency) },
+      { label: "VAT", value: euro(header.foreign_vat_amount, currency) },
+      { label: "Total", value: euro(header.foreign_total_amount, currency) },
+      ...vatRows,
+    ],
+    issues: [
+      ...issues.errors.map((message) => ({ severity: "error" as const, message })),
+      ...issues.warnings.map((message) => ({ severity: "warning" as const, message })),
+    ],
     lines: [
-      `${str(type?.description) || (sales ? "Sales document" : "Purchase document")}${header.document_number ? ` ${str(header.document_number, 30)}` : " (new draft)"}`,
-      `${sales ? "To" : "From"} ${str(header.party_name)}`,
-      `Total ${euro(header.foreign_total_amount, currency)}`,
-      ...(issues.warnings.length > 0 ? [`${issues.warnings.length} warning${issues.warnings.length === 1 ? "" : "s"} about the e-invoice, which does not stop posting`] : []),
-      sales ? "Posting locks the document. A posted sales document is corrected with a credit note." : "Posting locks the document. A posted purchase document can still be voided by an owner or admin.",
+      issues.errors.length > 0
+        ? "This document is not ready to post. Fix what is listed, then ask again."
+        : sales
+          ? "Posting locks the document. A posted sales document is corrected with a credit note."
+          : "Posting locks the document. A posted purchase document can still be voided by an owner or admin.",
     ],
     confirmLabel: "Post it",
   };
+  return {
+    ok: true,
+    action: { kind: "post_draft", id },
+    card,
+    summary: `${description}${number.label === "Number" && number.value ? ` ${number.value}` : " (new draft)"}, ${sales ? "to" : "from"} ${str(header.party_name)}`,
+    targetId: id,
+  };
+}
+
+/** True when the card says the document cannot be posted, so there is nothing to confirm. */
+function blocked(card: Card) {
+  return card.issues.some((issue) => issue.severity === "error");
 }
 
 async function checkParty(supabase: SupabaseClient, organisationId: string, input: Record<string, unknown>): Promise<Checked> {
@@ -151,22 +215,42 @@ async function checkParty(supabase: SupabaseClient, organisationId: string, inpu
   if ((existing.data ?? []).length > 0) {
     return { ok: false, error: `A ${PARTY_META[party].singular.toLowerCase()} with that code or name already exists: ${str(((existing.data ?? [])[0] as Row).name)}.` };
   }
+  const singular = PARTY_META[party].singular;
+  const currency = await supabase.from("currencies").select("code").eq("organisation_id", organisationId).eq("id", currencyId).maybeSingle();
   return {
     ok: true,
     action: { kind: "add_party", party, ...fields, code: parsed.code },
-    title: `Add this ${PARTY_META[party].singular.toLowerCase()}?`,
-    lines: [
-      `Code ${parsed.code}, name ${parsed.name}`,
-      ...(fields.line1 || fields.city ? [[fields.line1, fields.city, fields.postCode, fields.countryCode].filter(Boolean).join(", ")] : []),
-      ...(fields.vatNumber ? [`VAT number ${fields.vatNumber}`] : []),
-      ...(fields.email ? [`Email ${fields.email}`] : []),
-      "The currency is the organisation's home currency. The code cannot be changed once it is saved.",
-    ],
-    confirmLabel: "Add it",
+    card: {
+      label: PROPOSAL_LABEL,
+      title: `Add this ${singular.toLowerCase()}?`,
+      // Every field that will be saved, including the ones left blank.
+      rows: [
+        { label: "Kind", value: `${singular.charAt(0).toUpperCase()}${singular.slice(1)}` },
+        { label: "Code", value: parsed.code },
+        { label: "Name", value: parsed.name },
+        { label: "Address", value: fields.line1 },
+        { label: "City", value: fields.city },
+        { label: "Post code", value: fields.postCode },
+        { label: "Country", value: fields.countryCode },
+        { label: "VAT number", value: fields.vatNumber },
+        { label: "Email", value: fields.email },
+        { label: "Phone", value: fields.phone },
+        { label: "Currency", value: str((currency.data as Row | null)?.code, 5) },
+      ],
+      issues: [],
+      lines: ["The currency is the organisation's home currency. The code cannot be changed once it is saved."],
+      confirmLabel: "Add it",
+    },
+    summary: `Add ${singular.toLowerCase()} ${parsed.code}, ${parsed.name}`,
+    targetId: null,
   };
 }
 
-/** Checks what the model asked for against the data. Returns a signed proposal for the person to confirm, or a reason it cannot be done. */
+/**
+ * Checks what the model asked for against the data and builds the card from the database. The proposal is written to
+ * `ai_actions` before its token is returned. A draft that is not ready comes back as a card with no token, so there is
+ * nothing to confirm.
+ */
 export async function proposeAction(
   supabase: SupabaseClient,
   organisationId: string,
@@ -180,11 +264,25 @@ export async function proposeAction(
     return { error: "That could not be checked just now." };
   }
   if (!checked.ok) return { error: checked.error };
+  if (blocked(checked.card)) return { proposal: { ...checked.card, token: null } };
+  let token: string;
   try {
-    return { proposal: { token: signAction(organisationId, userId, checked.action), title: checked.title, lines: checked.lines, confirmLabel: checked.confirmLabel } };
+    token = signAction(organisationId, userId, checked.action);
   } catch {
     return { error: "Actions are not available because the signing key is not set up." };
   }
+  const stored = await supabase.rpc("propose_ai_action", {
+    p_organisation_id: organisationId,
+    p_action: checked.action.kind,
+    p_token_hash: hashToken(token),
+    p_target_id: checked.targetId,
+    p_summary: checked.summary,
+    p_proposal: checked.card,
+  });
+  if (stored.error) {
+    return { error: /switched off/.test(stored.error.message) ? "Ask Qula actions are switched off for this organisation." : "That could not be proposed just now." };
+  }
+  return { proposal: { ...checked.card, token } };
 }
 
 /** Does what a confirmed token says. The checks run again, because the data may have changed since it was proposed. */
@@ -196,11 +294,12 @@ export async function runAction(
   if (action.kind === "post_draft") {
     const checked = await checkPost(supabase, organisationId, action.id);
     if (!checked.ok) return { ok: false, message: checked.error, summary: "Post a draft" };
+    if (blocked(checked.card)) return { ok: false, message: `This document is not ready to post. ${checked.card.issues.filter((issue) => issue.severity === "error").map((issue) => issue.message).join(" ")}`, summary: checked.summary };
     const result = await postDocumentNow(supabase, organisationId, action.id);
     revalidatePath("/transactions");
     revalidatePath("/transactions/[code]", "page");
     revalidatePath("/");
-    const summary = checked.lines.slice(0, 2).join(", ");
+    const summary = checked.summary;
     if (result.error) return { ok: false, message: result.error, summary };
     return { ok: true, message: result.warning ? `Posted. ${result.warning}` : "Posted.", summary };
   }
