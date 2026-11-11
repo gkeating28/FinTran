@@ -1,14 +1,12 @@
 import styles from "@/components/OpsPage.module.css";
 import view from "@/components/EDocument.module.css";
 import { semanticAt, semanticRecord, semanticRows, semanticText, sellerIban } from "@/lib/einvoice/semantic-read";
+import { formatDate } from "@/lib/dates";
 import { formatMoney } from "@/lib/purchase-invoices";
 
-/** 2026-10-26 as 26 Oct 2026. Anything else is shown as it was sent. */
+/** 2026-10-26 as 26 Oct 2026. This page is built on the server, so it uses the default region. */
 export function formatEDocumentDate(value: string) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (!match) return value;
-  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
-  return new Intl.DateTimeFormat("en-IE", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(date);
+  return formatDate(value);
 }
 
 function money(value: string) {

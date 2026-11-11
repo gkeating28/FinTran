@@ -140,6 +140,10 @@ An invoice can draw on several orders of one supplier or customer, because the l
 
 How far an order is invoiced is worked out in one place, `orderProgress` in `src/lib/order-progress.ts`. The limit is by quantity, so each line's invoiced share is valued at the order's own nett amount, which gives one figure for an order whose lines have different units. A page that lists only orders shows Invoicing, Invoiced and To invoice in place of Readiness, Paid and Amount due, and has a filter for not, part and fully invoiced. `listOpenOrders` in `src/lib/order-data.ts` reads the open orders with their progress in the home currency for the home page and Ask Qula.
 
+### Dates
+
+A date in a grid is shown as 18 Oct 2026: day, short month and year. `formatDate` and `formatDateTime` in `src/lib/dates.ts` do it. The parts are fixed and the region decides their order and wording, so a browser set to US English reads Oct 18, 2026. `useRegion` in `src/components/useRegion.ts` gives the browser's language and time zone. The server and the first render in the browser use the default, `en-IE` and `Europe/Dublin`, so the page matches what the server sent, and the browser's own setting follows. A calendar date has no time zone and never shifts by a day. A date column sorts and exports by its stored value, `2026-10-18`, so sorting is by time and Excel gets a plain date. Date inputs are the browser's own and already follow the region. Pages built on the server, such as the stored e-document view and printed forms, use the default region.
+
 ### Forms that can fail
 
 React resets a form after its `action` runs, which wipes the entries when a save returns an error. A form whose save can fail uses `onSubmit={keepEntries(action)}` from `src/components/keepEntries.ts` with the action from `useActionState`, in place of the form's `action`. The data goes through a transition and the form stays as the person filled it in. The sign in and sign up forms, and the one button forms that remove or post a row, keep the plain `action`.

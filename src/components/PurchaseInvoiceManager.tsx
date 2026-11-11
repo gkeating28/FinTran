@@ -27,6 +27,8 @@ import {
 import { loadTransactionReadiness } from "@/lib/readiness-actions";
 import type { PurchaseInvoiceChoices } from "@/lib/purchase-invoice-data";
 import { documentStatusLabel, isOrderKind, statusesForKind } from "@/lib/transaction-types";
+import { useRegion } from "@/components/useRegion";
+import { formatDate } from "@/lib/dates";
 import { readinessHref } from "@/lib/en16931";
 import { ORDER_PROGRESS_LABEL } from "@/lib/order-progress";
 import { gridPageSlice, pageIndexForSize, type GridPageSize } from "@/lib/grid-page";
@@ -219,6 +221,7 @@ export default function PurchaseInvoiceManager({
   canDownload?: boolean;
 }) {
   const pathname = usePathname();
+  const region = useRegion();
   const sales = direction === "Sales";
   const [draft, setDraft] = useState<PurchaseInvoiceRow | "new" | null>(null);
   useAskContext("transaction", draft && draft !== "new" ? draft.id : undefined, typeCode);
@@ -416,9 +419,8 @@ export default function PurchaseInvoiceManager({
           {
             key: "date",
             label: "Date",
-            mono: true,
             sortValue: (row) => row.transactionDate,
-            render: (row) => row.transactionDate,
+            render: (row) => formatDate(row.transactionDate, region),
           },
           {
             key: "supplier",
@@ -429,9 +431,8 @@ export default function PurchaseInvoiceManager({
           {
             key: "due",
             label: "Due",
-            mono: true,
             sortValue: (row) => row.dueDate,
-            render: (row) => row.dueDate,
+            render: (row) => formatDate(row.dueDate, region),
           },
           {
             key: "currency",
@@ -714,6 +715,7 @@ function InvoiceForm({
   onClose: () => void;
 }) {
   const sales = direction === "Sales";
+  const region = useRegion();
   const posted = header?.status === "posted";
   const voided = header?.status === "void";
   const opened = header?.status === "open";
@@ -1750,7 +1752,7 @@ function InvoiceForm({
                   const taken = order.lines.filter((line) => invoiceLines.some((item) => item.sourceLineId === line.id)).length;
                   return (
                     <li key={order.id}>
-                      {order.typeCode} {order.documentNumber || order.transactionDate} · {order.transactionDate} ·{" "}
+                      {order.typeCode} {order.documentNumber || formatDate(order.transactionDate, region)} · {formatDate(order.transactionDate, region)} ·{" "}
                       {order.lines.length} line{order.lines.length === 1 ? "" : "s"} left{" "}
                       <button className={styles.quiet} type="button" disabled={taken === order.lines.length} onClick={() => bringIn(order)}>
                         {taken === order.lines.length ? "Brought in" : "Bring in"}
@@ -1776,7 +1778,7 @@ function InvoiceForm({
                 {header.sources.map((source) => (
                   <li key={source.id}>
                     <Link href={`/transactions/${source.typeCode}?open=${source.id}`}>
-                      {source.typeCode} {source.documentNumber || source.transactionDate}
+                      {source.typeCode} {source.documentNumber || formatDate(source.transactionDate, region)}
                     </Link>
                     {" "}· {source.status} · {source.total}
                   </li>
@@ -1792,7 +1794,7 @@ function InvoiceForm({
                   {header.followOns.map((item) => (
                     <li key={item.id}>
                       <Link href={`/transactions/${item.typeCode}?open=${item.id}`}>
-                        {item.typeCode} {item.documentNumber || item.transactionDate}
+                        {item.typeCode} {item.documentNumber || formatDate(item.transactionDate, region)}
                       </Link>
                       {" "}· {item.status} · {item.total}
                     </li>
@@ -1852,7 +1854,7 @@ function InvoiceForm({
               {header.credits.map((credit) => (
                 <li key={credit.id}>
                   <Link href={`/transactions/${credit.typeCode}?open=${credit.id}`}>
-                    {credit.typeCode} {credit.documentNumber || credit.transactionDate}
+                    {credit.typeCode} {credit.documentNumber || formatDate(credit.transactionDate, region)}
                   </Link>
                   {" "}· {credit.status} · {credit.total}
                 </li>
