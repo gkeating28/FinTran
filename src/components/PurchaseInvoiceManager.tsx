@@ -1281,10 +1281,23 @@ function InvoiceForm({
           </label>
           {showFlex && grnIndex >= 0 ? <FlexField index={grnIndex} label={flexLabels[grnIndex]} value={flex[grnIndex]} disabled={locked} onChange={setFlex} /> : null}
         </div>
-        <label className={styles.field}>
-          Order number
-          <QuietInput name="order_number" maxLength={40} disabled={locked} value={orderNumber} onChange={(event) => setOrderNumber(event.target.value)} />
-        </label>
+        <div className={documentStyles.fieldWithAction}>
+          <label className={styles.field}>
+            Order number
+            <QuietInput name="order_number" maxLength={40} disabled={locked} value={orderNumber} onChange={(event) => setOrderNumber(event.target.value)} />
+          </label>
+          {canBringIn ? (
+            <button
+              className={supplierId ? styles.primary : styles.quiet}
+              type="button"
+              aria-expanded={ordersOpen}
+              title={supplierId ? "Bring lines in from an active order" : `Choose a ${sales ? "customer" : "supplier"} first`}
+              onClick={() => openPanel("orders")}
+            >
+              From order
+            </button>
+          ) : null}
+        </div>
         <label className={styles.field}>
           Buyer reference
           <QuietInput name="buyer_reference" maxLength={100} disabled={locked} value={buyerReference} onChange={(event) => setBuyerReference(event.target.value)} />
@@ -1535,11 +1548,6 @@ function InvoiceForm({
               Lines ({invoiceLines.length})
               {locked && invoiceLines.length > 0 ? <span className={documentStyles.lineHint}>Select a line to see its details.</span> : null}
             </span>
-            {canBringIn ? (
-              <button className={styles.quiet} type="button" aria-expanded={ordersOpen} onClick={() => openPanel("orders")}>
-                From order
-              </button>
-            ) : null}
             {locked ? null : (
               <button
                 className={styles.primary}
@@ -1683,7 +1691,7 @@ function InvoiceForm({
         </form>
       ) : null}
       {ordersOpen && canBringIn ? (
-        <div className={documentStyles.sideSheet} role="dialog" aria-label="Bring in from an order">
+        <div className={`${documentStyles.sideSheet} ${documentStyles.sideSheetStart}`} role="dialog" aria-label="Bring in from an order">
           <div className={documentStyles.sideSheetHead}>
             <strong>Bring in from an order</strong>
             <button className={styles.quiet} type="button" onClick={() => setOrdersOpen(false)}>Close</button>

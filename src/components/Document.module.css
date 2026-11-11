@@ -49,6 +49,30 @@
   box-shadow: var(--shadow-lg);
 }
 
+/* A sheet that belongs to the header side of the document, such as bringing lines in from an order. */
+.sideSheetStart {
+  right: auto;
+  left: 16px;
+}
+
+/* A field with a button beside its input. The button lines up with the input, not the label. */
+.fieldWithAction {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fieldWithAction > label {
+  flex: 1;
+  min-width: 0;
+}
+
+.fieldWithAction > button {
+  flex: none;
+  white-space: nowrap;
+}
+
 .sideSheetHead {
   display: flex;
   align-items: center;
