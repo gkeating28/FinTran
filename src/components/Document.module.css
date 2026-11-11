@@ -49,12 +49,6 @@
   box-shadow: var(--shadow-lg);
 }
 
-/* A sheet that belongs to the header side of the document, such as bringing lines in from an order. */
-.sideSheetStart {
-  right: auto;
-  left: 16px;
-}
-
 /* A field with a button beside its input. The button lines up with the input, not the label. */
 .fieldWithAction {
   display: flex;
@@ -71,6 +65,52 @@
 .fieldWithAction > button {
   flex: none;
   white-space: nowrap;
+}
+
+/* One group inside a dialog: a label or an order heading, then its table. */
+.dialogSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dialogSection > table {
+  border: 1px solid var(--ops-border-soft);
+  border-radius: var(--ops-radius);
+}
+
+.dialogSection td input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  min-height: 0;
+  margin: 0;
+  accent-color: var(--ops-accent);
+}
+
+/* Tables of order lines share their column widths, so one order lines up with the next. */
+.dialogPicks {
+  table-layout: fixed;
+}
+
+.dialogPicks th:first-child {
+  width: 40px;
+}
+
+.dialogPicks th:nth-child(2) {
+  width: 42%;
+}
+
+.dialogCreate {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.dialogOrder {
+  color: var(--ops-text);
+  font-size: var(--text-sm);
+  font-weight: 700;
 }
 
 .sideSheetHead {
