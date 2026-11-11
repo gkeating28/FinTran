@@ -16,10 +16,21 @@ export type AskBlock =
   | { type: "chart"; title?: string; unit?: string; labels: string[]; values: number[] }
   | { type: "message"; title?: string; to: string; subject: string; body: string };
 
-/** Something Ask Qula can do once the person confirms. The token is signed by the server and says exactly what will happen. */
+/**
+ * Something Ask Qula can do once the person confirms. The server builds every part of it from the database, never from
+ * the model's words. The token is signed by the server, works once, and is null when there is nothing to confirm, for
+ * example a draft that is not ready to post.
+ */
 export type AskProposal = {
-  token: string;
+  token: string | null;
+  /** Always "Proposed by Ask Qula". */
+  label: string;
   title: string;
+  /** The facts being confirmed, read from the database. A blank value is shown as blank. */
+  rows: { label: string; value: string }[];
+  /** The readiness result for a document. An error means there is no Confirm button. */
+  issues: { severity: "error" | "warning"; message: string }[];
+  /** Short notes under the facts. */
   lines: string[];
   confirmLabel: string;
 };

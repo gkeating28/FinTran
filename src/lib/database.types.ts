@@ -2012,10 +2012,10 @@ export type Database = {
       e_document_events: { Row: { id: string; e_document_id: string; to_status: string }; Insert: { id?: string }; Update: { to_status?: string }; Relationships: [] }
       organisation_secrets: { Row: { organisation_id: string; kind: string; ciphertext: string; hint: string | null }; Insert: { organisation_id: string; kind: string; ciphertext: string }; Update: { ciphertext?: string }; Relationships: [] }
       ai_providers: { Row: { code: string; name: string; needs_base_url: boolean }; Insert: { code: string; name: string; needs_base_url: boolean }; Update: { name?: string }; Relationships: [] }
-      ai_settings: { Row: { organisation_id: string; enabled: boolean; provider_code: string | null; model: string | null; config: Json; user_hourly_limit: number; organisation_monthly_limit: number | null; log_answers: boolean }; Insert: { organisation_id: string; tenant_id: string; log_answers?: boolean }; Update: { enabled?: boolean; log_answers?: boolean }; Relationships: [] }
+      ai_settings: { Row: { organisation_id: string; enabled: boolean; provider_code: string | null; model: string | null; config: Json; user_hourly_limit: number; organisation_monthly_limit: number | null; log_answers: boolean; actions_enabled: boolean }; Insert: { organisation_id: string; tenant_id: string; log_answers?: boolean; actions_enabled?: boolean }; Update: { enabled?: boolean; log_answers?: boolean; actions_enabled?: boolean }; Relationships: [] }
       ai_usage: { Row: { id: number; organisation_id: string; outcome: string }; Insert: { organisation_id: string; outcome: string }; Update: { outcome?: string }; Relationships: [] }
       ai_feedback: { Row: { id: string; organisation_id: string; tenant_id: string; user_id: string | null; at: string; rating: number; provider_code: string | null; model: string | null; comment: string | null; question: string | null; answer: string | null }; Insert: { organisation_id: string; tenant_id: string; rating: number }; Update: { comment?: string | null }; Relationships: [] }
-      ai_actions: { Row: { id: string; organisation_id: string; tenant_id: string; user_id: string | null; at: string; action: string; summary: string; outcome: string; detail: string | null }; Insert: { organisation_id: string; tenant_id: string; action: string; summary: string; outcome: string }; Update: { detail?: string | null }; Relationships: [] }
+      ai_actions: { Row: { id: string; organisation_id: string; tenant_id: string; user_id: string | null; at: string; action: string; summary: string; status: string; detail: string | null; token_hash: string | null; expires_at: string | null; target_id: string | null; target_version: string | null; proposal: Json | null; decided_at: string | null }; Insert: never; Update: never; Relationships: [] }
       access_point_providers: { Row: { code: string; name: string }; Insert: { code: string; name: string }; Update: { name?: string }; Relationships: [] }
       access_point_settings: { Row: { organisation_id: string; provider_code: string; environment: string; status: string; participant_registered: boolean }; Insert: { organisation_id: string; tenant_id: string; provider_code: string; environment: string; webhook_token: string }; Update: { status?: string }; Relationships: [] }
     Views: {
@@ -2086,7 +2086,9 @@ export type Database = {
       organisation_secret_ciphertext: { Args: { p_organisation_id: string; p_kind: string }; Returns: string }
       record_ai_usage: { Args: { p_organisation_id: string; p_provider_code: string; p_model: string; p_input_tokens: number; p_output_tokens: number; p_tool_calls: number; p_outcome: string }; Returns: undefined }
       record_ai_feedback: { Args: { p_organisation_id: string; p_rating: number; p_question: string; p_answer: string; p_comment: string }; Returns: undefined }
-      record_ai_action: { Args: { p_organisation_id: string; p_action: string; p_summary: string; p_outcome: string; p_detail: string }; Returns: undefined }
+      propose_ai_action: { Args: { p_organisation_id: string; p_action: string; p_token_hash: string; p_target_id: string | null; p_summary: string; p_proposal: Json }; Returns: string }
+      confirm_ai_action: { Args: { p_organisation_id: string; p_token_hash: string }; Returns: string }
+      finish_ai_action: { Args: { p_token_hash: string; p_ok: boolean; p_summary: string; p_detail: string }; Returns: undefined }
       ai_usage_allowance: { Args: { p_organisation_id: string }; Returns: { user_hour: number; organisation_month: number }[] }
 
       void_document: {

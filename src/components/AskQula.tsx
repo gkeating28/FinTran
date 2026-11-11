@@ -193,7 +193,7 @@ export default function AskQula({
 
   /** Confirms or cancels something Ask Qula proposed. Nothing happens until the person confirms. */
   async function decide(message: AskMessage, confirm: boolean) {
-    if (!message.proposal) return;
+    if (!message.proposal?.token) return;
     if (!confirm) {
       patchMessage(message.id, { proposalState: "cancelled", proposalResult: "Cancelled. Nothing was changed." });
       return;
@@ -380,7 +380,27 @@ function ProposalCard({ message, onDecide }: { message: AskMessage; onDecide: (m
   const state = message.proposalState;
   return (
     <section className={styles.proposal} aria-label={proposal.title} data-state={state ?? "waiting"}>
+      <p className={styles.proposalLabel}>{proposal.label ?? "Proposed by Ask Qula"}</p>
       <h3 className={styles.proposalTitle}>{proposal.title}</h3>
+      <dl className={styles.proposalRows}>
+        {(proposal.rows ?? []).map((row, index) => (
+          <div key={index}>
+            <dt>{row.label}</dt>
+            <dd>{row.value}</dd>
+          </div>
+        ))}
+      </dl>
+      {(proposal.issues ?? []).length > 0 ? (
+        <ul className={styles.proposalIssues} aria-label="Readiness">
+          {proposal.issues.map((issue, index) => (
+            <li key={index} data-severity={issue.severity}>
+              {issue.severity === "error" ? "Error" : "Warning"}: {issue.message}
+            </li>
+          ))}
+        </ul>
+      ) : proposal.confirmLabel === "Post it" ? (
+        <p className={styles.proposalReady}>Readiness: no problems found.</p>
+      ) : null}
       <ul className={styles.proposalLines}>
         {proposal.lines.map((line, index) => (
           <li key={index}>{line}</li>
@@ -390,7 +410,7 @@ function ProposalCard({ message, onDecide }: { message: AskMessage; onDecide: (m
         <p className={styles.proposalResult} role="status">
           {message.proposalResult}
         </p>
-      ) : (
+      ) : !proposal.token ? null : (
         <div className={styles.proposalActions}>
           <button
             className={styles.send}

@@ -14,6 +14,7 @@ type SettingsRow = {
   config: Record<string, string> | null;
   user_hourly_limit: number;
   organisation_monthly_limit: number | null;
+  actions_enabled: boolean | null;
 };
 
 const TIMEOUT_MS = 50_000;
@@ -58,7 +59,7 @@ export async function answerAsk(
 
   const prepStarted = Date.now();
   const supabase = await createClient();
-  const settings = await supabase.from("ai_settings").select("enabled, provider_code, model, config, user_hourly_limit, organisation_monthly_limit").eq("organisation_id", organisationId).maybeSingle();
+  const settings = await supabase.from("ai_settings").select("enabled, provider_code, model, config, user_hourly_limit, organisation_monthly_limit, actions_enabled").eq("organisation_id", organisationId).maybeSingle();
   const row = settings.data as SettingsRow | null;
   if (!row?.enabled || !row.provider_code || !row.model) return keyword();
 
@@ -95,7 +96,7 @@ export async function answerAsk(
   try {
     const run = await Promise.race([
       runAiStream(
-        { supabase, organisationId, userId, question, history, context, provider: row.provider_code, model: row.model, config: row.config ?? {}, apiKey },
+        { supabase, organisationId, userId, question, history, context, provider: row.provider_code, model: row.model, config: row.config ?? {}, apiKey, actionsEnabled: row.actions_enabled === true },
         (event) => {
           if (event.type === "text") sent = true;
           record(event);

@@ -130,6 +130,8 @@ export async function runAiStream(
     config: Record<string, string>;
     apiKey: string;
     adapter?: AiAdapter;
+    /** Whether the organisation has switched Ask Qula actions on. When false the model is given no action tool. */
+    actionsEnabled?: boolean;
   },
   emit: (event: AskEvent) => void = () => {},
 ): Promise<AiRun> {
@@ -139,8 +141,10 @@ export async function runAiStream(
     config: options.config,
     apiKey: options.apiKey,
   });
-  const system = systemPromptFor(options.context);
-  const allowed = new Set<string>(ASK_TOOLS.map((tool) => tool.name));
+  const system = systemPromptFor(options.context, undefined, options.actionsEnabled === true);
+  // With actions off the model is not offered the action tool at all, and a call to it is refused.
+  const tools = options.actionsEnabled ? [...ASK_TOOLS] : ASK_TOOLS.filter((tool) => !ACTION_TOOLS.has(tool.name));
+  const allowed = new Set<string>(tools.map((tool) => tool.name));
   const messages: AiMessage[] = [...options.history.slice(-6), { role: "user", text: options.question }];
   const run: AiRun = { text: "", cards: [], blocks: [], followups: [], proposal: null, toolCalls: 0, inputTokens: 0, outputTokens: 0, cachedTokens: 0, timings: { turns: [], tools: [], firstTextMs: null } };
   const seen = new Set<string>();
@@ -156,7 +160,7 @@ export async function runAiStream(
   for (let step = 0; step < MAX_STEPS; step += 1) {
     let streamed = 0;
     const turnStarted = Date.now();
-    const turn = await adapter.complete({ system, messages, tools: [...ASK_TOOLS], cachePrefix: ASK_SYSTEM_PROMPT }, (delta) => {
+    const turn = await adapter.complete({ system, messages, tools, cachePrefix: ASK_SYSTEM_PROMPT }, (delta) => {
       streamed += delta.length;
       say(delta);
     });
@@ -211,7 +215,9 @@ export async function runAiStream(
         if ("proposal" in proposed) {
           run.proposal = proposed.proposal;
           emit({ type: "proposal", proposal: proposed.proposal });
-          output = { proposed: true, note: "Waiting for the person to confirm. It has not been done." };
+          output = proposed.proposal.token
+            ? { proposed: true, note: "Waiting for the person to confirm. It has not been done." }
+            : { proposed: false, note: "The document is not ready to post, and the person has been shown why. It has not been done.", problems: proposed.proposal.issues.filter((issue) => issue.severity === "error").map((issue) => issue.message) };
         } else {
           output = { error: proposed.error };
         }
