@@ -59,6 +59,7 @@ function linesFrom(value: string): PurchaseInvoiceLine[] | { error: string } {
         sellerItemId: textValue("sellerItemId"),
         id: textValue("id"),
         sourceLineId: textValue("sourceLineId"),
+        orderLineReference: textValue("orderLineReference"),
       },
     ];
   });
@@ -202,6 +203,7 @@ function documentFrom(formData: FormData) {
       // Keeping the id lets other documents go on pointing at this line after the save.
       id: parseUuid(line.id ?? "") ?? "",
       sourceLineId: parseUuid(line.sourceLineId ?? "") ?? "",
+      orderLineReference: (line.orderLineReference ?? "").trim().slice(0, 60),
     })),
   } as const;
 }

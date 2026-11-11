@@ -32,7 +32,7 @@ const HEADER_SELECT = `
   suppliers(code, name, phone, email, website, address_line1, address_line2, address_line3, city, post_code, county, country_code, contact_details, vat_number, company_number, peppol_scheme, peppol_id, ref_countries(name)),
   customers(code, name, phone, email, website, address_line1, address_line2, address_line3, city, post_code, county, country_code, contact_details, vat_number, company_number, peppol_scheme, peppol_id, ref_countries(name)),
   transaction_lines(
-    line_number, description, quantity, price, discount_amount, nett_amount, vat_amount, vat_percentage, unit_code, line_note,
+    line_number, description, quantity, price, discount_amount, nett_amount, vat_amount, vat_percentage, unit_code, line_note, source_line_id,
     products(code, description),
     gl_codes(code),
     departments(code),
@@ -156,7 +156,27 @@ function organisationFromSnapshot(snapshot: Loose, organisationId: string): Form
   };
 }
 
-function sourceFromHeader(row: Loose, type: FormType, organisation: FormOrganisation, organisationId: string): FormSource {
+/** The order each line came from, as PO 2, keyed by the order line. A line with no source is left out. */
+async function lineOrders(row: Loose | null): Promise<Map<string, string>> {
+  const found = new Map<string, string>();
+  const raw = row?.transaction_lines;
+  const ids = ((Array.isArray(raw) ? raw : raw ? [raw] : []) as Loose[]).map((line) => text(line.source_line_id)).filter(Boolean);
+  if (ids.length === 0) return found;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("transaction_lines")
+    .select("id, transaction_headers!transaction_lines_header_id_fkey(document_number, transaction_types(code))")
+    .in("id", [...new Set(ids)]);
+  for (const line of (data ?? []) as unknown as Loose[]) {
+    const header = one(line.transaction_headers as Loose | Loose[] | null);
+    const type = one(header?.transaction_types as Loose | Loose[] | null);
+    const label = `${text(type?.code)} ${text(header?.document_number)}`.trim();
+    if (label) found.set(text(line.id), label);
+  }
+  return found;
+}
+
+function sourceFromHeader(row: Loose, type: FormType, organisation: FormOrganisation, organisationId: string, orders?: Map<string, string>): FormSource {
   const status = text(row.status);
   const frozen = status === "posted" || status === "void";
   const issuer = frozen && row.issuer_snapshot && typeof row.issuer_snapshot === "object"
@@ -198,6 +218,7 @@ function sourceFromHeader(row: Loose, type: FormType, organisation: FormOrganisa
       costCentre: text(centre?.code),
       unit: text(line.unit_code),
       lineNote: text(line.line_note),
+      order: orders?.get(text(line.source_line_id)) ?? "",
     };
   });
 
@@ -426,11 +447,13 @@ export async function loadPrintedDocument(code: string, id: string): Promise<{
 
   if (header.error || stored.error) return { view: null, type: loaded.type, error: "That document could not be printed." };
   if (!header.data) return { view: null, type: loaded.type, error: null };
+  // Only looked up when the layout prints the Order column.
+  const orders = stored.layout.lineColumns.includes("order") ? await lineOrders(header.data as unknown as Loose) : undefined;
 
   return {
     view: buildPrintView(
       stored.layout,
-      sourceFromHeader(header.data as unknown as Loose, loaded.type, details.organisation, workspace.current.organisationId),
+      sourceFromHeader(header.data as unknown as Loose, loaded.type, details.organisation, workspace.current.organisationId, orders),
     ),
     type: loaded.type,
     error: null,

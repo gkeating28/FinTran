@@ -1577,6 +1577,7 @@ export type Database = {
           product_id: string | null
           quantity: number
           seller_item_id: string | null
+          order_line_reference: string | null
           source_line_id: string | null
           tenant_id: string
           transaction_type_id: string
@@ -1608,6 +1609,7 @@ export type Database = {
           product_id?: string | null
           quantity: number
           seller_item_id?: string | null
+          order_line_reference?: string | null
           source_line_id?: string | null
           tenant_id: string
           transaction_type_id: string
@@ -1639,6 +1641,7 @@ export type Database = {
           product_id?: string | null
           quantity?: number
           seller_item_id?: string | null
+          order_line_reference?: string | null
           source_line_id?: string | null
           tenant_id?: string
           transaction_type_id?: string

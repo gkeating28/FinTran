@@ -37,3 +37,12 @@ test("a sales order reference travels with the order reference, and NA stands fo
   assert.equal(parseUbl(salesOnly)["BT-13"], undefined);
   assert.equal(parseUbl(salesOnly)["BT-14"], "SO-3");
 });
+
+test("an order line reference sits after the line amount and before the item", () => {
+  const base = JSON.parse(readFileSync("supabase/tests/fixtures/en16931/sales-invoice.json", "utf8"));
+  base["BG-25"][0]["BT-132"] = "30";
+  const xml = generateUbl(base);
+  assert.match(xml, /<\/cbc:LineExtensionAmount><cac:OrderLineReference><cbc:LineID>30<\/cbc:LineID><\/cac:OrderLineReference>/);
+  const parsed = parseUbl(xml) as { "BG-25": Record<string, unknown>[] };
+  assert.equal(parsed["BG-25"][0]["BT-132"], "30");
+});

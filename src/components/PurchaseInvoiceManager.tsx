@@ -2079,6 +2079,16 @@ function LineEditor({
         Unit
         <UnitSelect units={unitChoices} value={draft.unitCode || "C62"} disabled={readOnly} onChange={(unitCode) => onChange({ ...draft, unitCode })} />
       </label>
+      <label className={styles.field}>
+        {sales ? "Customer order line" : "Order line"}
+        <QuietInput
+          value={draft.orderLineReference ?? ""}
+          maxLength={60}
+          disabled={readOnly}
+          onChange={(event) => onChange({ ...draft, orderLineReference: event.target.value })}
+          placeholder={sales ? "Line on the customer's order" : "Line on the order"}
+        />
+      </label>
       {sales ? null : (
       <label className={styles.field}>
         Seller item
