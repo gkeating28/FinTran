@@ -3,7 +3,13 @@ name: Check
 on:
   pull_request:
   push:
-    branches: [main]
+    # Working branches run the checks on every push, so a change can be proved before a pull request is opened.
+    branches: [main, "claude/**"]
+
+# A newer push to the same branch or pull request replaces the run in progress.
+concurrency:
+  group: check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:

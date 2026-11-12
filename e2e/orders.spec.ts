@@ -2,6 +2,14 @@ import { expect, test } from "./fixtures";
 import { lineRows, openList, openRow, press, rowText, saveDocument, setLineQuantity, startDocument } from "./documents";
 import { signIn } from "./sign-in";
 
+/**
+ * A failed action sends the person back to the list with the message in the address, as ?error=. Checking the
+ * address is exact: the page also has alert regions that are not errors, such as the one that announces page changes.
+ */
+async function expectNoError(page: Parameters<typeof lineRows>[0]) {
+  expect(new URL(page.url()).searchParams.get("error"), "an error message after the action").toBeNull();
+}
+
 /** One line of the open document's line grid as text, such as "1 Widgets C62 4000 S23 10.00 4.00 0.00 6.00 ...". */
 async function lineText(page: Parameters<typeof lineRows>[0], lineNumber: number) {
   return (await lineRows(page).nth(lineNumber - 1).innerText()).replace(/\s+/g, " ").trim();
@@ -31,7 +39,7 @@ test("flow 1: a sales order is activated, invoiced in two parts, and closes by i
   await setLineQuantity(page, 1, "4");
   await page.getByRole("button", { name: "Save and post", exact: true }).click();
   await page.waitForURL((url) => url.pathname === "/transactions/SI" && !url.searchParams.has("open"));
-  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expectNoError(page);
   expect(await rowText(page, "Acme")).toContain("Posted");
 
   // The order is still active, with 4 invoiced and 6 left.
@@ -47,7 +55,7 @@ test("flow 1: a sales order is activated, invoiced in two parts, and closes by i
   expect(await lineText(page, 1)).toContain("6.00");
   await page.getByRole("button", { name: /^(save and )?post$/i }).click();
   await page.waitForURL((url) => url.pathname === "/transactions/SI" && !url.searchParams.has("open"));
-  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expectNoError(page);
 
   // Posted invoices now cover every line, so the order closed by itself.
   await openList(page, "SO");
