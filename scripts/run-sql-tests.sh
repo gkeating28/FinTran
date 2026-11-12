@@ -10,16 +10,22 @@ DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:54322/post
 # Each needs rewriting or removing. They are listed here so the gap stays visible.
 STALE="en16931_phase4.sql phase3.sql"
 
+# Nothing below means anything if the database is not there.
+if ! psql "$DATABASE_URL" -q -c "select 1" >/dev/null 2>&1; then
+  echo "The database at DATABASE_URL could not be reached. No test was run."
+  exit 1
+fi
+
 failed=0
 for file in supabase/tests/*.sql; do
   name=$(basename "$file")
-  output=$(psql "$DATABASE_URL" -q -v ON_ERROR_STOP=1 -f "$file" 2>&1)
-  if grep -q "ERROR" <<<"$output"; then
+  # psql stops at the first error and exits with a failure, which also covers a database that cannot be reached.
+  if ! output=$(psql "$DATABASE_URL" -q -v ON_ERROR_STOP=1 -f "$file" 2>&1); then
     if grep -qw "$name" <<<"$STALE"; then
       echo "stale  $name"
     else
       echo "FAIL   $name"
-      grep -m1 -A3 "ERROR" <<<"$output" | sed 's/^/         /'
+      grep -m1 -i -A3 "error" <<<"$output" | sed 's/^/         /'
       failed=1
     fi
   else
