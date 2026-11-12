@@ -75,7 +75,7 @@ export async function startDocument(page: Page, options: { party: string; sales:
 
 /** Presses Save on the open document and waits for it to close. */
 export async function saveDocument(page: Page) {
-  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await documentDialog(page).getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.locator("form#purchase-document")).toHaveCount(0);
 }
 
@@ -92,9 +92,17 @@ export async function openRow(page: Page, text: string | RegExp) {
  * "Activate order" also finds "Save and activate order", which is what the button says with unsaved changes.
  */
 export async function press(page: Page, label: RegExp) {
-  await page.getByRole("button", { name: label }).first().click();
+  await documentDialog(page).getByRole("button", { name: label }).first().click();
   const confirm = page.getByRole("alertdialog").getByRole("button", { name: label });
   if (await confirm.isVisible().catch(() => false)) await confirm.click();
+}
+
+/**
+ * The open document. The list behind it has its own buttons, such as Post on a draft row, so buttons are looked up
+ * inside the document's dialog.
+ */
+export function documentDialog(page: Page): Locator {
+  return page.getByRole("dialog").filter({ has: page.locator("form#purchase-document") });
 }
 
 /** Changes the quantity on one line of the open document. */

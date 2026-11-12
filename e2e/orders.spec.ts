@@ -1,5 +1,5 @@
 import { expect, test } from "./fixtures";
-import { lineRows, openList, openRow, press, rowText, saveDocument, setLineQuantity, startDocument } from "./documents";
+import { documentDialog, lineRows, openList, openRow, press, rowText, saveDocument, setLineQuantity, startDocument } from "./documents";
 import { signIn } from "./sign-in";
 
 /**
@@ -29,7 +29,7 @@ test("flow 1: a sales order is activated, invoiced in two parts, and closes by i
   await openRow(page, "Acme");
   await press(page, /activate order$/i);
   await expect(page.locator("form#purchase-document")).toBeVisible();
-  await expect(page.getByRole("button", { name: /^(save and )?close order$/i })).toBeVisible();
+  await expect(documentDialog(page).getByRole("button", { name: /^(save and )?close order$/i })).toBeVisible();
 
   // Invoice 4 of the 10. The quantity is changed on the new invoice and Save and post saves it first.
   await press(page, /create invoice$/i);
@@ -37,7 +37,7 @@ test("flow 1: a sales order is activated, invoiced in two parts, and closes by i
   await expect(page.locator("form#purchase-document")).toBeVisible();
   expect(await lineText(page, 1)).toContain("10.00");
   await setLineQuantity(page, 1, "4");
-  await page.getByRole("button", { name: "Save and post", exact: true }).click();
+  await documentDialog(page).getByRole("button", { name: "Save and post", exact: true }).click();
   await page.waitForURL((url) => url.pathname === "/transactions/SI" && !url.searchParams.has("open"));
   await expectNoError(page);
   expect(await rowText(page, "Acme")).toContain("Posted");
@@ -53,7 +53,7 @@ test("flow 1: a sales order is activated, invoiced in two parts, and closes by i
   await page.waitForURL(/\/transactions\/SI\?open=/);
   await expect(page.locator("form#purchase-document")).toBeVisible();
   expect(await lineText(page, 1)).toContain("6.00");
-  await page.getByRole("button", { name: /^(save and )?post$/i }).click();
+  await documentDialog(page).getByRole("button", { name: /^(save and )?post$/i }).click();
   await page.waitForURL((url) => url.pathname === "/transactions/SI" && !url.searchParams.has("open"));
   await expectNoError(page);
 
