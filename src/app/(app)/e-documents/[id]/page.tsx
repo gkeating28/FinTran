@@ -11,7 +11,7 @@ import { getWorkspace } from "@/lib/data";
 import { canManage } from "@/lib/types";
 import { semanticAt } from "@/lib/einvoice/semantic-read";
 import { parseUbl } from "@/lib/einvoice/ubl";
-import { formatMoney } from "@/lib/purchase-invoices";
+import { formatMoney } from "@/lib/documents";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "E-document" };

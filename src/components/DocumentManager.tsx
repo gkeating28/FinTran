@@ -18,15 +18,15 @@ import UnitSelect from "@/components/UnitSelect";
 import {
   createCreditNote,
   createFromOrder,
-  deletePurchaseInvoice,
-  postPurchaseInvoice,
-  savePurchaseInvoice,
+  deleteDocument,
+  postDocument,
+  saveDocument,
   setOrderStatus,
   updatePaidAmount,
-  voidPurchaseInvoice,
-} from "@/lib/purchase-invoice-actions";
+  voidDocument,
+} from "@/lib/document-actions";
 import { loadTransactionReadiness } from "@/lib/readiness-actions";
-import type { PurchaseInvoiceChoices } from "@/lib/purchase-invoice-data";
+import type { DocumentChoices } from "@/lib/document-data";
 import { documentStatusLabel, isOrderKind, statusesForKind } from "@/lib/transaction-types";
 import { useRegion } from "@/components/useRegion";
 import { formatDate } from "@/lib/dates";
@@ -48,11 +48,11 @@ import {
   type InvoiceCode,
   type InvoiceProduct,
   type InvoiceVat,
-  type PurchaseInvoiceLine,
-  type PurchaseInvoiceRow,
+  type DocumentLine,
+  type DocumentRow,
   type OrderSource,
   type ReadinessItem,
-} from "@/lib/purchase-invoices";
+} from "@/lib/documents";
 import { useAskContext } from "@/components/askContext";
 import { AskExplainButton } from "@/components/AskExplain";
 import styles from "@/components/OpsPage.module.css";
@@ -103,7 +103,7 @@ function useHydrated() {
 const SPLIT_HANDLE = 10;
 const SPLIT_MIN = 280;
 
-const INVOICE_EXPORT_FIELDS: ExportField<PurchaseInvoiceRow>[] = [
+const INVOICE_EXPORT_FIELDS: ExportField<DocumentRow>[] = [
   { key: "dueDate", label: "Due date", value: (row) => row.dueDate || null, type: "date" },
   { key: "supplyDate", label: "Supply date", value: (row) => row.supplyDate || null, type: "date" },
   { key: "currencyCode", label: "Currency", value: (row) => row.currencyCode },
@@ -166,7 +166,7 @@ function codeLabel(row: { code: string; description: string }) {
   return `${row.code} — ${row.description}`;
 }
 
-function blankLine(): PurchaseInvoiceLine {
+function blankLine(): DocumentLine {
   return {
     lineNumber: 0,
     productId: "",
@@ -192,7 +192,7 @@ function creditLabel(invoice: CreditInvoice) {
   return `${invoice.typeCode} ${reference} · ${invoice.transactionDate}`;
 }
 
-export default function PurchaseInvoiceManager({
+export default function DocumentManager({
   rows,
   choices,
   loadError,
@@ -207,8 +207,8 @@ export default function PurchaseInvoiceManager({
   canVoid = false,
   canDownload = false,
 }: {
-  rows: PurchaseInvoiceRow[];
-  choices: PurchaseInvoiceChoices;
+  rows: DocumentRow[];
+  choices: DocumentChoices;
   loadError: string | null;
   actionError?: string;
   title?: string;
@@ -224,9 +224,9 @@ export default function PurchaseInvoiceManager({
   const pathname = usePathname();
   const region = useRegion();
   const sales = direction === "Sales";
-  const [draft, setDraft] = useState<PurchaseInvoiceRow | "new" | null>(null);
+  const [draft, setDraft] = useState<DocumentRow | "new" | null>(null);
   useAskContext("transaction", draft && draft !== "new" ? draft.id : undefined, typeCode);
-  const [lines, setLines] = useState<PurchaseInvoiceLine[] | null>(null);
+  const [lines, setLines] = useState<DocumentLine[] | null>(null);
   const [lineError, setLineError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("");
   const [partyFilter, setPartyFilter] = useState("");
@@ -236,7 +236,7 @@ export default function PurchaseInvoiceManager({
   const [invoicingFilter, setInvoicingFilter] = useState("");
   // Readiness is read after the rows arrive. It belongs to one set of rows, so a save that brings
   // new rows shows it as pending until it has been read again.
-  const [loadedReadiness, setLoadedReadiness] = useState<{ rows: PurchaseInvoiceRow[]; value: Record<string, ReadinessItem[]> } | null>(null);
+  const [loadedReadiness, setLoadedReadiness] = useState<{ rows: DocumentRow[]; value: Record<string, ReadinessItem[]> } | null>(null);
   const readinessById = loadedReadiness?.rows === rows ? loadedReadiness.value : rows.length === 0 ? {} : null;
 
   useEffect(() => {
@@ -262,7 +262,7 @@ export default function PurchaseInvoiceManager({
   // A document named in the address opens once the page is in the browser, and again whenever the
   // address, the stamp or the rows change.
   const hydrated = useHydrated();
-  const [seenOpen, setSeenOpen] = useState<{ openId?: string; openStamp?: string; rows: PurchaseInvoiceRow[] } | null>(null);
+  const [seenOpen, setSeenOpen] = useState<{ openId?: string; openStamp?: string; rows: DocumentRow[] } | null>(null);
   if (
     hydrated &&
     (!seenOpen || seenOpen.openId !== openId || seenOpen.openStamp !== openStamp || seenOpen.rows !== rows)
@@ -277,7 +277,7 @@ export default function PurchaseInvoiceManager({
 
   const parties = sales ? choices.customers : choices.suppliers;
   const kindByType = new Map(choices.types.map((type) => [type.id, type.documentKind]));
-  const rowIsOrder = (row: PurchaseInvoiceRow) => isOrderKind(kindByType.get(row.transactionTypeId));
+  const rowIsOrder = (row: DocumentRow) => isOrderKind(kindByType.get(row.transactionTypeId));
   // A page for one type offers that kind's statuses. A page of mixed types offers them all.
   const kindsShown = new Set(choices.types.map((type) => isOrderKind(type.documentKind)));
   const statusChoices =
@@ -303,7 +303,7 @@ export default function PurchaseInvoiceManager({
     return true;
   });
 
-  function edit(row: PurchaseInvoiceRow) {
+  function edit(row: DocumentRow) {
     setLineError(null);
     setLines(row.lines);
     setDraft(row);
@@ -496,7 +496,7 @@ export default function PurchaseInvoiceManager({
             sortValue: (row) => row.remainingNett.replace(/,/g, ""),
             render: (row) => row.remainingNett,
           },
-        ] satisfies GridColumn<PurchaseInvoiceRow>[]).filter((column) =>
+        ] satisfies GridColumn<DocumentRow>[]).filter((column) =>
           ordersOnly
             ? !["readiness", "paid", "dueAmount"].includes(column.key)
             : !["invoicing", "invoiced", "toInvoice"].includes(column.key),
@@ -514,7 +514,7 @@ export default function PurchaseInvoiceManager({
                 {rowIsOrder(row) ? (
                   <OrderStatusButton id={row.id} action="open" label="Activate" typeCode={typeCode} className={styles.quiet} />
                 ) : (
-                  <form action={postPurchaseInvoice}>
+                  <form action={postDocument}>
                     <input type="hidden" name="id" value={row.id} />
                     {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
                     <button className={styles.quiet} type="submit">
@@ -522,7 +522,7 @@ export default function PurchaseInvoiceManager({
                     </button>
                   </form>
                 )}
-                <form action={deletePurchaseInvoice}>
+                <form action={deleteDocument}>
                   <input type="hidden" name="id" value={row.id} />
                   {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
                   <ConfirmSubmitButton
@@ -573,7 +573,7 @@ export default function PurchaseInvoiceManager({
 /** The id of the form that holds the open document. Buttons outside it submit it by this id. */
 const DOCUMENT_FORM = "purchase-document";
 
-function statusLabel(status: PurchaseInvoiceRow["status"]) {
+function statusLabel(status: DocumentRow["status"]) {
   return documentStatusLabel(status);
 }
 
@@ -638,13 +638,13 @@ function OrderStatusButton({
   );
 }
 
-function readinessStatus(items: PurchaseInvoiceRow["readiness"]) {
+function readinessStatus(items: DocumentRow["readiness"]) {
   if (items.some((item) => item.severity === "error")) return "error" as const;
   if (items.length > 0) return "warning" as const;
   return "ready" as const;
 }
 
-function readinessSummary(items: PurchaseInvoiceRow["readiness"], direction: "Sales" | "Purchases" = "Purchases") {
+function readinessSummary(items: DocumentRow["readiness"], direction: "Sales" | "Purchases" = "Purchases") {
   const errors = items.filter((item) => item.severity === "error").length;
   const warnings = items.filter((item) => item.severity === "warning").length;
   if (errors > 0) {
@@ -658,7 +658,7 @@ function readinessSummary(items: PurchaseInvoiceRow["readiness"], direction: "Sa
   return "Ready. This document has the data needed for an EN 16931 invoice.";
 }
 
-function ReadinessList({ items, direction }: { items: PurchaseInvoiceRow["readiness"]; direction: "Sales" | "Purchases" }) {
+function ReadinessList({ items, direction }: { items: DocumentRow["readiness"]; direction: "Sales" | "Purchases" }) {
   const question = `Explain these e-invoice issues on a ${direction === "Sales" ? "sales" : "purchase"} document and how to fix each: ${items.map((item) => `${item.ruleId} (${item.businessTerm})`).join(", ")}.`;
   return (
     <>
@@ -685,7 +685,7 @@ function ReadinessControl({
   direction,
   pending = false,
 }: {
-  items: PurchaseInvoiceRow["readiness"];
+  items: DocumentRow["readiness"];
   direction: "Sales" | "Purchases";
   pending?: boolean;
 }) {
@@ -732,13 +732,13 @@ function InvoiceForm({
   onClose,
 }: {
   title: string;
-  header: PurchaseInvoiceRow | null;
+  header: DocumentRow | null;
   /** Read by the list after the rows arrive, so it is passed in and not taken from the header. */
   readiness: ReadinessItem[];
   readinessPending: boolean;
-  lines: PurchaseInvoiceLine[] | null;
+  lines: DocumentLine[] | null;
   lineError: string | null;
-  choices: PurchaseInvoiceChoices;
+  choices: DocumentChoices;
   typeCode?: string;
   direction: "Sales" | "Purchases";
   canVoid: boolean;
@@ -753,7 +753,7 @@ function InvoiceForm({
   const closed = header?.status === "closed";
   const cancelled = header?.status === "cancelled";
   const locked = posted || voided || closed || cancelled;
-  const [saveState, saveAction, savePending] = useActionState(savePurchaseInvoice, {} as ActionState);
+  const [saveState, saveAction, savePending] = useActionState(saveDocument, {} as ActionState);
   const [paidState, paidAction, paidPending] = useActionState(updatePaidAmount, {} as ActionState);
   // True once a field on the form has been changed. Lines are compared with the saved ones further down.
   const [fieldsDirty, setFieldsDirty] = useState(false);
@@ -792,11 +792,11 @@ function InvoiceForm({
     header?.flex4 ?? "",
     header?.flex5 ?? "",
   ]);
-  const [invoiceLines, setInvoiceLines] = useState<PurchaseInvoiceLine[]>(lines ?? []);
+  const [invoiceLines, setInvoiceLines] = useState<DocumentLine[]>(lines ?? []);
   const [linePageSize, setLinePageSize] = useGridPageSize(`transactions/${typeCode ?? "document"}/lines`, "all");
   const lineGridLines = useGridLines(`transactions/${typeCode ?? "document"}/lines`);
   const [linePageIndex, setLinePageIndex] = useState(0);
-  const [lineDraft, setLineDraft] = useState<PurchaseInvoiceLine | null>(null);
+  const [lineDraft, setLineDraft] = useState<DocumentLine | null>(null);
   const [lineMessage, setLineMessage] = useState<string | null>(null);
   const [headerTab, setHeaderTab] = useState<HeaderTab>("document");
   const [headerWidth, setHeaderWidth] = useState<number | null>(readStoredSplitWidth);
@@ -886,7 +886,7 @@ function InvoiceForm({
   }
 
   // Lines loaded after the form opened replace the ones shown.
-  const [seenLines, setSeenLines] = useState<PurchaseInvoiceLine[] | null | undefined>(undefined);
+  const [seenLines, setSeenLines] = useState<DocumentLine[] | null | undefined>(undefined);
   if (lines !== seenLines) {
     setSeenLines(lines);
     if (lines) setInvoiceLines(lines);
@@ -1095,7 +1095,7 @@ function InvoiceForm({
   const partyOrders = choices.orderSources.filter((order) => order.partyId === supplierId);
 
   /** The numbers of the orders the lines came from, each once, in line order. */
-  function orderRefs(lines: PurchaseInvoiceLine[]) {
+  function orderRefs(lines: DocumentLine[]) {
     return [...new Set(lines.map((line) => line.sourceNumber ?? "").filter(Boolean))].join(", ");
   }
 
@@ -1104,7 +1104,7 @@ function InvoiceForm({
    * On a purchase that is the order number. On a sale it is the sales order, because the order number there
    * is the customer's. A reference the person typed themselves is left alone.
    */
-  function replaceLines(next: PurchaseInvoiceLine[]) {
+  function replaceLines(next: DocumentLine[]) {
     if (selectedType?.documentKind === "invoice") {
       const before = orderRefs(invoiceLines);
       const after = orderRefs(next).slice(0, 200);
@@ -1791,7 +1791,7 @@ function InvoiceForm({
       </form>
       {voidOpen && canVoidDocument && header ? (
         <FormModal title="Void document" onClose={() => setVoidOpen(false)} className={styles.lineDialog}>
-          <form className={styles.modalForm} action={voidPurchaseInvoice} autoComplete="off">
+          <form className={styles.modalForm} action={voidDocument} autoComplete="off">
             <input type="hidden" name="id" value={header.id} />
             {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
             <p className={styles.panelMeta}>
@@ -2049,7 +2049,7 @@ function InvoiceForm({
             </button>
           ) : null}
           {canPostHere && !dirty && header ? (
-            <form action={postPurchaseInvoice}>
+            <form action={postDocument}>
               <input type="hidden" name="id" value={header.id} />
               {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
               <button className={styles.quiet} type="submit">
@@ -2129,9 +2129,9 @@ function LineEditor({
   onSave,
   onCancel,
 }: {
-  draft: PurchaseInvoiceLine;
+  draft: DocumentLine;
   products: InvoiceProduct[];
-  units: PurchaseInvoiceChoices["units"];
+  units: DocumentChoices["units"];
   glCodes: InvoiceCode[];
   departments: InvoiceCode[];
   costCentres: InvoiceCode[];
@@ -2139,7 +2139,7 @@ function LineEditor({
   sales?: boolean;
   readOnly?: boolean;
   message: string | null;
-  onChange: (line: PurchaseInvoiceLine) => void;
+  onChange: (line: DocumentLine) => void;
   onSave: () => void;
   onCancel: () => void;
 }) {

@@ -2,7 +2,7 @@ import styles from "@/components/OpsPage.module.css";
 import view from "@/components/EDocument.module.css";
 import { semanticAt, semanticRecord, semanticRows, semanticText, sellerIban } from "@/lib/einvoice/semantic-read";
 import { formatDate } from "@/lib/dates";
-import { formatMoney } from "@/lib/purchase-invoices";
+import { formatMoney } from "@/lib/documents";
 
 /** 2026-10-26 as 26 Oct 2026. This page is built on the server, so it uses the default region. */
 export function formatEDocumentDate(value: string) {

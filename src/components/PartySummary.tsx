@@ -8,7 +8,7 @@ import { PARTY_META, type PartyKind } from "@/lib/parties";
 import { partyChecks, partyReadiness, type PartyReadinessInput } from "@/lib/party-readiness";
 import type { PartySummary as Summary } from "@/lib/party-summary";
 import { loadPartySummary } from "@/lib/party-summary-actions";
-import { formatMoney } from "@/lib/purchase-invoices";
+import { formatMoney } from "@/lib/documents";
 import { documentStatusLabel, type DocumentStatus } from "@/lib/transaction-types";
 import documentStyles from "@/components/Document.module.css";
 import styles from "@/components/PartySummary.module.css";

@@ -17,7 +17,7 @@ import { formatExchangeRate } from "@/lib/currencies";
 import { sellerEndpoint, sellerIban, semanticAt, semanticRecord, semanticRows, semanticText } from "@/lib/einvoice/semantic-read";
 import { gridPageSlice, pageIndexForSize, type GridPageSize } from "@/lib/grid-page";
 import { formatInteger, groupThousands, numberValue } from "@/lib/numbers";
-import { formatMoney, roundCents, toHome } from "@/lib/purchase-invoices";
+import { formatMoney, roundCents, toHome } from "@/lib/documents";
 import { clickOpensRow } from "@/lib/row-click";
 import { saveSupplierPeppol } from "@/lib/party-actions";
 import { ibanChanged, paymentTermsDays, suggestSupplierCode } from "@/lib/supplier-from-invoice";

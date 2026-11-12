@@ -10,8 +10,8 @@ import {
   type InvoiceProduct,
   type InvoiceVat,
   type PaymentMeansChoice,
-  type PurchaseInvoiceLine,
-  type PurchaseInvoiceRow,
+  type DocumentLine,
+  type DocumentRow,
   type CreditInvoice,
   type CreditNoteType,
   type FollowOnType,
@@ -19,7 +19,7 @@ import {
   type OrderSource,
   type PurchaseTypeChoice,
   type SupplierChoice,
-} from "@/lib/purchase-invoices";
+} from "@/lib/documents";
 import { listUnits } from "@/lib/reference-data";
 import { numberValue } from "@/lib/numbers";
 import { loadOrderLineUsage } from "@/lib/order-data";
@@ -42,7 +42,7 @@ function embeddedCode(value: { code: string } | { code: string }[] | null) {
   return value?.code ?? "";
 }
 
-function toPurchaseInvoiceLine(row: {
+function toDocumentLine(row: {
   id: string;
   source_line_id: string | null;
   credited_line_id?: string | null;
@@ -64,7 +64,7 @@ function toPurchaseInvoiceLine(row: {
   line_note: string | null;
   seller_item_id: string | null;
   products: { code: string } | { code: string }[] | null;
-}): PurchaseInvoiceLine {
+}): DocumentLine {
   return {
     lineNumber: row.line_number,
     productId: row.product_id ?? "",
@@ -90,7 +90,7 @@ function toPurchaseInvoiceLine(row: {
   };
 }
 
-export type PurchaseInvoiceChoices = {
+export type DocumentChoices = {
   types: PurchaseTypeChoice[];
   suppliers: SupplierChoice[];
   customers: SupplierChoice[];
@@ -109,7 +109,7 @@ export type PurchaseInvoiceChoices = {
   paymentMeans: PaymentMeansChoice[];
 };
 
-const emptyChoices: PurchaseInvoiceChoices = {
+const emptyChoices: DocumentChoices = {
   types: [],
   suppliers: [],
   customers: [],
@@ -128,9 +128,9 @@ const emptyChoices: PurchaseInvoiceChoices = {
   paymentMeans: [],
 };
 
-export async function listPurchaseInvoices(typeCode?: string): Promise<{
-  rows: PurchaseInvoiceRow[];
-  choices: PurchaseInvoiceChoices;
+export async function listDocuments(typeCode?: string): Promise<{
+  rows: DocumentRow[];
+  choices: DocumentChoices;
   error: string | null;
 }> {
   const organisationId = await getOrganisationScope();
@@ -236,7 +236,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
     }),
   );
   const postedCreditTotals = new Map<string, number>();
-  const creditLists = new Map<string, PurchaseInvoiceRow["credits"]>();
+  const creditLists = new Map<string, DocumentRow["credits"]>();
   for (const row of headers.data ?? []) {
     if (!row.preceding_header_id) continue;
     const kind = embeddedType(row.transaction_types);
@@ -290,7 +290,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
       ];
     });
 
-  const linesByHeader = new Map<string, PurchaseInvoiceLine[]>();
+  const linesByHeader = new Map<string, DocumentLine[]>();
   for (const line of lineRows.data ?? []) {
     const list = linesByHeader.get(line.header_id) ?? [];
     const usage = usageByLine.get(line.id);
@@ -298,7 +298,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
     const source = line.source_line_id ? headerById.get(headerOfLine.get(line.source_line_id) ?? "") : undefined;
     const sourceNumber = source?.document_number ?? "";
     list.push({
-      ...toPurchaseInvoiceLine(line),
+      ...toDocumentLine(line),
       drawnQuantity: drawn ? formatMoney(drawn) : "",
       invoicedQuantity: usage ? formatMoney(usage.invoiced) : "",
       reservedQuantity: usage ? formatMoney(usage.reserved) : "",
@@ -378,7 +378,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
       lines: linesByHeader.get(row.id) ?? [],
       credits: creditLists.get(row.id) ?? [],
       remainingAmount: formatMoney(Math.max(0, Number(row.foreign_total_amount) - (postedCreditTotals.get(row.id) ?? 0))),
-      invoicing: (progress?.state ?? "") as PurchaseInvoiceRow["invoicing"],
+      invoicing: (progress?.state ?? "") as DocumentRow["invoicing"],
       invoicedNett: progress ? formatMoney(progress.invoiced) : "",
       remainingNett: progress ? formatMoney(progress.remaining) : "",
       followOns: linked(followOnIds.get(row.id)),
@@ -524,8 +524,8 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
   };
 }
 
-export async function listPurchaseInvoiceLines(headerId: string): Promise<{
-  lines: PurchaseInvoiceLine[];
+export async function listDocumentLines(headerId: string): Promise<{
+  lines: DocumentLine[];
   error: string | null;
 }> {
   const workspace = await getWorkspace();
@@ -545,7 +545,7 @@ export async function listPurchaseInvoiceLines(headerId: string): Promise<{
   if (error) return { lines: [], error: "Invoice lines could not be loaded." };
 
   return {
-    lines: (data ?? []).map((row) => toPurchaseInvoiceLine(row)),
+    lines: (data ?? []).map((row) => toDocumentLine(row)),
     error: null,
   };
 }

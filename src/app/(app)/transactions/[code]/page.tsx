@@ -1,9 +1,9 @@
 import { notFound, redirect } from "next/navigation";
-import PurchaseInvoiceManager from "@/components/PurchaseInvoiceManager";
+import DocumentManager from "@/components/DocumentManager";
 import styles from "@/components/OpsPage.module.css";
 import { getWorkspace } from "@/lib/data";
 import { canManage } from "@/lib/types";
-import { listPurchaseInvoices } from "@/lib/purchase-invoice-data";
+import { listDocuments } from "@/lib/document-data";
 import { getTransactionTypeByCode } from "@/lib/transaction-type-data";
 import { isOrderKind } from "@/lib/transaction-types";
 
@@ -21,7 +21,7 @@ export default async function TransactionTypePage({
   searchParams: Promise<{ error?: string; open?: string; ask?: string }>;
 }) {
   const { code } = await params;
-  const loaded = Promise.all([getTransactionTypeByCode(code), listPurchaseInvoices(code)]);
+  const loaded = Promise.all([getTransactionTypeByCode(code), listDocuments(code)]);
   const workspace = await getWorkspace();
   if (workspace.status === "signed-out") redirect("/login");
   if (workspace.status !== "ready") redirect("/");
@@ -41,7 +41,7 @@ export default async function TransactionTypePage({
   if (!tile) notFound();
 
   return (
-    <PurchaseInvoiceManager
+    <DocumentManager
       title={tile.description}
       summary={`${tile.description} for ${workspace.current.organisationName}.`}
       typeCode={tile.code}

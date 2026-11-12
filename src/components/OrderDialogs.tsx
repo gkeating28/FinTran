@@ -5,7 +5,7 @@ import { useState, type ReactNode } from "react";
 import FormModal from "@/components/FormModal";
 import { formatDate, type Region } from "@/lib/dates";
 import { numberValue } from "@/lib/numbers";
-import { formatMoney, type LinkedDocument, type OrderSource } from "@/lib/purchase-invoices";
+import { formatMoney, type LinkedDocument, type OrderSource } from "@/lib/documents";
 import { documentStatusLabel, type DocumentStatus } from "@/lib/transaction-types";
 import styles from "@/components/OpsPage.module.css";
 import documentStyles from "@/components/Document.module.css";

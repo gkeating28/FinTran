@@ -2,7 +2,7 @@
 
 import { getWorkspace } from "@/lib/data";
 import { OrganisationAccessError, requireCurrentOrganisation } from "@/lib/organisation-guard";
-import type { ReadinessItem } from "@/lib/purchase-invoices";
+import type { ReadinessItem } from "@/lib/documents";
 import { createClient } from "@/lib/supabase/server";
 
 const HEADER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

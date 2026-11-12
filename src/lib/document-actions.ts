@@ -5,15 +5,15 @@ import { redirect } from "next/navigation";
 import { getWorkspace } from "@/lib/data";
 import { requireCurrentOrganisation } from "@/lib/organisation-guard";
 import { AFTER_PAID, AFTER_SAVE, followOnFrom, type FollowOn } from "@/lib/follow-on";
-import { friendlyError } from "@/lib/purchase-invoice-errors";
+import { friendlyError } from "@/lib/document-errors";
 import {
   optionalText,
   parseExchangeRate,
   parseInvoiceDate,
   parseMoney,
   parseUuid,
-  type PurchaseInvoiceLine,
-} from "@/lib/purchase-invoices";
+  type DocumentLine,
+} from "@/lib/documents";
 import { postDocumentNow } from "@/lib/post-document";
 import { parseAmount } from "@/lib/products";
 import { createClient } from "@/lib/supabase/server";
@@ -27,7 +27,7 @@ async function currentOrganisation() {
   return requireCurrentOrganisation();
 }
 
-function linesFrom(value: string): PurchaseInvoiceLine[] | { error: string } {
+function linesFrom(value: string): DocumentLine[] | { error: string } {
   let parsed: unknown;
   try {
     parsed = JSON.parse(value || "[]");
@@ -222,7 +222,7 @@ async function runFollowOn(action: FollowOn, id: string, formData: FormData): Pr
   const next = new FormData();
   next.set("id", id);
   next.set("return_to", text(formData, "return_to"));
-  if (action === "post") return postPurchaseInvoice(next);
+  if (action === "post") return postDocument(next);
   if (action === "create_from_order") {
     next.set("target_type_id", text(formData, "target_type_id"));
     return createFromOrder(next);
@@ -235,7 +235,7 @@ async function runFollowOn(action: FollowOn, id: string, formData: FormData): Pr
   return setOrderStatus(next);
 }
 
-export async function savePurchaseInvoice(_state: ActionState, formData: FormData): Promise<ActionState> {
+export async function saveDocument(_state: ActionState, formData: FormData): Promise<ActionState> {
   const document = documentFrom(formData);
   if ("error" in document) return { error: document.error };
   const followOn = followOnFrom(formData, AFTER_SAVE);
@@ -293,7 +293,7 @@ function returnPath(formData: FormData) {
   return /^\/transactions\/[A-Za-z0-9]+$/.test(next) ? next : "/transactions";
 }
 
-export async function postPurchaseInvoice(formData: FormData): Promise<never> {
+export async function postDocument(formData: FormData): Promise<never> {
   const id = text(formData, "id").trim();
   const next = returnPath(formData);
   if (!id) redirect(next);
@@ -353,7 +353,7 @@ export async function setOrderStatus(formData: FormData): Promise<never> {
   redirect(action === "open" || action === "reopen" ? `${next}?open=${id}` : next);
 }
 
-export async function voidPurchaseInvoice(formData: FormData) {
+export async function voidDocument(formData: FormData) {
   const id = text(formData, "id").trim();
   const reason = text(formData, "reason").trim();
   const next = returnPath(formData);
@@ -504,7 +504,7 @@ export async function createCreditNote(formData: FormData): Promise<never> {
   redirect(`/transactions/${chosen.code}?open=${data}`);
 }
 
-export async function deletePurchaseInvoice(formData: FormData) {
+export async function deleteDocument(formData: FormData) {
   const id = text(formData, "id").trim();
   const next = returnPath(formData);
   if (!id) redirect(next);
