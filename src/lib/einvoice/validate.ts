@@ -44,8 +44,11 @@ function failures(svrl: string, layer: ValidationFailure["layer"]): ValidationFa
     processEntities: false,
     isArray: (name) => name === "failed-assert",
   });
-  const document = parser.parse(svrl) as { schematronOutput?: { "failed-assert"?: Array<Record<string, string>> } };
-  const asserts = document.schematronOutput?.["failed-assert"] ?? [];
+  // The report's root element is svrl:schematron-output. With the prefix removed its name keeps the hyphen.
+  const document = parser.parse(svrl) as { "schematron-output"?: { "failed-assert"?: Array<Record<string, string>> } };
+  const report = document["schematron-output"];
+  if (!report) throw new Error("The Schematron report could not be read.");
+  const asserts = report["failed-assert"] ?? [];
   return asserts.map((item) => ({
     layer,
     ruleId: item.id || "SCHEMATRON",
