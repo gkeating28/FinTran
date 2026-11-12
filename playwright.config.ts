@@ -35,5 +35,8 @@ export default defineConfig({
     url: "http://127.0.0.1:3000/login",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    // What the app logs goes into the test output, so a request that errors or hangs leaves a line to read.
+    stdout: "pipe",
+    stderr: "pipe",
   },
 });
