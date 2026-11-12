@@ -25,7 +25,7 @@ Create an account, then create a tenant and its first organisation. Owners and a
 
 ## Database
 
-The schema is in `supabase/migrations` and is applied to the FinTran Supabase project. Tables:
+The schema is in `supabase/migrations` and is applied to the FinTran Supabase project. The first file is a baseline of the live project, and the files it replaced are in `supabase/migrations_archive`. Tables:
 
 - `tenants`
 - `organisations` — each belongs to one tenant

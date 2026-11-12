@@ -612,9 +612,28 @@ begin
         raise exception 'edoc: wrong VAT import error was %', sqlerrm;
       end if;
   end;
+  -- The import no longer creates a supplier. The screen creates it first, then imports with its id.
+  begin
+    perform public.import_e_document(v_id, jsonb_build_object(
+      'createSupplier', 'true',
+      'supplier', jsonb_build_object('code', 'NEW1', 'name', ''),
+      'totalAmount', '1.00',
+      'lines', jsonb_build_array(jsonb_build_object(
+        'lineNumber', '1', 'vatRateId', current_setting('test.expense_vat'), 'price', '1.00'
+      ))
+    ));
+    raise exception 'edoc: expected a refusal';
+  exception
+    when others then
+      if sqlerrm not like '%Create the supplier before importing%' then
+        raise exception 'edoc: create supplier error was %', sqlerrm;
+      end if;
+  end;
+  insert into public.suppliers (tenant_id, organisation_id, code, name, currency_id, address_line1, city, vat_number, peppol_scheme, peppol_id)
+  select current_setting('test.tenant')::uuid, v_org::uuid, 'NEW1', 'Harbour Supplies', id, 'Quay 4', 'Dublin', 'IE7654321B', '9935', 'IE7654321B'
+  from public.currencies where organisation_id = v_org::uuid and code = 'EUR';
   v_imported := public.import_e_document(v_id, jsonb_build_object(
-    'createSupplier', 'true',
-    'supplier', jsonb_build_object('code', 'NEW1', 'name', ''),
+    'supplierId', (select id from public.suppliers where organisation_id = v_org::uuid and code = 'NEW1'),
     'totalAmount', '1.00',
     'lines', jsonb_build_array(jsonb_build_object(
       'lineNumber', '1', 'vatRateId', current_setting('test.expense_vat'), 'price', '1.00'
