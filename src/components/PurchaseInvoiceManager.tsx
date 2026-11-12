@@ -570,6 +570,9 @@ export default function PurchaseInvoiceManager({
   );
 }
 
+/** The id of the form that holds the open document. Buttons outside it submit it by this id. */
+const DOCUMENT_FORM = "purchase-document";
+
 function statusLabel(status: PurchaseInvoiceRow["status"]) {
   return documentStatusLabel(status);
 }
@@ -582,6 +585,8 @@ function OrderStatusButton({
   typeCode,
   confirm,
   className,
+  saveFirst = false,
+  disabled = false,
 }: {
   id: string;
   action: "open" | "close" | "reopen" | "cancel";
@@ -589,7 +594,32 @@ function OrderStatusButton({
   typeCode?: string;
   confirm?: { title: string; message: string };
   className: string;
+  /** The open document has unsaved changes, so the button saves it first and then acts, in one step. */
+  saveFirst?: boolean;
+  disabled?: boolean;
 }) {
+  if (saveFirst) {
+    // "Activate order" becomes "Save and activate order". The document form carries the action with it.
+    const saveLabel = `Save and ${label.charAt(0).toLowerCase()}${label.slice(1)}`;
+    return confirm ? (
+      <ConfirmSubmitButton
+        className={className}
+        form={DOCUMENT_FORM}
+        name="then_action"
+        value={action}
+        disabled={disabled}
+        title={confirm.title}
+        message={`Your changes are saved first. ${confirm.message}`}
+        confirmLabel={saveLabel}
+      >
+        {saveLabel}
+      </ConfirmSubmitButton>
+    ) : (
+      <button className={className} type="submit" form={DOCUMENT_FORM} name="then_action" value={action} disabled={disabled}>
+        {saveLabel}
+      </button>
+    );
+  }
   return (
     <form action={setOrderStatus}>
       <input type="hidden" name="id" value={id} />
@@ -725,6 +755,8 @@ function InvoiceForm({
   const locked = posted || voided || closed || cancelled;
   const [saveState, saveAction, savePending] = useActionState(savePurchaseInvoice, {} as ActionState);
   const [paidState, paidAction, paidPending] = useActionState(updatePaidAmount, {} as ActionState);
+  // True once a field on the form has been changed. Lines are compared with the saved ones further down.
+  const [fieldsDirty, setFieldsDirty] = useState(false);
   const state = posted ? paidState : saveState;
   const action = posted ? paidAction : saveAction;
   const pending = posted ? paidPending : savePending;
@@ -1035,6 +1067,23 @@ function InvoiceForm({
   const orderDocument = isOrderKind(selectedType?.documentKind);
   // An order becomes invoices and a requisition becomes purchase orders.
   const requisition = selectedType?.documentKind === "requisition";
+  // Unsaved changes: a new document, a changed field, or lines that differ from the saved ones. A button that changes
+  // the status then saves first and acts second, in one step, and its label says so.
+  const linesDirty = useMemo(() => lines !== null && JSON.stringify(invoiceLines) !== JSON.stringify(lines), [invoiceLines, lines]);
+  // Some fields are set by code and not typed, such as a due date worked out from the terms, so they raise no input
+  // event. After each render the form's values are compared with the ones it had when it first settled.
+  const savedSignature = useRef<string | null>(null);
+  // This runs after every render on purpose, and it only ever sets the flag to true, so it cannot loop.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const form = document.getElementById(DOCUMENT_FORM);
+    if (!(form instanceof HTMLFormElement) || lines === null) return;
+    const signature = JSON.stringify([...new FormData(form).entries()].map(([name, value]) => [name, typeof value === "string" ? value : ""]));
+    if (savedSignature.current === null) savedSignature.current = signature;
+    else if (signature !== savedSignature.current) setFieldsDirty(true);
+  });
+  const dirty = !header || fieldsDirty || linesDirty;
+  const cannotSave = pending || (!posted && (blocked || !supplierId));
   const followOnNoun = requisition ? "purchase order" : "invoice";
   const followOnTypes = choices.followOnTypes.filter((type) => type.documentKind === (requisition ? "order" : "invoice"));
   // Only an order limits what can be taken from it, so only an order shows what is left.
@@ -1113,6 +1162,8 @@ function InvoiceForm({
     const partyId = sales ? invoice.customerId : invoice.supplierId;
     return partyId === supplierId && invoice.id !== header?.id;
   });
+  // A draft invoice or credit note can be posted from the open document, as it can from the list.
+  const canPostHere = !orderDocument && !locked && (!header || header.status === "draft");
   const showCreditNote = sales && selectedType?.documentKind === "invoice" && posted && header;
   const canVoidDocument = posted && canVoid && !sales;
   const splitStyle: CSSProperties = sideBySide
@@ -1167,7 +1218,16 @@ function InvoiceForm({
       fillPage
     >
       <div className={styles.modalForm}>
-      <form id="purchase-document" className={styles.documentFields} onSubmit={keepEntries(action)} autoComplete="off" noValidate>
+      <form
+        id={DOCUMENT_FORM}
+        className={styles.documentFields}
+        onSubmit={keepEntries(action)}
+        onInput={() => setFieldsDirty(true)}
+        onChange={() => setFieldsDirty(true)}
+        autoComplete="off"
+        noValidate
+      >
+        {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
         {header ? <input type="hidden" name="id" value={header.id} /> : null}
         {locked ? null : <input type="hidden" name="lines" value={JSON.stringify(invoiceLines)} />}
         <div className={styles.statusRow}>
@@ -1779,18 +1839,18 @@ function InvoiceForm({
                   : followOnTypes.length === 0
                     ? `Add a ${sales ? "Sales" : "Purchases"} ${followOnNoun} type under Transaction types before creating one.`
                     : requisition
-                      ? "A new purchase order starts with every line. Save changes on the requisition first."
-                      : "A new invoice starts with what is left on each line. Save changes on the order first."
+                      ? "A new purchase order starts with every line."
+                      : "A new invoice starts with what is left on each line."
           }
           create={
             orderDocument && opened && followOnTypes.length > 0 ? (
-              <form action={createFromOrder} className={documentStyles.dialogCreate}>
+              <form action={dirty ? undefined : createFromOrder} onSubmit={dirty ? (event) => event.preventDefault() : undefined} className={documentStyles.dialogCreate}>
                 <input type="hidden" name="id" value={header.id} />
                 {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
                 {followOnTypes.length > 1 ? (
                   <label className={styles.field}>
                     Type
-                    <select name="target_type_id" required defaultValue="">
+                    <select name="target_type_id" form={dirty ? DOCUMENT_FORM : undefined} required defaultValue="">
                       <option value="">Choose a type</option>
                       {followOnTypes.map((type) => (
                         <option key={type.id} value={type.id}>
@@ -1800,15 +1860,21 @@ function InvoiceForm({
                     </select>
                   </label>
                 ) : (
-                  <input type="hidden" name="target_type_id" value={followOnTypes[0]?.id ?? ""} />
+                  <input type="hidden" name="target_type_id" form={dirty ? DOCUMENT_FORM : undefined} value={followOnTypes[0]?.id ?? ""} />
                 )}
                 <div className={styles.modalActions}>
                   <button className={styles.quiet} type="button" onClick={() => setLinksOpen(false)}>
                     Close
                   </button>
-                  <button className={styles.primary} type="submit">
-                    Create {followOnNoun}
-                  </button>
+                  {dirty ? (
+                    <button className={styles.primary} type="submit" form={DOCUMENT_FORM} name="then_action" value="create_from_order" disabled={cannotSave}>
+                      Save and create {followOnNoun}
+                    </button>
+                  ) : (
+                    <button className={styles.primary} type="submit">
+                      Create {followOnNoun}
+                    </button>
+                  )}
                 </div>
               </form>
             ) : undefined
@@ -1830,13 +1896,13 @@ function InvoiceForm({
           }
           create={
             choices.creditNoteTypes.length > 0 ? (
-              <form action={createCreditNote} className={documentStyles.dialogCreate}>
+              <form action={dirty ? undefined : createCreditNote} onSubmit={dirty ? (event) => event.preventDefault() : undefined} className={documentStyles.dialogCreate}>
                 <input type="hidden" name="id" value={header.id} />
                 {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
                 {choices.creditNoteTypes.length > 1 ? (
                   <label className={styles.field}>
                     Credit note type
-                    <select name="credit_type_id" required defaultValue="">
+                    <select name="credit_type_id" form={dirty ? DOCUMENT_FORM : undefined} required defaultValue="">
                       <option value="">Choose a type</option>
                       {choices.creditNoteTypes.map((type) => (
                         <option key={type.id} value={type.id}>
@@ -1846,15 +1912,21 @@ function InvoiceForm({
                     </select>
                   </label>
                 ) : (
-                  <input type="hidden" name="credit_type_id" value={choices.creditNoteTypes[0]?.id ?? ""} />
+                  <input type="hidden" name="credit_type_id" form={dirty ? DOCUMENT_FORM : undefined} value={choices.creditNoteTypes[0]?.id ?? ""} />
                 )}
                 <div className={styles.modalActions}>
                   <button className={styles.quiet} type="button" onClick={() => setCreditOpen(false)}>
                     Close
                   </button>
-                  <button className={styles.primary} type="submit">
-                    Create credit note
-                  </button>
+                  {dirty ? (
+                    <button className={styles.primary} type="submit" form={DOCUMENT_FORM} name="then_action" value="create_credit_note" disabled={cannotSave}>
+                      Save and create credit note
+                    </button>
+                  ) : (
+                    <button className={styles.primary} type="submit">
+                      Create credit note
+                    </button>
+                  )}
                 </div>
               </form>
             ) : undefined
@@ -1879,7 +1951,28 @@ function InvoiceForm({
               Linked documents
             </button>
           ) : null}
-          {header && opened && followOnTypes.length === 1 ? (
+          {header && opened && followOnTypes.length === 1 && dirty ? (
+            <>
+              <input type="hidden" form={DOCUMENT_FORM} name="target_type_id" value={followOnTypes[0].id} />
+              <ConfirmSubmitButton
+                className={styles.quiet}
+                form={DOCUMENT_FORM}
+                name="then_action"
+                value="create_from_order"
+                disabled={cannotSave}
+                title={`Save and create ${requisition ? "a purchase order" : "an invoice"}?`}
+                message={
+                  requisition
+                    ? "Your changes are saved first. The new purchase order starts with every line."
+                    : "Your changes are saved first. The new invoice starts with what is left on each line."
+                }
+                confirmLabel={`Save and create ${followOnNoun}`}
+              >
+                Save and create {followOnNoun}
+              </ConfirmSubmitButton>
+            </>
+          ) : null}
+          {header && opened && followOnTypes.length === 1 && !dirty ? (
             <form action={createFromOrder}>
               <input type="hidden" name="id" value={header.id} />
               <input type="hidden" name="target_type_id" value={followOnTypes[0].id} />
@@ -1889,8 +1982,8 @@ function InvoiceForm({
                 title={`Create ${requisition ? "a purchase order" : "an invoice"}?`}
                 message={
                   requisition
-                    ? "The new purchase order starts with every line. Save first. Changes on this screen that are not saved are not kept."
-                    : "The new invoice starts with what is left on each line. Save first. Changes on this screen that are not saved are not kept."
+                    ? "The new purchase order starts with every line."
+                    : "The new invoice starts with what is left on each line."
                 }
                 confirmLabel={`Create ${followOnNoun}`}
               >
@@ -1900,7 +1993,7 @@ function InvoiceForm({
           ) : null}
           {header && opened && followOnTypes.length > 1 ? (
             <button className={styles.quiet} type="button" aria-expanded={linksOpen} onClick={() => openPanel("links")}>
-              Create {followOnNoun}
+              {dirty ? "Save and create" : "Create"} {followOnNoun}
             </button>
           ) : null}
           {header && orderDocument && header.status === "draft" ? (
@@ -1910,7 +2003,12 @@ function InvoiceForm({
               label={requisition ? "Activate requisition" : "Activate order"}
               typeCode={typeCode}
               className={styles.quiet}
-              confirm={{ title: requisition ? "Activate this requisition?" : "Activate this order?", message: "Save first. Changes on this screen that are not saved are not kept." }}
+              saveFirst={dirty}
+              disabled={dirty && cannotSave}
+              confirm={{
+                title: requisition ? "Activate this requisition?" : "Activate this order?",
+                message: requisition ? "An active requisition can be turned into a purchase order. It can still be changed." : "An active order can be invoiced. It can still be changed.",
+              }}
             />
           ) : null}
           {header && opened ? (
@@ -1921,7 +2019,9 @@ function InvoiceForm({
                 label="Close order"
                 typeCode={typeCode}
                 className={styles.quiet}
-                confirm={{ title: "Close this order?", message: "Save first. Changes on this screen that are not saved are not kept. A closed order can be reopened." }}
+                saveFirst={dirty}
+                disabled={dirty && cannotSave}
+                confirm={{ title: "Close this order?", message: "A closed order can be reopened." }}
               />
               <OrderStatusButton
                 id={header.id}
@@ -1929,7 +2029,9 @@ function InvoiceForm({
                 label="Cancel order"
                 typeCode={typeCode}
                 className={styles.quiet}
-                confirm={{ title: "Cancel this order?", message: "A cancelled order cannot be reopened or changed. Changes on this screen that are not saved are not kept." }}
+                saveFirst={dirty}
+                disabled={dirty && cannotSave}
+                confirm={{ title: "Cancel this order?", message: "A cancelled order cannot be reopened or changed." }}
               />
             </>
           ) : null}
@@ -1941,8 +2043,22 @@ function InvoiceForm({
           <button className={styles.quiet} type="button" onClick={onClose}>
             {locked && !posted ? "Close" : "Cancel"}
           </button>
+          {canPostHere && dirty ? (
+            <button className={styles.quiet} type="submit" form={DOCUMENT_FORM} name="then_action" value="post" disabled={cannotSave}>
+              Save and post
+            </button>
+          ) : null}
+          {canPostHere && !dirty && header ? (
+            <form action={postPurchaseInvoice}>
+              <input type="hidden" name="id" value={header.id} />
+              {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
+              <button className={styles.quiet} type="submit">
+                Post
+              </button>
+            </form>
+          ) : null}
           {voided || closed || cancelled ? null : (
-            <button className={styles.primary} type="submit" form="purchase-document" disabled={pending || (!posted && (blocked || !supplierId))}>
+            <button className={styles.primary} type="submit" form={DOCUMENT_FORM} disabled={cannotSave}>
               {pending ? "Saving…" : posted ? "Save paid amount" : "Save"}
             </button>
           )}

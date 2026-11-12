@@ -88,21 +88,33 @@ export default function ConfirmSubmitButton({
   confirmLabel = "Remove",
   className,
   children,
+  form,
+  name,
+  value,
+  disabled,
 }: {
   message: ReactNode;
   title?: string;
   confirmLabel?: string;
   className?: string;
   children: ReactNode;
+  /** The id of another form to submit. Without it the button submits the form it sits in. */
+  form?: string;
+  /** Sent with the form as the pressed button, so the server knows which action was asked for. */
+  name?: string;
+  value?: string;
+  disabled?: boolean;
 }) {
   const [asking, setAsking] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const submitRef = useRef<HTMLButtonElement>(null);
 
   return (
     <>
-      <button ref={buttonRef} className={className} type="button" data-destructive="true" onClick={() => setAsking(true)}>
+      <button ref={buttonRef} className={className} type="button" data-destructive="true" disabled={disabled} onClick={() => setAsking(true)}>
         {children}
       </button>
+      {name ? <button ref={submitRef} type="submit" form={form} name={name} value={value} hidden tabIndex={-1} aria-hidden="true" /> : null}
       {asking ? (
         <ConfirmDialog
           title={title}
@@ -111,7 +123,10 @@ export default function ConfirmSubmitButton({
           onCancel={() => setAsking(false)}
           onConfirm={() => {
             setAsking(false);
-            buttonRef.current?.form?.requestSubmit();
+            // With a name, the hidden submit button is the submitter, so its name and value travel with the form.
+            const submitter = submitRef.current;
+            if (submitter?.form) submitter.form.requestSubmit(submitter);
+            else buttonRef.current?.form?.requestSubmit();
           }}
         />
       ) : null}

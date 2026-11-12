@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getWorkspace } from "@/lib/data";
 import { requireCurrentOrganisation } from "@/lib/organisation-guard";
+import { AFTER_PAID, AFTER_SAVE, followOnFrom, type FollowOn } from "@/lib/follow-on";
 import { friendlyError } from "@/lib/purchase-invoice-errors";
 import {
   optionalText,
@@ -213,13 +214,35 @@ function documentFrom(formData: FormData) {
   } as const;
 }
 
+/**
+ * Runs the action that was asked for, on the document as it was just saved. Each of these redirects, to the same place
+ * and with the same messages as the button that runs it without a save.
+ */
+async function runFollowOn(action: FollowOn, id: string, formData: FormData): Promise<never> {
+  const next = new FormData();
+  next.set("id", id);
+  next.set("return_to", text(formData, "return_to"));
+  if (action === "post") return postPurchaseInvoice(next);
+  if (action === "create_from_order") {
+    next.set("target_type_id", text(formData, "target_type_id"));
+    return createFromOrder(next);
+  }
+  if (action === "create_credit_note") {
+    next.set("credit_type_id", text(formData, "credit_type_id"));
+    return createCreditNote(next);
+  }
+  next.set("order_action", action);
+  return setOrderStatus(next);
+}
+
 export async function savePurchaseInvoice(_state: ActionState, formData: FormData): Promise<ActionState> {
   const document = documentFrom(formData);
   if ("error" in document) return { error: document.error };
+  const followOn = followOnFrom(formData, AFTER_SAVE);
 
   await currentOrganisation();
   const supabase = await createClient();
-  const { error } = await supabase.rpc("save_document", {
+  const { data: savedId, error } = await supabase.rpc("save_document", {
     p_document: {
       id: document.id,
       transactionTypeId: document.transactionTypeId,
@@ -256,10 +279,12 @@ export async function savePurchaseInvoice(_state: ActionState, formData: FormDat
     },
   });
 
+  // A failed save stops here, so the action that was to follow does not run and the document is left as it was.
   if (error) return { error: friendlyError(error, "That invoice could not be saved.") };
 
   revalidatePath("/transactions");
   revalidatePath("/transactions/[code]", "page");
+  if (followOn && typeof savedId === "string") await runFollowOn(followOn, savedId, formData);
   return { message: document.id ? "Saved." : "Added." };
 }
 
@@ -268,7 +293,7 @@ function returnPath(formData: FormData) {
   return /^\/transactions\/[A-Za-z0-9]+$/.test(next) ? next : "/transactions";
 }
 
-export async function postPurchaseInvoice(formData: FormData) {
+export async function postPurchaseInvoice(formData: FormData): Promise<never> {
   const id = text(formData, "id").trim();
   const next = returnPath(formData);
   if (!id) redirect(next);
@@ -287,7 +312,7 @@ export async function postPurchaseInvoice(formData: FormData) {
 }
 
 /** Starts an invoice from an open order, or a purchase order from an open requisition, with what is left on each line. */
-export async function createFromOrder(formData: FormData) {
+export async function createFromOrder(formData: FormData): Promise<never> {
   const id = parseUuid(text(formData, "id"));
   const typeId = parseUuid(text(formData, "target_type_id"));
   const next = returnPath(formData);
@@ -310,7 +335,7 @@ export async function createFromOrder(formData: FormData) {
 const ORDER_ACTIONS = ["open", "close", "reopen", "cancel"] as const;
 
 /** Opens, closes, reopens or cancels an order or a requisition. */
-export async function setOrderStatus(formData: FormData) {
+export async function setOrderStatus(formData: FormData): Promise<never> {
   const id = text(formData, "id").trim();
   const action = ORDER_ACTIONS.find((item) => item === text(formData, "order_action").trim());
   const next = returnPath(formData);
@@ -367,10 +392,12 @@ export async function updatePaidAmount(_state: ActionState, formData: FormData):
   if (error) return { error: friendlyError(error, "The paid amount could not be saved.") };
   revalidatePath("/transactions");
   revalidatePath("/transactions/[code]", "page");
+  const followOn = followOnFrom(formData, AFTER_PAID);
+  if (followOn) await runFollowOn(followOn, id, formData);
   return { message: "Paid amount saved." };
 }
 
-export async function createCreditNote(formData: FormData) {
+export async function createCreditNote(formData: FormData): Promise<never> {
   const invoiceId = parseUuid(text(formData, "id"));
   const requestedType = text(formData, "credit_type_id").trim();
   const next = returnPath(formData);
