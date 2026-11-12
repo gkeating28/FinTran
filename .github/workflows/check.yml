@@ -63,8 +63,10 @@ jobs:
         run: |
           # The local stack's keys are well-known defaults. The two keys made here exist only for this run.
           echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$(supabase status -o env | sed -n 's/^ANON_KEY="\(.*\)"$/\1/p')" >> "$GITHUB_ENV"
-          echo "EINVOICE_HMAC_KEY=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
-          echo "QULA_SECRETS_KEYS={\"k1\":\"$(openssl rand -base64 32)\"}" >> "$GITHUB_ENV"
+          hmac=$(openssl rand -base64 32); secrets=$(openssl rand -base64 32)
+          echo "::add-mask::$hmac"; echo "::add-mask::$secrets"
+          echo "EINVOICE_HMAC_KEY=$hmac" >> "$GITHUB_ENV"
+          echo "QULA_SECRETS_KEYS={\"k1\":\"$secrets\"}" >> "$GITHUB_ENV"
       - name: Seed the test organisation
         run: npm run e2e:seed
       - name: Build the app

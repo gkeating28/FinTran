@@ -58,12 +58,21 @@ async function main() {
   if (!organisation) fail(`The seed SQL did not report its organisation.\n${seeded.stdout}`);
 
   const secret = encryptSecret("mock-key", organisation, "ai_api_key");
+  // psql only fills in :'variables' for SQL it reads from a file or from standard input, not for -c.
   const stored = spawnSync(
     "psql",
-    [database, "-q", "-v", "ON_ERROR_STOP=1", "-v", `owner=${owner}`, "-v", `organisation=${organisation}`, "-v", `secret=${secret}`, "-c", "select set_config('request.jwt.claims', json_build_object('sub', :'owner', 'role', 'authenticated')::text, false)", "-c", "set role authenticated", "-c", "select public.set_organisation_secret(:'organisation'::uuid, 'ai_api_key', :'secret', 'mock')"],
-    { encoding: "utf8" },
+    [database, "-q", "-v", "ON_ERROR_STOP=1", "-v", `owner=${owner}`, "-v", `organisation=${organisation}`, "-v", `secret=${secret}`],
+    {
+      encoding: "utf8",
+      input: [
+        "select set_config('request.jwt.claims', json_build_object('sub', :'owner', 'role', 'authenticated')::text, false);",
+        "set role authenticated;",
+        "select public.set_organisation_secret(:'organisation'::uuid, 'ai_api_key', :'secret', 'mock');",
+        "",
+      ].join("\n"),
+    },
   );
-  if (stored.status !== 0) fail(`The mock AI key could not be stored.\n${stored.stderr}`);
+  if (stored.status !== 0) fail(`The mock AI key could not be stored.\n${stored.stdout}\n${stored.stderr}`);
   console.log(`Seeded organisation ${organisation} with ${Object.keys(PEOPLE).length} people.`);
 }
 
