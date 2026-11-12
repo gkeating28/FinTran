@@ -46,8 +46,9 @@ export async function typeInto(field: Locator, value: string) {
 async function fillLine(page: Page, line: LineInput) {
   const editor = page.locator("form").filter({ has: page.getByRole("button", { name: "Save line" }) });
   await typeInto(editor.getByLabel("Description", { exact: true }), line.description);
-  await chooseByCode(editor.getByLabel("GL code", { exact: true }), line.gl);
-  if (line.vat) await chooseByCode(editor.getByLabel("VAT code", { exact: true }), line.vat);
+  // A list is found by its accessible name. Its label text also holds every option, so it cannot be matched exactly.
+  await chooseByCode(editor.getByRole("combobox", { name: "GL code", exact: true }), line.gl);
+  if (line.vat) await chooseByCode(editor.getByRole("combobox", { name: "VAT code", exact: true }), line.vat);
   await typeInto(editor.getByLabel("Quantity", { exact: true }), line.quantity);
   await typeInto(editor.getByLabel("Price", { exact: true }), line.price);
   await editor.getByRole("button", { name: "Save line" }).click();
