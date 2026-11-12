@@ -8,14 +8,20 @@ export async function openList(page: Page, typeCode: string) {
   await expect(page.getByRole("button", { name: "Add", exact: true })).toBeVisible();
 }
 
-/** Rows of the list grid. The line grid inside an open document is a different table. */
+/**
+ * Rows of the list grid. Every row of a document list has a Print link, which the lines inside an open document do
+ * not, and that is what tells the two tables apart.
+ */
 export function listRows(page: Page): Locator {
-  return page.locator("table:not([data-lines]) tbody tr");
+  return page.locator("tbody tr").filter({ has: page.getByRole("link", { name: "Print", exact: true }) });
 }
 
 /** Rows of the line grid in the open document. */
 export function lineRows(page: Page): Locator {
-  return page.locator("table[data-lines] tbody tr");
+  return page
+    .locator("tbody tr")
+    .filter({ hasNot: page.getByRole("link", { name: "Print", exact: true }) })
+    .filter({ hasNotText: "No lines yet." });
 }
 
 /**
