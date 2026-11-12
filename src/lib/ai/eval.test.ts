@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { docHref } from "../ask-qula";
 import { agingBands } from "./tools";
 import { runAiAnswer } from "./run";
 import type { AiMessage, AiTurn } from "./adapter";
@@ -10,10 +11,16 @@ type Case = { question: string; tools: string[]; facts: string[] };
 const cases = JSON.parse(readFileSync("tests/ask-qula/cases.json", "utf8")) as Case[];
 const organisationId = "org-a";
 
+// A stand-in for a Supabase query. data can depend on the columns selected, so a lookup that leaves a column out gets
+// rows without it, as it would from the database.
 function query(data: unknown) {
-  const promise = Promise.resolve({ data, error: null });
+  let columns = "";
+  const result = () => Promise.resolve({ data: typeof data === "function" ? (data as (columns: string) => unknown)(columns) : data, error: null });
   const api = {
-    select: () => api,
+    select: (selected?: string) => {
+      columns = selected ?? "";
+      return api;
+    },
     eq: () => api,
     ilike: () => api,
     or: () => api,
@@ -24,9 +31,9 @@ function query(data: unknown) {
     in: () => api,
     order: () => api,
     limit: () => api,
-    maybeSingle: () => promise,
-    then: promise.then.bind(promise),
-    catch: promise.catch.bind(promise),
+    maybeSingle: () => result(),
+    then: (resolve: (value: unknown) => unknown, reject?: (reason: unknown) => unknown) => result().then(resolve, reject),
+    catch: (reject: (reason: unknown) => unknown) => result().catch(reject),
   };
   return api;
 }
@@ -37,7 +44,7 @@ function fakeClient() {
       if (table === "suppliers") return query([{ id: "s1", code: "ACME", name: "Acme", vat_number: "IE1" }]);
       if (table === "customers") return query([]);
       if (table === "transaction_headers") {
-        return query([{
+        return query((columns: string) => [{
           id: "h1",
           document_number: "INV-12",
           status: "posted",
@@ -48,7 +55,8 @@ function fakeClient() {
           foreign_nett_amount: 8,
           foreign_vat_amount: 2,
           foreign_total_amount: 10,
-          transaction_types: { type: "Purchases" },
+          customer_id: "c1",
+          transaction_types: /transaction_types[^)]*\bcode\b/.test(columns) ? { type: "Purchases", code: "PI" } : { type: "Purchases" },
         }]);
       }
       if (table === "transaction_lines") return query([{ line_number: 1, description: "Goods", nett_amount: 8, vat_amount: 2, price: 8, quantity: 1 }]);
@@ -99,6 +107,10 @@ test("mock Ask Qula runs the listed tools and keeps answers inside the organisat
     assert.deepEqual(called, item.tools);
     for (const fact of item.facts) assert.match(answer.text, new RegExp(fact, "i"));
     assert.equal(called.includes("delete_all"), false);
-    for (const card of answer.cards) assert.equal(["h1", "e1"].includes(card.recordId ?? ""), true);
+    for (const card of answer.cards) {
+      assert.equal(["h1", "e1"].includes(card.recordId ?? ""), true);
+      // Every card opens its document.
+      assert.notEqual(docHref(card), null, `card ${card.ref} has no link`);
+    }
   }
 });

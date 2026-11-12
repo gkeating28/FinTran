@@ -1,7 +1,8 @@
-import { Plus_Jakarta_Sans } from "next/font/google";
+import localFont from "next/font/local";
 
-export const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
+// The font file is in the repository, so a build never depends on reaching Google Fonts. See files/README.md.
+export const jakarta = localFont({
+  src: [{ path: "./files/plus-jakarta-sans-latin-700-normal.woff2", weight: "700", style: "normal" }],
   variable: "--font-jakarta",
-  weight: ["700"],
+  display: "swap",
 });
