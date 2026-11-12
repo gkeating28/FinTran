@@ -91,7 +91,22 @@ Buttons on the navy title bar, and the organisation selector in the sidebar, use
 
 ### Transaction entry
 
-Every sales and purchase entry screen copies `src/components/DocumentManager.tsx`. Do not invent a second layout.
+Every sales and purchase entry screen is the document screen. Do not invent a second layout.
+
+`src/components/DocumentManager.tsx` is the list: filters, the grid, and opening a row. The open document is `src/components/document/DocumentForm.tsx`, a shell that reads everything from one hook and hands it to the panels. No file here is over about 600 lines.
+
+| File | What it holds |
+| --- | --- |
+| `document/useDocumentForm.ts` | The fields, lines, totals, which buttons show and the handlers. Returns one object, `DocumentFormState`, that every panel takes as `form` |
+| `document/useSplitLayout.ts` | The draggable split between header and lines, and its stored width |
+| `document/HeaderPane.tsx`, `TotalsSummary.tsx` | The Document, Notes and Payment tabs, and the totals under them. The e-invoice panel is `EInvoicePanel.tsx` |
+| `document/LinesPane.tsx`, `LineEditor.tsx` | The line grid with its pager, and the line dialog |
+| `document/InvoiceActions.tsx` | Invoice and credit note actions: Void, Credit notes, Save and post, Post, Save |
+| `document/OrderActions.tsx` | Order and requisition actions: create from an order, Activate, Close, Cancel, Reopen |
+| `document/LinkedDocuments.tsx` | Bring in from orders, and the documents a document came from or led to |
+| `document/Readiness.tsx`, `OrderStatusButton.tsx`, `FlexField.tsx`, `shared.ts` | Shared pieces: the readiness control, the status button, the flex fields, and constants such as `DOCUMENT_FORM` |
+
+A new field or button goes in the panel it belongs to. A new value the panels share goes in `useDocumentForm` and is added to its return.
 
 1. One status row, 42px, one message. A problem replaces that message.
 2. Tabs: Document, Notes, Payment.
@@ -108,7 +123,7 @@ Form buttons on the light page stay the document form set: `quiet` (white, 1px b
 
 ### Form layout principles
 
-These apply to the customer, supplier and organisation page forms and to the product, transaction type, currency, GL code and VAT rate dialogs. The purchase invoice shell keeps its own layout. The classes are in `src/components/RecordForm.module.css` and the helpers `exact`, `slot` and `tall` are in `src/components/recordForm.ts`.
+These apply to the customer, supplier and organisation page forms and to the product, transaction type, currency, GL code and VAT rate dialogs. The document screen keeps its own layout. The classes are in `src/components/RecordForm.module.css` and the helpers `exact`, `slot` and `tall` are in `src/components/recordForm.ts`.
 
 1. Two columns on a shared grid with explicit rows (`layout`, `left`, `right`, `r1` to `r10`), so the edit boxes on the left and the right share their top edges. Below 1200px the form falls back to one column.
 2. No section headings. Group fields by position instead.
@@ -132,13 +147,13 @@ Every page that lists rows starts its data read at the same time as the workspac
 
 ### Orders and requisitions
 
-Every transaction type runs through the one document screen, `DocumentManager`. The type's kind decides the lifecycle. `isOrderKind` in `src/lib/transaction-types.ts` is true for an order or a requisition. For those the screen shows Activate, Close, Reopen and Cancel in place of Post and Void, offers the statuses Draft, Active, Closed and Cancelled in the status filter, and leaves out Readiness, the EN 16931 download and the e-invoice panel. The status stored as `open` is always shown as Active (`documentStatusLabel`). An active order is still editable. A closed or cancelled one is read-only. The buttons call the `setOrderStatus` action, which calls the `set_order_status` database function. The rules are enforced in the database, so the screen only decides what to show. `supabase/tests/order_lifecycle.sql` checks them.
+Every transaction type runs through the one document screen, `DocumentManager` and `DocumentForm`. The type's kind decides the lifecycle. `isOrderKind` in `src/lib/transaction-types.ts` is true for an order or a requisition. For those the screen shows Activate, Close, Reopen and Cancel in place of Post and Void, offers the statuses Draft, Active, Closed and Cancelled in the status filter, and leaves out Readiness, the EN 16931 download and the e-invoice panel. The status stored as `open` is always shown as Active (`documentStatusLabel`). An active order is still editable. A closed or cancelled one is read-only. The buttons call the `setOrderStatus` action, which calls the `set_order_status` database function. The rules are enforced in the database, so the screen only decides what to show. `supabase/tests/order_lifecycle.sql` checks them.
 
 #### Save before acting
 
 A button on the open document that changes its status, or makes another document from it, never loses what is on the screen. When the form has unsaved changes, Post, Activate, Close, Cancel, Create invoice and Create credit note save first and act second, in one step, and the label says so: "Save and post", "Save and activate order". If the save fails its errors are shown, the action does not run and the document stays as it was. With nothing unsaved the button runs the action as before. Reopen is only offered on a closed order, which cannot be edited, so it never has anything to save.
 
-The button submits the document form with `then_action` set (`DOCUMENT_FORM` in `DocumentManager`). `saveDocument` saves, and only if that worked runs the action on the saved document through `runFollowOn`, which calls the same server actions as the plain buttons. `src/lib/follow-on.ts` lists which actions may follow which save, and anything else is ignored. A posted document saves only its paid amount, and the one action that can follow is Create credit note. The form counts as changed when it is a new document, when a field has been edited, or when its lines differ from the saved ones. From order brings lines into the form in the browser, so it changes nothing on the server and needs no save.
+The button submits the document form with `then_action` set (`DOCUMENT_FORM` in `document/shared.ts`). `saveDocument` saves, and only if that worked runs the action on the saved document through `runFollowOn`, which calls the same server actions as the plain buttons. `src/lib/follow-on.ts` lists which actions may follow which save, and anything else is ignored. A posted document saves only its paid amount, and the one action that can follow is Create credit note. The form counts as changed when it is a new document, when a field has been edited, or when its lines differ from the saved ones. From order brings lines into the form in the browser, so it changes nothing on the server and needs no save.
 
 Linked documents, Credit notes and Bring in from an order are dialogs in `src/components/OrderDialogs.tsx`, built on `FormModal` like the line editor. Void is a `FormModal` too. No panel on a document floats over it. Bring in lists each order's lines with a tick box, so single lines can be brought in. An order or a requisition has a Linked documents dialog. It lists the documents made from it. While it is active the document also has a Create invoice button, or Create purchase order on a requisition, which calls the `createFromOrder` action. When more than one type could be created the button opens the panel to choose. An invoice that is not locked has a From order button beside the Order number field on the Document tab, which turns blue once a supplier or customer is chosen. It lists the active orders of the chosen supplier or customer that have something left, and brings their lines in with what is left, in the browser, to be saved with the invoice. An order closes by itself when posted invoices cover every line. `supabase/tests/order_auto_close.sql` checks it.
 
