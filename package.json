@@ -10,7 +10,9 @@
     "test": "tsx --test src/lib/ask-qula.test.ts src/lib/organisation-guard.test.ts src/lib/secrets.test.ts src/lib/supplier-from-invoice.test.ts src/lib/parties.test.ts src/lib/posted-einvoice.test.ts src/lib/ai/eval.test.ts src/lib/ai/stream.test.ts src/lib/einvoice/rule-help.test.ts src/lib/insights.test.ts src/lib/ai/actions.test.ts src/lib/ai/blocks.test.ts src/lib/export/xlsx.test.ts src/lib/export/safe-cell.test.ts src/lib/transaction-types.test.ts src/lib/order-progress.test.ts src/lib/follow-on.test.ts src/lib/dates.test.ts src/lib/party-summary.test.ts src/lib/einvoice/canonical.test.ts src/lib/einvoice/ubl.test.ts src/lib/einvoice/order-reference.test.ts src/lib/einvoice/xsd.test.ts",
     "db:types": "node scripts/check-db-types.mjs",
     "ask-qula:eval": "tsx scripts/ask-qula-eval.mjs",
-    "secrets:rotate": "tsx scripts/secrets-rotate.mjs"
+    "secrets:rotate": "tsx scripts/secrets-rotate.mjs",
+    "e2e:seed": "tsx scripts/seed-e2e.ts",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
@@ -36,6 +38,7 @@
     "eslint-config-next": "16.2.12",
     "tsx": "^4.23.15",
     "typescript": "^5",
-    "xslt3": "^2.7.0"
+    "xslt3": "^2.7.0",
+    "@playwright/test": "1.63.0"
   }
 }

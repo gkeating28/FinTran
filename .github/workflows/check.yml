@@ -37,3 +37,53 @@ jobs:
       - name: Stop the stack
         if: always()
         run: supabase stop --no-backup
+
+  e2e:
+    # Runs the app against a seeded local Supabase stack and drives it in a browser.
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      EINVOICE_HMAC_KEY_ID: k1
+      QULA_SECRETS_KEY_ID: k1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start the local Supabase stack
+        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,realtime
+      - name: Read the stack's public key and make test-only keys
+        run: |
+          # The local stack's keys are well-known defaults. The two keys made here exist only for this run.
+          echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$(supabase status -o env | sed -n 's/^ANON_KEY="\(.*\)"$/\1/p')" >> "$GITHUB_ENV"
+          hmac=$(openssl rand -base64 32); secrets=$(openssl rand -base64 32)
+          echo "::add-mask::$hmac"; echo "::add-mask::$secrets"
+          echo "EINVOICE_HMAC_KEY=$hmac" >> "$GITHUB_ENV"
+          echo "QULA_SECRETS_KEYS={\"k1\":\"$secrets\"}" >> "$GITHUB_ENV"
+      - name: Seed the test organisation
+        run: npm run e2e:seed
+      - name: Build the app
+        run: npm run build
+      - name: Install the browser
+        run: npx playwright install --with-deps chromium
+      - name: Run the end-to-end tests
+        run: npm run e2e
+      - name: Upload traces, screenshots and the report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-failures
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 14
+      - name: Stop the stack
+        if: always()
+        run: supabase stop --no-backup
