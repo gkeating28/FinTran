@@ -18,9 +18,16 @@ export function lineRows(page: Page): Locator {
   return page.locator("table[data-lines] tbody tr");
 }
 
-/** Chooses an option of a select by the code its label starts with, such as ACME or 4000. */
+/**
+ * Chooses an option of a select by the code its label starts with, such as ACME or 4000. The options are read from
+ * the select itself, because the text of an option in a closed list is not something the page shows.
+ */
 async function chooseByCode(select: Locator, code: string) {
-  const value = await select.locator("option").filter({ hasText: new RegExp(`^${code}\\b`) }).first().getAttribute("value");
+  await expect(select).toBeVisible();
+  const value = await select.evaluate((element, wanted) => {
+    const options = [...(element as HTMLSelectElement).options];
+    return options.find((option) => option.text.trim().startsWith(wanted))?.value ?? null;
+  }, code);
   expect(value, `an option starting with ${code}`).toBeTruthy();
   await select.selectOption(value as string);
 }
