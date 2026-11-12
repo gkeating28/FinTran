@@ -3,6 +3,7 @@ import { apiAs } from "./api";
 import { expect, test } from "./fixtures";
 import { backOnList, documentDialog, expectNoError, openList, openRow, rowText, startDocument } from "./documents";
 import { signIn } from "./sign-in";
+import { uploadEInvoice } from "./upload";
 
 // An e-invoice whose payable amount does not add up, so it is received as invalid and could be rejected.
 const WRONG_TOTAL = path.join(__dirname, "files", "northside-np-9008-wrong-total.xml");
@@ -30,11 +31,7 @@ test("flow 8: a member does not see void, reject or the settings, and is refused
     await expect(documentDialog(member).getByRole("button", { name: "Void", exact: true })).toHaveCount(0);
 
     // A received e-invoice that is invalid has no Reject for a member.
-    await member.goto("/e-documents?direction=inbound");
-    await member.locator('input[type="file"][name="file"]').setInputFiles(WRONG_TOTAL);
-    await member.getByRole("button", { name: "Upload", exact: true }).click();
-    await member.waitForURL(/\/e-documents\/[0-9a-f-]{36}$/, { timeout: 60_000 });
-    const eDocumentId = new URL(member.url()).pathname.split("/").pop() ?? "";
+    const eDocumentId = await uploadEInvoice(member, WRONG_TOTAL);
     await expect(member.getByText("invalid", { exact: true })).toBeVisible();
     await expect(member.getByRole("button", { name: /^Reject/ })).toHaveCount(0);
 

@@ -33,7 +33,7 @@ test("flow 7: Ask Qula answers with a card, and a proposed post is confirmed onc
   // A question about drafts is answered with a card for the draft.
   const drawer = await ask(page, "Which drafts do we have for Harbour?");
   const card = drawer.getByRole("log").getByRole("button").filter({ hasText: "Harbour Supplies" });
-  await expect(card).toHaveCount(1);
+  await expect(card, `a card in the answer, which was: ${await drawer.getByRole("log").innerText()}`).toHaveCount(1);
   await expect(card).toContainText("draft");
 
   // Asked to post it, Ask Qula proposes, and nothing has happened yet.

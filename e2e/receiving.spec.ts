@@ -3,6 +3,7 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { expectNoError, openList, press, rowText } from "./documents";
 import { signIn } from "./sign-in";
+import { uploadEInvoice as upload } from "./upload";
 
 // Flow 6 uses the e-invoice that flow 5 imported, so the two run in order and flow 6 is skipped if flow 5 fails.
 test.describe.configure({ mode: "serial" });
@@ -11,15 +12,6 @@ test.describe.configure({ mode: "serial" });
 // in a note, so the second is a different file with the same number.
 const FIRST = path.join(__dirname, "files", "northside-np-1001.xml");
 const RESENT = path.join(__dirname, "files", "northside-np-1001-resent.xml");
-
-/** Uploads a file on the received e-documents page and returns the id of the e-document it opens. */
-async function upload(page: Page, file: string) {
-  await page.goto("/e-documents?direction=inbound");
-  await page.locator('input[type="file"][name="file"]').setInputFiles(file);
-  await page.getByRole("button", { name: "Upload", exact: true }).click();
-  await page.waitForURL(/\/e-documents\/[0-9a-f-]{36}$/, { timeout: 60_000 });
-  return new URL(page.url()).pathname.split("/").pop() ?? "";
-}
 
 /** Rows of the received e-documents list that show the given document number. */
 function receivedRows(page: Page, number: string) {
