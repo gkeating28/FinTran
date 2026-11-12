@@ -1,6 +1,12 @@
 import { XMLParser } from "fast-xml-parser";
 import { rejectUnsafeXml, UBL, xmlEscape } from "./xml";
 
+/**
+ * What cac:OrderReference/cbc:ID holds when there is no purchase order reference (BT-13). The Peppol BIS Billing 3.0
+ * syntax guide gives this value for a document that has a sales order reference only.
+ */
+export const ORDER_PLACEHOLDER = "NA";
+
 type Json = null | string | number | boolean | Json[] | { [key: string]: Json };
 type RecordJson = { [key: string]: Json };
 
@@ -101,6 +107,10 @@ export function generateUbl(semantic: RecordJson) {
   const root = credit ? "CreditNote" : "Invoice";
   const namespace = credit ? UBL.creditNote : UBL.invoice;
   const seller = object(semantic["BG-4"]);
+  // An order line reference (BT-132) needs no order reference at document level, with one exception in the Peppol
+  // rules: NL-R-009 requires cac:OrderReference/cbc:ID when the supplier is in the Netherlands.
+  const lineReferenceNeedsOrder =
+    (text(object(seller?.["BG-5"])?.["BT-40"]) ?? "").toUpperCase() === "NL" && list(semantic["BG-25"]).some((row) => Boolean(text(row["BT-132"])));
   const buyer = object(semantic["BG-7"]);
   const payment = object(semantic["BG-16"]);
   const account = object(payment?.["BG-17"] ?? null);
@@ -140,9 +150,10 @@ export function generateUbl(semantic: RecordJson) {
     (period
       ? `<cac:InvoicePeriod>${element("StartDate", text(period["BT-73"]))}${element("EndDate", text(period["BT-74"]))}</cac:InvoicePeriod>`
       : "") +
-    // The order reference needs an ID. With only a sales order reference the ID is NA.
-    (text(semantic["BT-13"]) || text(semantic["BT-14"])
-      ? `<cac:OrderReference>${element("ID", text(semantic["BT-13"]) || "NA")}${element("SalesOrderID", text(semantic["BT-14"]))}</cac:OrderReference>`
+    // The order reference needs an ID, because cbc:ID is mandatory in UBL. Peppol BIS Billing 3.0 says to use NA when
+    // there is a sales order reference (BT-14) and no purchase order reference (BT-13).
+    (text(semantic["BT-13"]) || text(semantic["BT-14"]) || lineReferenceNeedsOrder
+      ? `<cac:OrderReference>${element("ID", text(semantic["BT-13"]) || ORDER_PLACEHOLDER)}${element("SalesOrderID", text(semantic["BT-14"]))}</cac:OrderReference>`
       : "") +
     (preceding
       ? `<cac:BillingReference><cac:InvoiceDocumentReference>${element("ID", text(preceding["BT-25"]))}${element("IssueDate", text(preceding["BT-26"]))}</cac:InvoiceDocumentReference></cac:BillingReference>`
@@ -282,9 +293,9 @@ export function parseUbl(xml: string): RecordJson {
   set("BT-9", due);
   set("BT-10", childText(root, "BuyerReference"));
   set("BT-12", childText(child(root, "ContractDocumentReference"), "ID"));
-  // An ID of NA stands for no purchase order reference when only a sales order reference is given.
+  // The placeholder stands for no purchase order reference.
   const orderId = childText(child(root, "OrderReference"), "ID");
-  set("BT-13", orderId === "NA" ? null : orderId);
+  set("BT-13", orderId === ORDER_PLACEHOLDER ? null : orderId);
   set("BT-14", childText(child(root, "OrderReference"), "SalesOrderID"));
   set("BT-20", childText(child(root, "PaymentTerms"), "Note"));
   set("BT-22", childText(root, "Note"));
