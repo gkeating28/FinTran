@@ -16,11 +16,12 @@ export function listRows(page: Page): Locator {
   return page.locator("tbody tr").filter({ has: page.getByRole("link", { name: "Print", exact: true }) });
 }
 
-/** Rows of the line grid in the open document. */
+/** Rows of the line grid in the open document: the table with a Qty column. Its totals row is in the footer. */
 export function lineRows(page: Page): Locator {
   return page
+    .locator("table")
+    .filter({ has: page.getByRole("columnheader", { name: "Qty", exact: true }) })
     .locator("tbody tr")
-    .filter({ hasNot: page.getByRole("link", { name: "Print", exact: true }) })
     .filter({ hasNotText: "No lines yet." });
 }
 
