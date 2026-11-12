@@ -97,16 +97,18 @@ function cardsFrom(tool: string, result: unknown): AskDoc[] {
   const eDocument = tool.includes("e_document");
   return items.flatMap((item) => {
     if (!item || typeof item !== "object") return [];
-    const document = item as { id?: string; document_number?: string; status?: string; party_name?: string; seller_name?: string; buyer_name?: string };
+    const document = item as { id?: string; document_number?: string; status?: string; party_name?: string; seller_name?: string; buyer_name?: string; type_code?: string };
     if (!document.id) return [];
     const status = document.status ?? "";
     const card: AskDoc = {
       ref: document.document_number || document.id,
       title: (eDocument ? document.seller_name || document.buyer_name : document.party_name) || document.document_number || "Document",
-      store: eDocument ? "e_documents" : "transaction_headers",
+      // The same stores the fixed answers use, so the card opens the document: a transaction on its type's page.
+      store: eDocument ? "e-documents" : "transactions",
       status,
       statusColor: STATUS_COLOURS[status] ?? "#2452b8",
       recordId: document.id,
+      ...(!eDocument && document.type_code ? { instanceId: document.type_code } : {}),
     };
     return [card];
   });

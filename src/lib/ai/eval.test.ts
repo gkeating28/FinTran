@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { docHref } from "../ask-qula";
 import { agingBands } from "./tools";
 import { runAiAnswer } from "./run";
 import type { AiMessage, AiTurn } from "./adapter";
@@ -48,7 +49,7 @@ function fakeClient() {
           foreign_nett_amount: 8,
           foreign_vat_amount: 2,
           foreign_total_amount: 10,
-          transaction_types: { type: "Purchases" },
+          transaction_types: { type: "Purchases", code: "PI" },
         }]);
       }
       if (table === "transaction_lines") return query([{ line_number: 1, description: "Goods", nett_amount: 8, vat_amount: 2, price: 8, quantity: 1 }]);
@@ -99,6 +100,10 @@ test("mock Ask Qula runs the listed tools and keeps answers inside the organisat
     assert.deepEqual(called, item.tools);
     for (const fact of item.facts) assert.match(answer.text, new RegExp(fact, "i"));
     assert.equal(called.includes("delete_all"), false);
-    for (const card of answer.cards) assert.equal(["h1", "e1"].includes(card.recordId ?? ""), true);
+    for (const card of answer.cards) {
+      assert.equal(["h1", "e1"].includes(card.recordId ?? ""), true);
+      // Every card opens its document.
+      assert.notEqual(docHref(card), null, `card ${card.ref} has no link`);
+    }
   }
 });

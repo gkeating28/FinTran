@@ -141,6 +141,7 @@ function shapeHeader(document: Row) {
     id: document.id,
     document_number: document.document_number,
     type: type?.type,
+    type_code: type?.code,
     status: document.status,
     party_name: document.party_name,
     transaction_date: document.transaction_date,
