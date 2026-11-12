@@ -144,6 +144,10 @@ export async function lineText(page: Page, line: number | string) {
 /** Waits until a posting or another action has sent the person back to the list of the given type. */
 export async function backOnList(page: Page, typeCode: string) {
   await page.waitForURL((url) => url.pathname === `/transactions/${typeCode}` && !url.searchParams.has("open"));
+  // A document opened from a row of the list never changes the address, so the address alone says nothing. The
+  // document closes when the action's answer arrives, and only then is the list behind it up to date.
+  await expect(page.locator("form#purchase-document")).toHaveCount(0, { timeout: 30_000 });
+  await page.waitForLoadState("networkidle");
 }
 
 /**
