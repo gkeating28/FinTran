@@ -3,11 +3,11 @@ import { lineRows, openList, openRow, press, rowText, saveDocument, setLineQuant
 import { signIn } from "./sign-in";
 
 /**
- * The app shows an error as a paragraph with the alert role. Next.js also keeps an empty alert region that announces
- * each page change, so the check looks only at the app's own messages.
+ * A failed action sends the person back to the list with the message in the address, as ?error=. Checking the
+ * address is exact: the page also has alert regions that are not errors, such as the one that announces page changes.
  */
 async function expectNoError(page: Parameters<typeof lineRows>[0]) {
-  await expect(page.locator("p[role=alert]")).toHaveCount(0);
+  expect(new URL(page.url()).searchParams.get("error"), "an error message after the action").toBeNull();
 }
 
 /** One line of the open document's line grid as text, such as "1 Widgets C62 4000 S23 10.00 4.00 0.00 6.00 ...". */
