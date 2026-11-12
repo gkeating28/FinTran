@@ -63,11 +63,24 @@ export async function saveAiSettings(formData: FormData): Promise<void> {
       if (saved.error) redirect(`/ask-qula?error=${encodeURIComponent(saved.error)}`);
     }
     const supabase = await createClient();
-    const existing = await supabase.from("ai_settings").select("data_notice_accepted_at").eq("organisation_id", current.organisationId).maybeSingle();
+    const existing = await supabase.from("ai_settings").select("data_notice_accepted_at, log_answers, answer_retention_days, log_notice_accepted_at").eq("organisation_id", current.organisationId).maybeSingle();
     if (existing.error) redirect(`/ask-qula?error=${encodeURIComponent(existing.error.message)}`);
     const alreadyAccepted = Boolean((existing.data as { data_notice_accepted_at?: string } | null)?.data_notice_accepted_at);
     if (enabled && (!provider || !model || (!accepted && !alreadyAccepted))) {
       redirect("/ask-qula?error=Choose%20a%20provider%20and%20model%2C%20and%20accept%20the%20data%20notice.");
+    }
+    // Keeping questions and answers has its own notice. It is needed when keeping is switched on and when the number of
+    // days changes while it is on. The database enforces the same rule.
+    const before = existing.data as { log_answers?: boolean; answer_retention_days?: number; log_notice_accepted_at?: string | null } | null;
+    const retentionText = text(formData, "retentionDays") || "30";
+    const retention = Number(retentionText);
+    if (!/^\d{1,3}$/.test(retentionText) || retention < 1 || retention > 365) {
+      redirect(`/ask-qula?error=${encodeURIComponent("Keep the text for 1 to 365 days.")}`);
+    }
+    const logAnswers = formData.get("logAnswers") === "on";
+    const needsLogNotice = logAnswers && (!before?.log_answers || before.answer_retention_days !== retention);
+    if (needsLogNotice && formData.get("logNotice") !== "on") {
+      redirect(`/ask-qula?error=${encodeURIComponent(`Accept the notice that questions and answers will be stored for ${retention} days and visible to owners and admins.`)}`);
     }
     const key = apiKey || (await getSecret(current.organisationId, "ai_api_key")) || "";
     if (enabled && !key) redirect("/ask-qula?error=Add%20an%20API%20key%20before%20enabling%20Ask%20Qula.");
@@ -78,7 +91,9 @@ export async function saveAiSettings(formData: FormData): Promise<void> {
       provider_code: provider || null,
       model: model || null,
       config: { baseUrl, deployment: text(formData, "deployment"), apiVersion: text(formData, "apiVersion") },
-      log_answers: formData.get("logAnswers") === "on",
+      log_answers: logAnswers,
+      answer_retention_days: retention,
+      log_notice_accepted_at: needsLogNotice ? new Date().toISOString() : (before?.log_notice_accepted_at ?? null),
       // Actions are a separate switch, and they can only be on while AI answers are on.
       actions_enabled: enabled && formData.get("actionsEnabled") === "on",
       ...(accepted ? { data_notice_accepted_at: new Date().toISOString() } : {}),
