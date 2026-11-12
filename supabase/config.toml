@@ -15,6 +15,5 @@ site_url = "http://127.0.0.1:3000"
 enable_signup = true
 
 [auth.email]
-enable_signup = true
 # Test people sign in with a password straight away, so no confirmation email is needed.
 enable_confirmations = false
