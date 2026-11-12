@@ -8,7 +8,7 @@ async function lineText(page: Parameters<typeof lineRows>[0], lineNumber: number
 }
 
 test("flow 1: a sales order is activated, invoiced in two parts, and closes by itself", async ({ page }) => {
-  test.setTimeout(240_000);
+  test.setTimeout(180_000);
   await signIn(page, "owner");
 
   // A sales order for 10 units.

@@ -25,14 +25,24 @@ async function chooseByCode(select: Locator, code: string) {
   await select.selectOption(value as string);
 }
 
+/**
+ * Types into one of the app's text fields. They are read-only until they are clicked, which keeps password managers
+ * from filling them in, so the field is clicked first, as a person would.
+ */
+export async function typeInto(field: Locator, value: string) {
+  await field.click();
+  await expect(field).toBeEditable();
+  await field.fill(value);
+}
+
 /** Fills in the line editor, which is already open, and saves the line. */
 async function fillLine(page: Page, line: LineInput) {
   const editor = page.locator("form").filter({ has: page.getByRole("button", { name: "Save line" }) });
-  await editor.getByLabel("Description", { exact: true }).fill(line.description);
+  await typeInto(editor.getByLabel("Description", { exact: true }), line.description);
   await chooseByCode(editor.getByLabel("GL code", { exact: true }), line.gl);
   if (line.vat) await chooseByCode(editor.getByLabel("VAT code", { exact: true }), line.vat);
-  await editor.getByLabel("Quantity", { exact: true }).fill(line.quantity);
-  await editor.getByLabel("Price", { exact: true }).fill(line.price);
+  await typeInto(editor.getByLabel("Quantity", { exact: true }), line.quantity);
+  await typeInto(editor.getByLabel("Price", { exact: true }), line.price);
   await editor.getByRole("button", { name: "Save line" }).click();
   await expect(editor).toHaveCount(0);
 }
@@ -41,7 +51,7 @@ async function fillLine(page: Page, line: LineInput) {
 export async function startDocument(page: Page, options: { party: string; sales: boolean; lines: LineInput[]; supplierReference?: string }) {
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await chooseByCode(page.locator(`select[name="${options.sales ? "customer_id" : "supplier_id"}"]`), options.party);
-  if (options.supplierReference) await page.locator('input[name="supplier_reference"]').fill(options.supplierReference);
+  if (options.supplierReference) await typeInto(page.locator('input[name="supplier_reference"]'), options.supplierReference);
   for (const line of options.lines) {
     await page.getByRole("button", { name: "Add line", exact: true }).click();
     await fillLine(page, line);
@@ -76,7 +86,7 @@ export async function press(page: Page, label: RegExp) {
 export async function setLineQuantity(page: Page, lineNumber: number, quantity: string) {
   await lineRows(page).nth(lineNumber - 1).locator("td").nth(2).click();
   const editor = page.locator("form").filter({ has: page.getByRole("button", { name: "Save line" }) });
-  await editor.getByLabel("Quantity", { exact: true }).fill(quantity);
+  await typeInto(editor.getByLabel("Quantity", { exact: true }), quantity);
   await editor.getByRole("button", { name: "Save line" }).click();
   await expect(editor).toHaveCount(0);
 }

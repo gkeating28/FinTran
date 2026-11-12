@@ -15,9 +15,13 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   timeout: 90_000,
   expect: { timeout: 15_000 },
+  // One action that cannot happen fails in 20 seconds, not at the end of the whole test.
+
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : [["list"]],
   use: {
     baseURL: "http://127.0.0.1:3000",
+    actionTimeout: 20_000,
+    navigationTimeout: 45_000,
     // A failing test keeps its trace, a screenshot and a video, which CI uploads.
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
