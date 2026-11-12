@@ -1,5 +1,6 @@
 "use server";
 
+import { loadOrderLineUsage } from "@/lib/order-data";
 import { orderProgress } from "@/lib/order-progress";
 import { OrganisationAccessError, requireCurrentOrganisation } from "@/lib/organisation-guard";
 import type { PartyKind } from "@/lib/parties";
@@ -67,20 +68,8 @@ export async function loadPartySummary(kind: PartyKind, id: string): Promise<Par
       .eq("organisation_id", current.organisationId)
       .in("header_id", activeOrders.slice(0, 200));
     const lineRows = (lines.data ?? []) as Row[];
-    const drawn = new Map<string, number>();
-    const lineIds = lineRows.map((line) => String(line.id));
-    for (let start = 0; start < lineIds.length; start += 200) {
-      const taken = await supabase
-        .from("transaction_lines")
-        .select("source_line_id, quantity, transaction_headers!inner(status)")
-        .eq("organisation_id", current.organisationId)
-        .in("source_line_id", lineIds.slice(start, start + 200))
-        .neq("transaction_headers.status", "void");
-      for (const line of (taken.data ?? []) as Row[]) {
-        const key = String(line.source_line_id);
-        drawn.set(key, (drawn.get(key) ?? 0) + Number(line.quantity ?? 0));
-      }
-    }
+    const usage = await loadOrderLineUsage(supabase, current.organisationId, lineRows.map((line) => String(line.id)));
+    const drawn = new Map([...usage].map(([id, used]) => [id, used.invoiced + used.reserved]));
     toInvoice = orderProgress(
       lineRows.map((line) => ({
         quantity: Number(line.quantity ?? 0),

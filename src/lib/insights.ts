@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { listOpenOrders, type OpenOrder } from "@/lib/order-data";
+import { listClosedOrdersWithQuantityLeft, listDraftsHoldingOrders, listOpenOrders, type ClosedOrderLeft, type HoldingDraft, type OpenOrder } from "@/lib/order-data";
 
 /** Things worth a person's attention, worked out from the documents with plain rules. No AI is involved. */
 export type Insight = {
@@ -31,6 +31,8 @@ const LARGE_MIN_PRIOR = 3;
 const LARGE_MIN_AMOUNT = 1000;
 const RECENT_DAYS = 30;
 const DUE_SOON_DAYS = 7;
+/** A draft invoice older than this that still holds order quantity is flagged. */
+export const STALE_DRAFT_DAYS = 14;
 
 function days(from: string, to: string) {
   return Math.round((Date.parse(to) - Date.parse(from)) / DAY);
@@ -103,9 +105,21 @@ export function findDueSoon(docs: InsightDoc[], today: string) {
   });
 }
 
+/** What needs a look on orders beyond the open ones: orders closed by hand with quantity left, and drafts holding quantity. */
+export type OrderWatch = { closedWithLeft: ClosedOrderLeft[]; holdingDrafts: HoldingDraft[] };
+
+function quantity(value: number) {
+  return value.toLocaleString("en-IE", { maximumFractionDigits: 4 });
+}
+
+/** Draft invoices more than 14 days old that draw on an active order, oldest first. */
+export function findStaleDrafts(drafts: HoldingDraft[], today: string) {
+  return drafts.filter((draft) => draft.created && days(draft.created.slice(0, 10), today) > STALE_DRAFT_DAYS);
+}
+
 export type NotReady = { id: string; number: string; direction: "Purchases" | "Sales"; typeCode: string; errors: string[] };
 
-export function buildInsights(docs: InsightDoc[], notReady: NotReady[], today: string, openOrders: OpenOrder[] = []): Insight[] {
+export function buildInsights(docs: InsightDoc[], notReady: NotReady[], today: string, openOrders: OpenOrder[] = [], watch: OrderWatch = { closedWithLeft: [], holdingDrafts: [] }): Insight[] {
   const insights: Insight[] = [];
 
   const overdue = findOverdue(docs, today);
@@ -204,6 +218,29 @@ export function buildInsights(docs: InsightDoc[], notReady: NotReady[], today: s
     });
   }
 
+  if (watch.closedWithLeft.length > 0) {
+    const first = watch.closedWithLeft[0];
+    insights.push({
+      id: "closed-orders-with-quantity-left",
+      tone: "attention",
+      title: "Closed orders with quantity left",
+      detail: `${plural(watch.closedWithLeft.length, "order")} closed by hand still ${watch.closedWithLeft.length === 1 ? "has" : "have"} quantity that is not invoiced. ${first.number} for ${first.party} has ${quantity(first.left)} left. Reopen it to invoice the rest, or leave it closed.`,
+      href: `/transactions/${first.typeCode}?open=${first.id}`,
+    });
+  }
+
+  const stale = findStaleDrafts(watch.holdingDrafts, today);
+  if (stale.length > 0) {
+    const first = stale[0];
+    insights.push({
+      id: "drafts-holding-order-quantity",
+      tone: "attention",
+      title: "Drafts holding order quantity",
+      detail: `${plural(stale.length, "draft invoice")} older than ${STALE_DRAFT_DAYS} days ${stale.length === 1 ? "holds" : "hold"} ${quantity(stale.reduce((sum, draft) => sum + draft.held, 0))} of quantity on active orders, so nobody else can invoice it. The oldest is ${first.number} for ${first.party}, started ${shortDate(first.created)}, holding ${quantity(first.held)}. Post it or delete it.`,
+      href: `/transactions/${first.typeCode}?open=${first.id}`,
+    });
+  }
+
   return insights;
 }
 
@@ -260,5 +297,9 @@ export async function getInsights(supabase: SupabaseClient, organisationId: stri
       return errors.length ? { id: draft.id, number: draft.number, direction: draft.direction, typeCode: draft.typeCode, errors } : null;
     }),
   );
-  return buildInsights(docs, checked.filter((item): item is NotReady => item !== null), today, (await openOrders).orders);
+  const [closedWithLeft, holdingDrafts] = await Promise.all([
+    listClosedOrdersWithQuantityLeft(supabase, organisationId),
+    listDraftsHoldingOrders(supabase, organisationId),
+  ]);
+  return buildInsights(docs, checked.filter((item): item is NotReady => item !== null), today, (await openOrders).orders, { closedWithLeft, holdingDrafts });
 }

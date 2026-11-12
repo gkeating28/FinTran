@@ -1354,6 +1354,7 @@ export type Database = {
           updated_at: string
           updated_by: string | null
           void_reason: string | null
+          closed_by_system: boolean
           voided_at: string | null
           voided_by: string | null
         }
@@ -1410,6 +1411,7 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           void_reason?: string | null
+          closed_by_system?: boolean
           voided_at?: string | null
           voided_by?: string | null
         }
@@ -1466,6 +1468,7 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           void_reason?: string | null
+          closed_by_system?: boolean
           voided_at?: string | null
           voided_by?: string | null
         }
@@ -1579,6 +1582,8 @@ export type Database = {
           seller_item_id: string | null
           order_line_reference: string | null
           source_line_id: string | null
+          credited_line_id: string | null
+          returns_to_order: boolean
           tenant_id: string
           transaction_type_id: string
           unit_code: string
@@ -1611,6 +1616,8 @@ export type Database = {
           seller_item_id?: string | null
           order_line_reference?: string | null
           source_line_id?: string | null
+          credited_line_id?: string | null
+          returns_to_order?: boolean
           tenant_id: string
           transaction_type_id: string
           unit_code?: string
@@ -1643,6 +1650,8 @@ export type Database = {
           seller_item_id?: string | null
           order_line_reference?: string | null
           source_line_id?: string | null
+          credited_line_id?: string | null
+          returns_to_order?: boolean
           tenant_id?: string
           transaction_type_id?: string
           unit_code?: string
@@ -2019,7 +2028,18 @@ export type Database = {
       access_point_providers: { Row: { code: string; name: string }; Insert: { code: string; name: string }; Update: { name?: string }; Relationships: [] }
       access_point_settings: { Row: { organisation_id: string; provider_code: string; environment: string; status: string; participant_registered: boolean }; Insert: { organisation_id: string; tenant_id: string; provider_code: string; environment: string; webhook_token: string }; Update: { status?: string }; Relationships: [] }
     Views: {
-      [_ in never]: never
+      order_line_usage: {
+        Row: {
+          line_id: string
+          header_id: string
+          organisation_id: string
+          quantity: number
+          invoiced: number
+          reserved: number
+          remaining: number
+        }
+        Relationships: []
+      }
     }
     Functions: {
       create_organisation: {

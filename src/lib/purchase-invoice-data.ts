@@ -22,6 +22,7 @@ import {
 } from "@/lib/purchase-invoices";
 import { listUnits } from "@/lib/reference-data";
 import { numberValue } from "@/lib/numbers";
+import { loadOrderLineUsage } from "@/lib/order-data";
 import { orderProgress } from "@/lib/order-progress";
 import { parseDocumentKind } from "@/lib/transaction-types";
 import { createClient } from "@/lib/supabase/server";
@@ -44,6 +45,8 @@ function embeddedCode(value: { code: string } | { code: string }[] | null) {
 function toPurchaseInvoiceLine(row: {
   id: string;
   source_line_id: string | null;
+  credited_line_id?: string | null;
+  returns_to_order?: boolean | null;
   order_line_reference: string | null;
   line_number: number;
   product_id: string | null;
@@ -81,6 +84,8 @@ function toPurchaseInvoiceLine(row: {
     sellerItemId: row.seller_item_id ?? "",
     id: row.id,
     sourceLineId: row.source_line_id ?? "",
+    creditedLineId: row.credited_line_id ?? "",
+    returnsToOrder: row.returns_to_order === true,
     orderLineReference: row.order_line_reference ?? "",
   };
 }
@@ -154,7 +159,7 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
       supabase
         .from("transaction_lines")
         .select(
-          `id, source_line_id, order_line_reference, header_id, line_number, product_id, description, gl_code_id, department_id, cost_centre_id, vat_rate_id,
+          `id, source_line_id, credited_line_id, returns_to_order, order_line_reference, header_id, line_number, product_id, description, gl_code_id, department_id, cost_centre_id, vat_rate_id,
            quantity, price, discount_amount, nett_amount, vat_amount, unit_code, line_note, seller_item_id, products(code)`,
         )
         .eq("organisation_id", organisationId)
@@ -257,16 +262,15 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
   // What other documents have taken from each line, and which documents are linked through their lines.
   const headerById = new Map((headers.data ?? []).map((row) => [row.id, row]));
   const headerOfLine = new Map((lineRows.data ?? []).map((line) => [line.id, line.header_id]));
-  const drawnByLine = new Map<string, number>();
+  // Invoiced and Reserved come from the order_line_usage view, so the screen and the database use one rule.
+  const usageByLine = await loadOrderLineUsage(supabase, organisationId);
+  const sourceOfLine = new Map((lineRows.data ?? []).map((line) => [line.id, line.source_line_id]));
   const followOnIds = new Map<string, Set<string>>();
   const sourceIds = new Map<string, Set<string>>();
   for (const line of lineRows.data ?? []) {
     if (!line.source_line_id) continue;
     const sourceHeader = headerOfLine.get(line.source_line_id);
     if (!sourceHeader) continue;
-    if (headerById.get(line.header_id)?.status !== "void") {
-      drawnByLine.set(line.source_line_id, (drawnByLine.get(line.source_line_id) ?? 0) + Number(line.quantity));
-    }
     followOnIds.set(sourceHeader, (followOnIds.get(sourceHeader) ?? new Set()).add(line.header_id));
     sourceIds.set(line.header_id, (sourceIds.get(line.header_id) ?? new Set()).add(sourceHeader));
   }
@@ -289,12 +293,16 @@ export async function listPurchaseInvoices(typeCode?: string): Promise<{
   const linesByHeader = new Map<string, PurchaseInvoiceLine[]>();
   for (const line of lineRows.data ?? []) {
     const list = linesByHeader.get(line.header_id) ?? [];
-    const drawn = drawnByLine.get(line.id);
+    const usage = usageByLine.get(line.id);
+    const drawn = usage ? usage.invoiced + usage.reserved : 0;
     const source = line.source_line_id ? headerById.get(headerOfLine.get(line.source_line_id) ?? "") : undefined;
     const sourceNumber = source?.document_number ?? "";
     list.push({
       ...toPurchaseInvoiceLine(line),
       drawnQuantity: drawn ? formatMoney(drawn) : "",
+      invoicedQuantity: usage ? formatMoney(usage.invoiced) : "",
+      reservedQuantity: usage ? formatMoney(usage.reserved) : "",
+      canReturnToOrder: Boolean(line.credited_line_id && sourceOfLine.get(line.credited_line_id)),
       sourceNumber,
       sourceDocument: source ? `${embeddedCode(source.transaction_types)} ${sourceNumber}`.trim() : "",
     });
@@ -527,7 +535,7 @@ export async function listPurchaseInvoiceLines(headerId: string): Promise<{
   const { data, error } = await supabase
     .from("transaction_lines")
     .select(
-      `id, source_line_id, order_line_reference, line_number, product_id, description, gl_code_id, department_id, cost_centre_id, vat_rate_id,
+      `id, source_line_id, credited_line_id, returns_to_order, order_line_reference, line_number, product_id, description, gl_code_id, department_id, cost_centre_id, vat_rate_id,
        quantity, price, discount_amount, nett_amount, vat_amount, unit_code, line_note, seller_item_id, products(code)`,
     )
     .eq("header_id", headerId)
