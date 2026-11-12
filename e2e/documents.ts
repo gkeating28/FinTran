@@ -75,7 +75,7 @@ export async function startDocument(page: Page, options: { party: string; sales:
 
 /** Presses Save on the open document and waits for it to close. */
 export async function saveDocument(page: Page) {
-  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await documentDialog(page).getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.locator("form#purchase-document")).toHaveCount(0);
 }
 
@@ -92,14 +92,23 @@ export async function openRow(page: Page, text: string | RegExp) {
  * "Activate order" also finds "Save and activate order", which is what the button says with unsaved changes.
  */
 export async function press(page: Page, label: RegExp) {
-  await page.getByRole("button", { name: label }).first().click();
+  await documentDialog(page).getByRole("button", { name: label }).first().click();
   const confirm = page.getByRole("alertdialog").getByRole("button", { name: label });
   if (await confirm.isVisible().catch(() => false)) await confirm.click();
 }
 
-/** Changes the quantity on one line of the open document. */
-export async function setLineQuantity(page: Page, lineNumber: number, quantity: string) {
-  await lineRows(page).nth(lineNumber - 1).locator("td").nth(2).click();
+/**
+ * The open document. The list behind it has its own buttons, such as Post on a draft row, so buttons are looked up
+ * inside the document's dialog.
+ */
+export function documentDialog(page: Page): Locator {
+  return page.getByRole("dialog").filter({ has: page.locator("form#purchase-document") });
+}
+
+/** Changes the quantity on one line of the open document, chosen by its number or by text on the line. */
+export async function setLineQuantity(page: Page, line: number | string, quantity: string) {
+  const row = typeof line === "number" ? lineRows(page).nth(line - 1) : lineRows(page).filter({ hasText: line }).first();
+  await row.locator("td").nth(2).click();
   const editor = page.locator("form").filter({ has: page.getByRole("button", { name: "Save line" }) });
   await typeInto(editor.getByLabel("Quantity", { exact: true }), quantity);
   await editor.getByRole("button", { name: "Save line" }).click();
@@ -111,4 +120,40 @@ export async function rowText(page: Page, text: string | RegExp) {
   const row = listRows(page).filter({ hasText: text }).first();
   await expect(row).toBeVisible();
   return (await row.innerText()).replace(/\s+/g, " ").trim();
+}
+
+/** Brings lines into the open invoice from active orders of its customer or supplier: every line of every order listed. */
+export async function bringInFromOrders(page: Page) {
+  await documentDialog(page).getByRole("button", { name: "From order", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Bring in from an order" });
+  await expect(dialog).toBeVisible();
+  for (const box of await dialog.locator('input[type="checkbox"][aria-label^="Bring in "]').all()) {
+    if (!(await box.isChecked())) await box.check();
+  }
+  await dialog.getByRole("button", { name: /^Bring in \d+ lines?$/ }).click();
+  await expect(dialog).toHaveCount(0);
+}
+
+/** The text of one line of the open document, chosen by its number or by text on the line. */
+export async function lineText(page: Page, line: number | string) {
+  const row = typeof line === "number" ? lineRows(page).nth(line - 1) : lineRows(page).filter({ hasText: line }).first();
+  await expect(row).toBeVisible();
+  return (await row.innerText()).replace(/\s+/g, " ").trim();
+}
+
+/** Waits until a posting or another action has sent the person back to the list of the given type. */
+export async function backOnList(page: Page, typeCode: string) {
+  await page.waitForURL((url) => url.pathname === `/transactions/${typeCode}` && !url.searchParams.has("open"));
+  // A document opened from a row of the list never changes the address, so the address alone says nothing. The
+  // document closes when the action's answer arrives, and only then is the list behind it up to date.
+  await expect(page.locator("form#purchase-document")).toHaveCount(0, { timeout: 30_000 });
+  await page.waitForLoadState("networkidle");
+}
+
+/**
+ * A failed action sends the person back to the list with the message in the address, as ?error=. Checking the
+ * address is exact: the page also has alert regions that are not errors, such as the one that announces page changes.
+ */
+export async function expectNoError(page: Page) {
+  expect(new URL(page.url()).searchParams.get("error"), "an error message after the action").toBeNull();
 }
