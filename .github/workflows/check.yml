@@ -33,7 +33,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned. "latest" asks the GitHub API which release that is, and a run that hits its rate limit fails before
+          # any of our code runs. 3.1.0 is what every green run used. Move it up on purpose, in a pull request of its own.
+          version: 3.1.0
       - name: Start the local Supabase stack
         run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,realtime
       - name: Run the SQL tests
@@ -62,7 +64,9 @@ jobs:
       - run: npm ci
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned. "latest" asks the GitHub API which release that is, and a run that hits its rate limit fails before
+          # any of our code runs. 3.1.0 is what every green run used. Move it up on purpose, in a pull request of its own.
+          version: 3.1.0
       - name: Start the local Supabase stack
         run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,realtime
       - name: Read the stack's public key and make test-only keys

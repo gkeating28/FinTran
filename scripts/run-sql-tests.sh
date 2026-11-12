@@ -6,9 +6,9 @@
 set -uo pipefail
 DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres}
 
-# Tests written for an earlier shape of the schema. They fail for that reason and not because a rule is broken.
-# Each needs rewriting or removing. They are listed here so the gap stays visible.
-STALE="en16931_phase4.sql phase3.sql"
+# Tests written for an earlier shape of the schema fail for that reason and not because a rule is broken. List one here
+# only while it is being rewritten, so the gap stays visible. A test on this list that passes fails the run.
+STALE=""
 
 # Nothing below means anything if the database is not there.
 if ! psql "$DATABASE_URL" -q -c "select 1" >/dev/null 2>&1; then
