@@ -173,7 +173,7 @@ async function runTool(supabase: Client, organisationId: string, name: string, i
   if (name === "draft_reminder") {
     let query = supabase
       .from("transaction_headers")
-      .select("id, document_number, status, party_name, transaction_date, due_date, amount_due, foreign_total_amount, customer_id, currencies(code), transaction_types!inner(type)")
+      .select("id, document_number, status, party_name, transaction_date, due_date, amount_due, foreign_total_amount, customer_id, currencies(code), transaction_types!inner(type, code)")
       .eq("organisation_id", organisationId)
       .eq("status", "posted")
       .eq("transaction_types.type", "Sales");
