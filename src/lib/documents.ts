@@ -3,7 +3,7 @@ import { numberValue } from "@/lib/numbers";
 import { formatProductPrice, parseProductPrice } from "@/lib/products";
 import type { DocumentKind, DocumentStatus } from "@/lib/transaction-types";
 
-export type PurchaseInvoiceLine = {
+export type DocumentLine = {
   lineNumber: number;
   productId: string;
   productCode: string;
@@ -65,7 +65,7 @@ export type LinkedCredit = {
   status: DocumentStatus;
 };
 
-export type PurchaseInvoiceRow = {
+export type DocumentRow = {
   id: string;
   transactionTypeId: string;
   transactionTypeCode: string;
@@ -115,7 +115,7 @@ export type PurchaseInvoiceRow = {
   flex3: string;
   flex4: string;
   flex5: string;
-  lines: PurchaseInvoiceLine[];
+  lines: DocumentLine[];
   credits: LinkedCredit[];
   remainingAmount: string;
   /** For an order: how far it has been invoiced, and the nett value on invoices and still to invoice. Empty for other kinds. */
@@ -157,7 +157,7 @@ export type OrderSource = {
   partyId: string;
   /** The customer's purchase order number entered on a sales order. */
   orderNumber: string;
-  lines: (PurchaseInvoiceLine & { remainingQuantity: string })[];
+  lines: (DocumentLine & { remainingQuantity: string })[];
 };
 
 /** A type a document can be turned into: an invoice type for an order, an order type for a requisition. */

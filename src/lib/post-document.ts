@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ORGANISATION_LOGO_BUCKET, organisationSnapshotPath } from "@/lib/organisation-logo";
-import { friendlyError } from "@/lib/purchase-invoice-errors";
+import { friendlyError } from "@/lib/document-errors";
 import { postedEInvoiceError, shouldGenerateEInvoice } from "@/lib/posted-einvoice";
 
 /**
