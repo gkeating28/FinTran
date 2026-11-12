@@ -2,7 +2,7 @@
 
 Qula Plus keeps financial setup and purchase documents separate for each organisation. A tenant owns one or more organisations. A person signs in once and is granted access to particular organisations inside a tenant, as an owner, admin, or member.
 
-The live database is the FinTran Supabase project. The schema is the SQL in `supabase/migrations`, applied in filename order. Postgres holds the rules: uniqueness, which codes may be used together, reference numbers, and totals. The Next.js app reads and writes through the Supabase API as the signed-in user. It does not use a service-role key.
+The live database is the FinTran Supabase project. The schema is the SQL in `supabase/migrations`, applied in filename order, starting from a baseline that matches the live project on 12 November 2026. Postgres holds the rules: uniqueness, which codes may be used together, reference numbers, and totals. The Next.js app reads and writes through the Supabase API as the signed-in user. It does not use a service-role key.
 
 Sales invoices, sales credit notes, and sales orders are stored with purchase documents. An order is not exported as an EN 16931 invoice.
 

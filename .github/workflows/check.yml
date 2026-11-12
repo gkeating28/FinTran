@@ -18,3 +18,22 @@ jobs:
       - run: npm run db:types
       - run: npm test
       - run: npm run build
+
+  database:
+    # Builds the database from supabase/migrations on a local Supabase stack and runs the SQL tests against it.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start the local Supabase stack
+        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,realtime
+      - name: Run the SQL tests
+        run: scripts/run-sql-tests.sh
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      - name: Stop the stack
+        if: always()
+        run: supabase stop --no-backup

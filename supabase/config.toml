@@ -1,0 +1,20 @@
+# The local Supabase stack used by the SQL tests and the end-to-end tests. It is built from supabase/migrations.
+# Start it with `supabase start`. It has nothing to do with the hosted project.
+project_id = "qula-plus"
+
+[api]
+port = 54321
+schemas = ["public"]
+
+[db]
+port = 54322
+major_version = 17
+
+[auth]
+site_url = "http://127.0.0.1:3000"
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+# Test people sign in with a password straight away, so no confirmation email is needed.
+enable_confirmations = false
