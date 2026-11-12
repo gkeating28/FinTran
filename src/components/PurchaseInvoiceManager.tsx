@@ -1039,6 +1039,8 @@ function InvoiceForm({
   const followOnTypes = choices.followOnTypes.filter((type) => type.documentKind === (requisition ? "order" : "invoice"));
   // Only an order limits what can be taken from it, so only an order shows what is left.
   const showDrawn = selectedType?.documentKind === "order" && Boolean(header) && header?.status !== "draft";
+  // A credit note made from an invoice that came from an order can give quantity back to that order, line by line.
+  const showReturns = creditNote && invoiceLines.some((line) => line.canReturnToOrder);
   // An invoice can bring lines in from the active orders of the supplier or customer chosen on it.
   const canBringIn = selectedType?.documentKind === "invoice" && !locked;
   const partyOrders = choices.orderSources.filter((order) => order.partyId === supplierId);
@@ -1617,8 +1619,10 @@ function InvoiceForm({
                     <th>GL</th>
                     <th>VAT</th>
                     <th className={styles.num}>Qty</th>
-                    {showDrawn ? <th className={styles.num}>Invoiced</th> : null}
-                    {showDrawn ? <th className={styles.num}>Left</th> : null}
+                    {showDrawn ? <th className={styles.num} title="Posted invoice quantity, less quantity returned by credit notes">Invoiced</th> : null}
+                    {showDrawn ? <th className={styles.num} title="Quantity held by draft invoices">Reserved</th> : null}
+                    {showDrawn ? <th className={styles.num} title="Order quantity less Invoiced and Reserved">Left</th> : null}
+                    {showReturns ? <th>Return to order</th> : null}
                     <th className={styles.num}>Nett</th>
                     <th className={styles.num}>VAT amount</th>
                     {showSource ? <th>Order</th> : null}
@@ -1628,7 +1632,7 @@ function InvoiceForm({
                 <tbody>
                   {invoiceLines.length === 0 ? (
                     <tr>
-                      <td colSpan={(locked ? 9 : 10) + (showDrawn ? 2 : 0) + (showSource ? 1 : 0)}>No lines yet.</td>
+                      <td colSpan={(locked ? 9 : 10) + (showDrawn ? 3 : 0) + (showReturns ? 1 : 0) + (showSource ? 1 : 0)}>No lines yet.</td>
                     </tr>
                   ) : (
                     linePage.rows.map((line) => (
@@ -1661,12 +1665,14 @@ function InvoiceForm({
                         <td className={styles.mono}>{choices.glCodes.find((code) => code.id === line.glCodeId)?.code ?? ""}</td>
                         <td className={styles.mono}>{choices.vatRates.find((rate) => rate.id === line.vatRateId)?.code ?? ""}</td>
                         <td className={`${styles.mono} ${styles.num}`}>{line.quantity}</td>
-                        {showDrawn ? <td className={`${styles.mono} ${styles.num}`}>{line.drawnQuantity || "0.00"}</td> : null}
+                        {showDrawn ? <td className={`${styles.mono} ${styles.num}`}>{line.invoicedQuantity || "0.00"}</td> : null}
+                        {showDrawn ? <td className={`${styles.mono} ${styles.num}`}>{line.reservedQuantity || "0.00"}</td> : null}
                         {showDrawn ? (
                           <td className={`${styles.mono} ${styles.num}`}>
                             {formatMoney(Math.max(0, numberValue(line.quantity) - numberValue(line.drawnQuantity)))}
                           </td>
                         ) : null}
+                        {showReturns ? <td>{line.returnsToOrder ? "Yes" : line.canReturnToOrder ? "No" : ""}</td> : null}
                         <td className={`${styles.mono} ${styles.num}`}>{line.nettAmount}</td>
                         <td className={`${styles.mono} ${styles.num}`}>{line.vatAmount}</td>
                         {showSource ? <td className={styles.mono}>{line.sourceDocument ?? ""}</td> : null}
@@ -2089,6 +2095,17 @@ function LineEditor({
           placeholder={sales ? "Line on the customer's order" : "Line on the order"}
         />
       </label>
+      {draft.canReturnToOrder ? (
+        <label className={styles.checkLine}>
+          <input
+            type="checkbox"
+            checked={draft.returnsToOrder === true}
+            disabled={readOnly}
+            onChange={(event) => onChange({ ...draft, returnsToOrder: event.target.checked })}
+          />
+          Return to order. Posting this credit note gives the quantity back to the order, to be invoiced again. Untick for a price-only credit.
+        </label>
+      ) : null}
       {sales ? null : (
       <label className={styles.field}>
         Seller item

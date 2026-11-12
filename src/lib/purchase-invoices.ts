@@ -24,8 +24,21 @@ export type PurchaseInvoiceLine = {
   id?: string;
   /** The order line an invoice line came from, or the requisition line an order line came from. */
   sourceLineId?: string;
-  /** The quantity other documents have already taken from this line. Void documents do not count. */
+  /**
+   * The quantity used on an order line: Invoiced plus Reserved. Void documents do not count, and a posted credit note
+   * marked Return to order gives its quantity back.
+   */
   drawnQuantity?: string;
+  /** On an order line: posted invoice quantity less returned credit quantity. */
+  invoicedQuantity?: string;
+  /** On an order line: quantity held by draft invoices. */
+  reservedQuantity?: string;
+  /** On a credit note line: the line of the credited invoice this line credits. */
+  creditedLineId?: string;
+  /** On a credit note line: posting it gives the quantity back to the order the invoice line came from. */
+  returnsToOrder?: boolean;
+  /** True when the credited invoice line came from an order, so Return to order can be ticked. */
+  canReturnToOrder?: boolean;
   /** The number of the document the line came from, and that number with its type code for display. */
   sourceNumber?: string;
   sourceDocument?: string;

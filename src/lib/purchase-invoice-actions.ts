@@ -59,6 +59,8 @@ function linesFrom(value: string): PurchaseInvoiceLine[] | { error: string } {
         sellerItemId: textValue("sellerItemId"),
         id: textValue("id"),
         sourceLineId: textValue("sourceLineId"),
+        creditedLineId: textValue("creditedLineId"),
+        returnsToOrder: record.returnsToOrder === true,
         orderLineReference: textValue("orderLineReference"),
       },
     ];
@@ -203,6 +205,9 @@ function documentFrom(formData: FormData) {
       // Keeping the id lets other documents go on pointing at this line after the save.
       id: parseUuid(line.id ?? "") ?? "",
       sourceLineId: parseUuid(line.sourceLineId ?? "") ?? "",
+      // A credit note line keeps the invoice line it credits, and whether posting it gives quantity back to the order.
+      creditedLineId: parseUuid(line.creditedLineId ?? "") ?? "",
+      returnsToOrder: Boolean(parseUuid(line.creditedLineId ?? "")) && line.returnsToOrder === true,
       orderLineReference: (line.orderLineReference ?? "").trim().slice(0, 60),
     })),
   } as const;
@@ -380,7 +385,7 @@ export async function createCreditNote(formData: FormData) {
     .select(
       `id, customer_id, currency_id, document_number, reference, transaction_date, exchange_rate,
        transaction_types(type, document_kind),
-       transaction_lines(line_number, product_id, description, gl_code_id, department_id, cost_centre_id, vat_rate_id, quantity, price, discount_amount, unit_code, line_note)`,
+       transaction_lines!transaction_lines_header_id_fkey(id, source_line_id, line_number, product_id, description, gl_code_id, department_id, cost_centre_id, vat_rate_id, quantity, price, discount_amount, unit_code, line_note)`,
     )
     .eq("id", invoiceId)
     .eq("organisation_id", workspace.current.organisationId)
@@ -409,7 +414,32 @@ export async function createCreditNote(formData: FormData) {
     redirect(`${next}?error=${encodeURIComponent("Choose which sales credit note type to use.")}`);
   }
 
-  const lines = [...(invoice.data.transaction_lines ?? [])].sort((left, right) => left.line_number - right.line_number);
+  // Each line is copied with the invoice line it credits. Quantity already on other credit notes, draft or posted,
+  // is left out, because the total credited against an invoice line cannot exceed that line.
+  const invoiceLines = [...(invoice.data.transaction_lines ?? [])].sort((left, right) => left.line_number - right.line_number);
+  const credited = new Map<string, number>();
+  if (invoiceLines.length > 0) {
+    const earlier = await supabase
+      .from("transaction_lines")
+      .select("credited_line_id, quantity, transaction_headers!transaction_lines_header_id_fkey!inner(status)")
+      .eq("organisation_id", workspace.current.organisationId)
+      .in("credited_line_id", invoiceLines.map((line) => line.id))
+      .in("transaction_headers.status", ["draft", "posted"]);
+    for (const row of earlier.data ?? []) {
+      const key = String(row.credited_line_id);
+      credited.set(key, (credited.get(key) ?? 0) + Number(row.quantity ?? 0));
+    }
+  }
+  const lines = invoiceLines.flatMap((line) => {
+    const quantity = Number(line.quantity ?? 0);
+    const left = Math.max(0, quantity - (credited.get(line.id) ?? 0));
+    if (quantity > 0 && left <= 0) return [];
+    const share = quantity > 0 ? left / quantity : 1;
+    return [{ ...line, quantity: quantity > 0 ? left : quantity, discount_amount: Math.round(Number(line.discount_amount ?? 0) * share * 100) / 100 }];
+  });
+  if (lines.length === 0) {
+    redirect(`${next}?error=${encodeURIComponent("Every line of this invoice has already been credited in full.")}`);
+  }
   const { data, error } = await supabase.rpc("save_document", {
     p_document: {
       transactionTypeId: chosen.id,
@@ -432,6 +462,9 @@ export async function createCreditNote(formData: FormData) {
         discountAmount: line.discount_amount,
         unitCode: line.unit_code,
         lineNote: line.line_note,
+        creditedLineId: line.id,
+        // Ticked when the invoice line came from an order. The person can untick it, for example for a price-only credit.
+        returnsToOrder: Boolean(line.source_line_id) && Number(line.quantity ?? 0) > 0,
       })),
     },
   });
