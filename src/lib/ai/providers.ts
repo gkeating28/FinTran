@@ -1,4 +1,5 @@
 import type { AiAdapter, AiMessage, AiTool, AiToolCall, AiTurn } from "./adapter";
+import { mockProvider } from "./mock";
 
 type Settings = { provider: string; model: string; config: Record<string, string>; apiKey: string };
 type Input = { system: string; messages: AiMessage[]; tools: AiTool[]; cachePrefix?: string };
@@ -57,13 +58,7 @@ function parseInput(raw: string): Json {
 }
 
 export function adapterFor(settings: Settings): AiAdapter {
-  if (settings.provider === "mock") {
-    return {
-      async complete() {
-        return { text: "Mock answer.", toolCalls: [], inputTokens: 1, outputTokens: 1 };
-      },
-    };
-  }
+  if (settings.provider === "mock") return mockProvider();
   return {
     async complete(input, onText) {
       if (settings.provider === "anthropic") return anthropic(settings, input, onText);
