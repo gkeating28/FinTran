@@ -3,6 +3,7 @@ import { clearSecret, saveAiSettings, testAiConnection } from "@/lib/settings-ac
 import { getWorkspace } from "@/lib/data";
 import { canManage } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
+import AskQulaLogFields from "@/components/AskQulaLogFields";
 import styles from "@/components/OpsPage.module.css";
 
 export const metadata = { title: "Ask Qula" };
@@ -34,7 +35,7 @@ export default async function AskQulaSettingsPage({
   const supabase = await createClient();
   const organisationId = workspace.current.organisationId;
   const [settings, secrets, usage, feedback, actions] = await Promise.all([
-    supabase.from("ai_settings").select("enabled, provider_code, model, config, user_hourly_limit, organisation_monthly_limit, data_notice_accepted_at, log_answers, actions_enabled").eq("organisation_id", organisationId).maybeSingle(),
+    supabase.from("ai_settings").select("enabled, provider_code, model, config, user_hourly_limit, organisation_monthly_limit, data_notice_accepted_at, log_answers, actions_enabled, answer_retention_days").eq("organisation_id", organisationId).maybeSingle(),
     supabase.rpc("organisation_secret_status", { p_organisation_id: organisationId }),
     supabase.from("ai_usage").select("user_id, outcome, input_tokens, output_tokens").eq("organisation_id", organisationId),
     supabase.from("ai_feedback").select("rating, at, comment, question, answer").eq("organisation_id", organisationId).order("at", { ascending: false }).limit(200),
@@ -50,6 +51,7 @@ export default async function AskQulaSettingsPage({
     data_notice_accepted_at?: string | null;
     log_answers?: boolean;
     actions_enabled?: boolean;
+    answer_retention_days?: number;
   };
   const hint = ((secrets.data ?? []) as { kind: string; hint: string | null }[]).find((secret) => secret.kind === "ai_api_key")?.hint;
   const byUser = new Map<string, { questions: number; tokens: number; errors: number }>();
@@ -132,10 +134,7 @@ export default async function AskQulaSettingsPage({
             <input type="checkbox" name="notice" defaultChecked={Boolean(row.data_notice_accepted_at)} />
             Questions, and the organisation&apos;s data needed to answer them, will be sent to {providerName}. Check this meets your data protection obligations.
           </label>
-          <label className={`${styles.checkLine} ${styles.wide}`}>
-            <input type="checkbox" name="logAnswers" defaultChecked={Boolean(row.log_answers)} />
-            When someone rates an answer, keep the question and the answer with the rating so you can review it. Off by default. With it off only the thumb and any comment are kept.
-          </label>
+          <AskQulaLogFields logAnswers={Boolean(row.log_answers)} retentionDays={row.answer_retention_days ?? 30} />
           <label className={`${styles.checkLine} ${styles.wide}`}>
             <input type="checkbox" name="enabled" defaultChecked={row.enabled} />
             Enable
@@ -193,7 +192,7 @@ export default async function AskQulaSettingsPage({
           <span className={styles.panelMeta}>{ratings.length === 0 ? "No ratings yet" : `${thumbsUp} helpful, ${thumbsDown} not helpful (latest ${ratings.length})`}</span>
         </div>
         {lowRated.length === 0 ? (
-          <p className={styles.empty}>Answers rated not helpful will show here. {row.log_answers ? "The question and answer are kept with each rating." : "Only the rating and any comment are kept, because keeping the question and answer is switched off above."}</p>
+          <p className={styles.empty}>Answers rated not helpful will show here. {row.log_answers ? `The question and answer are kept with each rating for ${row.answer_retention_days ?? 30} days, then deleted. The rating is kept.` : "Only the rating and any comment are kept, because keeping the question and answer is switched off above."}</p>
         ) : (
           <table className={styles.lineTable}>
             <thead>

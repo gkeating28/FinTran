@@ -10,4 +10,4 @@ With AI on, answers appear as they are written. Ask about totals, VAT by rate, y
 
 When an e-document fails validation or a draft is not ready to send, press Ask Qula to explain, or ask "why did this fail". Ask Qula says what each rule means in plain words, what to change and which screen to open. A received e-document may need a corrected file from the sender.
 
-Ask "remind Beta Ltd about their overdue invoice" and Ask Qula writes the reminder for you to copy or open in your email. It never sends anything. Rate an answer with the thumbs. Use Clear at the top of the chat to start again.
+Ask "remind Beta Ltd about their overdue invoice" and Ask Qula writes the reminder for you to copy or open in your email. It never sends anything. Rate an answer with the thumbs. The question and answer are only kept with your rating if an owner or admin has switched that on. They are then kept for the number of days the organisation has chosen, 30 unless changed, and deleted automatically. Only owners and admins can read them. Use Clear at the top of the chat to start again.
