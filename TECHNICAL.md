@@ -212,7 +212,7 @@ Every `DataGrid` has a grid lines button in its footer, beside the rows per page
 
 ### Ask Qula
 
-The sparkle button opens a sheet fixed to the right edge, from the bottom of the title bar to the bottom of the viewport, 400px wide. It slides over 480ms. Escape, Close, and the sparkle button dismiss it. The conversation is kept in `sessionStorage` under `fintran.ask-qula.{organisationId}`.
+The sparkle button opens a sheet fixed to the right edge, from the bottom of the title bar to the bottom of the viewport, 400px wide. It slides over 480ms. Escape, Close, and the sparkle button dismiss it. The conversation is kept in `sessionStorage` under `fintran.ask-qula.{organisationId}`. The drawer is `src/components/AskQula.tsx`. The answer, with its tables, charts, message blocks, document cards, proposal cards and ratings, is in `src/components/ask-qula/Answer.tsx`. The stored conversation, its message types and the session storage helpers, is in `src/components/ask-qula/storage.ts`.
 
 Ask Qula has two modes. With AI off it matches a fixed set of keyword questions. With AI on, an owner or admin has chosen a provider and the question goes to a model with read-only tools. The answer streams into the chat as it is written. The server sends one JSON event per line (`status`, `text`, `docs`, `block`, `followups`, `done`, `error`), and `src/lib/ask-stream.ts` reads them on the client. A limit, a missing key, or a provider failure before any text falls back to the keyword answer.
 
@@ -245,7 +245,7 @@ Ask Qula knows the page. A screen that has a record open calls `useAskContext` (
 | `/transactions/{code}` with a document open | The shared entry form |
 | `/customers`, `/suppliers` | Parties |
 | `/e-documents` | Received and sent e-documents, filtered by status, party, date, and number |
-| `/e-documents/{id}` | The import form when the file is an inbound valid invoice. Otherwise a read-only view (`EDocumentView`, styles in `EDocument.module.css`): the invoice facts, seller and buyer, lines and totals, then validation and history, with a link to the purchase or sales document it belongs to. The view reads the stored XML again, so a file stored by an earlier reader shows what the current reader finds. |
+| `/e-documents/{id}` | The import form when the file is an inbound valid invoice. Otherwise a read-only view (`EDocumentView`, styles in `EDocument.module.css`): the invoice facts, seller and buyer, lines and totals, then validation and history, with a link to the purchase or sales document it belongs to. The view reads the stored XML again, so a file stored by an earlier reader shows what the current reader finds. The import form is `ImportEInvoice` in `src/components/ImportEInvoice.tsx`, a shell over `src/components/import-einvoice/`: `useImportForm` (the lists it loads, the choices made, what blocks Save and the submit handler), `useImportSplit` (the draggable split between header and lines), and the panels `HeaderPane`, `TotalsSummary`, `LinesPane`, `LineCoding` and `CreateSupplierDialog`. |
 | `/admin` | Links to setup lists |
 | `/gl-codes`, `/departments`, `/cost-centres`, `/vat-rates`, `/currencies`, `/products`, `/transaction-types` | Setup grids |
 | `/organisations` | Organisations in the tenant, defaults, and logo |
