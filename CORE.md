@@ -241,6 +241,7 @@ The app writes both tables through `save_document(jsonb)`. Direction comes from 
 | `notes` | Optional, up to 4000 |
 | `currency_id`, `exchange_rate` | The supplier's currency, and the rate used for this document |
 | `order_number` | Optional, up to 40 |
+| `supplier_reference`, `supply_date` | Purchases only: the supplier's own invoice number, up to 60, and the supply date. See below |
 | `preceding_header_id` | Optional link to a posted invoice in this organisation, for the same supplier. Another organisation is refused |
 | `preceding_reference`, `preceding_date` | The invoice reference and date a credit note applies to. Copied from the linked invoice when left blank |
 | `buyer_reference` | Optional, up to 100. EN 16931 BT-10 |
@@ -258,6 +259,7 @@ The app writes both tables through `save_document(jsonb)`. Direction comes from 
 | `status` | `draft`, `posted`, or `void` for an invoice or credit note. `draft`, `open`, `closed`, or `cancelled` for an order or requisition. Existing documents were marked posted when this column was added |
 | `posted_at`, `posted_by` | Set when the document is posted |
 | `voided_at`, `voided_by`, `void_reason` | Set when an owner or admin voids a posted document. The reason is required |
+| `closed_by_system` | On an order, true while it is closed because posted invoices cover every line. Closing by hand, or reopening, sets it false. Only a closure made by the system is undone by the system, when a posted invoice is voided or a credit note returns quantity to the order |
 
 A draft can be edited and deleted. Posting needs at least one line and is allowed for any member. Purchases are numbered when the draft is saved. A type set to number on posting, which every Sales type must use, leaves the draft without a number and issues the next number when it is posted. The type row is locked first. Sales readiness is checked before that number is taken, so a failed post does not use a number. Deleting a sales draft does not use a number. A posted purchase can be voided by an owner or admin. A posted sales document cannot be voided; the correction is a credit note. A void document cannot be changed or deleted. Status changes only through `post_document` and `void_document`.
 
@@ -290,7 +292,7 @@ On every header insert or update the trigger replaces the six amount columns fro
 | --- | --- |
 | `header_id` | The document. Deleting the header deletes its lines |
 | `line_number` | Starts at 1. Unique on the header |
-| `reference`, `transaction_type_id`, `organisation_id`, `tenant_id` | Copied from the header |
+| `transaction_type_id`, `organisation_id`, `tenant_id` | Copied from the header |
 | `product_id` | Optional. Must belong to the same organisation |
 | `description` | Required, 1–200 |
 | `unit_code` | EN 16931 unit. Defaults to `C62`, one |
@@ -302,6 +304,9 @@ On every header insert or update the trigger replaces the six amount columns fro
 | `quantity` | Greater than 0 |
 | `price` | Zero or greater |
 | `discount_amount` | Zero or greater, and not more than quantity × price |
+| `source_line_id` | The order or requisition line this line was started from. A line that another document draws on cannot be removed |
+| `credited_line_id` | On a credit note line, the invoice line it credits. The invoice must be the one the credit note applies to. Only a credit note line can set it |
+| `returns_to_order` | True when crediting the line gives its quantity back to the order the invoice line came from. Needs `credited_line_id` and a line that came from an order. It counts only once the credit note is posted, and voiding that credit note is refused if the quantity has since been invoiced again |
 | `nett_amount` | quantity × price − discount. Set by trigger |
 | `vat_amount` | Nett × VAT percentage. Set by trigger |
 

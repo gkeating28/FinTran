@@ -64,10 +64,10 @@ begin
 
   begin
     insert into public.transaction_lines (
-      tenant_id, organisation_id, header_id, transaction_type_id, reference, line_number,
+      tenant_id, organisation_id, header_id, transaction_type_id, line_number,
       description, gl_code_id, quantity, price, discount_amount, nett_amount, vat_amount
     )
-    select v_tenant, v_org, v_header, transaction_type_id, reference, 2,
+    select v_tenant, v_org, v_header, transaction_type_id, 2,
       'Wrong GL', v_other_gl, 1, 1, 0, 1, 0
     from public.transaction_headers where id = v_header;
     raise exception 'phase 3: a line accepted another organisation GL code';
@@ -77,10 +77,10 @@ begin
 
   begin
     insert into public.transaction_lines (
-      tenant_id, organisation_id, header_id, transaction_type_id, reference, line_number,
+      tenant_id, organisation_id, header_id, transaction_type_id, line_number,
       description, department_id, quantity, price, discount_amount, nett_amount, vat_amount
     )
-    select v_tenant, v_org, v_header, transaction_type_id, reference, 3,
+    select v_tenant, v_org, v_header, transaction_type_id, 3,
       'Wrong department', v_other_dept, 1, 1, 0, 1, 0
     from public.transaction_headers where id = v_header;
     raise exception 'phase 3: a line accepted another organisation department';
@@ -90,10 +90,10 @@ begin
 
   begin
     insert into public.transaction_lines (
-      tenant_id, organisation_id, header_id, transaction_type_id, reference, line_number,
+      tenant_id, organisation_id, header_id, transaction_type_id, line_number,
       description, cost_centre_id, quantity, price, discount_amount, nett_amount, vat_amount
     )
-    select v_tenant, v_org, v_header, transaction_type_id, reference, 4,
+    select v_tenant, v_org, v_header, transaction_type_id, 4,
       'Wrong centre', v_other_centre, 1, 1, 0, 1, 0
     from public.transaction_headers where id = v_header;
     raise exception 'phase 3: a line accepted another organisation cost centre';
@@ -103,10 +103,10 @@ begin
 
   begin
     insert into public.transaction_lines (
-      tenant_id, organisation_id, header_id, transaction_type_id, reference, line_number,
+      tenant_id, organisation_id, header_id, transaction_type_id, line_number,
       description, vat_rate_id, quantity, price, discount_amount, nett_amount, vat_amount
     )
-    select v_tenant, v_org, v_header, transaction_type_id, reference, 5,
+    select v_tenant, v_org, v_header, transaction_type_id, 5,
       'Wrong VAT', v_other_vat, 1, 1, 0, 1, 0
     from public.transaction_headers where id = v_header;
     raise exception 'phase 3: a line accepted another organisation VAT code';
@@ -129,10 +129,10 @@ begin
   end;
 
   insert into public.transaction_lines (
-    tenant_id, organisation_id, header_id, transaction_type_id, reference, line_number,
+    tenant_id, organisation_id, header_id, transaction_type_id, line_number,
     description, quantity, price, discount_amount, nett_amount, vat_amount
   )
-  select v_tenant, v_org, v_header, transaction_type_id, reference, 6,
+  select v_tenant, v_org, v_header, transaction_type_id, 6,
     'Optional codes blank', 1, 1, 0, 1, 0
   from public.transaction_headers where id = v_header;
 

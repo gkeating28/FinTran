@@ -29,7 +29,7 @@ Domain rules in more detail, including EN 16931 business-term mapping, are in [C
 | --- | --- |
 | Next.js 16 App Router | Pages, server actions, and route handlers. The session gate is `src/proxy.ts`, which calls `src/lib/supabase/proxy.ts`. |
 | React 19 | Client forms, the title bar, and Ask Qula. |
-| TypeScript | Application code. `src/lib/database.types.ts` is the generated Supabase type for tables and functions that were present when it was last generated. The e-document tables exist in SQL and are used by the app; that generated file lists their functions and enums and does not yet list the four e-document tables. |
+| TypeScript | Application code. `src/lib/database.types.ts` is the generator's output for the live project, and `npm run db:types` fails when it stops matching the tables and columns in `supabase/migrations`. |
 | CSS modules | All screen styling, on the design tokens in `src/app/globals.css`. There is no Tailwind and no component library. |
 | Supabase Auth | Email sign-in. The browser session is stored in cookies through `@supabase/ssr`. |
 | Postgres | All business rules: codes, totals, numbering, posting, and e-document status. |
@@ -515,6 +515,52 @@ Posting an imported draft is refused when its nett, VAT, or total differs from `
 | Ask Qula and Access Point settings, secrets and usage | no | yes | yes |
 
 Select on a business table uses `private.is_org_member(organisation_id)`.
+
+## Testing and CI
+
+Four checks run in `.github/workflows/check.yml` on every pull request and on every push to a `claude/` branch. A newer push to the same branch replaces the run in progress.
+
+| Check | Command | What it proves |
+| --- | --- | --- |
+| Unit tests | `npm test` | Pure code: spreadsheet safety, Ask Qula actions and its scripted mock provider, order progress, follow-on actions, e-invoice parsing and the golden order reference files. A new test file is added to the `test` script in `package.json`. |
+| Types | `npm run db:types` | `database.types.ts` has every table and every column the migrations create, and no others. To fix it, regenerate the types from the project and replace the file. |
+| SQL tests | `scripts/run-sql-tests.sh` | The database rules, on a local Supabase stack built from `supabase/migrations`. Each test raises on a broken rule and rolls back. `concurrency/last_unit.sh` uses two sessions and commits a small tenant. Run them on a clean database, because the end-to-end seed uses a Peppol ID that some tests also use. |
+| End to end | `npm run e2e` | Ten flows in Chromium against the built app and a seeded local stack, and a smoke check that every main page loads for the owner, admin and member without console errors. |
+
+The Supabase CLI is pinned in the workflow, because "latest" asks the GitHub API which release that is and a run that hits its rate limit fails before any of our code runs. Move the pin up on purpose, in a pull request of its own.
+
+### End-to-end tests
+
+`npm run e2e:seed` signs up three people through the sign-up API (`owner@qula.test`, `admin@qula.test` and `member@qula.test`, in `e2e/people.ts`) and runs `supabase/seed/e2e.sql`. That makes one tenant with two organisations, the setup lists, a Purchases and a Sales type for each kind of document, two customers, two suppliers, and Ask Qula on the mock provider with actions switched on. It refuses to run against anything that is not a local stack. Nothing in the tests calls a real AI or Access Point service. The mock AI provider in `src/lib/ai/mock.ts` follows a fixed script: a question about drafts looks them up, and a request to post proposes posting the first draft found. The lookup, the cards, the proposal and its single-use token are the real code.
+
+The flows run one at a time, in file order, on one database, and each signs in through the real sign-in page. Flow 6 uses the e-invoice that flow 5 imports.
+
+| Flow | What it proves |
+| --- | --- |
+| 1 | A sales order is activated, invoiced in two parts and closes by itself. |
+| 2 | One invoice from two orders, and each order shows its own Invoiced and Left. |
+| 3 | Requisition to purchase order to invoice, and voiding the invoice reopens the order. |
+| 4 | A credit note marked Return to order gives the quantity back and reopens the order. |
+| 5 | A received e-invoice from a new supplier is uploaded, the supplier is created in the pop-up, and it is imported and posted. |
+| 6 | The same file again adds nothing, a different file with the same number is a duplicate, and an admin releases it. |
+| 7 | Ask Qula answers with a card, and a proposed post is confirmed once and refused the second time. |
+| 8 | A member sees no Void, Reject or settings, and the database refuses the same calls made directly. |
+| 9 | A grid with a formula-like party name exports it as plain text. |
+| 10 | Print and PDF of a posted invoice keep the address it was posted with. |
+
+The helpers are `e2e/documents.ts` (open a list, fill a document, press a button, read a row), `e2e/api.ts` (call the API as a test person, to check what the screens hide) and `e2e/upload.ts` (upload an e-invoice and fail with the server's own message). The test files are in `e2e/files`.
+
+To run them locally, start the stack with `supabase start -x studio,imgproxy,edge-runtime,logflare,vector,realtime` and set the variables below. Then run:
+
+```bash
+npm run e2e:seed
+npm run build
+npm run e2e
+```
+
+The variables are `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and `DATABASE_URL` for the local stack, plus `EINVOICE_HMAC_KEY`, `EINVOICE_HMAC_KEY_ID`, `QULA_SECRETS_KEYS` and `QULA_SECRETS_KEY_ID` with throwaway values.
+
+When a flow fails, CI uploads the trace, a screenshot and a video as the `e2e-failures` artifact. The log shows what was slow, failed or still waiting when the flow stopped, the end of the page snapshot (where the open dialog and its buttons are), the app's own output, and the last lines from the local database, API and sign-in containers.
 
 ## Environment
 

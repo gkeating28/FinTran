@@ -156,7 +156,8 @@ begin
     'exchangeRate', 1,
     'lines', jsonb_build_array(jsonb_build_object('description', 'Order', 'quantity', 1, 'price', 1))
   ));
-  perform public.post_document(v_order, null);
+  -- An order is activated, not posted. An active order is the nearest an order gets to a settled document.
+  perform public.set_order_status(v_order, 'open');
 
   v_other := public.save_document(jsonb_build_object(
     'transactionTypeId', current_setting('test.type2'),
@@ -398,8 +399,10 @@ begin
   set reference = 7
   where id = v_invoice;
   perform set_config('fintran.status_change', 'on', true);
+  -- A posted document carries its number and the issuer and party as they were, so the stand-in has them too.
   update public.transaction_headers
-  set status = 'posted', posted_at = now(), posted_by = (select auth.uid())
+  set status = 'posted', posted_at = now(), posted_by = (select auth.uid()),
+      document_number = 'SI-7', issuer_snapshot = '{}'::jsonb, party_snapshot = '{}'::jsonb
   where id = v_invoice;
 
   begin
@@ -447,8 +450,9 @@ begin
   )
   returning id into v_credit;
 
-  if (select preceding_reference from public.transaction_headers where id = v_credit) <> '7' then
-    raise exception 'phase 4: the sales credit did not copy invoice 7';
+  -- The credited invoice is named by its document number, as printed on it.
+  if (select preceding_reference from public.transaction_headers where id = v_credit) <> 'SI-7' then
+    raise exception 'phase 4: the sales credit did not copy invoice SI-7';
   end if;
 
   insert into public.transaction_lines (
