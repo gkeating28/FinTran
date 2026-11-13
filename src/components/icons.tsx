@@ -141,6 +141,17 @@ export function CurrencyIcon(props: IconProps) {
   );
 }
 
+export function BankIcon(props: IconProps) {
+  return (
+    <Outline {...props}>
+      <path d="M4 9.5 12 5l8 4.5" />
+      <path d="M5 9.5h14" />
+      <path d="M7 12v5M12 12v5M17 12v5" />
+      <path d="M4.5 19h15" />
+    </Outline>
+  );
+}
+
 export function ProductIcon(props: IconProps) {
   return (
     <Outline {...props}>

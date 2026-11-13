@@ -9,6 +9,7 @@ export const CODED_TABLES = [
   "suppliers",
   "products",
   "currencies",
+  "bank_accounts",
   "transaction_types",
 ] as const;
 

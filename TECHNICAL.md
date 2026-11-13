@@ -247,7 +247,7 @@ Ask Qula knows the page. A screen that has a record open calls `useAskContext` (
 | `/e-documents` | Received and sent e-documents, filtered by status, party, date, and number |
 | `/e-documents/{id}` | The import form when the file is an inbound valid invoice. Otherwise a read-only view (`EDocumentView`, styles in `EDocument.module.css`): the invoice facts, seller and buyer, lines and totals, then validation and history, with a link to the purchase or sales document it belongs to. The view reads the stored XML again, so a file stored by an earlier reader shows what the current reader finds. The import form is `ImportEInvoice` in `src/components/ImportEInvoice.tsx`, a shell over `src/components/import-einvoice/`: `useImportForm` (the lists it loads, the choices made, what blocks Save and the submit handler), `useImportSplit` (the draggable split between header and lines), and the panels `HeaderPane`, `TotalsSummary`, `LinesPane`, `LineCoding` and `CreateSupplierDialog`. |
 | `/admin` | Links to setup lists |
-| `/gl-codes`, `/departments`, `/cost-centres`, `/vat-rates`, `/currencies`, `/products`, `/transaction-types` | Setup grids |
+| `/gl-codes`, `/departments`, `/cost-centres`, `/vat-rates`, `/currencies`, `/bank-accounts`, `/products`, `/transaction-types` | Setup grids |
 | `/organisations` | Organisations in the tenant, defaults, and logo |
 | `/access` | Grants for the open organisation |
 | `/forms`, `/forms/{code}` | Print layout for a transaction type |
@@ -287,6 +287,7 @@ Server actions run on the server with the user session and return `{ error }` or
 | `actions.ts` | `signIn`, `signUp`, `signOut`, `selectOrganisation` | Auth session and the organisation cookie |
 | `actions.ts` | `createTenant`, `createOrganisation`, `deleteOrganisation`, `grantAccess`, `revokeAccess` | Tenant, organisation, and access RPCs |
 | `reference-actions.ts` | `createReference`, `updateReference`, `deleteReference` | GL codes, departments, cost centres |
+| `bank-account-actions.ts` | `createBankAccount`, `updateBankAccount`, `deleteBankAccount` | Bank accounts. `bank-accounts.ts` reads the form and `bank-account-data.ts` lists the rows, currencies and Current Asset GL codes |
 | `currency-actions.ts` | `createCurrency`, `updateCurrency`, `deleteCurrency`, `updateOrganisationDefaults` | Currencies, defaults, logo, and `rename_organisation` |
 | `transaction-type-actions.ts` | `createTransactionType`, `updateTransactionType`, `deleteTransactionType` | Transaction types |
 | `party-actions.ts` | `createParty`, `updateParty`, `saveSupplierPeppol`, `deleteParty` | Customers and suppliers |

@@ -18,6 +18,7 @@ const PAGES = [
   "/products",
   "/e-documents",
   "/currencies",
+  "/bank-accounts",
   "/gl-codes",
   "/vat-rates",
   "/departments",

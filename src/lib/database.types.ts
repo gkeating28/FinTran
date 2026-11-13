@@ -502,6 +502,103 @@ export type Database = {
         }
         Relationships: []
       }
+      bank_accounts: {
+        Row: {
+          active: boolean
+          bic: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          currency_id: string
+          gl_code_id: string | null
+          iban: string
+          id: string
+          is_default: boolean
+          name: string
+          organisation_id: string
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          bic?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          currency_id: string
+          gl_code_id?: string | null
+          iban: string
+          id?: string
+          is_default?: boolean
+          name: string
+          organisation_id: string
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          bic?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          currency_id?: string
+          gl_code_id?: string | null
+          iban?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          organisation_id?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_accounts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_accounts_currency_fkey"
+            columns: ["organisation_id", "currency_id"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["organisation_id", "id"]
+          },
+          {
+            foreignKeyName: "bank_accounts_gl_code_fkey"
+            columns: ["organisation_id", "gl_code_id"]
+            isOneToOne: false
+            referencedRelation: "gl_codes"
+            referencedColumns: ["organisation_id", "id"]
+          },
+          {
+            foreignKeyName: "bank_accounts_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_accounts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_accounts_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cost_centres: {
         Row: {
           code: string

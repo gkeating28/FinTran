@@ -20,6 +20,7 @@ const PAGE_LABELS: Record<string, string> = {
   "/cost-centres": "Cost centres",
   "/vat-rates": "VAT rates",
   "/currencies": "Currencies",
+  "/bank-accounts": "Bank accounts",
   "/transaction-types": "Transaction types",
   "/products": "Products",
   "/organisations": "Organisations",
