@@ -62,7 +62,8 @@ test("no export bypasses the helpers", () => {
     .map((path) => relative(root, path).replace(/\\/g, "/"))
     .sort();
   assert.deepEqual(found, ["lib/export/download.ts"]);
-  const askQula = readFileSync(join(root, "components/AskQula.tsx"), "utf8");
+  // The table block that offers the CSV download is in the Ask Qula answer component.
+  const askQula = readFileSync(join(root, "components/ask-qula/Answer.tsx"), "utf8");
   const grid = readFileSync(join(root, "components/GridExport.tsx"), "utf8");
   assert.match(askQula, /downloadCsv\(/);
   assert.match(grid, /downloadXlsx\(/);
