@@ -491,7 +491,9 @@ begin
   update public.organisation_defaults
   set iban = null, address_line1 = 'Dock 2'
   where organisation_id = current_setting('test.org')::uuid;
+  perform set_config('fintran.settlement', 'on', true);
   update public.transaction_headers set paid_amount = 1 where id = v_purchase;
+  perform set_config('fintran.settlement', 'off', true);
   if (select issuer_snapshot->>'iban' from public.transaction_headers where id = v_purchase) <> 'IE29AIBK93115212345678'
      or (select issuer_snapshot->>'addressLine1' from public.transaction_headers where id = v_purchase) <> 'Dock 1' then
     raise exception 'phase 5: a posted snapshot was rewritten';

@@ -41,7 +41,7 @@ export function VoidDialog({ form }: { form: DocumentFormState }) {
 
 /** The credit notes raised from a posted sales invoice, and the form that raises another. */
 export function CreditNotesDialog({ form }: { form: DocumentFormState }) {
-  const { header, choices, typeCode, creditOpen, setCreditOpen, region, dirty, cannotSave, showCreditNote } = form;
+  const { header, choices, typeCode, creditOpen, setCreditOpen, region, showCreditNote } = form;
   return (
     creditOpen && showCreditNote && header ? (
       <LinkedDocumentsDialog
@@ -57,13 +57,13 @@ export function CreditNotesDialog({ form }: { form: DocumentFormState }) {
         }
         create={
           choices.creditNoteTypes.length > 0 ? (
-            <form action={dirty ? undefined : createCreditNote} onSubmit={dirty ? (event) => event.preventDefault() : undefined} className={documentStyles.dialogCreate}>
+            <form action={createCreditNote} className={documentStyles.dialogCreate}>
               <input type="hidden" name="id" value={header.id} />
               {typeCode ? <input type="hidden" name="return_to" value={`/transactions/${typeCode}`} /> : null}
               {choices.creditNoteTypes.length > 1 ? (
                 <label className={styles.field}>
                   Credit note type
-                  <select name="credit_type_id" form={dirty ? DOCUMENT_FORM : undefined} required defaultValue="">
+                  <select name="credit_type_id" required defaultValue="">
                     <option value="">Choose a type</option>
                     {choices.creditNoteTypes.map((type) => (
                       <option key={type.id} value={type.id}>
@@ -73,21 +73,15 @@ export function CreditNotesDialog({ form }: { form: DocumentFormState }) {
                   </select>
                 </label>
               ) : (
-                <input type="hidden" name="credit_type_id" form={dirty ? DOCUMENT_FORM : undefined} value={choices.creditNoteTypes[0]?.id ?? ""} />
+                <input type="hidden" name="credit_type_id" value={choices.creditNoteTypes[0]?.id ?? ""} />
               )}
               <div className={styles.modalActions}>
                 <button className={styles.quiet} type="button" onClick={() => setCreditOpen(false)}>
                   Close
                 </button>
-                {dirty ? (
-                  <button className={styles.primary} type="submit" form={DOCUMENT_FORM} name="then_action" value="create_credit_note" disabled={cannotSave}>
-                    Save and create credit note
-                  </button>
-                ) : (
-                  <button className={styles.primary} type="submit">
-                    Create credit note
-                  </button>
-                )}
+                <button className={styles.primary} type="submit">
+                  Create credit note
+                </button>
               </div>
             </form>
           ) : undefined
@@ -124,11 +118,11 @@ export function InvoiceActionButtons({ form }: { form: DocumentFormState }) {
 
 /** Cancel or Close, Save and post, Post, and Save. */
 export function SaveButtons({ form }: { form: DocumentFormState }) {
-  const { header, typeCode, onClose, posted, voided, closed, cancelled, locked, pending, dirty, cannotSave, canPostHere } = form;
+  const { header, typeCode, onClose, locked, pending, dirty, cannotSave, canPostHere } = form;
   return (
     <>
       <button className={styles.quiet} type="button" onClick={onClose}>
-        {locked && !posted ? "Close" : "Cancel"}
+        {locked ? "Close" : "Cancel"}
       </button>
       {canPostHere && dirty ? (
         <button className={styles.quiet} type="submit" form={DOCUMENT_FORM} name="then_action" value="post" disabled={cannotSave}>
@@ -144,9 +138,9 @@ export function SaveButtons({ form }: { form: DocumentFormState }) {
           </button>
         </form>
       ) : null}
-      {voided || closed || cancelled ? null : (
+      {locked ? null : (
         <button className={styles.primary} type="submit" form={DOCUMENT_FORM} disabled={cannotSave}>
-          {pending ? "Saving…" : posted ? "Save paid amount" : "Save"}
+          {pending ? "Saving…" : "Save"}
         </button>
       )}
     </>

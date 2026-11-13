@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { AFTER_PAID, AFTER_SAVE, followOnFrom } from "./follow-on";
+import { AFTER_SAVE, followOnFrom } from "./follow-on";
 
 function form(value?: string) {
   const data = new FormData();
@@ -20,10 +20,8 @@ test("a draft or an active order can be followed by post, activate, close, cance
 });
 
 test("an action the save does not allow is ignored, so only the save happens", () => {
-  // Reopen, void and delete never follow a save, and a posted document can only be followed by a credit note.
+  // Reopen, void and delete never follow a save. A posted document has nothing to save, so a credit note is raised from its own button.
   for (const action of ["reopen", "void", "delete", "create_credit_note", "POST", "post; drop"]) {
     assert.equal(followOnFrom(form(action), AFTER_SAVE), null, action);
   }
-  assert.equal(followOnFrom(form("create_credit_note"), AFTER_PAID), "create_credit_note");
-  assert.equal(followOnFrom(form("post"), AFTER_PAID), null);
 });

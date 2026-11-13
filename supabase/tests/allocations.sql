@@ -386,6 +386,15 @@ select pg_temp.expect_error(
   'locked period', 'removing an allocation in a locked period');
 update public.organisation_defaults set lock_date = null where organisation_id = current_setting('test.org')::uuid;
 
+-- A payment made after the lock date can settle a document dated before it: the lock applies to the allocation date.
+select set_config('test.inv_old', pg_temp.document('SI', 'ACME', 80, '2026-10-05')::text, true);
+select set_config('test.rec_new', pg_temp.payment('REC', 'ACME', 80, true, null, '2026-12-01')::text, true);
+update public.organisation_defaults set lock_date = '2026-11-30' where organisation_id = current_setting('test.org')::uuid;
+select public.allocate(pg_temp.src(current_setting('test.rec_new')::uuid), current_setting('test.inv_old')::uuid, 80, null);
+select pg_temp.eq('a document in a locked period can still be paid', pg_temp.due(current_setting('test.inv_old')::uuid), 0.00);
+select pg_temp.eq('its allocation is dated after the lock', (select allocation_date::text from public.allocations where target_header_id = current_setting('test.inv_old')::uuid and removed_at is null), '2026-12-01');
+update public.organisation_defaults set lock_date = null where organisation_id = current_setting('test.org')::uuid;
+
 -- 11. Members can allocate. Outsiders cannot even see allocations.
 select pg_temp.act_as('member');
 select public.allocate(pg_temp.src(current_setting('test.rec_h')::uuid), current_setting('test.inv_h')::uuid, 50, null);
