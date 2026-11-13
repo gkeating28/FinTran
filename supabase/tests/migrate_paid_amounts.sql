@@ -186,7 +186,7 @@ select set_config('test.reference_before', (select last_reference::text from pub
 update public.organisation_defaults set lock_date = '2026-11-30' where organisation_id = current_setting('test.org')::uuid;
 
 \echo Running the migration. Its notices follow.
-\i supabase/migrations/20261113130600_remove_typed_paid_amount.sql
+\i supabase/migrations/20261113130052_remove_typed_paid_amount.sql
 \echo end of migration
 
 -- Every posted document shows what it showed, except the overpaid one, whose negative amount due is now 0.
