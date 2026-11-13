@@ -344,12 +344,12 @@ A payment is money paid out and a receipt is money in. Both live in `payments`, 
 
 | Type | Kind | Direction | Settles |
 | --- | --- | --- | --- |
-| Customer receipt (`REC`) | receipt | Sales | Sales invoices |
-| Supplier payment (`PAY`) | payment | Purchases | Purchase invoices |
-| Customer refund (`CREF`) | payment | Sales | Sales credit notes |
-| Supplier refund (`SREF`) | receipt | Purchases | Purchase credit notes |
+| Customer receipt (`SR`) | receipt | Sales | Sales invoices |
+| Supplier payment (`PP`) | payment | Purchases | Purchase invoices |
+| Customer refund (`SF`) | payment | Sales | Sales credit notes |
+| Supplier refund (`PF`) | receipt | Purchases | Purchase credit notes |
 
-An owner or admin is offered these four on the Transactions menu when the organisation has none. `is_system` marks types made by a migration (`MIGREC`, `MIGPAY`, `MIGCREF`, `MIGSREF`, for figures typed before settlement existed). People cannot create, edit or delete them, and they are left off the Transactions menu and the transaction type admin list. The kind and direction of a type cannot change once a payment uses it.
+The codes follow the document types: the first letter is the direction (`S` Sales, `P` Purchases) and the second the kind. An owner or admin is offered these four on the Transactions menu when the organisation has none. `is_system` marks types made by a migration (`MIGREC`, `MIGPAY`, `MIGCREF`, `MIGSREF`, for figures typed before settlement existed). People cannot create, edit or delete them, and they are left off the Transactions menu and the transaction type admin list. The kind and direction of a type cannot change once a payment uses it.
 
 ### `payments`
 

@@ -87,7 +87,7 @@ test("flow 11: the standard payment types are offered once, a receipt is recorde
   await page.getByRole("button", { name: "Add payment and receipt types" }).click();
   await page.waitForURL((url) => url.pathname === "/transactions");
   await expectNoError(page);
-  for (const code of ["REC", "PAY", "CREF", "SREF"]) {
+  for (const code of ["SR", "PP", "SF", "PF"]) {
     await expect(page.getByRole("link", { name: new RegExp(`${code} · `) })).toBeVisible();
   }
   // Once the types exist the offer is gone.
@@ -100,7 +100,7 @@ test("flow 11: the standard payment types are offered once, a receipt is recorde
   // Record receipt opens a new receipt for the customer with the whole amount due already allocated.
   await openPaymentsTab(page, "SI", total);
   await documentDialog(page).getByRole("link", { name: "Record receipt" }).click();
-  await page.waitForURL(/\/transactions\/REC\?new=1/);
+  await page.waitForURL(/\/transactions\/SR\?new=1/);
   const receipt = paymentDialog(page, /receipt/i);
   await expect(receipt).toBeVisible();
   await expect(receipt.locator('input[name="amount"]')).toHaveValue(total);
@@ -127,7 +127,7 @@ test("flow 12: one receipt pays two invoices with Allocate oldest first", async 
   const sum = (Number(first) + Number(second)).toFixed(2);
 
   // A receipt for the two together. Allocate oldest first fills both boxes, and nothing is left on account.
-  await openList(page, "REC");
+  await openList(page, "SR");
   await page.getByRole("button", { name: "Add", exact: true }).click();
   const receipt = paymentDialog(page, /receipt/i);
   await chooseByCode(receipt.locator('select[name="customer_id"]'), "BETA");
@@ -184,7 +184,7 @@ test("flow 14: a customer is refunded the unallocated balance of a credit note",
   // Refund opens a customer refund for the whole balance. It settles the credit note, not an invoice.
   await openPaymentsTab(page, "SC", credit);
   await documentDialog(page).getByRole("link", { name: "Refund" }).click();
-  await page.waitForURL(/\/transactions\/CREF\?new=1/);
+  await page.waitForURL(/\/transactions\/SF\?new=1/);
   const refund = paymentDialog(page, /refund/i);
   await expect(refund).toBeVisible();
   await expect(refund.locator('input[name="amount"]')).toHaveValue(credit);
@@ -209,12 +209,12 @@ test("flow 15: an allocation on a posted receipt is removed with a reason and th
   // A receipt for the first invoice.
   await openPaymentsTab(page, "SI", first);
   await documentDialog(page).getByRole("link", { name: "Record receipt" }).click();
-  await page.waitForURL(/\/transactions\/REC\?new=1/);
+  await page.waitForURL(/\/transactions\/SR\?new=1/);
   await payFromBank(page, paymentDialog(page, /receipt/i));
   await expectNoError(page);
 
   // Open the posted receipt and remove its allocation. The dialog asks for a reason.
-  await page.goto("/transactions/REC");
+  await page.goto("/transactions/SR");
   await listRows(page).filter({ hasText: first }).first().locator("td").nth(1).click();
   const posted = paymentDialog(page, /receipt/i);
   await expect(posted).toBeVisible();

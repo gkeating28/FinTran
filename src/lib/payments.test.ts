@@ -70,9 +70,9 @@ test("parsePaymentPrefill ignores bad amounts and needs a party", () => {
 });
 
 test("recordPaymentHref round-trips through parsePaymentPrefill", () => {
-  const href = recordPaymentHref("REC", "doc-1", "party-1", "120.50");
+  const href = recordPaymentHref("SR", "doc-1", "party-1", "120.50");
   const query = new URL(href, "http://x").searchParams;
-  assert.equal(new URL(href, "http://x").pathname, "/transactions/REC");
+  assert.equal(new URL(href, "http://x").pathname, "/transactions/SR");
   assert.equal(query.get("new"), "1");
   assert.deepEqual(parsePaymentPrefill({ party: query.get("party") ?? "", allocate: query.get("allocate") ?? "" }), {
     partyId: "party-1",
