@@ -282,10 +282,10 @@ export async function loadDocumentPaymentsTab(headerId: string): Promise<{ data:
 }
 
 const STANDARD_TYPES = [
-  { code: "REC", description: "Customer receipt", type: "Sales", kind: "receipt", prefix: "REC-" },
-  { code: "PAY", description: "Supplier payment", type: "Purchases", kind: "payment", prefix: "PAY-" },
-  { code: "CREF", description: "Customer refund", type: "Sales", kind: "payment", prefix: "CREF-" },
-  { code: "SREF", description: "Supplier refund", type: "Purchases", kind: "receipt", prefix: "SREF-" },
+  { code: "SRC", description: "Customer receipt", type: "Sales", kind: "receipt", prefix: "SRC-" },
+  { code: "PPY", description: "Supplier payment", type: "Purchases", kind: "payment", prefix: "PPY-" },
+  { code: "SRF", description: "Customer refund", type: "Sales", kind: "payment", prefix: "SRF-" },
+  { code: "PRF", description: "Supplier refund", type: "Purchases", kind: "receipt", prefix: "PRF-" },
 ] as const;
 
 /** The four standard types of payment, offered on first use. A code already in use is left alone. */

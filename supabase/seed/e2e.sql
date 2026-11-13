@@ -62,20 +62,20 @@ insert into public.transaction_types (tenant_id, organisation_id, code, descript
 select o.tenant_id, o.id, v.code, v.description, 0, v.type, v.kind::public.document_kind, v.prefix, 5
 from public.organisations as o
 cross join (values
-  ('PR', 'Purchase requisition', 'Purchases', 'requisition', 'PR-'),
-  ('PO', 'Purchase order', 'Purchases', 'order', 'PO-'),
-  ('PI', 'Purchase invoice', 'Purchases', 'invoice', 'PI-'),
-  ('PC', 'Purchase credit note', 'Purchases', 'credit_note', 'PC-'),
-  ('SO', 'Sales order', 'Sales', 'order', 'SO-'),
-  ('SI', 'Sales invoice', 'Sales', 'invoice', 'INV-'),
-  ('SC', 'Sales credit note', 'Sales', 'credit_note', 'CR-')
+  ('PRQ', 'Purchase requisition', 'Purchases', 'requisition', 'PRQ-'),
+  ('POR', 'Purchase order', 'Purchases', 'order', 'POR-'),
+  ('PIN', 'Purchase invoice', 'Purchases', 'invoice', 'PIN-'),
+  ('PCN', 'Purchase credit note', 'Purchases', 'credit_note', 'PCN-'),
+  ('SOR', 'Sales order', 'Sales', 'order', 'SOR-'),
+  ('SIN', 'Sales invoice', 'Sales', 'invoice', 'SIN-'),
+  ('SCN', 'Sales credit note', 'Sales', 'credit_note', 'SCN-')
 ) as v(code, description, type, kind, prefix)
 where o.tenant_id = current_setting('seed.tenant')::uuid;
 
 -- Received e-invoices become Purchases drafts of these types.
 update public.organisation_defaults as d
-set inbound_invoice_type_id = (select id from public.transaction_types where organisation_id = d.organisation_id and code = 'PI'),
-    inbound_credit_note_type_id = (select id from public.transaction_types where organisation_id = d.organisation_id and code = 'PC')
+set inbound_invoice_type_id = (select id from public.transaction_types where organisation_id = d.organisation_id and code = 'PIN'),
+    inbound_credit_note_type_id = (select id from public.transaction_types where organisation_id = d.organisation_id and code = 'PCN')
 where d.organisation_id in (current_setting('seed.org')::uuid, current_setting('seed.org2')::uuid);
 
 -- Two customers and two suppliers with complete e-invoicing details.

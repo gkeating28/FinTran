@@ -55,7 +55,7 @@ test("a customer missing a Peppol ID is not ready, and a supplier only gets a wa
 });
 
 function pay(overrides: Partial<PartyPayment>): PartyPayment {
-  return { id: "p", typeCode: "REC", number: "REC-1", status: "posted", date: "2026-10-05", amount: 100, unallocated: 0, settlesInvoices: true, ...overrides };
+  return { id: "p", typeCode: "SRC", number: "SRC-1", status: "posted", date: "2026-10-05", amount: 100, unallocated: 0, settlesInvoices: true, ...overrides };
 }
 
 test("money on account is unallocated receipts plus credit note balances, newest first", () => {
@@ -66,7 +66,7 @@ test("money on account is unallocated receipts plus credit note balances, newest
     [
       pay({ id: "a", amount: 200, unallocated: 75.5 }),
       pay({ id: "b", unallocated: 0 }),
-      pay({ id: "r", typeCode: "CREF", settlesInvoices: false, unallocated: 30 }),
+      pay({ id: "r", typeCode: "SRF", settlesInvoices: false, unallocated: 30 }),
       pay({ id: "d", status: "draft", unallocated: 90 }),
     ],
   );

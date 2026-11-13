@@ -2,7 +2,7 @@ import { expect, type Locator, type Page } from "@playwright/test";
 
 export type LineInput = { description: string; quantity: string; price: string; gl: string; vat?: string };
 
-/** The list of documents of one type, such as SO or PI. */
+/** The list of documents of one type, such as SOR or PIN. */
 export async function openList(page: Page, typeCode: string) {
   await page.goto(`/transactions/${typeCode}`);
   await expect(page.getByRole("button", { name: "Add", exact: true })).toBeVisible();

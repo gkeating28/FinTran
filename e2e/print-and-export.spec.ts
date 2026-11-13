@@ -49,10 +49,10 @@ test("flow 10: print and PDF of a posted invoice keep the customer's address as 
   await signIn(page, "owner");
 
   // A sales invoice for Beta Stores, 1 at 13.00 plus VAT, 15.99, posted while Beta is at 9 Main Street.
-  await openList(page, "SI");
+  await openList(page, "SIN");
   await startDocument(page, { party: "BETA", sales: true, lines: [{ description: "Flow ten lamp", quantity: "1", price: "13", gl: "4000", vat: "S23" }] });
   await documentDialog(page).getByRole("button", { name: "Save and post", exact: true }).click();
-  await backOnList(page, "SI");
+  await backOnList(page, "SIN");
   await expectNoError(page);
   expect(await rowText(page, "15.99")).toContain("Posted");
   const printHref = await listRows(page).filter({ hasText: "15.99" }).first().getByRole("link", { name: "Print", exact: true }).getAttribute("href");
