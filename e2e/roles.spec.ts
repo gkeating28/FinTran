@@ -13,10 +13,10 @@ test("flow 8: a member does not see void, reject or the settings, and is refused
 
   // The owner posts a purchase invoice for Vodafone: 1 at 10.00 plus VAT, 12.30.
   await signIn(page, "owner");
-  await openList(page, "PI");
+  await openList(page, "PIN");
   await startDocument(page, { party: "VOD", sales: false, supplierReference: "VOD-FLOW8", lines: [{ description: "Flow eight calls", quantity: "1", price: "10", gl: "6000", vat: "P23" }] });
   await documentDialog(page).getByRole("button", { name: "Save and post", exact: true }).click();
-  await backOnList(page, "PI");
+  await backOnList(page, "PIN");
   await expectNoError(page);
   expect(await rowText(page, "12.30")).toContain("Posted");
 
@@ -26,7 +26,7 @@ test("flow 8: a member does not see void, reject or the settings, and is refused
     await signIn(member, "member");
 
     // The posted invoice has no Void for a member.
-    await openList(member, "PI");
+    await openList(member, "PIN");
     await openRow(member, "12.30");
     await expect(documentDialog(member).getByRole("button", { name: "Void", exact: true })).toHaveCount(0);
 
@@ -63,7 +63,7 @@ test("flow 8: a member does not see void, reject or the settings, and is refused
     expect(after?.actions_enabled).toBe(true);
 
     // Still posted: the refusal changed nothing.
-    await openList(member, "PI");
+    await openList(member, "PIN");
     expect(await rowText(member, "12.30")).toContain("Posted");
   } finally {
     await memberContext.close();

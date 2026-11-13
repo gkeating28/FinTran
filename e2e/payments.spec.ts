@@ -30,7 +30,7 @@ async function chooseByCode(select: Locator, code: string) {
 }
 
 /** Posts a sales invoice or credit note of one line, and returns once the list shows it posted. */
-async function postSalesDocument(page: Page, typeCode: "SI" | "SC", party: string, net: string, description: string) {
+async function postSalesDocument(page: Page, typeCode: "SIN" | "SCN", party: string, net: string, description: string) {
   await openList(page, typeCode);
   await startDocument(page, { party, sales: true, lines: [{ description, quantity: "1", price: net, gl: "4000", vat: "S23" }] });
   await documentDialog(page).getByRole("button", { name: "Save and post", exact: true }).click();
@@ -49,7 +49,7 @@ function paymentDialog(page: Page, noun: RegExp) {
 }
 
 /** Opens the posted invoice or credit note with this total and shows its Payments tab. */
-async function openPaymentsTab(page: Page, typeCode: "SI" | "SC", total: string) {
+async function openPaymentsTab(page: Page, typeCode: "SIN" | "SCN", total: string) {
   await openList(page, typeCode);
   await openRow(page, total);
   await documentDialog(page).getByRole("tab", { name: "Payments" }).click();
@@ -87,7 +87,7 @@ test("flow 11: the standard payment types are offered once, a receipt is recorde
   await page.getByRole("button", { name: "Add payment and receipt types" }).click();
   await page.waitForURL((url) => url.pathname === "/transactions");
   await expectNoError(page);
-  for (const code of ["SR", "PP", "SF", "PF"]) {
+  for (const code of ["SRC", "PPY", "SRF", "PRF"]) {
     await expect(page.getByRole("link", { name: new RegExp(`${code} · `) })).toBeVisible();
   }
   // Once the types exist the offer is gone.
@@ -95,10 +95,10 @@ test("flow 11: the standard payment types are offered once, a receipt is recorde
 
   // An invoice, posted.
   const total = withVat(100);
-  await postSalesDocument(page, "SI", "ACME", "100", "Flow eleven goods");
+  await postSalesDocument(page, "SIN", "ACME", "100", "Flow eleven goods");
 
   // Record receipt opens a new receipt for the customer with the whole amount due already allocated.
-  await openPaymentsTab(page, "SI", total);
+  await openPaymentsTab(page, "SIN", total);
   await documentDialog(page).getByRole("link", { name: "Record receipt" }).click();
   await page.waitForURL(/\/transactions\/SR\?new=1/);
   const receipt = paymentDialog(page, /receipt/i);
@@ -109,7 +109,7 @@ test("flow 11: the standard payment types are offered once, a receipt is recorde
   await expect(listRows(page).filter({ hasText: total }).first()).toContainText("Posted");
 
   // The invoice now shows paid.
-  await openList(page, "SI");
+  await openList(page, "SIN");
   await filterByPayment(page, "Paid");
   await expect(listRows(page).filter({ hasText: total })).toHaveCount(1);
   await filterByPayment(page, "Unpaid");
@@ -122,12 +122,12 @@ test("flow 12: one receipt pays two invoices with Allocate oldest first", async 
 
   const first = withVat(110);
   const second = withVat(210);
-  await postSalesDocument(page, "SI", "BETA", "110", "Flow twelve A");
-  await postSalesDocument(page, "SI", "BETA", "210", "Flow twelve B");
+  await postSalesDocument(page, "SIN", "BETA", "110", "Flow twelve A");
+  await postSalesDocument(page, "SIN", "BETA", "210", "Flow twelve B");
   const sum = (Number(first) + Number(second)).toFixed(2);
 
   // A receipt for the two together. Allocate oldest first fills both boxes, and nothing is left on account.
-  await openList(page, "SR");
+  await openList(page, "SRC");
   await page.getByRole("button", { name: "Add", exact: true }).click();
   const receipt = paymentDialog(page, /receipt/i);
   await chooseByCode(receipt.locator('select[name="customer_id"]'), "BETA");
@@ -140,7 +140,7 @@ test("flow 12: one receipt pays two invoices with Allocate oldest first", async 
   await expectNoError(page);
 
   // Both invoices are paid.
-  await openList(page, "SI");
+  await openList(page, "SIN");
   await filterByPayment(page, "Paid");
   await expect(listRows(page).filter({ hasText: first })).toHaveCount(1);
   await expect(listRows(page).filter({ hasText: second })).toHaveCount(1);
@@ -152,11 +152,11 @@ test("flow 13: a credit note's balance is applied to a second invoice", async ({
 
   const invoice = withVat(417);
   const credit = withVat(30);
-  await postSalesDocument(page, "SI", "ACME", "417", "Flow thirteen goods");
-  await postSalesDocument(page, "SC", "ACME", "30", "Flow thirteen allowance");
+  await postSalesDocument(page, "SIN", "ACME", "417", "Flow thirteen goods");
+  await postSalesDocument(page, "SCN", "ACME", "30", "Flow thirteen allowance");
 
   // The credit note has its whole total as balance. Apply it to the invoice with this total.
-  await openPaymentsTab(page, "SC", credit);
+  await openPaymentsTab(page, "SCN", credit);
   await documentDialog(page).getByRole("button", { name: "Apply to an invoice" }).click();
   const apply = page.getByRole("dialog", { name: "Apply to an invoice" });
   await expect(apply).toBeVisible();
@@ -166,10 +166,10 @@ test("flow 13: a credit note's balance is applied to a second invoice", async ({
 
   // The credit note shows its balance used up, and the invoice part paid.
   await expect(documentDialog(page).getByText("Nothing has been applied yet.")).toHaveCount(0);
-  await openList(page, "SC");
+  await openList(page, "SCN");
   await filterByPayment(page, "Paid");
   await expect(listRows(page).filter({ hasText: credit })).toHaveCount(1);
-  await openList(page, "SI");
+  await openList(page, "SIN");
   await filterByPayment(page, "Part paid");
   await expect(listRows(page).filter({ hasText: invoice })).toHaveCount(1);
 });
@@ -179,10 +179,10 @@ test("flow 14: a customer is refunded the unallocated balance of a credit note",
   await signIn(page, "owner");
 
   const credit = withVat(20);
-  await postSalesDocument(page, "SC", "ACME", "20", "Flow fourteen allowance");
+  await postSalesDocument(page, "SCN", "ACME", "20", "Flow fourteen allowance");
 
   // Refund opens a customer refund for the whole balance. It settles the credit note, not an invoice.
-  await openPaymentsTab(page, "SC", credit);
+  await openPaymentsTab(page, "SCN", credit);
   await documentDialog(page).getByRole("link", { name: "Refund" }).click();
   await page.waitForURL(/\/transactions\/SF\?new=1/);
   const refund = paymentDialog(page, /refund/i);
@@ -192,7 +192,7 @@ test("flow 14: a customer is refunded the unallocated balance of a credit note",
   await expectNoError(page);
 
   // The credit note has nothing left.
-  await openList(page, "SC");
+  await openList(page, "SCN");
   await filterByPayment(page, "Paid");
   await expect(listRows(page).filter({ hasText: credit })).toHaveCount(1);
 });
@@ -203,18 +203,18 @@ test("flow 15: an allocation on a posted receipt is removed with a reason and th
 
   const first = withVat(71);
   const second = withVat(73);
-  await postSalesDocument(page, "SI", "ACME", "71", "Flow fifteen A");
-  await postSalesDocument(page, "SI", "ACME", "73", "Flow fifteen B");
+  await postSalesDocument(page, "SIN", "ACME", "71", "Flow fifteen A");
+  await postSalesDocument(page, "SIN", "ACME", "73", "Flow fifteen B");
 
   // A receipt for the first invoice.
-  await openPaymentsTab(page, "SI", first);
+  await openPaymentsTab(page, "SIN", first);
   await documentDialog(page).getByRole("link", { name: "Record receipt" }).click();
   await page.waitForURL(/\/transactions\/SR\?new=1/);
   await payFromBank(page, paymentDialog(page, /receipt/i));
   await expectNoError(page);
 
   // Open the posted receipt and remove its allocation. The dialog asks for a reason.
-  await page.goto("/transactions/SR");
+  await page.goto("/transactions/SRC");
   await listRows(page).filter({ hasText: first }).first().locator("td").nth(1).click();
   const posted = paymentDialog(page, /receipt/i);
   await expect(posted).toBeVisible();
@@ -232,7 +232,7 @@ test("flow 15: an allocation on a posted receipt is removed with a reason and th
   await expect(posted.getByRole("alert")).toHaveCount(0);
 
   // The first invoice is open again, and the second is part paid.
-  await openList(page, "SI");
+  await openList(page, "SIN");
   await filterByPayment(page, "Unpaid");
   await expect(listRows(page).filter({ hasText: first })).toHaveCount(1);
   await filterByPayment(page, "Part paid");

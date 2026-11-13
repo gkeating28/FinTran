@@ -25,7 +25,7 @@ test("flow 7: Ask Qula answers with a card, and a proposed post is confirmed onc
   await signIn(page, "owner");
 
   // A draft purchase invoice for Harbour Supplies: 1 at 40.00 plus VAT, 49.20.
-  await openList(page, "PI");
+  await openList(page, "PIN");
   await startDocument(page, { party: "HARB", sales: false, supplierReference: "HARB-FLOW7", lines: [{ description: "Flow seven rope", quantity: "1", price: "40", gl: "6000", vat: "P23" }] });
   await saveDocument(page);
   expect(await rowText(page, "Harbour")).toContain("Draft");
@@ -49,7 +49,7 @@ test("flow 7: Ask Qula answers with a card, and a proposed post is confirmed onc
   const proposal = drawer.locator("section[data-state]").last();
   await expect(proposal).toHaveAttribute("data-state", "done", { timeout: 30_000 });
 
-  await openList(page, "PI");
+  await openList(page, "PIN");
   expect(await rowText(page, "Harbour")).toContain("Posted");
 
   // The same confirmation a second time is refused, and nothing is done twice.

@@ -240,6 +240,22 @@ An order stores header totals. Later VAT reporting leaves orders out, and an ord
 
 The header insert trigger is what advances it: it adds one and stores that number as the document reference. The first document of a type is reference 1.
 
+### Transaction type codes
+
+Every transaction type code has three characters. The first is the direction, `S` for Sales or `P` for Purchases. The other two say what the record is:
+
+| Kind | Letters | Sales | Purchases |
+| --- | --- | --- | --- |
+| Requisition | `RQ` | none | `PRQ` |
+| Order | `OR` | `SOR` | `POR` |
+| Invoice | `IN` | `SIN` | `PIN` |
+| Credit note | `CN` | `SCN` | `PCN` |
+| Receipt | `RC` | `SRC` customer receipt | none |
+| Payment | `PY` | none | `PPY` supplier payment |
+| Refund | `RF` | `SRF` customer refund | `PRF` supplier refund |
+
+`RF` is used for the types that settle a credit note. In the database those are the payment kind on Sales (money out to a customer) and the receipt kind on Purchases (money in from a supplier). A new kind takes a new two-letter code and needs no exceptions. The printed number prefix is the code and a hyphen (`SIN-`, `SRC-`). It is separate from the code, so a type may have no prefix or a different one. The app does not read a code to decide what a type is: the kind and direction columns do that. The migration `three_character_type_codes` renamed the types of the standard sets, which earlier used `SI`, `PI`, `REC` and similar. It renames a type only when its code, direction and kind were the standard ones, and changes a prefix only when it was still the old default. The hidden `MIG…` types made by the typed paid amount migration are system rows and are not part of this system.
+
 ## Purchase documents
 
 `transaction_headers` is one document. `transaction_lines` are its lines. A sales invoice, sales credit note, or sales order can be saved here. A purchase requires a supplier and cannot name a customer. A sale requires a customer and cannot name a supplier. The document currency must be the party's currency. A supplier invoice number is only stored on a purchase.
@@ -344,12 +360,12 @@ A payment is money paid out and a receipt is money in. Both live in `payments`, 
 
 | Type | Kind | Direction | Settles |
 | --- | --- | --- | --- |
-| Customer receipt (`SR`) | receipt | Sales | Sales invoices |
-| Supplier payment (`PP`) | payment | Purchases | Purchase invoices |
-| Customer refund (`SF`) | payment | Sales | Sales credit notes |
-| Supplier refund (`PF`) | receipt | Purchases | Purchase credit notes |
+| Customer receipt (`SRC`) | receipt | Sales | Sales invoices |
+| Supplier payment (`PPY`) | payment | Purchases | Purchase invoices |
+| Customer refund (`SRF`) | payment | Sales | Sales credit notes |
+| Supplier refund (`PRF`) | receipt | Purchases | Purchase credit notes |
 
-The codes follow the document types: the first letter is the direction (`S` Sales, `P` Purchases) and the second the kind. An owner or admin is offered these four on the Transactions menu when the organisation has none. `is_system` marks types made by a migration (`MIGREC`, `MIGPAY`, `MIGCREF`, `MIGSREF`, for figures typed before settlement existed). People cannot create, edit or delete them, and they are left off the Transactions menu and the transaction type admin list. The kind and direction of a type cannot change once a payment uses it.
+The codes follow the coding system for every transaction type (see Transaction type codes). An owner or admin is offered these four on the Transactions menu when the organisation has none. `is_system` marks types made by a migration (`MIGREC`, `MIGPAY`, `MIGCREF`, `MIGSREF`, for figures typed before settlement existed). People cannot create, edit or delete them, and they are left off the Transactions menu and the transaction type admin list. The kind and direction of a type cannot change once a payment uses it.
 
 ### `payments`
 

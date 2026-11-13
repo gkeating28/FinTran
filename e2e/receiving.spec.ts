@@ -49,7 +49,7 @@ test("flow 5: a received e-invoice from a new supplier is uploaded, the supplier
   await expect(page.locator("form#purchase-document")).toHaveCount(0, { timeout: 30_000 });
   await expectNoError(page);
 
-  await openList(page, "PI");
+  await openList(page, "PIN");
   const row = await rowText(page, "Northside");
   expect(row).toContain("Posted");
   expect(row).toContain("123.00");
