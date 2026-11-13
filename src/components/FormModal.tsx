@@ -5,6 +5,26 @@ import { useSetFormChrome } from "@/components/FormChrome";
 import { CloseIcon } from "@/components/icons";
 import styles from "@/components/OpsPage.module.css";
 
+/**
+ * The first control in a form that a person can type in or choose from. The app's text fields start read-only
+ * (see QuietField) and become editable when touched, so a plain "not read-only" test would skip every one of them and
+ * land on the first list. Locked fields, disabled ones, fields in a hidden tab and fields in a view-only form
+ * (which switches pointer events off) are skipped.
+ */
+function firstEditable(root: HTMLElement) {
+  const controls = root.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+    "input:not([type='hidden']), select, textarea",
+  );
+  for (const control of controls) {
+    if (control.disabled || control.closest("[hidden]")) continue;
+    const typed = control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement;
+    if (typed && control.readOnly && (control.dataset.quiet !== "true" || control.dataset.locked === "true")) continue;
+    if (getComputedStyle(control).pointerEvents === "none") continue;
+    return control;
+  }
+  return null;
+}
+
 export default function FormModal({
   title,
   onClose,
@@ -41,11 +61,7 @@ export default function FormModal({
     if (!dialog || dialog.open) return;
     if (fillPage) dialog.show();
     else dialog.showModal();
-    dialog
-      .querySelector<HTMLElement>(
-        "input:not([type='hidden']):not([readonly]):not(:disabled), select:not(:disabled), textarea:not([readonly]):not(:disabled)",
-      )
-      ?.focus();
+    firstEditable(dialog)?.focus();
     return () => {
       if (dialog.open) dialog.close();
     };

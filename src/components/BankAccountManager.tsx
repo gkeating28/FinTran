@@ -241,31 +241,27 @@ function BankAccountForm({
               ))}
             </select>
           </label>
-          <label className={recordStyles.cell}>
-            <span>
-              <input
-                type="checkbox"
-                name="active"
-                checked={active}
-                onChange={(event) => {
-                  setActive(event.target.checked);
-                  if (!event.target.checked) setIsDefault(false);
-                }}
-              />{" "}
-              Active
-            </span>
+          <label className={styles.checkLine}>
+            <input
+              type="checkbox"
+              name="active"
+              checked={active}
+              onChange={(event) => {
+                setActive(event.target.checked);
+                if (!event.target.checked) setIsDefault(false);
+              }}
+            />
+            Active
           </label>
-          <label className={recordStyles.cell}>
-            <span>
-              <input
-                type="checkbox"
-                name="is_default"
-                checked={isDefault}
-                disabled={!active}
-                onChange={(event) => setIsDefault(event.target.checked)}
-              />{" "}
-              Default for its currency
-            </span>
+          <label className={styles.checkLine}>
+            <input
+              type="checkbox"
+              name="is_default"
+              checked={isDefault}
+              disabled={!active}
+              onChange={(event) => setIsDefault(event.target.checked)}
+            />
+            Default for its currency
           </label>
         </div>
         <div className={styles.modalActions}>

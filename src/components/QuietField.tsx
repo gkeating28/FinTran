@@ -12,6 +12,9 @@ const quiet = {
   "data-lpignore": "true",
   "data-bwignore": "true",
   "data-form-type": "other",
+  // These start read-only so a password manager leaves them alone, and become editable when touched. The marker
+  // tells a form that opens which of its read-only inputs are really fields to type in.
+  "data-quiet": "true",
 } as const;
 
 export function QuietInput({
@@ -34,6 +37,7 @@ export function QuietInput({
         value={value}
         disabled={disabled}
         readOnly={locked || !editable}
+        data-locked={locked ? "true" : undefined}
         onPointerDown={(event) => {
           if (!locked) setEditable(true);
           onPointerDown?.(event);
@@ -68,6 +72,7 @@ export function QuietTextarea({
         value={value}
         disabled={disabled}
         readOnly={locked || !editable}
+        data-locked={locked ? "true" : undefined}
         onPointerDown={(event) => {
           if (!locked) setEditable(true);
           onPointerDown?.(event);
