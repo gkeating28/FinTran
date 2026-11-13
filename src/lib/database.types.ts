@@ -1672,6 +1672,196 @@ export type Database = {
           },
         ]
       }
+      payments: {
+        Row: {
+          allocated_amount: number
+          amount: number
+          bank_account_id: string | null
+          bank_reference: string | null
+          created_at: string
+          created_by: string | null
+          currency_id: string
+          customer_id: string | null
+          document_number: string | null
+          exchange_rate: number
+          home_amount: number
+          home_unallocated_amount: number
+          id: string
+          notes: string | null
+          organisation_id: string
+          party_name: string
+          payment_date: string
+          payment_means_code: string
+          posted_at: string | null
+          posted_by: string | null
+          reference: number | null
+          source: string
+          status: Database["public"]["Enums"]["document_status"]
+          supplier_id: string | null
+          tenant_id: string
+          transaction_type_id: string
+          unallocated_amount: number
+          updated_at: string
+          updated_by: string | null
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          allocated_amount?: number
+          amount: number
+          bank_account_id?: string | null
+          bank_reference?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency_id: string
+          customer_id?: string | null
+          document_number?: string | null
+          exchange_rate: number
+          home_amount?: number
+          home_unallocated_amount?: number
+          id?: string
+          notes?: string | null
+          organisation_id: string
+          party_name: string
+          payment_date: string
+          payment_means_code?: string
+          posted_at?: string | null
+          posted_by?: string | null
+          reference?: number | null
+          source?: string
+          status?: Database["public"]["Enums"]["document_status"]
+          supplier_id?: string | null
+          tenant_id: string
+          transaction_type_id: string
+          unallocated_amount?: number
+          updated_at?: string
+          updated_by?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          allocated_amount?: number
+          amount?: number
+          bank_account_id?: string | null
+          bank_reference?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency_id?: string
+          customer_id?: string | null
+          document_number?: string | null
+          exchange_rate?: number
+          home_amount?: number
+          home_unallocated_amount?: number
+          id?: string
+          notes?: string | null
+          organisation_id?: string
+          party_name?: string
+          payment_date?: string
+          payment_means_code?: string
+          posted_at?: string | null
+          posted_by?: string | null
+          reference?: number | null
+          source?: string
+          status?: Database["public"]["Enums"]["document_status"]
+          supplier_id?: string | null
+          tenant_id?: string
+          transaction_type_id?: string
+          unallocated_amount?: number
+          updated_at?: string
+          updated_by?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_bank_account_fkey"
+            columns: ["organisation_id", "bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["organisation_id", "id"]
+          },
+          {
+            foreignKeyName: "payments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_currency_fkey"
+            columns: ["organisation_id", "currency_id"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["organisation_id", "id"]
+          },
+          {
+            foreignKeyName: "payments_customer_fkey"
+            columns: ["organisation_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["organisation_id", "id"]
+          },
+          {
+            foreignKeyName: "payments_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_payment_means_fkey"
+            columns: ["payment_means_code"]
+            isOneToOne: false
+            referencedRelation: "ref_payment_means"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "payments_posted_by_fkey"
+            columns: ["posted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_supplier_fkey"
+            columns: ["organisation_id", "supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["organisation_id", "id"]
+          },
+          {
+            foreignKeyName: "payments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_transaction_type_fkey"
+            columns: ["organisation_id", "transaction_type_id"]
+            isOneToOne: false
+            referencedRelation: "transaction_types"
+            referencedColumns: ["organisation_id", "id"]
+          },
+          {
+            foreignKeyName: "payments_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_voided_by_fkey"
+            columns: ["voided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           code: string
@@ -2725,6 +2915,7 @@ export type Database = {
           flex4_label: string | null
           flex5_label: string | null
           id: string
+          is_system: boolean
           last_reference: number
           numbering: Database["public"]["Enums"]["numbering_rule"]
           organisation_id: string
@@ -2747,6 +2938,7 @@ export type Database = {
           flex4_label?: string | null
           flex5_label?: string | null
           id?: string
+          is_system?: boolean
           last_reference: number
           numbering?: Database["public"]["Enums"]["numbering_rule"]
           organisation_id: string
@@ -2769,6 +2961,7 @@ export type Database = {
           flex4_label?: string | null
           flex5_label?: string | null
           id?: string
+          is_system?: boolean
           last_reference?: number
           numbering?: Database["public"]["Enums"]["numbering_rule"]
           organisation_id?: string
@@ -3153,7 +3346,13 @@ export type Database = {
       }
     }
     Enums: {
-      document_kind: "invoice" | "credit_note" | "order" | "requisition"
+      document_kind:
+        | "invoice"
+        | "credit_note"
+        | "order"
+        | "requisition"
+        | "payment"
+        | "receipt"
       document_status:
         | "draft"
         | "posted"
@@ -3298,7 +3497,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      document_kind: ["invoice", "credit_note", "order", "requisition"],
+      document_kind: [
+        "invoice",
+        "credit_note",
+        "order",
+        "requisition",
+        "payment",
+        "receipt",
+      ],
       document_status: [
         "draft",
         "posted",
