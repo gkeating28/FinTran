@@ -24,8 +24,10 @@ tenant
         ├── suppliers
         ├── transaction_types
         │     └── transaction_forms    one printable layout
-        └── transaction_headers        purchase documents, sales invoices, and sales credit notes
-              └── transaction_lines
+        ├── transaction_headers        purchase documents, sales invoices, and sales credit notes
+        │     └── transaction_lines
+        ├── payments                   money paid and received, never headers
+        └── allocations                a payment or credit note applied to an invoice or credit note
 ```
 
 Almost every business table carries both `tenant_id` and `organisation_id`. A trigger checks that the organisation belongs to that tenant, and blocks a row from being moved to another organisation. Codes are uppercased and trimmed in those triggers. A code is unique inside one organisation, not across the whole database.
@@ -147,7 +149,7 @@ These tables are the lists under Admin. Each has `tenant_id`, `organisation_id`,
 
 ### `bank_accounts`
 
-The organisation's own bank accounts. Payments and receipts (a later release) are recorded against them. Nothing reads the table yet. It has the standard scoping and audit columns and the same code rule as the lists above, with these columns:
+The organisation's own bank accounts. Every payment and receipt is recorded against one. It has the standard scoping and audit columns and the same code rule as the lists above, with these columns:
 
 | Column | Rule |
 | --- | --- |
@@ -159,7 +161,7 @@ The organisation's own bank accounts. Payments and receipts (a later release) ar
 | `active` | Default true. An inactive account cannot be the default |
 | `is_default` | At most one default per currency, by a partial unique index. Setting a default clears the previous one for that currency in the same statement. Making a default account inactive clears its flag |
 
-Members read the table. Owners and admins write it. `private.enforce_bank_account` does the scope check, the normalisation, the GL type check and the default rule. The `tenant_id` key cascades, as for the other lists, so a tenant that holds only bank accounts can still be deleted. Payments will use `ON DELETE RESTRICT` and be what stops that. The migration `20261113103237_bank_accounts` creates a `MAIN` account in the home currency from each organisation's IBAN, and leaves the organisation's own IBAN in place because invoices still show it (BT-84). `supabase/tests/bank_accounts.sql` checks the rules.
+Members read the table. Owners and admins write it. `private.enforce_bank_account` does the scope check, the normalisation, the GL type check and the default rule. The `tenant_id` key cascades, as for the other lists, so a tenant that holds only bank accounts can still be deleted. Payments and allocations use `ON DELETE RESTRICT` on their own `tenant_id` key, so a tenant with payments cannot be deleted. The migration `20261113103237_bank_accounts` creates a `MAIN` account in the home currency from each organisation's IBAN, and leaves the organisation's own IBAN in place because invoices still show it (BT-84). `supabase/tests/bank_accounts.sql` checks the rules.
 
 ### `gl_codes`
 
@@ -221,12 +223,12 @@ A new sales draft copies blank fields from its customer. A blank buyer reference
 
 ## Transaction types
 
-`transaction_types.type` is `Sales` or `Purchases`. `document_kind` is `invoice`, `credit_note`, or `order`.
+`transaction_types.type` is `Sales` or `Purchases`. `document_kind` is `invoice`, `credit_note`, `order`, `requisition`, `payment` or `receipt`. The last two number payments, which are not documents (see Payments and settlement).
 
 | Column | Meaning |
 | --- | --- |
 | `code`, `description` | The short code shown in menus, read-only after the row is saved, and the name used as the page title |
-| `document_kind` | Invoice, credit note, or order. A description containing “order” was set to order. The kind cannot change after a document has been entered |
+| `document_kind` | Invoice, credit note, order, requisition, payment or receipt. A description containing “order” was set to order. The kind cannot change after a document or payment has been entered |
 | `last_reference` | The last number issued for this type. New types are forced to 0 |
 | `flex1_label` … `flex5_label` | Optional labels, up to 80 characters. A blank label hides that flex field on the document |
 
@@ -270,9 +272,12 @@ The app writes both tables through `save_document(jsonb)`. Direction comes from 
 | `foreign_vat_amount` | Sum of the VAT breakdown, not the sum of the line VAT amounts |
 | `foreign_total_amount` | Nett plus VAT |
 | `rounding_amount` | Optional rounding, editable on a draft. Included in the amount due |
-| `amount_due` | Total minus paid, plus rounding. A posted document updates this when the paid amount changes |
+| `amount_due` | Total minus paid, plus rounding. Worked out by settlement, never typed. A draft owes its whole total |
 | `home_nett_amount`, `home_vat_amount`, `home_total_amount` | Each foreign figure divided by `exchange_rate` and rounded to 2 decimal places |
-| `paid_amount` | Zero or greater. On a posted document this is the only amount that can still be edited. The VAT totals stay as they were |
+| `paid_amount` | Calculated from effective allocations (see Payments and settlement). Nobody types it: `save_document` refuses a `paidAmount`, a draft always has 0, and on a posted document only settlement may change it. On a credit note the same figure is shown as Applied |
+| `home_amount_due` | Home total less the home amount of every effective allocation. Written by settlement |
+| `paid_at_posting` | The paid amount when the document was posted. Every e-invoice reads this, so a generated e-invoice never changes (BT-113, BT-115) |
+| `supplier_stated_paid_amount` | BT-113 on an imported e-invoice. Information only. It is never allocated or counted |
 | `status` | `draft`, `posted`, or `void` for an invoice or credit note. `draft`, `open`, `closed`, or `cancelled` for an order or requisition. Existing documents were marked posted when this column was added |
 | `posted_at`, `posted_by` | Set when the document is posted |
 | `voided_at`, `voided_by`, `void_reason` | Set when an owner or admin voids a posted document. The reason is required |
@@ -328,6 +333,81 @@ On every header insert or update the trigger replaces the six amount columns fro
 | `vat_amount` | Nett × VAT percentage. Set by trigger |
 
 The screen may show a calculated nett and VAT before save. The stored figures are the ones the trigger writes.
+
+## Payments and settlement
+
+A payment is money paid out and a receipt is money in. Both live in `payments`, which is not a document table: a payment never becomes a transaction header, and a header cannot be given a payment type (`private.refuse_payment_kind`). Money is applied to documents by `allocations`. Nothing else writes a paid figure.
+
+### Payment types
+
+`transaction_types.document_kind` also takes `payment` and `receipt`. A type of that kind numbers payments, with the same prefix, padding and numbering rule as a document type. The direction is the type's Sales or Purchases:
+
+| Type | Kind | Direction | Settles |
+| --- | --- | --- | --- |
+| Customer receipt (`REC`) | receipt | Sales | Sales invoices |
+| Supplier payment (`PAY`) | payment | Purchases | Purchase invoices |
+| Customer refund (`CREF`) | payment | Sales | Sales credit notes |
+| Supplier refund (`SREF`) | receipt | Purchases | Purchase credit notes |
+
+An owner or admin is offered these four on the Transactions menu when the organisation has none. `is_system` marks types made by a migration (`MIGREC`, `MIGPAY`, `MIGCREF`, `MIGSREF`, for figures typed before settlement existed). People cannot create, edit or delete them, and they are left off the Transactions menu and the transaction type admin list. The kind and direction of a type cannot change once a payment uses it.
+
+### `payments`
+
+| Column | Rule |
+| --- | --- |
+| `transaction_type_id`, `reference`, `document_number` | The type, and a number issued as for documents. A draft has none when the type numbers on post |
+| `status` | `draft`, `posted` or `void`. Only posting and voiding change it |
+| `source` | `manual`, or `migrated` for a payment made from a typed paid amount |
+| `payment_date`, `customer_id` or `supplier_id`, `party_name` | One party, matching the type's direction. The name is copied from the party |
+| `bank_account_id` | Required for a manual payment. Active, in the payment currency |
+| `currency_id`, `exchange_rate`, `amount`, `home_amount` | The currency is the party's. The rate is 1 in the home currency, and read-only there. Home amount is amount divided by rate |
+| `allocated_amount`, `unallocated_amount`, `home_unallocated_amount` | Written by settlement only |
+| `payment_means_code`, `bank_reference`, `notes` | UNCL4461 code (default `58`), up to 140, up to 4000. On a posted payment only the notes and bank reference change |
+| `posted_at`, `voided_at`, `void_reason` | Set by posting and voiding. The reason is required |
+
+Row level security lets members read, insert drafts, and update drafts and posted rows. A void payment cannot be changed and only a draft can be deleted. `private.enforce_payment` holds every other rule.
+
+### `allocations`
+
+An allocation applies part or all of a payment, a receipt or a credit note to an open invoice or credit note. People cannot write the table: the functions below do, and `private.enforce_allocation` checks every rule.
+
+| Source | Allowed target |
+| --- | --- |
+| Customer receipt | Posted sales invoice |
+| Supplier payment | Posted purchase invoice |
+| Customer refund | Posted sales credit note |
+| Supplier refund | Posted purchase credit note |
+| Posted sales credit note | Posted sales invoice |
+| Posted purchase credit note | Posted purchase invoice |
+
+- Source and target are in the same organisation, for the same party, in the same currency. A credit note is never the target of another credit note.
+- **Effective** means not pending and not removed. A draft payment holds **pending** allocations, which do nothing until it posts. A removal is recorded with a reason and who made it. An allocation is never edited or deleted once effective.
+- Over-allocation is refused. An invoice cannot be allocated more than its total plus rounding. A payment cannot allocate more than its amount. A credit note's allocations as source plus as target cannot exceed its total plus rounding.
+- The allocation date is the later of the two documents, or later. It must not fall in a locked period. The lock date applies to the allocation, so settlement may update a document dated inside a locked period.
+- Home amounts are set at both rates and the difference is stored as `exchange_difference` (gain positive). It is kept for the accounting integration and posted nowhere. The allocation that settles a document, or uses up a payment, takes the home balance that is left.
+- Every function that allocates locks the source row, then each target in id order, before it reads what is open.
+
+### Settlement
+
+`private.refresh_settlement` is the one place that writes `paid_amount`, `amount_due` and `home_amount_due` on a posted document and the allocated figures on a payment. An invoice's paid amount is the sum of effective allocations targeting it. A credit note's is the same plus those where it is the source. A trigger calls it for both sides after every insert, removal or change of `pending`. While it runs, `fintran.settlement` is set so that the posted-document guard accepts those columns, the audit columns are left alone, and the audit log skips a header update that changes only them. The allocation rows are audited instead. Void documents are never refreshed.
+
+### Functions
+
+| Function | What it does |
+| --- | --- |
+| `save_payment(jsonb)` | Inserts or replaces a draft and its pending allocations. Security invoker |
+| `post_payment(id)` | Checks every planned allocation against what is open now, numbers the payment, and makes the allocations effective. Fails with the list of documents that no longer have enough open |
+| `void_payment(id, reason)` | Owners and admins. Removes every effective allocation with the reason, then voids |
+| `delete_payment(id)` | Deletes a draft and its pending allocations |
+| `allocate`, `allocate_lines`, `allocate_oldest_first` | Allocate from a posted payment or credit note, one document, several in one step, or oldest due date first |
+| `remove_allocation(id, reason)` | Removes an effective allocation |
+| `replace_pending_allocations` | Used by `save_payment`. It is in `public` because that function runs with the caller's rights and cannot reach `private` |
+
+`post_document` fixes `paid_at_posting`, then applies a credit note to its preceding invoice, up to what is open on the invoice. `void_document` is refused while the document has an effective allocation. Voiding a purchase drops pending ones.
+
+### Typed paid amounts
+
+Before settlement the paid amount was a figure typed on the document. The migration `remove_typed_paid_amount` turns each posted document with such a figure into a migrated payment and one allocation, so its paid amount and amount due come out as they were, and clears the figure on drafts. It reports every decision as a notice, checks every posted document afterwards, and does nothing on a second run. A document typed as paid for more than its total is allocated up to its total and the rest stays on the migrated payment.
 
 ## Printable forms
 
@@ -389,4 +469,6 @@ Posted sales invoices and credit notes can be stored as UBL e-documents. Orders 
 
 Ask Qula is the sparkle button at the right of the title bar. The chat slides in from the right. Until an owner or admin enables a provider, a question is matched by keyword and answered from that organisation's transactions, e-documents, or overdue invoices. When AI is enabled, the question and the data needed to answer it are sent to the organisation's provider. The tools are read-only and use the signed-in user's session. Ask Qula can also propose posting a draft or adding a customer or supplier, but only when an owner or admin has switched actions on for the organisation. Actions are off by default and are separate from AI answers. Nothing happens until a person confirms. The confirmation shows figures read from the database, not the model's words. A confirmation works once, for ten minutes, and is refused if the document changed after it was proposed. A draft that is not ready to post cannot be confirmed. When someone rates an answer, the question and answer are kept with the rating only if an owner or admin has switched that on and accepted a notice naming how long they are kept. The text is kept for 30 days unless the organisation chooses another period from 1 to 365 days, then deleted automatically. The rating is kept. Only owners and admins can read the stored text. A transaction card opens that transaction. An e-document card opens that e-document. The conversation stays in the browser, including when the record is opened. API keys are stored as ciphertext. Access Point settings are per organisation and currently use the mock provider.
 
-Purchase and sales pages share one entry form. The transaction type is fixed on that page, so each type keeps its own reference sequence and flex labels. A purchase uses a supplier. A sale uses a customer. Currency is taken from that party and shown read-only. The exchange rate is read-only when that currency is the organisation home currency. The form is one status line, then Document, Notes, and Payment, with the header and totals on the left and the lines on the right. A posted sales invoice lists its credit notes and the amount still available to credit. A sales order uses that same form. The transaction type form sets the document number prefix and padding.
+Payments and receipts have their own list (`/transactions/{code}` for a payment type) and entry screen. The header is on the left: date, party, bank account, amount, currency, exchange rate, payment means, bank reference and notes. The open items of the party are on the right, each with an Allocate amount, with Allocate oldest first and Clear. Totals show Amount, Allocated and On account. Save, Save and post and Delete are for drafts. Void, and Remove on an allocation, ask for a reason and are for owners and admins. A posted payment's open items stay usable to allocate money that is still on account.
+
+Purchase and sales pages share one entry form. The transaction type is fixed on that page, so each type keeps its own reference sequence and flex labels. A purchase uses a supplier. A sale uses a customer. Currency is taken from that party and shown read-only. The exchange rate is read-only when that currency is the organisation home currency. The form is one status line, then Document, Notes, and Payment, with the header and totals on the left and the lines on the right. A posted invoice or credit note has a fourth tab, Payments, listing what settled it, what is open, and buttons to record a receipt, a payment or a refund, or to apply a credit note to an invoice. A posted sales invoice lists its credit notes and the amount still available to credit. Document lists have Paid and Amount due columns and a filter for unpaid, part paid and paid. The customer and supplier summary shows money on account and recent payments. A sales order uses that same form. The transaction type form sets the document number prefix and padding.

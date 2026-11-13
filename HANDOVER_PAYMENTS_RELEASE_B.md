@@ -44,7 +44,8 @@ None of the screen code has been opened in a browser. It compiles and passes lin
    Original note: Document grids: Paid and Amount due columns and an unpaid, part paid or paid filter (`DocumentManager.tsx` already has a Paid column). Party summary (`party-summary.ts`, `party-summary-actions.ts`): money on account and recent payments, with tests in `party-summary.test.ts`.
 5. **End-to-end flows. WRITTEN, UNRUN.** `e2e/payments.spec.ts`, flows 11 to 15, one per acceptance case. Selectors come from the components, not from a run. The first CI run will show what needs fixing.
    Original note: in `e2e/` for the five acceptance flows in phase 6. They cannot be run without the local Supabase stack, so write them carefully and say they are unrun.
-6. **Documentation.** `CORE.md`, `TECHNICAL.md` and the status document: payments, receipts, allocations, settlement, calculated paid amounts. Drop "Paid amount is a single figure typed on the document" from the gaps if it is there. Add `supabase/tests/*` and the new concurrency test to the testing section.
+6. **Documentation. DONE.** `CORE.md` has a Payments and settlement section and updated header, transaction type and screen text. `TECHNICAL.md` has the actions, functions, permissions, tests and e2e flows. There is no separate status document in the repository. The gap line about a typed paid amount was not in `CORE.md` or `TECHNICAL.md`.
+   Original note: `CORE.md`, `TECHNICAL.md` and the status document: payments, receipts, allocations, settlement, calculated paid amounts. Drop "Paid amount is a single figure typed on the document" from the gaps if it is there. Add `supabase/tests/*` and the new concurrency test to the testing section.
 7. Regenerate or hand-check `database.types.ts` (`node scripts/check-db-types.mjs` passes now).
 
 ## Decisions made while building, which the spec should say

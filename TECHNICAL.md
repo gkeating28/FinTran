@@ -153,7 +153,7 @@ Every transaction type runs through the one document screen, `DocumentManager` a
 
 A button on the open document that changes its status, or makes another document from it, never loses what is on the screen. When the form has unsaved changes, Post, Activate, Close, Cancel, Create invoice and Create credit note save first and act second, in one step, and the label says so: "Save and post", "Save and activate order". If the save fails its errors are shown, the action does not run and the document stays as it was. With nothing unsaved the button runs the action as before. Reopen is only offered on a closed order, which cannot be edited, so it never has anything to save.
 
-The button submits the document form with `then_action` set (`DOCUMENT_FORM` in `document/shared.ts`). `saveDocument` saves, and only if that worked runs the action on the saved document through `runFollowOn`, which calls the same server actions as the plain buttons. `src/lib/follow-on.ts` lists which actions may follow which save, and anything else is ignored. A posted document saves only its paid amount, and the one action that can follow is Create credit note. The form counts as changed when it is a new document, when a field has been edited, or when its lines differ from the saved ones. From order brings lines into the form in the browser, so it changes nothing on the server and needs no save.
+The button submits the document form with `then_action` set (`DOCUMENT_FORM` in `document/shared.ts`). `saveDocument` saves, and only if that worked runs the action on the saved document through `runFollowOn`, which calls the same server actions as the plain buttons. `src/lib/follow-on.ts` lists which actions may follow which save, and anything else is ignored. A posted document saves nothing, because its paid amount is worked out from payments, and the one action that can follow is Create credit note. The form counts as changed when it is a new document, when a field has been edited, or when its lines differ from the saved ones. From order brings lines into the form in the browser, so it changes nothing on the server and needs no save.
 
 Linked documents, Credit notes and Bring in from an order are dialogs in `src/components/OrderDialogs.tsx`, built on `FormModal` like the line editor. Void is a `FormModal` too. No panel on a document floats over it. Bring in lists each order's lines with a tick box, so single lines can be brought in. An order or a requisition has a Linked documents dialog. It lists the documents made from it. While it is active the document also has a Create invoice button, or Create purchase order on a requisition, which calls the `createFromOrder` action. When more than one type could be created the button opens the panel to choose. An invoice that is not locked has a From order button beside the Order number field on the Document tab, which turns blue once a supplier or customer is chosen. It lists the active orders of the chosen supplier or customer that have something left, and brings their lines in with what is left, in the browser, to be saved with the invoice. An order closes by itself when posted invoices cover every line. `supabase/tests/order_auto_close.sql` checks it.
 
@@ -241,8 +241,8 @@ Ask Qula knows the page. A screen that has a record open calls `useAskContext` (
 | `/login`, `/signup` | Email sign-in and account creation |
 | `/` | Home dashboard for the open organisation: a full width welcome banner that also carries the workspace facts, document counts, documents posted in each of the last six weeks, shortcuts, and the five latest changes for owners and admins in a column that runs from the cards to the bottom of the shortcuts. Styles are in `src/components/Home.module.css`, counts in `src/lib/home-data.ts`. A "Worth a look" card (`HomeInsights`, rules in `src/lib/insights.ts`) streams in after the rest: past due documents, drafts that cannot be sent as e-invoices (newest 10 checked), possible duplicates, unusually large documents, what falls due in 7 days, open orders still to invoice and open orders that are fully invoiced and can be closed. Orders and requisitions are left out of the invoice rules. The rules are fixed and use no AI. Ask Qula reads the same list through its `insights` tool. |
 | `/transactions` | Transaction types, with draft, posted, and void counts |
-| `/transactions/{code}` | Document list for that type |
-| `/transactions/{code}` with a document open | The shared entry form |
+| `/transactions/{code}` | Document list for that type, or the payment list when the type is a payment or receipt. `?new=1&party={id}&allocate={documentId}:{amount},…` opens a new payment already allocated, as Record receipt does |
+| `/transactions/{code}` with a document open | The shared entry form. A payment or receipt opens the payment form |
 | `/customers`, `/suppliers` | Parties |
 | `/e-documents` | Received and sent e-documents, filtered by status, party, date, and number |
 | `/e-documents/{id}` | The import form when the file is an inbound valid invoice. Otherwise a read-only view (`EDocumentView`, styles in `EDocument.module.css`): the invoice facts, seller and buyer, lines and totals, then validation and history, with a link to the purchase or sales document it belongs to. The view reads the stored XML again, so a file stored by an earlier reader shows what the current reader finds. The import form is `ImportEInvoice` in `src/components/ImportEInvoice.tsx`, a shell over `src/components/import-einvoice/`: `useImportForm` (the lists it loads, the choices made, what blocks Save and the submit handler), `useImportSplit` (the draggable split between header and lines), and the panels `HeaderPane`, `TotalsSummary`, `LinesPane`, `LineCoding` and `CreateSupplierDialog`. |
@@ -287,6 +287,7 @@ Server actions run on the server with the user session and return `{ error }` or
 | `actions.ts` | `signIn`, `signUp`, `signOut`, `selectOrganisation` | Auth session and the organisation cookie |
 | `actions.ts` | `createTenant`, `createOrganisation`, `deleteOrganisation`, `grantAccess`, `revokeAccess` | Tenant, organisation, and access RPCs |
 | `reference-actions.ts` | `createReference`, `updateReference`, `deleteReference` | GL codes, departments, cost centres |
+| `payment-actions.ts` | `savePayment`, `postPayment`, `voidPayment`, `deletePayment`, `applyAllocations`, `allocateOldestFirst`, `removeAllocation`, `updatePaymentNotes`, `loadOpenItems`, `loadPayment`, `loadDocumentPaymentsTab`, `createStandardPaymentTypes` | Payments, receipts and refunds, and allocations. `payment-data.ts` lists payments, open items and a document's allocations. `payments.ts` holds the pure rules and has tests |
 | `bank-account-actions.ts` | `createBankAccount`, `updateBankAccount`, `deleteBankAccount` | Bank accounts. `bank-accounts.ts` reads the form and `bank-account-data.ts` lists the rows, currencies and Current Asset GL codes |
 | `currency-actions.ts` | `createCurrency`, `updateCurrency`, `deleteCurrency`, `updateOrganisationDefaults` | Currencies, defaults, logo, and `rename_organisation` |
 | `transaction-type-actions.ts` | `createTransactionType`, `updateTransactionType`, `deleteTransactionType` | Transaction types |
@@ -299,7 +300,7 @@ Server actions run on the server with the user session and return `{ error }` or
 
 `saveDocument` sends this JSON to `save_document`:
 
-`id`, `transactionTypeId`, `transactionDate`, `dueDate`, `supplierId`, `customerId`, `partyName`, `contactDetails`, `notes`, `currencyId`, `exchangeRate`, `orderNumber`, `supplierReference`, `supplyDate`, `precedingHeaderId`, `precedingReference`, `precedingDate`, `buyerReference`, `contractReference`, `paymentTerms`, `invoicePeriodStart`, `invoicePeriodEnd`, `paymentMeansCode`, `paidAmount`, `roundingAmount`, `flex1`–`flex5`, and `lines`.
+`id`, `transactionTypeId`, `transactionDate`, `dueDate`, `supplierId`, `customerId`, `partyName`, `contactDetails`, `notes`, `currencyId`, `exchangeRate`, `orderNumber`, `supplierReference`, `supplyDate`, `precedingHeaderId`, `precedingReference`, `precedingDate`, `buyerReference`, `contractReference`, `paymentTerms`, `invoicePeriodStart`, `invoicePeriodEnd`, `paymentMeansCode`, `roundingAmount`, `flex1`–`flex5`, and `lines`.
 
 Each line sends `productId`, `description`, `glCodeId`, `departmentId`, `costCentreId`, `vatRateId`, `quantity`, `price`, `discountAmount`, `unitCode`, `lineNote`, and `sellerItemId`.
 
@@ -319,7 +320,14 @@ These are the `public` functions the app is allowed to call. Arguments match `sr
 | `revoke_organisation_access(p_organisation_id, p_user_id)` | void | Removes a grant. An organisation keeps at least one owner. |
 | `save_document(p_document jsonb)` | uuid | Inserts or replaces a draft header and its lines. Security invoker, so header and line policies still apply. |
 | `post_document(p_header_id, p_logo_path default null)` | void | Posts a draft. Sales types that number on post take the next number here. |
-| `void_document(p_header_id, p_reason)` | void | Voids a posted purchase. A posted sale is corrected with a credit note. |
+| `void_document(p_header_id, p_reason)` | void | Voids a posted purchase with no effective allocation. A posted sale is corrected with a credit note. |
+| `save_payment(p_payment jsonb)` | uuid | Inserts or replaces a draft payment and its planned allocations. Security invoker. |
+| `post_payment(p_payment_id)` | void | Posts a draft payment and makes its allocations effective. Fails with the documents that no longer have enough open. |
+| `void_payment(p_payment_id, p_reason)` | void | Owners and admins. Removes every effective allocation, then voids. |
+| `delete_payment(p_payment_id)` | void | Deletes a draft payment. |
+| `allocate(p_source jsonb, p_target_header_id, p_amount, p_date default null)`, `allocate_lines(p_source, p_lines)`, `allocate_oldest_first(p_source)` | uuid, integer, integer | Allocate a posted payment or credit note to one document, to several in one step, or oldest due date first. `p_source` is `{paymentId}` or `{creditNoteId}`. |
+| `remove_allocation(p_allocation_id, p_reason)` | void | Removes an effective allocation. The reason is required. |
+| `replace_pending_allocations(p_payment_id, p_lines)` | void | Used by `save_payment`. Draft payments only. |
 | `en16931_document(p_header_id)` | JSON | Business terms for a document the caller can see. Orders raise an error. |
 | `en16931_readiness(p_header_id)` | rows of `rule_id`, `severity`, `business_term`, `message` | Gaps. Sales errors block posting. Purchase gaps are warnings, apart from the credit-note preceding invoice. |
 | `en16931_source(p_header_id)` | JSON | Source payload used to build the business terms |
@@ -416,7 +424,7 @@ A purchase requires a supplier and cannot name a customer. A sale requires a cus
 | `invoice_period_start`, `invoice_period_end` | Both set or both empty. End is not before start. |
 | `payment_means_code` | UNCL4461. A sales post with an IBAN and a blank means becomes `58` (SEPA). Purchases stay unset. |
 | Amounts | `foreign_nett_amount`, `foreign_vat_amount`, `foreign_total_amount`, `rounding_amount`, `amount_due`, and the three `home_*` amounts. Money is `numeric(18,2)`. Prices and quantities stay at 4 decimals. |
-| `paid_amount` | The only amount still editable after posting |
+| `paid_amount`, `amount_due`, `home_amount_due` | Calculated by `private.refresh_settlement` from effective allocations. Nobody edits them |
 | `status` | `draft`, `posted`, or `void` |
 | `posted_at`, `posted_by`, `voided_at`, `voided_by`, `void_reason` | Set by `post_document` and `void_document` |
 | `issuer_snapshot`, `party_snapshot` | Copies taken at posting, including address, Peppol, VAT, company number, and, for the issuer, bank details |
@@ -497,7 +505,10 @@ Posting an imported draft is refused when its nett, VAT, or total differs from `
 | Read the open organisation | yes | yes | yes |
 | Customers, suppliers, and drafts | create, edit, delete | yes | yes |
 | Post a document | yes | yes | yes |
-| Edit the paid amount on a posted document | yes | yes | yes |
+| Enter, save, post and delete a payment, and allocate it | yes | yes | yes |
+| Remove an allocation, void a payment | no | yes | yes |
+| Apply a posted credit note to an invoice | yes | yes | yes |
+| Create the standard payment types | no | yes | yes |
 | Void a posted purchase | no | yes | yes |
 | Raise a credit note from a posted sale | yes | yes | yes |
 | Setup lists, forms, defaults, logo, lock date | read | change | change |
@@ -525,8 +536,8 @@ Four checks run in `.github/workflows/check.yml` on every pull request and on ev
 | --- | --- | --- |
 | Unit tests | `npm test` | Pure code: spreadsheet safety, Ask Qula actions and its scripted mock provider, order progress, follow-on actions, e-invoice parsing and the golden order reference files. A new test file is added to the `test` script in `package.json`. |
 | Types | `npm run db:types` | `database.types.ts` has every table and every column the migrations create, and no others. To fix it, regenerate the types from the project and replace the file. |
-| SQL tests | `scripts/run-sql-tests.sh` | The database rules, on a local Supabase stack built from `supabase/migrations`. Each test raises on a broken rule and rolls back. `concurrency/last_unit.sh` uses two sessions and commits a small tenant. Run them on a clean database, because the end-to-end seed uses a Peppol ID that some tests also use. |
-| End to end | `npm run e2e` | Ten flows in Chromium against the built app and a seeded local stack, and a smoke check that every main page loads for the owner, admin and member without console errors. |
+| SQL tests | `scripts/run-sql-tests.sh` | The database rules, on a local Supabase stack built from `supabase/migrations`. Each test raises on a broken rule and rolls back. `concurrency/last_unit.sh` and `concurrency/last_amount.sh` use two sessions and commit a small tenant: the first for the last unit of an order, the second for two payments allocating the last 100.00 of an invoice at once, where one succeeds, one is refused and neither deadlocks. The payment tests are `payments.sql`, `allocations.sql`, `payment_functions.sql` and `migrate_paid_amounts.sql`, which runs the migration file itself. Run them on a clean database, because the end-to-end seed uses a Peppol ID that some tests also use. |
+| End to end | `npm run e2e` | Sixteen flows in Chromium against the built app and a seeded local stack, and a smoke check that every main page loads for the owner, admin and member without console errors. |
 
 The Supabase CLI is pinned in the workflow, because "latest" asks the GitHub API which release that is and a run that hits its rate limit fails before any of our code runs. Move the pin up on purpose, in a pull request of its own.
 
@@ -534,7 +545,7 @@ The Supabase CLI is pinned in the workflow, because "latest" asks the GitHub API
 
 `npm run e2e:seed` signs up three people through the sign-up API (`owner@qula.test`, `admin@qula.test` and `member@qula.test`, in `e2e/people.ts`) and runs `supabase/seed/e2e.sql`. That makes one tenant with two organisations, the setup lists, a Purchases and a Sales type for each kind of document, two customers, two suppliers, and Ask Qula on the mock provider with actions switched on. It refuses to run against anything that is not a local stack. Nothing in the tests calls a real AI or Access Point service. The mock AI provider in `src/lib/ai/mock.ts` follows a fixed script: a question about drafts looks them up, and a request to post proposes posting the first draft found. The lookup, the cards, the proposal and its single-use token are the real code.
 
-The flows run one at a time, in file order, on one database, and each signs in through the real sign-in page. Flow 6 uses the e-invoice that flow 5 imports.
+The flows run one at a time, in file order, on one database, and each signs in through the real sign-in page. Flow 6 uses the e-invoice that flow 5 imports, and flows 11 to 15 use the bank account and payment types flow 11 sets up, so they are skipped if it fails. Flows 11 to 15 were written without a local stack to run them against.
 
 | Flow | What it proves |
 | --- | --- |
@@ -548,6 +559,12 @@ The flows run one at a time, in file order, on one database, and each signs in t
 | 8 | A member sees no Void, Reject or settings, and the database refuses the same calls made directly. |
 | 9 | A grid with a formula-like party name exports it as plain text. |
 | 10 | Print and PDF of a posted invoice keep the address it was posted with. |
+| 9 (bank accounts) | An owner sets up bank accounts, a member can only read them, and the database refuses a direct write. |
+| 11 | The standard payment types are offered once, a receipt is recorded from a posted invoice, and the invoice shows paid. |
+| 12 | One receipt pays two invoices with Allocate oldest first. |
+| 13 | A credit note's balance is applied to a second invoice. |
+| 14 | A customer is refunded the unallocated balance of a credit note. |
+| 15 | An allocation on a posted receipt is removed with a reason and the money goes to another invoice. |
 
 The helpers are `e2e/documents.ts` (open a list, fill a document, press a button, read a row), `e2e/api.ts` (call the API as a test person, to check what the screens hide) and `e2e/upload.ts` (upload an e-invoice and fail with the server's own message). The test files are in `e2e/files`.
 
