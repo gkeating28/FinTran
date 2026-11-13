@@ -279,6 +279,8 @@ begin
   v_credit := pg_temp.credit(v_first, 'PC', 2, true);
   perform public.post_document(v_credit, null);
   perform pg_temp.expect('a purchase credit note reopens the order too', pg_temp.state(v_order), 'open:false');
+  -- Posting applied the credit note to its invoice, so that is removed before the credit note can be voided.
+  perform public.remove_allocation((select id from public.allocations where source_header_id = v_credit and removed_at is null), 'Entered twice');
   perform public.void_document(v_credit, 'Entered twice');
   perform pg_temp.expect('voiding it while the quantity is free closes the order again', pg_temp.state(v_order), 'closed:true');
 
@@ -287,6 +289,8 @@ begin
   v_second := pg_temp.invoice_from(v_order, 'PI', null);
   perform public.post_document(v_second, null);
   perform pg_temp.expect('re-invoiced, the order is closed', pg_temp.state(v_order), 'closed:true');
+  -- Posting applied the credit note to its invoice. A document with an effective allocation cannot be voided.
+  perform public.remove_allocation((select id from public.allocations where source_header_id = v_credit and removed_at is null), 'Entered twice');
   begin
     perform public.void_document(v_credit, 'Entered twice');
     raise exception 'phase 4: a credit note was voided after its quantity was invoiced again';

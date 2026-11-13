@@ -6,6 +6,18 @@ export const DOCUMENT_KINDS = ["invoice", "credit_note", "order", "requisition"]
 
 export type DocumentKind = (typeof DOCUMENT_KINDS)[number];
 
+/** A payment is money out and a receipt is money in. Neither is a document: they are never transaction headers. */
+export const PAYMENT_KINDS = ["payment", "receipt"] as const;
+
+export type PaymentKind = (typeof PAYMENT_KINDS)[number];
+
+/** Every kind a transaction type can have. */
+export type TypeKind = DocumentKind | PaymentKind;
+
+export function isPaymentKind(kind: TypeKind | string | null | undefined): kind is PaymentKind {
+  return kind === "payment" || kind === "receipt";
+}
+
 /** Draft, posted and void belong to invoices and credit notes. Draft, open, closed and cancelled belong to orders and requisitions. */
 export const DOCUMENT_STATUSES = ["draft", "posted", "void", "open", "closed", "cancelled"] as const;
 
@@ -33,7 +45,7 @@ export type TransactionTypeRow = {
   description: string;
   lastReference: number;
   type: TransactionTypeKind;
-  documentKind: DocumentKind;
+  documentKind: TypeKind;
   documentCount: number;
   numbering: "on_insert" | "on_post";
   referencePrefix: string;
@@ -63,7 +75,14 @@ export function parseDocumentKind(value: string): DocumentKind | null {
   return DOCUMENT_KINDS.find((kind) => kind === value) ?? null;
 }
 
-export function documentKindLabel(kind: DocumentKind) {
+/** The kind of a type, whether it is for documents or for payments. */
+export function parseTypeKind(value: string): TypeKind | null {
+  return DOCUMENT_KINDS.find((kind) => kind === value) ?? PAYMENT_KINDS.find((kind) => kind === value) ?? null;
+}
+
+export function documentKindLabel(kind: TypeKind) {
+  if (kind === "payment") return "Payment";
+  if (kind === "receipt") return "Receipt";
   if (kind === "credit_note") return "Credit note";
   if (kind === "order") return "Order";
   if (kind === "requisition") return "Requisition";

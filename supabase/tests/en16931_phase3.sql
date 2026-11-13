@@ -94,7 +94,10 @@ begin
 
   perform public.post_document(v_header, null);
   select foreign_vat_amount into v_stored from public.transaction_headers where id = v_header;
+  -- A paid figure is written by settlement only, so the test says it is settlement.
+  perform set_config('fintran.settlement', 'on', true);
   update public.transaction_headers set paid_amount = 0.10 where id = v_header;
+  perform set_config('fintran.settlement', 'off', true);
   select foreign_vat_amount, amount_due into v_vat, v_due from public.transaction_headers where id = v_header;
   if v_vat <> v_stored or v_due <> 0.13 then
     raise exception 'phase 3: paying changed VAT to % or amount due to %', v_vat, v_due;

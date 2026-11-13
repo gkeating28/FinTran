@@ -6,6 +6,7 @@ type OrganisationTable =
   | "cost_centres"
   | "vat_rates"
   | "currencies"
+  | "bank_accounts"
   | "transaction_types"
   | "products"
   | "organisation_access"
@@ -18,6 +19,7 @@ export type AdminCounts = {
   costCentres: number | null;
   vatRates: number | null;
   currencies: number | null;
+  bankAccounts: number | null;
   transactionTypes: number | null;
   products: number | null;
   access: number | null;
@@ -42,13 +44,14 @@ async function countRows(
 
 export async function adminCounts(organisationId: string): Promise<AdminCounts> {
   const supabase = await createClient();
-  const [glCodes, departments, costCentres, vatRates, currencies, transactionTypes, products, access, forms, history] =
+  const [glCodes, departments, costCentres, vatRates, currencies, bankAccounts, transactionTypes, products, access, forms, history] =
     await Promise.all([
       countRows(supabase, "gl_codes", organisationId),
       countRows(supabase, "departments", organisationId),
       countRows(supabase, "cost_centres", organisationId),
       countRows(supabase, "vat_rates", organisationId),
       countRows(supabase, "currencies", organisationId),
+      countRows(supabase, "bank_accounts", organisationId),
       countRows(supabase, "transaction_types", organisationId),
       countRows(supabase, "products", organisationId),
       countRows(supabase, "organisation_access", organisationId),
@@ -62,6 +65,7 @@ export async function adminCounts(organisationId: string): Promise<AdminCounts> 
     costCentres,
     vatRates,
     currencies,
+    bankAccounts,
     transactionTypes,
     products,
     access,

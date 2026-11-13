@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { useGridLines } from "@/components/GridLines";
 import { useGridPageSize } from "@/components/useGridPageSize";
-import { saveDocument, updatePaidAmount } from "@/lib/document-actions";
+import { saveDocument } from "@/lib/document-actions";
 import type { DocumentChoices } from "@/lib/document-data";
 import { isOrderKind } from "@/lib/transaction-types";
 import { useRegion } from "@/components/useRegion";
@@ -44,13 +44,9 @@ export function useDocumentForm({ title, header, readiness, readinessPending, li
   const closed = header?.status === "closed";
   const cancelled = header?.status === "cancelled";
   const locked = posted || voided || closed || cancelled;
-  const [saveState, saveAction, savePending] = useActionState(saveDocument, {} as ActionState);
-  const [paidState, paidAction, paidPending] = useActionState(updatePaidAmount, {} as ActionState);
+  const [state, action, pending] = useActionState(saveDocument, {} as ActionState);
   // True once a field on the form has been changed. Lines are compared with the saved ones further down.
   const [fieldsDirty, setFieldsDirty] = useState(false);
-  const state = posted ? paidState : saveState;
-  const action = posted ? paidAction : saveAction;
-  const pending = posted ? paidPending : savePending;
   const [typeId] = useState(header?.transactionTypeId ?? choices.types[0]?.id ?? "");
   const [transactionDate, setTransactionDate] = useState(header?.transactionDate ?? today());
   const [dueDate, setDueDate] = useState(header?.dueDate ?? "");
@@ -65,7 +61,6 @@ export function useDocumentForm({ title, header, readiness, readinessPending, li
   const [salesOrderReference, setSalesOrderReference] = useState(header?.salesOrderReference ?? "");
   const [supplierReference, setSupplierReference] = useState(header?.supplierReference ?? "");
   const [supplyDate, setSupplyDate] = useState(header?.supplyDate ?? "");
-  const [paidAmount, setPaidAmount] = useState(header?.paidAmount || "0.00");
   const [roundingAmount, setRoundingAmount] = useState(header?.roundingAmount || "0.00");
   const [precedingHeaderId, setPrecedingHeaderId] = useState(header?.precedingHeaderId ?? "");
   const [precedingReference, setPrecedingReference] = useState(header?.precedingReference ?? "");
@@ -131,7 +126,7 @@ export function useDocumentForm({ title, header, readiness, readinessPending, li
         homeNett: numberValue(header.homeNettAmount),
         homeVat: numberValue(header.homeVatAmount),
         homeTotal: numberValue(header.homeTotalAmount),
-        amountDue: roundCents(numberValue(header.foreignTotalAmount) - numberValue(paidAmount) + numberValue(header.roundingAmount)),
+        amountDue: numberValue(header.amountDue),
         breakdown: header.breakdown,
       };
     }
@@ -156,10 +151,10 @@ export function useDocumentForm({ title, header, readiness, readinessPending, li
       homeNett: toHome(foreignNett, rateValue),
       homeVat: toHome(foreignVat, rateValue),
       homeTotal: toHome(foreignTotal, rateValue),
-      amountDue: roundCents(foreignTotal - numberValue(paidAmount) + numberValue(roundingAmount)),
+      amountDue: roundCents(foreignTotal + numberValue(roundingAmount)),
       breakdown,
     };
-  }, [rateValue, lineVat, header, invoiceLines, locked, paidAmount, roundingAmount]);
+  }, [rateValue, lineVat, header, invoiceLines, locked, roundingAmount]);
 
   function chooseSupplier(id: string) {
     setSupplierId(id);
@@ -292,7 +287,7 @@ export function useDocumentForm({ title, header, readiness, readinessPending, li
     else if (signature !== savedSignature.current) setFieldsDirty(true);
   });
   const dirty = !header || fieldsDirty || linesDirty;
-  const cannotSave = pending || (!posted && (blocked || !supplierId));
+  const cannotSave = pending || blocked || !supplierId;
   const followOnNoun = requisition ? "purchase order" : "invoice";
   const followOnTypes = choices.followOnTypes.filter((type) => type.documentKind === (requisition ? "order" : "invoice"));
   // Only an order limits what can be taken from it, so only an order shows what is left.
@@ -445,8 +440,6 @@ export function useDocumentForm({ title, header, readiness, readinessPending, li
     setSupplierReference,
     supplyDate,
     setSupplyDate,
-    paidAmount,
-    setPaidAmount,
     roundingAmount,
     setRoundingAmount,
     precedingHeaderId,

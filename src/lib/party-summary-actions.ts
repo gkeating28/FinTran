@@ -4,9 +4,10 @@ import { loadOrderLineUsage } from "@/lib/order-data";
 import { orderProgress } from "@/lib/order-progress";
 import { OrganisationAccessError, requireCurrentOrganisation } from "@/lib/organisation-guard";
 import type { PartyKind } from "@/lib/parties";
-import { buildPartySummary, type PartyDocument, type PartySummary } from "@/lib/party-summary";
+import { buildPartySummary, type PartyDocument, type PartyPayment, type PartySummary } from "@/lib/party-summary";
+import { targetKindFor } from "@/lib/payments";
 import { createClient } from "@/lib/supabase/server";
-import { DOCUMENT_STATUSES, type DocumentStatus } from "@/lib/transaction-types";
+import { DOCUMENT_STATUSES, isPaymentKind, parseTransactionTypeKind, type DocumentStatus } from "@/lib/transaction-types";
 
 const PARTY_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DOCUMENT_LIMIT = 1000;
@@ -29,15 +30,44 @@ export async function loadPartySummary(kind: PartyKind, id: string): Promise<Par
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const [paymentRows, { data, error }] = await Promise.all([
+    supabase
+      .from("payments")
+      .select("id, document_number, status, payment_date, amount, unallocated_amount, transaction_types!inner(code, type, document_kind)")
+      .eq("organisation_id", current.organisationId)
+      .eq(kind === "customers" ? "customer_id" : "supplier_id", id)
+      .eq("status", "posted")
+      .order("payment_date", { ascending: false })
+      .limit(DOCUMENT_LIMIT),
+    supabase
     .from("transaction_headers")
     .select("id, document_number, status, transaction_date, due_date, foreign_total_amount, amount_due, transaction_types!inner(code, document_kind)")
     .eq("organisation_id", current.organisationId)
     .eq(kind === "customers" ? "customer_id" : "supplier_id", id)
     .order("transaction_date", { ascending: false })
     .order("created_at", { ascending: false })
-    .limit(DOCUMENT_LIMIT);
-  if (error) return null;
+    .limit(DOCUMENT_LIMIT),
+  ]);
+  if (error || paymentRows.error) return null;
+
+  const payments = ((paymentRows.data ?? []) as Row[]).flatMap((row): PartyPayment[] => {
+    const type = one(row.transaction_types);
+    const direction = parseTransactionTypeKind(String(type?.type ?? ""));
+    const paymentKind = type?.document_kind;
+    if (!type || !direction || !isPaymentKind(String(paymentKind))) return [];
+    return [
+      {
+        id: String(row.id),
+        typeCode: String(type.code ?? ""),
+        number: String(row.document_number ?? ""),
+        status: "posted",
+        date: String(row.payment_date ?? ""),
+        amount: Number(row.amount ?? 0),
+        unallocated: Number(row.unallocated_amount ?? 0),
+        settlesInvoices: targetKindFor(paymentKind as "payment" | "receipt", direction) === "invoice",
+      },
+    ];
+  });
 
   const documents = ((data ?? []) as Row[]).flatMap((row): PartyDocument[] => {
     const type = one(row.transaction_types);
@@ -79,5 +109,5 @@ export async function loadPartySummary(kind: PartyKind, id: string): Promise<Par
     ).remaining;
   }
 
-  return buildPartySummary(documents, new Date().toISOString().slice(0, 10), toInvoice);
+  return buildPartySummary(documents, new Date().toISOString().slice(0, 10), toInvoice, payments);
 }

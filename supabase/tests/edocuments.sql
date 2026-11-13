@@ -573,7 +573,7 @@ begin
       'BG-5', jsonb_build_object('BT-35', 'Quay 4', 'BT-37', 'Dublin', 'BT-40', 'IE')
     ),
     'BG-16', jsonb_build_object('BG-17', jsonb_build_object('BT-84', 'IE29AIBK93115212345678')),
-    'BG-22', jsonb_build_object('BT-109', '10.00', 'BT-110', '0.00', 'BT-112', '10.00'),
+    'BG-22', jsonb_build_object('BT-109', '10.00', 'BT-110', '0.00', 'BT-112', '10.00', 'BT-113', '2.50'),
     'BG-25', jsonb_build_array(jsonb_build_object(
       'BT-126', '1', 'BT-129', '1', 'BT-130', 'C62',
       'BG-29', jsonb_build_object('BT-146', '10.00'),
@@ -643,6 +643,11 @@ begin
   select foreign_nett_amount, party_name into v_nett, v_name from public.transaction_headers where id = v_imported;
   if v_nett is distinct from 10 or v_name is distinct from 'Harbour Supplies' then
     raise exception 'edoc: import used the request figures (% %)', v_nett, v_name;
+  end if;
+  -- BT-113 on a received e-invoice is what the supplier says is paid. It is kept as information and never counted.
+  if (select supplier_stated_paid_amount from public.transaction_headers where id = v_imported) is distinct from 2.50
+     or (select paid_amount from public.transaction_headers where id = v_imported) is distinct from 0.00 then
+    raise exception 'edoc: the supplier stated paid amount was not kept apart from the paid amount';
   end if;
   select name, vat_number, peppol_id, address_line1
     into v_name, v_iban, v_signature, v_xml

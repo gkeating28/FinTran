@@ -18,7 +18,7 @@ import {
 import { formatInteger } from "@/lib/numbers";
 import { organisationLogoUrl, organisationObjectUrl } from "@/lib/organisation-logo";
 import { listTransactionMenu, type TransactionMenuTile } from "@/lib/transaction-type-data";
-import { parseTransactionTypeKind, type TransactionTypeKind } from "@/lib/transaction-types";
+import { isPaymentKind, parseTransactionTypeKind, type TransactionTypeKind } from "@/lib/transaction-types";
 import { createClient } from "@/lib/supabase/server";
 
 const HEADER_SELECT = `
@@ -347,7 +347,8 @@ export async function listFormMenu(): Promise<{ tiles: FormMenuTile[]; error: st
 
   const custom = new Set((data ?? []).map((row) => row.transaction_type_id));
   return {
-    tiles: menu.tiles.map((tile) => ({ ...tile, custom: custom.has(tile.id) })),
+    // Payments and receipts get printed layouts in a later release. Until then they have no form to design.
+    tiles: menu.tiles.filter((tile) => !isPaymentKind(tile.documentKind)).map((tile) => ({ ...tile, custom: custom.has(tile.id) })),
     error: null,
   };
 }

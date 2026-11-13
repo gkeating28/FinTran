@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { partyChecks, partyReadiness } from "./party-readiness";
-import { buildPartySummary, type PartyDocument } from "./party-summary";
+import { buildPartySummary, type PartyDocument, type PartyPayment } from "./party-summary";
 
 const today = "2026-11-11";
 
@@ -52,4 +52,33 @@ test("a customer missing a Peppol ID is not ready, and a supplier only gets a wa
   assert.equal(partyReadiness(partyChecks("suppliers", input)), "warning");
   assert.equal(partyReadiness(partyChecks("customers", { ...input, peppolScheme: "9935", peppolId: "IE1" })), "ready");
   assert.equal(partyReadiness(partyChecks("customers", { ...input, peppolScheme: "9935", peppolId: "IE1", vatNumber: "" })), "warning");
+});
+
+function pay(overrides: Partial<PartyPayment>): PartyPayment {
+  return { id: "p", typeCode: "REC", number: "REC-1", status: "posted", date: "2026-10-05", amount: 100, unallocated: 0, settlesInvoices: true, ...overrides };
+}
+
+test("money on account is unallocated receipts plus credit note balances, newest first", () => {
+  const summary = buildPartySummary(
+    [doc({ id: "c", kind: "credit_note", date: "2026-10-20", total: 100, amountDue: 40 }), doc({ id: "i", total: 100, amountDue: 100 })],
+    today,
+    0,
+    [
+      pay({ id: "a", amount: 200, unallocated: 75.5 }),
+      pay({ id: "b", unallocated: 0 }),
+      pay({ id: "r", typeCode: "CREF", settlesInvoices: false, unallocated: 30 }),
+      pay({ id: "d", status: "draft", unallocated: 90 }),
+    ],
+  );
+  assert.deepEqual(
+    summary.onAccount.map((item) => [item.id, item.amount, item.kind]),
+    [["c", 40, "credit_note"], ["a", 75.5, "payment"]],
+  );
+  assert.equal(summary.onAccountTotal, 115.5);
+});
+
+test("recent payments are posted ones, newest first, and none gives an empty list", () => {
+  const summary = buildPartySummary([], today, 0, [pay({ id: "old", date: "2026-09-01" }), pay({ id: "new", date: "2026-10-30" }), pay({ id: "d", status: "draft", date: "2026-11-01" })]);
+  assert.deepEqual(summary.recentPayments.map((item) => item.id), ["new", "old"]);
+  assert.deepEqual(buildPartySummary([], today).onAccount, []);
 });

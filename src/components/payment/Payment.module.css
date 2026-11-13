@@ -1,0 +1,41 @@
+/* The payment screen reuses the document screen's classes. These are the few it needs of its own. */
+
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+  gap: 0;
+  align-items: stretch;
+  min-height: 0;
+}
+
+.stacked {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.allocateInput {
+  width: 11ch;
+  text-align: right;
+}
+
+.itemsScroll {
+  min-height: 0;
+  overflow: auto;
+}
+
+.subheading {
+  margin: 16px 0 4px;
+  font-weight: 700;
+}
+
+.onAccount {
+  font-weight: 700;
+}
+
+.removed {
+  color: var(--ops-muted, #5b6b82);
+  text-decoration: line-through;
+}
+
+.muted {
+  color: var(--ops-muted, #5b6b82);
+}

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getWorkspace } from "@/lib/data";
 import { requireCurrentOrganisation } from "@/lib/organisation-guard";
-import { AFTER_PAID, AFTER_SAVE, followOnFrom, type FollowOn } from "@/lib/follow-on";
+import { AFTER_SAVE, followOnFrom, type FollowOn } from "@/lib/follow-on";
 import { friendlyError } from "@/lib/document-errors";
 import {
   optionalText,
@@ -77,7 +77,6 @@ function documentFrom(formData: FormData) {
   const supplierName = text(formData, "party_name").trim();
   const currencyId = parseUuid(text(formData, "currency_id"));
   const exchangeRate = parseExchangeRate(text(formData, "exchange_rate"));
-  const paidAmount = parseAmount(text(formData, "paid_amount") || "0");
   const roundingAmount = parseMoney(text(formData, "rounding_amount") || "0");
   const contactDetails = optionalText(text(formData, "contact_details"), 500);
   const notes = optionalText(text(formData, "notes"), 4000);
@@ -106,7 +105,6 @@ function documentFrom(formData: FormData) {
   if (supplierName.length > 200) return { error: "The name can be up to 200 characters." } as const;
   if (!currencyId) return { error: "Choose a currency." } as const;
   if (!exchangeRate) return { error: "Enter an exchange rate greater than 0." } as const;
-  if (paidAmount === null) return { error: "Amounts can have at most 2 decimal places." } as const;
   if (!roundingAmount) return { error: "Enter a rounding amount of 0 or more." } as const;
   if (contactDetails === undefined) return { error: "Contact details can be up to 500 characters." } as const;
   if (notes === undefined) return { error: "Notes can be up to 4000 characters." } as const;
@@ -183,7 +181,6 @@ function documentFrom(formData: FormData) {
     invoicePeriodStart,
     invoicePeriodEnd,
     paymentMeansCode,
-    paidAmount,
     roundingAmount,
     flex1: flex[0],
     flex2: flex[1],
@@ -227,10 +224,6 @@ async function runFollowOn(action: FollowOn, id: string, formData: FormData): Pr
     next.set("target_type_id", text(formData, "target_type_id"));
     return createFromOrder(next);
   }
-  if (action === "create_credit_note") {
-    next.set("credit_type_id", text(formData, "credit_type_id"));
-    return createCreditNote(next);
-  }
   next.set("order_action", action);
   return setOrderStatus(next);
 }
@@ -268,7 +261,6 @@ export async function saveDocument(_state: ActionState, formData: FormData): Pro
       invoicePeriodStart: document.invoicePeriodStart,
       invoicePeriodEnd: document.invoicePeriodEnd,
       paymentMeansCode: document.paymentMeansCode,
-      paidAmount: document.paidAmount,
       roundingAmount: document.roundingAmount,
       flex1: document.flex1,
       flex2: document.flex2,
@@ -369,32 +361,6 @@ export async function voidDocument(formData: FormData) {
   revalidatePath("/transactions");
   revalidatePath("/transactions/[code]", "page");
   redirect(next);
-}
-
-export async function updatePaidAmount(_state: ActionState, formData: FormData): Promise<ActionState> {
-  const id = parseUuid(text(formData, "id"));
-  const paidAmount = parseAmount(text(formData, "paid_amount"));
-  if (!id) return { error: "Choose a document." };
-  if (paidAmount === null) return { error: "Amounts can have at most 2 decimal places." };
-
-  const workspace = await getWorkspace();
-  if (workspace.status === "signed-out") redirect("/login");
-  if (workspace.status !== "ready") redirect("/");
-  await currentOrganisation();
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("transaction_headers")
-    .update({ paid_amount: paidAmount })
-    .eq("id", id)
-    .eq("organisation_id", workspace.current.organisationId)
-    .eq("status", "posted");
-
-  if (error) return { error: friendlyError(error, "The paid amount could not be saved.") };
-  revalidatePath("/transactions");
-  revalidatePath("/transactions/[code]", "page");
-  const followOn = followOnFrom(formData, AFTER_PAID);
-  if (followOn) await runFollowOn(followOn, id, formData);
-  return { message: "Paid amount saved." };
 }
 
 export async function createCreditNote(formData: FormData): Promise<never> {

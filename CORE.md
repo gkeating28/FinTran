@@ -14,6 +14,7 @@ tenant
         ├── organisation_access        who may open it, and as which role
         ├── organisation_defaults      home currency, address, logo, banking
         ├── currencies
+        ├── bank_accounts              the organisation's own bank accounts
         ├── gl_codes
         ├── departments
         ├── cost_centres
@@ -143,6 +144,22 @@ The logo file is not in the table. It is an object in the private Storage bucket
 ## Account structure
 
 These tables are the lists under Admin. Each has `tenant_id`, `organisation_id`, `code`, and `description` (description 1–200). `code` matches `^[A-Z0-9]{1,20}$`, except products, which allow 30 characters. `(organisation_id, code)` is unique. The code cannot be changed after the row is saved.
+
+### `bank_accounts`
+
+The organisation's own bank accounts. Payments and receipts (a later release) are recorded against them. Nothing reads the table yet. It has the standard scoping and audit columns and the same code rule as the lists above, with these columns:
+
+| Column | Rule |
+| --- | --- |
+| `code`, `name` | Code unique per organisation and fixed after save. Name 1 to 100 |
+| `iban` | Spaces removed and uppercased on save, then checked with `private.iban_is_valid`. Unique per organisation on the stored value |
+| `bic` | Optional, 8 or 11 characters, checked by `private.prepare_bic` |
+| `currency_id` | One of the organisation's currencies, by a composite key on `(organisation_id, currency_id)` |
+| `gl_code_id` | Optional, a GL code whose type is Current Asset |
+| `active` | Default true. An inactive account cannot be the default |
+| `is_default` | At most one default per currency, by a partial unique index. Setting a default clears the previous one for that currency in the same statement. Making a default account inactive clears its flag |
+
+Members read the table. Owners and admins write it. `private.enforce_bank_account` does the scope check, the normalisation, the GL type check and the default rule. The `tenant_id` key cascades, as for the other lists, so a tenant that holds only bank accounts can still be deleted. Payments will use `ON DELETE RESTRICT` and be what stops that. The migration `20261113103237_bank_accounts` creates a `MAIN` account in the home currency from each organisation's IBAN, and leaves the organisation's own IBAN in place because invoices still show it (BT-84). `supabase/tests/bank_accounts.sql` checks the rules.
 
 ### `gl_codes`
 
@@ -358,7 +375,7 @@ Posted sales invoices and credit notes can be stored as UBL e-documents. Orders 
 | Screen | Tables |
 | --- | --- |
 | Sign in, and the organisation switcher | `profiles`, `organisation_access`, `organisations`, `tenants` |
-| Admin lists for GL codes, departments, cost centres, VAT, currencies, products, transaction types | The matching table |
+| Admin lists for GL codes, departments, cost centres, VAT, currencies, bank accounts, products, transaction types | The matching table |
 | Organisations | `organisations`, `organisation_defaults`, `currencies`, and the logo bucket |
 | Access | `organisation_access`, `profiles` |
 | Customers and suppliers | `customers`, `suppliers`, `currencies` |

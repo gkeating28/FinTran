@@ -6,11 +6,11 @@ import { requireCurrentOrganisation } from "@/lib/organisation-guard";
 import { codeChangeError, friendlyCodeChange } from "@/lib/immutable-code";
 import { parseDescription, parseReferenceCode } from "@/lib/reference";
 import {
-  parseDocumentKind,
   parseFlexLabel,
   parseReferencePadding,
   parseReferencePrefix,
   parseTransactionTypeKind,
+  parseTypeKind,
 } from "@/lib/transaction-types";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionState } from "@/lib/types";
@@ -25,7 +25,7 @@ function friendlyError(error: { code?: string; message: string } | null, fallbac
   if (!error) return fallback;
   if (error.code === "23505") return "That code is already used in this organisation.";
   if (error.code === "23503" && error.message.includes("transaction_")) {
-    return "That transaction type is used on an invoice. Remove the invoice before removing the type.";
+    return "That transaction type is used on a document or a payment. Remove those before removing the type.";
   }
   if (error.code === "23514" && error.message.includes("type")) return "Choose Sales or Purchases.";
   if (error.code === "23514" && error.message.includes("flex")) return "Each flex label can be up to 80 characters.";
@@ -44,12 +44,12 @@ function fieldsFrom(formData: FormData) {
   const code = parseReferenceCode(text(formData, "code"));
   const description = parseDescription(text(formData, "description"));
   const type = parseTransactionTypeKind(text(formData, "type"));
-  const documentKind = parseDocumentKind(text(formData, "document_kind"));
+  const documentKind = parseTypeKind(text(formData, "document_kind"));
   if (!code || !description) {
     return { error: "Start the code with a letter or number. Then use letters, numbers, dots, or hyphens, up to 20 characters, and a description up to 200 characters." } as const;
   }
   if (!type) return { error: "Choose Sales or Purchases." } as const;
-  if (!documentKind) return { error: "Choose an invoice, credit note, or order." } as const;
+  if (!documentKind) return { error: "Choose an invoice, credit note, order, payment or receipt." } as const;
   const referencePrefix = parseReferencePrefix(text(formData, "reference_prefix"));
   const referencePadding = parseReferencePadding(text(formData, "reference_padding"));
   if (referencePrefix === undefined) {

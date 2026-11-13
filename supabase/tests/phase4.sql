@@ -136,9 +136,21 @@ begin
         raise exception 'phase 4: posted header error was %', sqlerrm;
       end if;
   end;
+  -- The paid amount is worked out from allocations. Nobody can type it on a posted document.
+  begin
+    update public.transaction_headers set paid_amount = 4 where id = current_setting('test.header')::uuid;
+    raise exception 'phase 4: a paid amount was typed on a posted document';
+  exception
+    when others then
+      if sqlerrm not like '%paid amount%' then
+        raise exception 'phase 4: typed paid amount error was %', sqlerrm;
+      end if;
+  end;
+  perform set_config('fintran.settlement', 'on', true);
   update public.transaction_headers set paid_amount = 4 where id = current_setting('test.header')::uuid;
+  perform set_config('fintran.settlement', 'off', true);
   if (select paid_amount from public.transaction_headers where id = current_setting('test.header')::uuid) is distinct from 4 then
-    raise exception 'phase 4: paid amount was not saved';
+    raise exception 'phase 4: settlement could not write the paid amount';
   end if;
   begin
     delete from public.transaction_headers where id = current_setting('test.header')::uuid;

@@ -1,12 +1,12 @@
 import { getOrganisationScope } from "@/lib/data";
 import {
-  parseDocumentKind,
+  parseTypeKind,
   statusesForKind,
   parseTransactionTypeKind,
-  type DocumentKind,
   type DocumentStatus,
   type TransactionTypeKind,
   type TransactionTypeRow,
+  type TypeKind,
 } from "@/lib/transaction-types";
 import { createClient } from "@/lib/supabase/server";
 
@@ -18,28 +18,31 @@ export async function listTransactionTypes(): Promise<{
   if (!organisationId) return { rows: [], error: null };
 
   const supabase = await createClient();
-  const [types, headers] = await Promise.all([
+  const [types, headers, payments] = await Promise.all([
     supabase
       .from("transaction_types")
       .select(
         "id, code, description, last_reference, type, document_kind, numbering, reference_prefix, reference_padding, flex1_label, flex2_label, flex3_label, flex4_label, flex5_label",
       )
       .eq("organisation_id", organisationId)
+      .eq("is_system", false)
       .order("code"),
     supabase.from("transaction_headers").select("transaction_type_id").eq("organisation_id", organisationId),
+    supabase.from("payments").select("transaction_type_id").eq("organisation_id", organisationId),
   ]);
 
-  if (types.error || headers.error) return { rows: [], error: "Transaction types could not be loaded." };
+  if (types.error || headers.error || payments.error) return { rows: [], error: "Transaction types could not be loaded." };
 
+  // A payment type is counted by its payments, which are not documents.
   const counts = new Map<string, number>();
-  for (const header of headers.data ?? []) {
-    counts.set(header.transaction_type_id, (counts.get(header.transaction_type_id) ?? 0) + 1);
+  for (const used of [...(headers.data ?? []), ...(payments.data ?? [])]) {
+    counts.set(used.transaction_type_id, (counts.get(used.transaction_type_id) ?? 0) + 1);
   }
 
   return {
     rows: (types.data ?? []).flatMap((row) => {
       const type = parseTransactionTypeKind(row.type);
-      const documentKind = parseDocumentKind(row.document_kind);
+      const documentKind = parseTypeKind(row.document_kind);
       if (!type || !documentKind) return [];
       return [
         {
@@ -72,7 +75,7 @@ export type TransactionMenuTile = {
   code: string;
   description: string;
   type: TransactionTypeKind;
-  documentKind: DocumentKind;
+  documentKind: TypeKind;
   count: number;
   /** A count for each status this kind of document can have, in the order they happen. */
   statusCounts: { status: DocumentStatus; count: number }[];
@@ -86,21 +89,23 @@ export async function listTransactionMenu(): Promise<{
   if (!organisationId) return { tiles: [], error: null };
 
   const supabase = await createClient();
-  const [types, headers] = await Promise.all([
+  const [types, headers, payments] = await Promise.all([
     supabase
       .from("transaction_types")
       .select("id, code, description, type, document_kind")
       .eq("organisation_id", organisationId)
+      .eq("is_system", false)
       .order("code"),
     supabase.from("transaction_headers").select("transaction_type_id, status").eq("organisation_id", organisationId),
+    supabase.from("payments").select("transaction_type_id, status").eq("organisation_id", organisationId),
   ]);
 
-  if (types.error || headers.error) {
+  if (types.error || headers.error || payments.error) {
     return { tiles: [], error: "Transaction types could not be loaded." };
   }
 
   const counts = new Map<string, Map<string, number>>();
-  for (const header of headers.data ?? []) {
+  for (const header of [...(headers.data ?? []), ...(payments.data ?? [])]) {
     const current = counts.get(header.transaction_type_id) ?? new Map<string, number>();
     current.set(header.status, (current.get(header.status) ?? 0) + 1);
     counts.set(header.transaction_type_id, current);
@@ -108,7 +113,7 @@ export async function listTransactionMenu(): Promise<{
 
   const tiles = (types.data ?? []).flatMap((row) => {
     const type = parseTransactionTypeKind(row.type);
-    const documentKind = parseDocumentKind(row.document_kind);
+    const documentKind = parseTypeKind(row.document_kind);
     if (!type || !documentKind) return [];
     const count = counts.get(row.id) ?? new Map<string, number>();
     const statusCounts = statusesForKind(documentKind).map((status) => ({ status, count: count.get(status) ?? 0 }));

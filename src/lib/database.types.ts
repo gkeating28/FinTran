@@ -463,6 +463,129 @@ export type Database = {
           },
         ]
       }
+      allocations: {
+        Row: {
+          amount: number
+          allocation_date: string
+          created_at: string
+          created_by: string | null
+          exchange_difference: number
+          home_amount_at_source_rate: number
+          home_amount_at_target_rate: number
+          id: string
+          organisation_id: string
+          pending: boolean
+          removal_reason: string | null
+          removed_at: string | null
+          removed_by: string | null
+          source_header_id: string | null
+          source_payment_id: string | null
+          target_header_id: string
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          amount: number
+          allocation_date: string
+          created_at?: string
+          created_by?: string | null
+          exchange_difference?: number
+          home_amount_at_source_rate?: number
+          home_amount_at_target_rate?: number
+          id?: string
+          organisation_id: string
+          pending?: boolean
+          removal_reason?: string | null
+          removed_at?: string | null
+          removed_by?: string | null
+          source_header_id?: string | null
+          source_payment_id?: string | null
+          target_header_id: string
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          amount?: number
+          allocation_date?: string
+          created_at?: string
+          created_by?: string | null
+          exchange_difference?: number
+          home_amount_at_source_rate?: number
+          home_amount_at_target_rate?: number
+          id?: string
+          organisation_id?: string
+          pending?: boolean
+          removal_reason?: string | null
+          removed_at?: string | null
+          removed_by?: string | null
+          source_header_id?: string | null
+          source_payment_id?: string | null
+          target_header_id?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "allocations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allocations_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allocations_removed_by_fkey"
+            columns: ["removed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allocations_source_header_fkey"
+            columns: ["organisation_id", "source_header_id"]
+            isOneToOne: false
+            referencedRelation: "transaction_headers"
+            referencedColumns: ["organisation_id", "id"]
+          },
+          {
+            foreignKeyName: "allocations_source_payment_fkey"
+            columns: ["organisation_id", "source_payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["organisation_id", "id"]
+          },
+          {
+            foreignKeyName: "allocations_target_header_fkey"
+            columns: ["organisation_id", "target_header_id"]
+            isOneToOne: false
+            referencedRelation: "transaction_headers"
+            referencedColumns: ["organisation_id", "id"]
+          },
+          {
+            foreignKeyName: "allocations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allocations_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -501,6 +624,103 @@ export type Database = {
           tenant_id?: string
         }
         Relationships: []
+      }
+      bank_accounts: {
+        Row: {
+          active: boolean
+          bic: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          currency_id: string
+          gl_code_id: string | null
+          iban: string
+          id: string
+          is_default: boolean
+          name: string
+          organisation_id: string
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          bic?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          currency_id: string
+          gl_code_id?: string | null
+          iban: string
+          id?: string
+          is_default?: boolean
+          name: string
+          organisation_id: string
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          bic?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          currency_id?: string
+          gl_code_id?: string | null
+          iban?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          organisation_id?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_accounts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_accounts_currency_fkey"
+            columns: ["organisation_id", "currency_id"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["organisation_id", "id"]
+          },
+          {
+            foreignKeyName: "bank_accounts_gl_code_fkey"
+            columns: ["organisation_id", "gl_code_id"]
+            isOneToOne: false
+            referencedRelation: "gl_codes"
+            referencedColumns: ["organisation_id", "id"]
+          },
+          {
+            foreignKeyName: "bank_accounts_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_accounts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_accounts_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cost_centres: {
         Row: {
@@ -1575,6 +1795,196 @@ export type Database = {
           },
         ]
       }
+      payments: {
+        Row: {
+          allocated_amount: number
+          amount: number
+          bank_account_id: string | null
+          bank_reference: string | null
+          created_at: string
+          created_by: string | null
+          currency_id: string
+          customer_id: string | null
+          document_number: string | null
+          exchange_rate: number
+          home_amount: number
+          home_unallocated_amount: number
+          id: string
+          notes: string | null
+          organisation_id: string
+          party_name: string
+          payment_date: string
+          payment_means_code: string
+          posted_at: string | null
+          posted_by: string | null
+          reference: number | null
+          source: string
+          status: Database["public"]["Enums"]["document_status"]
+          supplier_id: string | null
+          tenant_id: string
+          transaction_type_id: string
+          unallocated_amount: number
+          updated_at: string
+          updated_by: string | null
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          allocated_amount?: number
+          amount: number
+          bank_account_id?: string | null
+          bank_reference?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency_id: string
+          customer_id?: string | null
+          document_number?: string | null
+          exchange_rate: number
+          home_amount?: number
+          home_unallocated_amount?: number
+          id?: string
+          notes?: string | null
+          organisation_id: string
+          party_name: string
+          payment_date: string
+          payment_means_code?: string
+          posted_at?: string | null
+          posted_by?: string | null
+          reference?: number | null
+          source?: string
+          status?: Database["public"]["Enums"]["document_status"]
+          supplier_id?: string | null
+          tenant_id: string
+          transaction_type_id: string
+          unallocated_amount?: number
+          updated_at?: string
+          updated_by?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          allocated_amount?: number
+          amount?: number
+          bank_account_id?: string | null
+          bank_reference?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency_id?: string
+          customer_id?: string | null
+          document_number?: string | null
+          exchange_rate?: number
+          home_amount?: number
+          home_unallocated_amount?: number
+          id?: string
+          notes?: string | null
+          organisation_id?: string
+          party_name?: string
+          payment_date?: string
+          payment_means_code?: string
+          posted_at?: string | null
+          posted_by?: string | null
+          reference?: number | null
+          source?: string
+          status?: Database["public"]["Enums"]["document_status"]
+          supplier_id?: string | null
+          tenant_id?: string
+          transaction_type_id?: string
+          unallocated_amount?: number
+          updated_at?: string
+          updated_by?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_bank_account_fkey"
+            columns: ["organisation_id", "bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["organisation_id", "id"]
+          },
+          {
+            foreignKeyName: "payments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_currency_fkey"
+            columns: ["organisation_id", "currency_id"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["organisation_id", "id"]
+          },
+          {
+            foreignKeyName: "payments_customer_fkey"
+            columns: ["organisation_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["organisation_id", "id"]
+          },
+          {
+            foreignKeyName: "payments_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_payment_means_fkey"
+            columns: ["payment_means_code"]
+            isOneToOne: false
+            referencedRelation: "ref_payment_means"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "payments_posted_by_fkey"
+            columns: ["posted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_supplier_fkey"
+            columns: ["organisation_id", "supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["organisation_id", "id"]
+          },
+          {
+            foreignKeyName: "payments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_transaction_type_fkey"
+            columns: ["organisation_id", "transaction_type_id"]
+            isOneToOne: false
+            referencedRelation: "transaction_types"
+            referencedColumns: ["organisation_id", "id"]
+          },
+          {
+            foreignKeyName: "payments_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_voided_by_fkey"
+            columns: ["voided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           code: string
@@ -2146,6 +2556,7 @@ export type Database = {
           foreign_nett_amount: number
           foreign_total_amount: number
           foreign_vat_amount: number
+          home_amount_due: number
           home_nett_amount: number
           home_total_amount: number
           home_vat_amount: number
@@ -2157,6 +2568,7 @@ export type Database = {
           order_number: string | null
           organisation_id: string
           paid_amount: number
+          paid_at_posting: number | null
           party_name: string
           party_snapshot: Json | null
           payment_means_code: string | null
@@ -2171,6 +2583,7 @@ export type Database = {
           sales_order_reference: string | null
           status: Database["public"]["Enums"]["document_status"]
           supplier_id: string | null
+          supplier_stated_paid_amount: number | null
           supplier_reference: string | null
           supply_date: string | null
           tenant_id: string
@@ -2203,6 +2616,7 @@ export type Database = {
           foreign_nett_amount?: number
           foreign_total_amount?: number
           foreign_vat_amount?: number
+          home_amount_due?: number
           home_nett_amount?: number
           home_total_amount?: number
           home_vat_amount?: number
@@ -2214,6 +2628,7 @@ export type Database = {
           order_number?: string | null
           organisation_id: string
           paid_amount?: number
+          paid_at_posting?: number | null
           party_name: string
           party_snapshot?: Json | null
           payment_means_code?: string | null
@@ -2228,6 +2643,7 @@ export type Database = {
           sales_order_reference?: string | null
           status?: Database["public"]["Enums"]["document_status"]
           supplier_id?: string | null
+          supplier_stated_paid_amount?: number | null
           supplier_reference?: string | null
           supply_date?: string | null
           tenant_id: string
@@ -2260,6 +2676,7 @@ export type Database = {
           foreign_nett_amount?: number
           foreign_total_amount?: number
           foreign_vat_amount?: number
+          home_amount_due?: number
           home_nett_amount?: number
           home_total_amount?: number
           home_vat_amount?: number
@@ -2271,6 +2688,7 @@ export type Database = {
           order_number?: string | null
           organisation_id?: string
           paid_amount?: number
+          paid_at_posting?: number | null
           party_name?: string
           party_snapshot?: Json | null
           payment_means_code?: string | null
@@ -2285,6 +2703,7 @@ export type Database = {
           sales_order_reference?: string | null
           status?: Database["public"]["Enums"]["document_status"]
           supplier_id?: string | null
+          supplier_stated_paid_amount?: number | null
           supplier_reference?: string | null
           supply_date?: string | null
           tenant_id?: string
@@ -2628,6 +3047,7 @@ export type Database = {
           flex4_label: string | null
           flex5_label: string | null
           id: string
+          is_system: boolean
           last_reference: number
           numbering: Database["public"]["Enums"]["numbering_rule"]
           organisation_id: string
@@ -2650,6 +3070,7 @@ export type Database = {
           flex4_label?: string | null
           flex5_label?: string | null
           id?: string
+          is_system?: boolean
           last_reference: number
           numbering?: Database["public"]["Enums"]["numbering_rule"]
           organisation_id: string
@@ -2672,6 +3093,7 @@ export type Database = {
           flex4_label?: string | null
           flex5_label?: string | null
           id?: string
+          is_system?: boolean
           last_reference?: number
           numbering?: Database["public"]["Enums"]["numbering_rule"]
           organisation_id?: string
@@ -2903,6 +3325,18 @@ export type Database = {
           user_hour: number
         }[]
       }
+      allocate: {
+        Args: { p_amount: number; p_date?: string; p_source: Json; p_target_header_id: string }
+        Returns: string
+      }
+      allocate_lines: {
+        Args: { p_lines: Json; p_source: Json }
+        Returns: number
+      }
+      allocate_oldest_first: {
+        Args: { p_source: Json }
+        Returns: number
+      }
       clear_organisation_secret: {
         Args: { p_kind: string; p_organisation_id: string }
         Returns: undefined
@@ -2939,6 +3373,10 @@ export type Database = {
       en16931_amount: { Args: { p_value: number }; Returns: string }
       en16931_document: { Args: { p_header_id: string }; Returns: Json }
       en16931_price: { Args: { p_value: number }; Returns: string }
+      delete_payment: {
+        Args: { p_payment_id: string }
+        Returns: undefined
+      }
       en16931_readiness: {
         Args: { p_header_id: string }
         Returns: {
@@ -2983,6 +3421,10 @@ export type Database = {
         Args: { p_header_id: string; p_logo_path?: string }
         Returns: undefined
       }
+      post_payment: {
+        Args: { p_payment_id: string }
+        Returns: undefined
+      }
       propose_ai_action: {
         Args: {
           p_action: string
@@ -3024,8 +3466,16 @@ export type Database = {
         Args: { p_id: string; p_reason: string }
         Returns: undefined
       }
+      remove_allocation: {
+        Args: { p_allocation_id: string; p_reason: string }
+        Returns: undefined
+      }
       rename_organisation: {
         Args: { p_name: string; p_organisation_id: string }
+        Returns: undefined
+      }
+      replace_pending_allocations: {
+        Args: { p_lines: Json; p_payment_id: string }
         Returns: undefined
       }
       revoke_organisation_access: {
@@ -3033,6 +3483,10 @@ export type Database = {
         Returns: undefined
       }
       save_document: { Args: { p_document: Json }; Returns: string }
+      save_payment: {
+        Args: { p_payment: Json }
+        Returns: string
+      }
       set_order_status: {
         Args: { p_action: string; p_header_id: string }
         Returns: undefined
@@ -3054,9 +3508,19 @@ export type Database = {
         Args: { p_header_id: string; p_reason: string }
         Returns: undefined
       }
+      void_payment: {
+        Args: { p_payment_id: string; p_reason: string }
+        Returns: undefined
+      }
     }
     Enums: {
-      document_kind: "invoice" | "credit_note" | "order" | "requisition"
+      document_kind:
+        | "invoice"
+        | "credit_note"
+        | "order"
+        | "requisition"
+        | "payment"
+        | "receipt"
       document_status:
         | "draft"
         | "posted"
@@ -3201,7 +3665,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      document_kind: ["invoice", "credit_note", "order", "requisition"],
+      document_kind: [
+        "invoice",
+        "credit_note",
+        "order",
+        "requisition",
+        "payment",
+        "receipt",
+      ],
       document_status: [
         "draft",
         "posted",

@@ -6,18 +6,23 @@ import styles from "@/components/OpsPage.module.css";
 import dashboardStyles from "@/components/Dashboard.module.css";
 import { getWorkspace } from "@/lib/data";
 import { formatInteger } from "@/lib/numbers";
+import { createStandardPaymentTypes } from "@/lib/payment-actions";
+import { canManage } from "@/lib/types";
 import { listTransactionMenu, type TransactionMenuTile } from "@/lib/transaction-type-data";
-import { documentKindLabel } from "@/lib/transaction-types";
+import { documentKindLabel, isPaymentKind } from "@/lib/transaction-types";
 
 export const metadata = { title: "Transactions" };
 
-export default async function TransactionsPage() {
+export default async function TransactionsPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const menu = listTransactionMenu();
   const workspace = await getWorkspace();
   if (workspace.status === "signed-out") redirect("/login");
   if (workspace.status !== "ready") redirect("/");
 
   const { tiles, error } = await menu;
+  const query = await searchParams;
+  // An owner or admin of an organisation without payment or receipt types is offered the standard four.
+  const offerPaymentTypes = canManage(workspace.current.role) && !error && !tiles.some((tile) => isPaymentKind(tile.documentKind));
 
   return (
     <section className={styles.stack}>
@@ -31,6 +36,23 @@ export default async function TransactionsPage() {
         <p className={styles.alert} role="alert">
           {error}
         </p>
+      ) : null}
+      {query.error ? (
+        <p className={styles.alert} role="alert">
+          {query.error}
+        </p>
+      ) : null}
+      {offerPaymentTypes ? (
+        <form action={createStandardPaymentTypes} className={styles.panel}>
+          <h2 className={dashboardStyles.menuHeading}>Record payments and receipts</h2>
+          <p className={styles.panelMeta}>
+            Add the standard types: Customer receipt, Supplier payment, Customer refund and Supplier refund. You can change their
+            descriptions and numbering afterwards.
+          </p>
+          <button className={styles.primary} type="submit">
+            Add payment and receipt types
+          </button>
+        </form>
       ) : null}
       {tiles.length === 0 ? (
         <p className={styles.empty}>
