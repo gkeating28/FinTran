@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { allocationTotals, distributeOldestFirst, parseAllocationAmount, parsePaymentPrefill, paymentNoun, recordPaymentHref, targetKindFor } from "./payments";
+import { allocationTotals, distributeOldestFirst, parseAllocationAmount, parsePaymentPrefill, paymentNoun, recordPaymentHref, settlementState, targetKindFor } from "./payments";
 
 test("a receipt or a payment clears invoices and a refund clears credit notes", () => {
   assert.equal(targetKindFor("receipt", "Sales"), "invoice");
@@ -79,4 +79,11 @@ test("recordPaymentHref round-trips through parsePaymentPrefill", () => {
     amount: "120.50",
     allocations: { "doc-1": "120.50" },
   });
+});
+
+test("settlementState tells unpaid, part paid and paid apart", () => {
+  assert.equal(settlementState("0.00", "120.00"), "unpaid");
+  assert.equal(settlementState("20.00", "1,100.00"), "part");
+  assert.equal(settlementState("120.00", "0.00"), "paid");
+  assert.equal(settlementState(0, 0), "paid");
 });

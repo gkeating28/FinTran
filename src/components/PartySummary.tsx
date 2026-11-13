@@ -101,6 +101,8 @@ export default function PartySummary({
                   </dd>
                   <dt>{customer ? "Sales" : "Spend"} in {summary.year}</dt>
                   <dd>{money(summary.yearTotal)}</dd>
+                  <dt>On account</dt>
+                  <dd>{money(summary.onAccountTotal)}</dd>
                   <dt>Active orders</dt>
                   <dd>{summary.activeOrders}</dd>
                   {summary.activeOrders > 0 ? (
@@ -116,6 +118,53 @@ export default function PartySummary({
                   </dd>
                 </dl>
               </>
+            )}
+          </section>
+
+          <section className={styles.card}>
+            <h3 className={styles.cardTitle}>Money on account</h3>
+            {summary === undefined ? (
+              <p className={styles.muted}>Loading…</p>
+            ) : !summary || summary.onAccount.length === 0 ? (
+              <p className={styles.muted}>Nothing waiting to be applied.</p>
+            ) : (
+              <ul className={styles.documents}>
+                {summary.onAccount.map((item) => (
+                  <li key={item.id}>
+                    <Link
+                      prefetch={false}
+                      href={`/transactions/${item.typeCode}?open=${item.id}`}
+                      className={styles.documentLink}
+                    >
+                      {item.typeCode} {item.number}
+                    </Link>
+                    <span className={styles.muted}>{formatDate(item.date, region)}</span>
+                    <span className={styles.muted}>{item.kind === "credit_note" ? "Credit note" : customer ? "Receipt" : "Payment"}</span>
+                    <span className={styles.amount}>{formatMoney(item.amount)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section className={styles.card}>
+            <h3 className={styles.cardTitle}>Recent {customer ? "receipts" : "payments"}</h3>
+            {summary === undefined ? (
+              <p className={styles.muted}>Loading…</p>
+            ) : !summary || summary.recentPayments.length === 0 ? (
+              <p className={styles.muted}>None yet.</p>
+            ) : (
+              <ul className={styles.documents}>
+                {summary.recentPayments.map((payment) => (
+                  <li key={payment.id}>
+                    <Link prefetch={false} href={`/transactions/${payment.typeCode}?open=${payment.id}`} className={styles.documentLink}>
+                      {payment.typeCode} {payment.number}
+                    </Link>
+                    <span className={styles.muted}>{formatDate(payment.date, region)}</span>
+                    <span className={styles.amount}>{formatMoney(payment.amount)}</span>
+                  </li>
+                ))}
+              </ul>
             )}
           </section>
 

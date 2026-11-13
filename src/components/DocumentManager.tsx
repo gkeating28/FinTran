@@ -12,6 +12,7 @@ import type { DocumentChoices } from "@/lib/document-data";
 import { documentStatusLabel, isOrderKind, statusesForKind } from "@/lib/transaction-types";
 import { useRegion } from "@/components/useRegion";
 import { formatDate } from "@/lib/dates";
+import { settlementState } from "@/lib/payments";
 import { ORDER_PROGRESS_LABEL } from "@/lib/order-progress";
 import { formatInteger } from "@/lib/numbers";
 import type { DocumentLine, DocumentRow, ReadinessItem } from "@/lib/documents";
@@ -91,6 +92,7 @@ export default function DocumentManager({
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [readinessFilter, setReadinessFilter] = useState("");
+  const [settlementFilter, setSettlementFilter] = useState("");
   const [invoicingFilter, setInvoicingFilter] = useState("");
   // Readiness is read after the rows arrive. It belongs to one set of rows, so a save that brings
   // new rows shows it as pending until it has been read again.
@@ -144,6 +146,7 @@ export default function DocumentManager({
       : (["draft", "posted", "void", "open", "closed", "cancelled"] as const);
   // A page that only lists orders shows how far each is invoiced, in place of readiness and payment.
   const ordersOnly = choices.types.length > 0 && choices.types.every((type) => type.documentKind === "order");
+  const creditNotesOnly = choices.types.length > 0 && choices.types.every((type) => type.documentKind === "credit_note");
   const listedRows = readinessById
     ? rows.map((row) => ({ ...row, readiness: readinessById[row.id] ?? row.readiness }))
     : rows;
@@ -153,6 +156,7 @@ export default function DocumentManager({
     if (partyFilter && partyId !== partyFilter) return false;
     if (fromDate && row.transactionDate < fromDate) return false;
     if (toDate && row.transactionDate > toDate) return false;
+    if (settlementFilter && !ordersOnly && (row.status !== "posted" || settlementState(row.paidAmount, row.amountDue) !== settlementFilter)) return false;
     if (ordersOnly && invoicingFilter && row.invoicing !== invoicingFilter) return false;
     if (sales && readinessFilter && !ordersOnly) {
       const status = readinessStatus(row.readiness);
@@ -223,6 +227,14 @@ export default function DocumentManager({
                 <option value="none">{ORDER_PROGRESS_LABEL.none}</option>
                 <option value="part">{ORDER_PROGRESS_LABEL.part}</option>
                 <option value="full">{ORDER_PROGRESS_LABEL.full}</option>
+              </select>
+            ) : null}
+            {!ordersOnly ? (
+              <select value={settlementFilter} onChange={(event) => setSettlementFilter(event.target.value)} aria-label="Payment">
+                <option value="">Any payment</option>
+                <option value="unpaid">Unpaid</option>
+                <option value="part">Part paid</option>
+                <option value="paid">Paid</option>
               </select>
             ) : null}
             {sales && !ordersOnly ? (
@@ -318,7 +330,7 @@ export default function DocumentManager({
           },
           {
             key: "paid",
-            label: "Paid",
+            label: creditNotesOnly ? "Applied" : "Paid",
             mono: true,
             align: "right",
             sortValue: (row) => row.paidAmount.replace(/,/g, ""),

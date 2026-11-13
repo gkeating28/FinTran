@@ -231,3 +231,12 @@ export function recordPaymentHref(typeCode: string, documentId: string, partyId:
   const query = new URLSearchParams({ new: "1", party: partyId, allocate: `${documentId}:${open}` });
   return `/transactions/${encodeURIComponent(typeCode)}?${query.toString()}`;
 }
+
+export type SettlementState = "unpaid" | "part" | "paid";
+
+/** Where a posted invoice or credit note stands: nothing paid, some paid, or nothing left due. Amounts may carry thousands separators. */
+export function settlementState(paid: string | number, due: string | number): SettlementState {
+  const amount = (value: string | number) => Number(String(value).replace(/,/g, "")) || 0;
+  if (amount(due) <= 0) return "paid";
+  return amount(paid) > 0 ? "part" : "unpaid";
+}
