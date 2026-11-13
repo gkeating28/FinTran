@@ -463,6 +463,129 @@ export type Database = {
           },
         ]
       }
+      allocations: {
+        Row: {
+          amount: number
+          allocation_date: string
+          created_at: string
+          created_by: string | null
+          exchange_difference: number
+          home_amount_at_source_rate: number
+          home_amount_at_target_rate: number
+          id: string
+          organisation_id: string
+          pending: boolean
+          removal_reason: string | null
+          removed_at: string | null
+          removed_by: string | null
+          source_header_id: string | null
+          source_payment_id: string | null
+          target_header_id: string
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          amount: number
+          allocation_date: string
+          created_at?: string
+          created_by?: string | null
+          exchange_difference?: number
+          home_amount_at_source_rate?: number
+          home_amount_at_target_rate?: number
+          id?: string
+          organisation_id: string
+          pending?: boolean
+          removal_reason?: string | null
+          removed_at?: string | null
+          removed_by?: string | null
+          source_header_id?: string | null
+          source_payment_id?: string | null
+          target_header_id: string
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          amount?: number
+          allocation_date?: string
+          created_at?: string
+          created_by?: string | null
+          exchange_difference?: number
+          home_amount_at_source_rate?: number
+          home_amount_at_target_rate?: number
+          id?: string
+          organisation_id?: string
+          pending?: boolean
+          removal_reason?: string | null
+          removed_at?: string | null
+          removed_by?: string | null
+          source_header_id?: string | null
+          source_payment_id?: string | null
+          target_header_id?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "allocations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allocations_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allocations_removed_by_fkey"
+            columns: ["removed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allocations_source_header_fkey"
+            columns: ["organisation_id", "source_header_id"]
+            isOneToOne: false
+            referencedRelation: "transaction_headers"
+            referencedColumns: ["organisation_id", "id"]
+          },
+          {
+            foreignKeyName: "allocations_source_payment_fkey"
+            columns: ["organisation_id", "source_payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["organisation_id", "id"]
+          },
+          {
+            foreignKeyName: "allocations_target_header_fkey"
+            columns: ["organisation_id", "target_header_id"]
+            isOneToOne: false
+            referencedRelation: "transaction_headers"
+            referencedColumns: ["organisation_id", "id"]
+          },
+          {
+            foreignKeyName: "allocations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allocations_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -2433,6 +2556,7 @@ export type Database = {
           foreign_nett_amount: number
           foreign_total_amount: number
           foreign_vat_amount: number
+          home_amount_due: number
           home_nett_amount: number
           home_total_amount: number
           home_vat_amount: number
@@ -2444,6 +2568,7 @@ export type Database = {
           order_number: string | null
           organisation_id: string
           paid_amount: number
+          paid_at_posting: number | null
           party_name: string
           party_snapshot: Json | null
           payment_means_code: string | null
@@ -2458,6 +2583,7 @@ export type Database = {
           sales_order_reference: string | null
           status: Database["public"]["Enums"]["document_status"]
           supplier_id: string | null
+          supplier_stated_paid_amount: number | null
           supplier_reference: string | null
           supply_date: string | null
           tenant_id: string
@@ -2490,6 +2616,7 @@ export type Database = {
           foreign_nett_amount?: number
           foreign_total_amount?: number
           foreign_vat_amount?: number
+          home_amount_due?: number
           home_nett_amount?: number
           home_total_amount?: number
           home_vat_amount?: number
@@ -2501,6 +2628,7 @@ export type Database = {
           order_number?: string | null
           organisation_id: string
           paid_amount?: number
+          paid_at_posting?: number | null
           party_name: string
           party_snapshot?: Json | null
           payment_means_code?: string | null
@@ -2515,6 +2643,7 @@ export type Database = {
           sales_order_reference?: string | null
           status?: Database["public"]["Enums"]["document_status"]
           supplier_id?: string | null
+          supplier_stated_paid_amount?: number | null
           supplier_reference?: string | null
           supply_date?: string | null
           tenant_id: string
@@ -2547,6 +2676,7 @@ export type Database = {
           foreign_nett_amount?: number
           foreign_total_amount?: number
           foreign_vat_amount?: number
+          home_amount_due?: number
           home_nett_amount?: number
           home_total_amount?: number
           home_vat_amount?: number
@@ -2558,6 +2688,7 @@ export type Database = {
           order_number?: string | null
           organisation_id?: string
           paid_amount?: number
+          paid_at_posting?: number | null
           party_name?: string
           party_snapshot?: Json | null
           payment_means_code?: string | null
@@ -2572,6 +2703,7 @@ export type Database = {
           sales_order_reference?: string | null
           status?: Database["public"]["Enums"]["document_status"]
           supplier_id?: string | null
+          supplier_stated_paid_amount?: number | null
           supplier_reference?: string | null
           supply_date?: string | null
           tenant_id?: string
