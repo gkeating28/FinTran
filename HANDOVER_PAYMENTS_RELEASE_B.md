@@ -1,6 +1,6 @@
 # Payments release B: hand-over
 
-Written at the end of the session that built phases 2 to 5 and part one of phase 6. Start the next session from this file. The spec is `QULAPLUS_PAYMENTS_SPEC.md` version 3 (not in the repository: ask for it, or ask for the copy at the end of the earlier session).
+Written at the end of the session that built phases 2 to 5 and part one of phase 6. Start the next session from this file. The spec is `specs/QULAPLUS_PAYMENTS_SPEC.md`, version 3. It does not yet record the decisions listed at the end of this note.
 
 Branch: `claude/intelligent-cerf-j32nz3`. Everything below that is marked done is committed and pushed.
 
