@@ -16,11 +16,11 @@ Branch: `claude/intelligent-cerf-j32nz3`. Everything below that is marked done i
 | Phase 6, screens | Part one done: see below |
 | Phases 7 and 8 | Not started. Release C |
 
-**Do not deploy release B until phase 6 is finished.** Phase 5 removes the typed paid amount, so without the screens nobody can record a payment. None of the release B migrations has been applied to the hosted project yet. Apply them together, in filename order, after the screens work. After applying, rename each migration file to the version the project records (as was done for `20261113103237_bank_accounts.sql`) and fix the one path in `supabase/tests/migrate_paid_amounts.sql` that names `20261113130600_remove_typed_paid_amount.sql`.
+**Release B migrations are applied to the hosted project** (`hxueqzgdwlaschcvwdke`), at the owner's request, so that the branch could be run against it. The files are renamed to the versions the project records, and the path in `supabase/tests/migrate_paid_amounts.sql` is fixed. The hosted project had no typed paid amounts (0 of 10 documents), so the data migration changed nothing. Phase 5 removed the typed paid amount, so recording a payment now depends on the phase 6 screens, which have not been opened in a browser.
 
 ## Migrations for release B, in order
 
-`20261113130000_payment_kinds`, `20261113130100_payments_table`, `20261113130200_settlement_columns`, `20261113130300_allocations`, `20261113130400_allocation_documents`, `20261113130500_payment_functions`, `20261113130600_remove_typed_paid_amount`, `20261113130700_allocate_lines`.
+`20261113123253_payment_kinds`, `20261113123735_payments_table`, `20261113124214_settlement_columns`, `20261113125229_allocations`, `20261113125349_allocation_documents`, `20261113125722_payment_functions`, `20261113130052_remove_typed_paid_amount`, `20261113130201_allocate_lines`.
 
 ## Phase 6 part one, done
 
