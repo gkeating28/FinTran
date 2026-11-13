@@ -3325,6 +3325,18 @@ export type Database = {
           user_hour: number
         }[]
       }
+      allocate: {
+        Args: { p_amount: number; p_date?: string; p_source: Json; p_target_header_id: string }
+        Returns: string
+      }
+      allocate_lines: {
+        Args: { p_lines: Json; p_source: Json }
+        Returns: number
+      }
+      allocate_oldest_first: {
+        Args: { p_source: Json }
+        Returns: number
+      }
       clear_organisation_secret: {
         Args: { p_kind: string; p_organisation_id: string }
         Returns: undefined
@@ -3361,6 +3373,10 @@ export type Database = {
       en16931_amount: { Args: { p_value: number }; Returns: string }
       en16931_document: { Args: { p_header_id: string }; Returns: Json }
       en16931_price: { Args: { p_value: number }; Returns: string }
+      delete_payment: {
+        Args: { p_payment_id: string }
+        Returns: undefined
+      }
       en16931_readiness: {
         Args: { p_header_id: string }
         Returns: {
@@ -3405,6 +3421,10 @@ export type Database = {
         Args: { p_header_id: string; p_logo_path?: string }
         Returns: undefined
       }
+      post_payment: {
+        Args: { p_payment_id: string }
+        Returns: undefined
+      }
       propose_ai_action: {
         Args: {
           p_action: string
@@ -3446,8 +3466,16 @@ export type Database = {
         Args: { p_id: string; p_reason: string }
         Returns: undefined
       }
+      remove_allocation: {
+        Args: { p_allocation_id: string; p_reason: string }
+        Returns: undefined
+      }
       rename_organisation: {
         Args: { p_name: string; p_organisation_id: string }
+        Returns: undefined
+      }
+      replace_pending_allocations: {
+        Args: { p_lines: Json; p_payment_id: string }
         Returns: undefined
       }
       revoke_organisation_access: {
@@ -3455,6 +3483,10 @@ export type Database = {
         Returns: undefined
       }
       save_document: { Args: { p_document: Json }; Returns: string }
+      save_payment: {
+        Args: { p_payment: Json }
+        Returns: string
+      }
       set_order_status: {
         Args: { p_action: string; p_header_id: string }
         Returns: undefined
@@ -3474,6 +3506,10 @@ export type Database = {
       }
       void_document: {
         Args: { p_header_id: string; p_reason: string }
+        Returns: undefined
+      }
+      void_payment: {
+        Args: { p_payment_id: string; p_reason: string }
         Returns: undefined
       }
     }

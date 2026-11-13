@@ -15,6 +15,7 @@ import {
 import { formatInteger } from "@/lib/numbers";
 import {
   DOCUMENT_KINDS,
+  PAYMENT_KINDS,
   TRANSACTION_TYPE_KINDS,
   documentKindLabel,
   documentNumberPreview,
@@ -238,9 +239,9 @@ function TransactionTypeForm({
             disabled={kindLocked}
             onChange={(event) => setDocumentKind(event.target.value as TransactionTypeRow["documentKind"])}
           >
-            {DOCUMENT_KINDS.filter((kind) => kind !== "requisition" || type === "Purchases" || documentKind === "requisition").map((kind) => (
+            {[...DOCUMENT_KINDS, ...PAYMENT_KINDS].filter((kind) => kind !== "requisition" || type === "Purchases" || documentKind === "requisition").map((kind) => (
               <option key={kind} value={kind}>
-                {documentKindLabel(kind)}
+                {kind === "payment" ? "Payment (money out)" : kind === "receipt" ? "Receipt (money in)" : documentKindLabel(kind)}
               </option>
             ))}
           </select>

@@ -279,6 +279,22 @@ select public.post_payment(current_setting('test.refund')::uuid);
 select pg_temp.eq('the refund settles the credit note', pg_temp.due(current_setting('test.cn')::uuid), 0.00);
 select pg_temp.eq('a refund numbers from its own type', (select document_number from public.payments where id = current_setting('test.refund')::uuid), 'CF-0001');
 
+-- 6b. allocate_lines applies several amounts from one payment together, or none of them.
+select set_config('test.al_a', pg_temp.document('SI', 'ACME', 100)::text, true);
+select set_config('test.al_b', pg_temp.document('SI', 'ACME', 50)::text, true);
+select set_config('test.al_rec', pg_temp.draft('REC', 'ACME', 200)::text, true);
+select public.post_payment(current_setting('test.al_rec')::uuid);
+select pg_temp.expect_error(
+  format($sql$select public.allocate_lines(jsonb_build_object('paymentId', %L), jsonb_build_array(jsonb_build_object('targetHeaderId', %L, 'amount', 100), jsonb_build_object('targetHeaderId', %L, 'amount', 60)))$sql$,
+    current_setting('test.al_rec'), current_setting('test.al_a'), current_setting('test.al_b')),
+  'still due', 'a set where one amount is too much');
+select pg_temp.eq('nothing was applied from a refused set', pg_temp.due(current_setting('test.al_a')::uuid), 100.00);
+select pg_temp.eq('two amounts applied together', public.allocate_lines(jsonb_build_object('paymentId', current_setting('test.al_rec')::uuid),
+  jsonb_build_array(jsonb_build_object('targetHeaderId', current_setting('test.al_a'), 'amount', 100), jsonb_build_object('targetHeaderId', current_setting('test.al_b'), 'amount', 50))), 2);
+select pg_temp.eq('first settled', pg_temp.due(current_setting('test.al_a')::uuid), 0.00);
+select pg_temp.eq('second settled', pg_temp.due(current_setting('test.al_b')::uuid), 0.00);
+select pg_temp.eq('50 left on account', (select unallocated_amount from public.payments where id = current_setting('test.al_rec')::uuid), 50.00);
+
 -- 7. A member can save, post and delete drafts. An outsider can do none of it.
 select pg_temp.act_as('member');
 select set_config('test.m1', pg_temp.draft('REC', 'ACME', 10)::text, true);
