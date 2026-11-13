@@ -1,11 +1,14 @@
 import { notFound, redirect } from "next/navigation";
 import DocumentManager from "@/components/DocumentManager";
+import PaymentManager from "@/components/PaymentManager";
 import styles from "@/components/OpsPage.module.css";
 import { getWorkspace } from "@/lib/data";
 import { canManage } from "@/lib/types";
 import { listDocuments } from "@/lib/document-data";
 import { getTransactionTypeByCode } from "@/lib/transaction-type-data";
-import { isOrderKind } from "@/lib/transaction-types";
+import { listPayments } from "@/lib/payment-data";
+import { parsePaymentPrefill } from "@/lib/payments";
+import { isOrderKind, isPaymentKind } from "@/lib/transaction-types";
 
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
@@ -18,16 +21,16 @@ export default async function TransactionTypePage({
   searchParams,
 }: {
   params: Promise<{ code: string }>;
-  searchParams: Promise<{ error?: string; open?: string; ask?: string }>;
+  searchParams: Promise<{ error?: string; open?: string; ask?: string; new?: string; party?: string; allocate?: string }>;
 }) {
   const { code } = await params;
-  const loaded = Promise.all([getTransactionTypeByCode(code), listDocuments(code)]);
+  const typed = getTransactionTypeByCode(code);
   const workspace = await getWorkspace();
   if (workspace.status === "signed-out") redirect("/login");
   if (workspace.status !== "ready") redirect("/");
 
   const query = await searchParams;
-  const [{ tile, error }, listed] = await loaded;
+  const { tile, error } = await typed;
   if (error) {
     return (
       <section className={styles.stack}>
@@ -39,6 +42,37 @@ export default async function TransactionTypePage({
     );
   }
   if (!tile) notFound();
+
+  // Payments and receipts have their own list and entry screen. Everything else is a document.
+  if (isPaymentKind(tile.documentKind)) {
+    const paid = await listPayments(tile.code);
+    if (!paid.choices) {
+      return (
+        <section className={styles.stack}>
+          <h1 className={styles.heading}>{tile.description}</h1>
+          <p className={styles.alert} role="alert">
+            {paid.error ?? "This payment type could not be loaded."}
+          </p>
+        </section>
+      );
+    }
+    return (
+      <PaymentManager
+        title={tile.description}
+        summary={`${tile.description} for ${workspace.current.organisationName}.`}
+        rows={paid.rows}
+        choices={paid.choices}
+        loadError={paid.error}
+        actionError={query.error}
+        openId={query.open}
+        openStamp={query.ask}
+        startNew={query.new === "1"}
+        prefill={parsePaymentPrefill(query)}
+      />
+    );
+  }
+
+  const listed = await listDocuments(code);
 
   return (
     <DocumentManager

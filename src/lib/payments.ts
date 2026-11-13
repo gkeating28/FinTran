@@ -167,3 +167,23 @@ export type OnAccount = {
   amount: string;
   kind: "payment" | "credit_note";
 };
+
+/**
+ * The address of a new draft raised from a document: `?new=1&party=<id>&allocate=<id>:<amount>,<id>:<amount>`.
+ * The amount of the payment is the sum of the allocations. Anything malformed is ignored, so a bad link opens
+ * an empty draft rather than failing.
+ */
+export function parsePaymentPrefill(query: { party?: string; allocate?: string }): PaymentPrefill | null {
+  const partyId = (query.party ?? "").trim();
+  if (!partyId) return null;
+  const allocations: Record<string, string> = {};
+  let cents = 0;
+  for (const part of (query.allocate ?? "").split(",")) {
+    const [id, value = ""] = part.split(":");
+    const amount = parseAllocationAmount(value);
+    if (!id.trim() || typeof amount !== "number") continue;
+    allocations[id.trim()] = amount.toFixed(2);
+    cents += Math.round(amount * 100);
+  }
+  return { partyId, amount: cents > 0 ? (cents / 100).toFixed(2) : "", allocations };
+}

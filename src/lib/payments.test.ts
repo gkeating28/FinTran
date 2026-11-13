@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { allocationTotals, distributeOldestFirst, parseAllocationAmount, paymentNoun, targetKindFor } from "./payments";
+import { allocationTotals, distributeOldestFirst, parseAllocationAmount, parsePaymentPrefill, paymentNoun, targetKindFor } from "./payments";
 
 test("a receipt or a payment clears invoices and a refund clears credit notes", () => {
   assert.equal(targetKindFor("receipt", "Sales"), "invoice");
@@ -53,4 +53,18 @@ test("an allocation amount is blank, a positive amount, or not valid", () => {
   assert.equal(parseAllocationAmount("12.345"), undefined);
   assert.equal(parseAllocationAmount("abc"), undefined);
   assert.equal(parseAllocationAmount("-5"), undefined);
+});
+
+test("parsePaymentPrefill reads the party and sums the allocations", () => {
+  assert.deepEqual(parsePaymentPrefill({ party: "p1", allocate: "a:10.50,b:4.5" }), {
+    partyId: "p1",
+    amount: "15.00",
+    allocations: { a: "10.50", b: "4.50" },
+  });
+});
+
+test("parsePaymentPrefill ignores bad amounts and needs a party", () => {
+  assert.equal(parsePaymentPrefill({ allocate: "a:10" }), null);
+  assert.deepEqual(parsePaymentPrefill({ party: "p1", allocate: "a:x,b:0,:5,c:1.234" }), { partyId: "p1", amount: "", allocations: {} });
+  assert.deepEqual(parsePaymentPrefill({ party: "p1" }), { partyId: "p1", amount: "", allocations: {} });
 });
