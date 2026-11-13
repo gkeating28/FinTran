@@ -15,6 +15,8 @@ test("flow 9: bank accounts are set up by an owner, and a member can only read t
   // An IBAN typed with spaces and lower case is saved in one form, and a bad one is refused with a plain message.
   await page.getByRole("button", { name: "Add", exact: true }).click();
   const dialog = page.getByRole("dialog");
+  // A form opens with the first field to type in focused. Here that is Code, not the Currency list below it.
+  await expect(dialog.getByLabel("Code")).toBeFocused();
   await dialog.getByLabel("Code").fill("e2e-main");
   await dialog.getByLabel("Name").fill("Flow nine current account");
   await dialog.getByLabel("IBAN").fill("ie29 aibk 9311 5212 3456 79");
@@ -44,6 +46,8 @@ test("flow 9: bank accounts are set up by an owner, and a member can only read t
   // The code is fixed once saved.
   await row.getByRole("button", { name: "Edit" }).click();
   await expect(dialog.getByLabel("Code")).toHaveAttribute("readonly", "");
+  // The code is locked, so the first field to type in is the name.
+  await expect(dialog.getByLabel("Name")).toBeFocused();
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
 
   // A member sees the account but has no Add, Edit or Remove, and the database refuses a direct write.
