@@ -5,6 +5,8 @@ import { numberValue } from "@/lib/numbers";
 import {
   targetKindFor,
   type AllocationLine,
+  type DocumentAllocation,
+  type DocumentPayments,
   type OpenItem,
   type PaymentChoices,
   type PaymentRow,
@@ -251,4 +253,109 @@ export async function listPayments(typeCode: string): Promise<{
 /** The kind of document a payment of this type settles, for the open items panel. */
 export function targetKindOfType(kind: "payment" | "receipt", direction: TransactionTypeKind) {
   return targetKindFor(kind, direction);
+}
+
+/** The Payments tab of one posted invoice or credit note: what settled it, what is open, and what can be raised from it. */
+export async function loadDocumentPayments(
+  supabase: Supabase,
+  organisationId: string,
+  headerId: string,
+): Promise<{ data: DocumentPayments | null; error: string | null }> {
+  const header = await supabase
+    .from("transaction_headers")
+    .select("id, status, transaction_type_id, customer_id, supplier_id, currency_id, foreign_total_amount, rounding_amount, paid_amount, amount_due")
+    .eq("organisation_id", organisationId)
+    .eq("id", headerId)
+    .maybeSingle();
+  if (header.error) return { data: null, error: READ_ERROR };
+  if (!header.data || header.data.status !== "posted") return { data: null, error: null };
+
+  const [type, currency] = await Promise.all([
+    supabase.from("transaction_types").select("type, document_kind").eq("id", header.data.transaction_type_id).maybeSingle(),
+    supabase.from("currencies").select("code").eq("id", header.data.currency_id).maybeSingle(),
+  ]);
+  const direction = type.data ? parseTransactionTypeKind(type.data.type) : null;
+  const kind = type.data?.document_kind;
+  if (type.error || currency.error || !direction || (kind !== "invoice" && kind !== "credit_note")) return { data: null, error: null };
+  const partyId = (direction === "Sales" ? header.data.customer_id : header.data.supplier_id) ?? "";
+
+  const [rows, types] = await Promise.all([
+    supabase
+      .from("allocations")
+      .select("id, source_payment_id, source_header_id, target_header_id, amount, allocation_date, exchange_difference, pending, removed_at, removal_reason, removed_by, created_by, created_at")
+      .eq("organisation_id", organisationId)
+      .eq("pending", false)
+      .or(`target_header_id.eq.${headerId},source_header_id.eq.${headerId}`)
+      .order("created_at"),
+    supabase
+      .from("transaction_types")
+      .select("id, code, description, type, document_kind")
+      .eq("organisation_id", organisationId)
+      .eq("type", direction)
+      .eq("is_system", false)
+      .order("code"),
+  ]);
+  if (rows.error || types.error) return { data: null, error: READ_ERROR };
+
+  const paymentIds = [...new Set((rows.data ?? []).flatMap((row) => (row.source_payment_id ? [row.source_payment_id] : [])))];
+  const headerIds = [...new Set((rows.data ?? []).flatMap((row) => [row.source_header_id, row.target_header_id]).filter((id): id is string => Boolean(id) && id !== headerId))];
+  const personIds = [...new Set((rows.data ?? []).flatMap((row) => [row.created_by, row.removed_by]).filter((id): id is string => Boolean(id)))];
+  const [payments, others, people] = await Promise.all([
+    paymentIds.length ? supabase.from("payments").select("id, document_number").in("id", paymentIds) : Promise.resolve({ data: [], error: null }),
+    headerIds.length ? supabase.from("transaction_headers").select("id, document_number, reference").in("id", headerIds) : Promise.resolve({ data: [], error: null }),
+    personIds.length ? supabase.from("profiles").select("id, display_name").in("id", personIds) : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (payments.error || others.error || people.error) return { data: null, error: READ_ERROR };
+  const paymentNumber = new Map((payments.data ?? []).map((row) => [row.id, row.document_number ?? ""]));
+  const headerNumber = new Map((others.data ?? []).map((row) => [row.id, row.document_number ?? String(row.reference ?? "")]));
+  const person = new Map((people.data ?? []).map((row) => [row.id, row.display_name]));
+
+  const allocations = (rows.data ?? []).map((row): DocumentAllocation => {
+    const settledBy = row.target_header_id === headerId;
+    const otherId = settledBy ? (row.source_payment_id ?? row.source_header_id ?? "") : row.target_header_id;
+    const otherKind = settledBy ? (row.source_payment_id ? "payment" : "credit_note") : "invoice";
+    return {
+      id: row.id,
+      role: settledBy ? "settled-by" : "applied-to",
+      otherKind,
+      otherId,
+      otherNumber: (row.source_payment_id && settledBy ? paymentNumber.get(row.source_payment_id) : headerNumber.get(otherId)) ?? "",
+      date: row.allocation_date,
+      amount: formatMoney(row.amount),
+      exchangeDifference: formatMoney(row.exchange_difference),
+      removedAt: row.removed_at ?? "",
+      removalReason: row.removal_reason ?? "",
+      removedByName: row.removed_by ? (person.get(row.removed_by) ?? "") : "",
+      byName: row.created_by ? (person.get(row.created_by) ?? "") : "",
+      createdAt: row.created_at,
+    };
+  });
+
+  const open = Math.round(numberValue(header.data.amount_due) * 100) / 100;
+  const recordTypes = (types.data ?? []).flatMap((row) =>
+    isPaymentKind(row.document_kind) && targetKindFor(row.document_kind, direction) === kind
+      ? [{ id: row.id, code: row.code, description: row.description, kind: row.document_kind }]
+      : [],
+  );
+  const openInvoices =
+    kind === "credit_note" && open > 0 && partyId
+      ? (await listOpenItems(supabase, organisationId, { direction, targetKind: "invoice", partyId })).items
+      : [];
+
+  return {
+    data: {
+      documentId: headerId,
+      kind,
+      direction,
+      partyId,
+      currencyCode: currency.data?.code ?? "",
+      total: formatMoney(numberValue(header.data.foreign_total_amount) + numberValue(header.data.rounding_amount)),
+      paid: formatMoney(header.data.paid_amount),
+      open: open.toFixed(2),
+      allocations,
+      recordTypes,
+      openInvoices,
+    },
+    error: null,
+  };
 }

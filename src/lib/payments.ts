@@ -187,3 +187,47 @@ export function parsePaymentPrefill(query: { party?: string; allocate?: string }
   }
   return { partyId, amount: cents > 0 ? (cents / 100).toFixed(2) : "", allocations };
 }
+
+/** One allocation as a posted invoice or credit note lists it. */
+export type DocumentAllocation = {
+  id: string;
+  /** How it touches this document: money received or paid against it, or this credit note applied to an invoice. */
+  role: "settled-by" | "applied-to";
+  /** The payment, receipt or credit note on the other side, and the document number or payment number to show. */
+  otherKind: "payment" | "credit_note" | "invoice";
+  otherId: string;
+  otherNumber: string;
+  date: string;
+  amount: string;
+  exchangeDifference: string;
+  removedAt: string;
+  removalReason: string;
+  removedByName: string;
+  byName: string;
+  createdAt: string;
+};
+
+/** Everything the Payments tab of a posted invoice or credit note shows. */
+export type DocumentPayments = {
+  documentId: string;
+  kind: "invoice" | "credit_note";
+  direction: TransactionTypeKind;
+  partyId: string;
+  currencyCode: string;
+  total: string;
+  /** Paid on an invoice, applied or refunded on a credit note. */
+  paid: string;
+  /** What is still open, as a plain number with two decimals. */
+  open: string;
+  allocations: DocumentAllocation[];
+  /** The types that can be raised from it: a receipt or payment for an invoice, a refund for a credit note. */
+  recordTypes: { id: string; code: string; description: string; kind: PaymentKind }[];
+  /** For a credit note with a balance: the party's open invoices it can be applied to. */
+  openInvoices: OpenItem[];
+};
+
+/** The address that opens a new draft of a payment type with this document's open amount allocated to it. */
+export function recordPaymentHref(typeCode: string, documentId: string, partyId: string, open: string) {
+  const query = new URLSearchParams({ new: "1", party: partyId, allocate: `${documentId}:${open}` });
+  return `/transactions/${encodeURIComponent(typeCode)}?${query.toString()}`;
+}

@@ -11,10 +11,13 @@ import { addDays, creditLabel } from "./shared";
 import { FlexField } from "./FlexField";
 import type { DocumentFormState } from "./useDocumentForm";
 import { TotalsSummary } from "./TotalsSummary";
+import { PaymentsTab } from "./PaymentsTab";
 
 /** The Document, Notes and Payment tabs, with the totals under them. */
 export function HeaderPane({ form }: { form: DocumentFormState }) {
   const { header, choices, typeId, transactionDate, setTransactionDate, dueDate, setDueDate, supplierId, termsDays, supplierName, setSupplierName, contactDetails, setContactDetails, notes, setNotes, currencyId, setExchangeRate, orderNumber, setOrderNumber, salesOrderReference, setSalesOrderReference, supplierReference, setSupplierReference, supplyDate, setSupplyDate, roundingAmount, setRoundingAmount, precedingHeaderId, precedingReference, setPrecedingReference, precedingDate, setPrecedingDate, buyerReference, setBuyerReference, contractReference, setContractReference, paymentTerms, setPaymentTerms, invoicePeriodStart, setInvoicePeriodStart, invoicePeriodEnd, setInvoicePeriodEnd, paymentMeansCode, setPaymentMeansCode, flex, setFlex, headerTab, setHeaderTab, ordersOpen, sales, posted, locked, selectedType, sameAsHome, rateValue, flexLabels, grnIndex, otherRefIndex, showFlex, parties, creditNote, orderDocument, canBringIn, paymentMeans, creditChoices, chooseSupplier, chooseCredit, openPanel } = form;
+  // Posted invoices and credit notes list what has settled them. Orders and drafts have nothing to list.
+  const showPayments = Boolean(header && posted && !orderDocument);
   return (
     <div className={styles.headerPane}>
             <div className={documentStyles.headerTabs} role="tablist" aria-label="Header">
@@ -22,6 +25,7 @@ export function HeaderPane({ form }: { form: DocumentFormState }) {
                 ["document", "Document"],
                 ["notes", "Notes"],
                 ["payment", "Payment"],
+                ...(showPayments ? ([["payments", "Payments"]] as const) : []),
               ] as const).map(([id, label]) => (
                 <button
                   key={id}
@@ -325,7 +329,7 @@ export function HeaderPane({ form }: { form: DocumentFormState }) {
               />
             </label>
             <label className={styles.field}>
-              Paid
+              {creditNote ? "Applied" : "Paid"}
               <QuietInput
                 readOnly
                 tabIndex={-1}
@@ -349,6 +353,17 @@ export function HeaderPane({ form }: { form: DocumentFormState }) {
               <QuietTextarea name="contact_details" maxLength={500} rows={2} spellCheck disabled={locked} value={contactDetails} onChange={(event) => setContactDetails(event.target.value)} />
             </label>
             </div>
+            {showPayments && header ? (
+              <div
+                className={`${styles.invoiceForm} ${styles.headerFields}`}
+                id="header-panel-payments"
+                role="tabpanel"
+                aria-labelledby="header-tab-payments"
+                hidden={headerTab !== "payments"}
+              >
+                <PaymentsTab headerId={header.id} active={headerTab === "payments"} />
+              </div>
+            ) : null}
             </div>
     <TotalsSummary form={form} />
     </div>

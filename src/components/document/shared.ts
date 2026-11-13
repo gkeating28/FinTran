@@ -39,7 +39,7 @@ export function readStoredSplitWidth(): number | null {
 export const SPLIT_HANDLE = 10;
 export const SPLIT_MIN = 280;
 
-export type HeaderTab = "document" | "notes" | "payment";
+export type HeaderTab = "document" | "notes" | "payment" | "payments";
 
 export function clampSplit(width: number, container: number) {
   const max = Math.max(SPLIT_MIN, container - SPLIT_MIN - SPLIT_HANDLE);

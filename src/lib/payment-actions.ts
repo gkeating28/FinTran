@@ -5,8 +5,8 @@ import { redirect } from "next/navigation";
 import { parseAmount } from "@/lib/products";
 import { parseInvoiceDate, parseUuid } from "@/lib/documents";
 import { OrganisationAccessError, requireCurrentOrganisation } from "@/lib/organisation-guard";
-import { listOpenItems, loadPaymentRows } from "@/lib/payment-data";
-import { parseAllocationAmount, targetKindFor, type OpenItem, type PaymentRow } from "@/lib/payments";
+import { listOpenItems, loadDocumentPayments, loadPaymentRows } from "@/lib/payment-data";
+import { parseAllocationAmount, targetKindFor, type DocumentPayments, type OpenItem, type PaymentRow } from "@/lib/payments";
 import { createClient } from "@/lib/supabase/server";
 import { parseCurrencyRate } from "@/lib/currencies";
 import type { ActionState } from "@/lib/types";
@@ -269,6 +269,16 @@ export async function loadPayment(id: string): Promise<PaymentRow | null> {
     const { rows } = await loadPaymentRows(supabase, current.organisationId, { paymentId: id });
     return rows[0] ?? null;
   }, null);
+}
+
+/** The Payments tab of a posted invoice or credit note, read when the tab opens and again after a change. */
+export async function loadDocumentPaymentsTab(headerId: string): Promise<{ data: DocumentPayments | null; error: string | null }> {
+  if (!parseUuid(headerId)) return { data: null, error: null };
+  return guarded(async () => {
+    const current = await requireCurrentOrganisation();
+    const supabase = await createClient();
+    return loadDocumentPayments(supabase, current.organisationId, headerId);
+  }, { data: null, error: "You cannot see that organisation." });
 }
 
 const STANDARD_TYPES = [
