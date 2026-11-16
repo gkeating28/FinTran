@@ -12,9 +12,33 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
+/* An amount typed in a table row. It has the look of the app's other inputs, at the height of a row. */
 .allocateInput {
   width: 11ch;
+  height: calc(var(--row-height) - 12px);
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--text-base);
+  font-weight: 500;
   text-align: right;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.allocateInput:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+}
+
+.allocateInput:focus-visible {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.allocateInput[aria-invalid="true"] {
+  border-color: var(--color-danger);
 }
 
 .itemsScroll {
@@ -32,10 +56,10 @@
 }
 
 .removed {
-  color: var(--ops-muted, #5b6b82);
+  color: var(--color-muted);
   text-decoration: line-through;
 }
 
 .muted {
-  color: var(--ops-muted, #5b6b82);
+  color: var(--color-muted);
 }

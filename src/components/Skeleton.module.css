@@ -1,7 +1,7 @@
 /* Loading placeholders shown while a page streams in. */
 
 .skeleton {
-  border-radius: var(--ops-radius);
+  border-radius: var(--radius);
   background: linear-gradient(90deg, #e8ecf2 25%, #f3f5f9 50%, #e8ecf2 75%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.4s ease-in-out infinite;
@@ -40,7 +40,7 @@
   align-items: center;
   height: var(--row-height);
   padding: 0 14px;
-  border-bottom: 1px solid var(--ops-border-soft);
+  border-bottom: 1px solid var(--color-border-soft);
 }
 
 .skeletonCell,

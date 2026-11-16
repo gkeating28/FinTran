@@ -24,9 +24,9 @@
   flex-direction: column;
   gap: 10px;
   padding: 16px;
-  border: 1px solid var(--ops-border);
-  border-radius: var(--ops-radius-lg);
-  background: var(--ops-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
   box-shadow: var(--shadow-sm);
 }
 
@@ -45,7 +45,7 @@
 
 .lede {
   margin: 0;
-  color: var(--ops-text-2);
+  color: var(--color-text-2);
   font-size: var(--text-sm);
 }
 
@@ -59,7 +59,7 @@
 
 .muted {
   margin: 0;
-  color: var(--ops-muted);
+  color: var(--color-muted);
   font-size: var(--text-sm);
 }
 
@@ -87,25 +87,25 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #e7ebf0;
-  color: var(--ops-text-2);
-  font-size: 12px;
+  background: var(--color-neutral-soft);
+  color: var(--color-text-2);
+  font-size: var(--text-xs);
   font-weight: 700;
 }
 
 .checks li[data-ok="true"] .mark {
-  background: var(--ops-ok);
-  color: #fff;
+  background: var(--color-ok);
+  color: var(--color-on-dark);
 }
 
 .checks li[data-ok="false"][data-required="true"] .mark {
-  background: var(--ops-danger);
-  color: #fff;
+  background: var(--color-danger);
+  color: var(--color-on-dark);
 }
 
 .checks li[data-ok="false"][data-required="false"] .mark {
-  background: var(--ops-warn);
-  color: #fff;
+  background: var(--color-warn);
+  color: var(--color-on-dark);
 }
 
 .checkLabel {
@@ -115,7 +115,7 @@
 
 .hint {
   display: block;
-  color: var(--ops-muted);
+  color: var(--color-muted);
   font-size: var(--text-xs);
 }
 
@@ -128,7 +128,7 @@
 }
 
 .facts dt {
-  color: var(--ops-muted);
+  color: var(--color-muted);
 }
 
 .facts dd {
@@ -139,7 +139,7 @@
 }
 
 .facts dd[data-alert="true"] {
-  color: var(--ops-danger);
+  color: var(--color-danger);
 }
 
 .documents {
@@ -157,7 +157,7 @@
   align-items: center;
   gap: 4px 10px;
   padding: 8px 0;
-  border-top: 1px solid var(--ops-border-soft);
+  border-top: 1px solid var(--color-border-soft);
 }
 
 .documents li:first-child {

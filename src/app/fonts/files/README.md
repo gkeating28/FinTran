@@ -1,7 +1,7 @@
 # Font files
 
-The Latin subsets of Public Sans (400, 600 and 700), Plus Jakarta Sans (700) and IBM Plex Mono (500), taken from the
-Fontsource packages version 5.3.0. They used to be fetched from Google Fonts at build time, and a build failed whenever
+The Latin subsets of Public Sans (400, 600 and 700), Plus Jakarta Sans (700) and IBM Plex Mono (500 and 600), taken from the
+Fontsource packages version 5.3.0, except the IBM Plex Mono 600, which is from version 5.1.1. They used to be fetched from Google Fonts at build time, and a build failed whenever
 that fetch did.
 
 All three are licensed under the SIL Open Font License 1.1, which allows them to be bundled with software.

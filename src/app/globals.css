@@ -12,6 +12,8 @@
   /* Lines */
   --color-border: #dfe4ec;
   --color-border-soft: #e9edf3;
+  --color-border-strong: #c3cad6;
+  --color-neutral-soft: #e7ebf0;
 
   /* Text. Muted text is at least 4.5:1 on white and on the muted surface. */
   --color-text: #0f172a;
@@ -22,6 +24,8 @@
   --color-accent: #2452b8;
   --color-accent-hover: #1d4398;
   --color-accent-soft: #e8eefb;
+  /* Text on a filled accent, status or navy surface. */
+  --color-on-dark: #ffffff;
 
   /* Status */
   --color-ok: #166a49;
@@ -33,6 +37,7 @@
   --color-danger: #b42318;
   --color-danger-hover: #912018;
   --color-danger-soft: #fef3f2;
+  --color-danger-border: #f2c4bf;
 
   /* Navy chrome, shared by the sidebar, the title bar and dialog headers */
   --chrome-bg: #0f1f38;

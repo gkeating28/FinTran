@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useFormChrome } from "@/components/FormChrome";
+import { useFormChrome, usePageLabel } from "@/components/FormChrome";
 import { MenuIcon } from "@/components/icons";
 import { useNav } from "@/components/NavState";
 import { previousPage } from "@/lib/previous-page";
@@ -45,6 +45,7 @@ export default function AppTitleBar({
   const router = useRouter();
   const nav = useNav();
   const formTitle = useFormChrome();
+  const registeredLabel = usePageLabel();
   const transactionCode = pathname.match(/^\/transactions\/([A-Za-z0-9]+)$/)?.[1];
   const formCode = pathname.match(/^\/forms\/([A-Za-z0-9]+)$/)?.[1];
   const pageLabel = setup
@@ -90,7 +91,10 @@ export default function AppTitleBar({
                 <strong>{formCode.toUpperCase()}</strong>
               </>
             ) : (
-              <strong>{pageLabel}</strong>
+              <>
+                <strong>{transactionCode && registeredLabel ? registeredLabel : pageLabel}</strong>
+                {transactionCode && registeredLabel ? <> ({transactionCode.toUpperCase()})</> : null}
+              </>
             )}
           </span>
           {formTitle ? (

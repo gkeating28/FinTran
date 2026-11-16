@@ -53,7 +53,7 @@
 }
 
 .brandSub {
-  font-size: 11px;
+  font-size: var(--text-xs);
   letter-spacing: 0.14em;
   color: var(--chrome-muted);
   font-weight: 600;
@@ -66,7 +66,7 @@
 .orgLabel,
 .sectionLabel {
   display: block;
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.1em;
   color: var(--chrome-muted);
@@ -118,12 +118,12 @@
 
 .navLink:hover {
   background: var(--chrome-hover);
-  color: #fff;
+  color: var(--color-on-dark);
 }
 
 .navLinkActive {
   background: var(--chrome-active);
-  color: #fff;
+  color: var(--color-on-dark);
 }
 
 .navLinkActive::before {
@@ -169,7 +169,7 @@
 }
 
 .signOut:hover {
-  color: #fff;
+  color: var(--color-on-dark);
 }
 
 .scrim {

@@ -94,7 +94,7 @@
 }
 
 .bannerPrimary:hover {
-  background: #fff;
+  background: var(--color-surface);
   color: var(--chrome-bg);
 }
 
@@ -106,7 +106,7 @@
 .bannerSecondary:hover {
   border-color: rgba(255, 255, 255, 0.7);
   background: var(--chrome-hover);
-  color: #fff;
+  color: var(--color-on-dark);
 }
 
 .bannerPrimary:focus-visible,
@@ -155,7 +155,7 @@
   height: 38px;
   border: 2px solid var(--chrome-bg);
   border-radius: 50%;
-  color: #fff;
+  color: var(--color-on-dark);
   font-size: var(--text-sm);
   font-weight: 600;
 }
@@ -172,7 +172,7 @@
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  color: #fff;
+  color: var(--color-on-dark);
   font-size: var(--text-xs);
   font-weight: 600;
 }
@@ -382,7 +382,7 @@ a.bigNumber:hover {
 .barLabel,
 .barLabelNow {
   color: var(--color-muted);
-  font-size: 11px;
+  font-size: var(--text-xs);
   white-space: nowrap;
 }
 

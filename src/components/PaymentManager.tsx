@@ -4,6 +4,7 @@ import { useState, useSyncExternalStore } from "react";
 import DataGrid, { type GridColumn } from "@/components/DataGrid";
 import styles from "@/components/OpsPage.module.css";
 import { useRegion } from "@/components/useRegion";
+import { useRegisterPageLabel } from "@/components/FormChrome";
 import PaymentForm from "@/components/payment/PaymentForm";
 import { formatDate } from "@/lib/dates";
 import { documentStatusLabel } from "@/lib/transaction-types";
@@ -45,6 +46,7 @@ export default function PaymentManager({
   prefill?: PaymentPrefill | null;
 }) {
   const region = useRegion();
+  useRegisterPageLabel(title);
   const [draft, setDraft] = useState<PaymentRow | "new" | null>(null);
   const [statusFilter, setStatusFilter] = useState("");
   const [partyFilter, setPartyFilter] = useState("");
