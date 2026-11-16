@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useCallback, useEffect, useState, type ReactNode } from "react";
+import { useActionState, useCallback, useEffect, useState, type MouseEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import FormModal from "@/components/FormModal";
 import styles from "@/components/OpsPage.module.css";
@@ -13,12 +13,14 @@ import { formatDate } from "@/lib/dates";
 import { formatMoney } from "@/lib/documents";
 import { applyAllocations, loadDocumentPaymentsTab, type PaymentActionState } from "@/lib/payment-actions";
 import {
+  allocateOnDoubleTap,
   allocationTotals,
   distributeOldestFirst,
   parseAllocationAmount,
   recordPaymentHref,
   type DocumentAllocation,
   type DocumentPayments,
+  type OpenItem,
 } from "@/lib/payments";
 
 /**
@@ -234,6 +236,7 @@ export function PaymentsTab({ headerId, active }: { headerId: string; active: bo
 function ApplyCreditNoteDialog({ data, onClose, onApplied }: { data: DocumentPayments; onClose: () => void; onApplied: () => void }) {
   const [state, action, pending] = useActionState(applyAllocations, {} as PaymentActionState);
   const [boxes, setBoxes] = useState<Record<string, string>>({});
+  const [tapMessage, setTapMessage] = useState<string | null>(null);
   useEffect(() => {
     if (state.message) onApplied();
   }, [state.message, onApplied]);
@@ -242,6 +245,20 @@ function ApplyCreditNoteDialog({ data, onClose, onApplied }: { data: DocumentPay
   const typed = data.openInvoices.map((item) => parseAllocationAmount(boxes[item.id] ?? ""));
   const invalid = typed.some((value) => value === undefined);
   const totals = allocationTotals(balance, typed.map((value) => (typeof value === "number" ? value : 0)));
+  /** A double tap on an invoice applies everything still open on it, if that fits in what is left of the balance. */
+  function applyWhole(item: OpenItem, event: MouseEvent) {
+    if ((event.target as HTMLElement).closest("input")) return;
+    const own = parseAllocationAmount(boxes[item.id] ?? "");
+    const result = allocateOnDoubleTap({
+      open: Number(item.open),
+      amount: balance,
+      amountBlank: false,
+      allocatedElsewhere: totals.allocated - (typeof own === "number" ? own : 0),
+    });
+    setTapMessage(result.kind === "refuse" ? result.message : null);
+    if (result.kind === "allocate") setBoxes((current) => ({ ...current, [item.id]: result.box }));
+  }
+
   const allocations = JSON.stringify(
     data.openInvoices.flatMap((item) => ((boxes[item.id] ?? "").trim() ? [{ targetHeaderId: item.id, amount: boxes[item.id] }] : [])),
   );
@@ -277,7 +294,12 @@ function ApplyCreditNoteDialog({ data, onClose, onApplied }: { data: DocumentPay
             </thead>
             <tbody>
               {data.openInvoices.map((item) => (
-                <tr key={item.id}>
+                <tr
+                  key={item.id}
+                  title="Double click to apply everything still open"
+                  style={{ touchAction: "manipulation", userSelect: "none" }}
+                  onDoubleClick={(event) => applyWhole(item, event)}
+                >
                   <td className={styles.mono}>{item.documentNumber}</td>
                   <td>{item.dueDate}</td>
                   <td className={`${styles.num} ${styles.mono}`}>{formatMoney(item.open)}</td>
@@ -295,6 +317,11 @@ function ApplyCreditNoteDialog({ data, onClose, onApplied }: { data: DocumentPay
             </tbody>
           </table>
         </div>
+        {tapMessage ? (
+          <p className={styles.alert} role="alert">
+            {tapMessage}
+          </p>
+        ) : null}
         {invalid ? (
           <p className={styles.alert} role="alert">
             Enter each amount with at most 2 decimal places.

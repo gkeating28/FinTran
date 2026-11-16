@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition, type FormEvent } from "react";
+import { useCallback, useEffect, useState, useTransition, type FormEvent, type MouseEvent } from "react";
 import ConfirmSubmitButton from "@/components/ConfirmDialog";
 import documentStyles from "@/components/Document.module.css";
 import FormModal from "@/components/FormModal";
@@ -23,6 +23,7 @@ import {
   type PaymentActionState,
 } from "@/lib/payment-actions";
 import {
+  allocateOnDoubleTap,
   allocationTotals,
   distributeOldestFirst,
   parseAllocationAmount,
@@ -181,6 +182,30 @@ export default function PaymentForm({
     : allocationTotals(amountValue, [boxTotal]);
   const onAccount = posted ? numberValue(current?.unallocatedAmount) : totals.unallocated;
 
+  /**
+   * A double tap on an open document allocates everything still open on it, if that fits in what is left of the
+   * payment. With no amount entered on a draft, the amount is filled in from the document. A tap in the box itself is
+   * left alone, so the text in it can still be selected.
+   */
+  function allocateWhole(item: OpenItem, event: MouseEvent) {
+    if ((event.target as HTMLElement).closest("input")) return;
+    const own = parseAllocationAmount(boxes[item.id] ?? "");
+    const result = allocateOnDoubleTap({
+      open: Number(item.open),
+      amount: posted ? numberValue(current?.unallocatedAmount) : amountValue,
+      amountBlank: !posted && !(amountValue > 0),
+      allocatedElsewhere: boxTotal - (typeof own === "number" ? own : 0),
+    });
+    setError(null);
+    if (result.kind === "refuse") {
+      setNotice(result.message);
+      return;
+    }
+    setNotice(null);
+    setBoxes((previous) => ({ ...previous, [item.id]: result.box }));
+    if (result.amount) setAmount(result.amount);
+  }
+
   const allocationsJson = JSON.stringify(
     typedBoxes.filter((entry) => typeof entry.value === "number").map((entry) => ({ targetHeaderId: entry.item.id, amount: String(entry.value) })),
   );
@@ -277,7 +302,12 @@ export default function PaymentForm({
                 const typed = parseAllocationAmount(boxes[item.id] ?? "");
                 const tooMuch = typeof typed === "number" && typed > Number(item.open);
                 return (
-                  <tr key={item.id}>
+                  <tr
+                    key={item.id}
+                    title="Double click to allocate everything still open"
+                    style={voided ? undefined : { touchAction: "manipulation", userSelect: "none" }}
+                    onDoubleClick={voided ? undefined : (event) => allocateWhole(item, event)}
+                  >
                     <td className={styles.mono}>{item.documentNumber}</td>
                     <td>{formatDate(item.date, region)}</td>
                     <td>{formatDate(item.dueDate, region)}</td>

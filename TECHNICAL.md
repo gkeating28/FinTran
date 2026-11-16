@@ -537,7 +537,7 @@ Four checks run in `.github/workflows/check.yml` on every pull request and on ev
 | Unit tests | `npm test` | Pure code: spreadsheet safety, Ask Qula actions and its scripted mock provider, order progress, follow-on actions, e-invoice parsing and the golden order reference files. A new test file is added to the `test` script in `package.json`. |
 | Types | `npm run db:types` | `database.types.ts` has every table and every column the migrations create, and no others. To fix it, regenerate the types from the project and replace the file. |
 | SQL tests | `scripts/run-sql-tests.sh` | The database rules, on a local Supabase stack built from `supabase/migrations`. Each test raises on a broken rule and rolls back. `concurrency/last_unit.sh` and `concurrency/last_amount.sh` use two sessions and commit a small tenant: the first for the last unit of an order, the second for two payments allocating the last 100.00 of an invoice at once, where one succeeds, one is refused and neither deadlocks. The payment tests are `payments.sql`, `allocations.sql`, `payment_functions.sql` and `migrate_paid_amounts.sql`, which runs the migration file itself. Run them on a clean database, because the end-to-end seed uses a Peppol ID that some tests also use. |
-| End to end | `npm run e2e` | Sixteen flows in Chromium against the built app and a seeded local stack, and a smoke check that every main page loads for the owner, admin and member without console errors. |
+| End to end | `npm run e2e` | Seventeen flows in Chromium against the built app and a seeded local stack, and a smoke check that every main page loads for the owner, admin and member without console errors. |
 
 The Supabase CLI is pinned in the workflow, because "latest" asks the GitHub API which release that is and a run that hits its rate limit fails before any of our code runs. Move the pin up on purpose, in a pull request of its own.
 
@@ -545,7 +545,7 @@ The Supabase CLI is pinned in the workflow, because "latest" asks the GitHub API
 
 `npm run e2e:seed` signs up three people through the sign-up API (`owner@qula.test`, `admin@qula.test` and `member@qula.test`, in `e2e/people.ts`) and runs `supabase/seed/e2e.sql`. That makes one tenant with two organisations, the setup lists, a Purchases and a Sales type for each kind of document, two customers, two suppliers, and Ask Qula on the mock provider with actions switched on. It refuses to run against anything that is not a local stack. Nothing in the tests calls a real AI or Access Point service. The mock AI provider in `src/lib/ai/mock.ts` follows a fixed script: a question about drafts looks them up, and a request to post proposes posting the first draft found. The lookup, the cards, the proposal and its single-use token are the real code.
 
-The flows run one at a time, in file order, on one database, and each signs in through the real sign-in page. Flow 6 uses the e-invoice that flow 5 imports, and flows 11 to 15 use the bank account and payment types flow 11 sets up, so they are skipped if it fails. Flows 11 to 15 were written without a local stack to run them against.
+The flows run one at a time, in file order, on one database, and each signs in through the real sign-in page. Flow 6 uses the e-invoice that flow 5 imports, and flows 11 to 16 use the bank account and payment types flow 11 sets up, so they are skipped if it fails. Flows 11 to 16 were written without a local stack to run them against.
 
 | Flow | What it proves |
 | --- | --- |
@@ -565,6 +565,7 @@ The flows run one at a time, in file order, on one database, and each signs in t
 | 13 | A credit note's balance is applied to a second invoice. |
 | 14 | A customer is refunded the unallocated balance of a credit note. |
 | 15 | An allocation on a posted receipt is removed with a reason and the money goes to another invoice. |
+| 16 | A double tap on an open invoice allocates what is open on it, is refused when it does not fit, and fills in a blank amount. |
 
 The helpers are `e2e/documents.ts` (open a list, fill a document, press a button, read a row), `e2e/api.ts` (call the API as a test person, to check what the screens hide) and `e2e/upload.ts` (upload an e-invoice and fail with the server's own message). The test files are in `e2e/files`.
 

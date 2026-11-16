@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { allocationTotals, distributeOldestFirst, parseAllocationAmount, parsePaymentPrefill, paymentNoun, recordPaymentHref, settlementState, targetKindFor } from "./payments";
+import { allocateOnDoubleTap, allocationTotals, distributeOldestFirst, parseAllocationAmount, parsePaymentPrefill, paymentNoun, recordPaymentHref, settlementState, targetKindFor } from "./payments";
 
 test("a receipt or a payment clears invoices and a refund clears credit notes", () => {
   assert.equal(targetKindFor("receipt", "Sales"), "invoice");
@@ -86,4 +86,32 @@ test("settlementState tells unpaid, part paid and paid apart", () => {
   assert.equal(settlementState("20.00", "1,100.00"), "part");
   assert.equal(settlementState("120.00", "0.00"), "paid");
   assert.equal(settlementState(0, 0), "paid");
+});
+
+test("a double tap allocates the full open amount when it fits in the amount entered", () => {
+  assert.deepEqual(allocateOnDoubleTap({ open: 120, amount: 500, amountBlank: false, allocatedElsewhere: 0 }), { kind: "allocate", box: "120.00", amount: null });
+  assert.deepEqual(allocateOnDoubleTap({ open: 120, amount: 500, amountBlank: false, allocatedElsewhere: 380 }), { kind: "allocate", box: "120.00", amount: null });
+  assert.deepEqual(allocateOnDoubleTap({ open: 120.1, amount: 120.1, amountBlank: false, allocatedElsewhere: 0 }), { kind: "allocate", box: "120.10", amount: null });
+});
+
+test("a double tap that does not fit is refused and says what is left", () => {
+  assert.deepEqual(allocateOnDoubleTap({ open: 120, amount: 100, amountBlank: false, allocatedElsewhere: 0 }), {
+    kind: "refuse",
+    message: "120.00 is more than the 100.00 left to allocate.",
+  });
+  assert.deepEqual(allocateOnDoubleTap({ open: 120, amount: 500, amountBlank: false, allocatedElsewhere: 450 }), {
+    kind: "refuse",
+    message: "120.00 is more than the 50.00 left to allocate.",
+  });
+  assert.equal(allocateOnDoubleTap({ open: 10, amount: 500, amountBlank: false, allocatedElsewhere: 600 }).kind, "refuse");
+});
+
+test("a double tap with no amount entered fills the amount in from the document", () => {
+  assert.deepEqual(allocateOnDoubleTap({ open: 2460, amount: 0, amountBlank: true, allocatedElsewhere: 0 }), { kind: "allocate", box: "2460.00", amount: "2460.00" });
+  assert.deepEqual(allocateOnDoubleTap({ open: 60, amount: 0, amountBlank: true, allocatedElsewhere: 40 }), { kind: "allocate", box: "60.00", amount: "100.00" });
+});
+
+test("a double tap on a document with nothing open does nothing", () => {
+  assert.equal(allocateOnDoubleTap({ open: 0, amount: 500, amountBlank: false, allocatedElsewhere: 0 }).kind, "refuse");
+  assert.equal(allocateOnDoubleTap({ open: 0, amount: 0, amountBlank: true, allocatedElsewhere: 0 }).kind, "refuse");
 });
