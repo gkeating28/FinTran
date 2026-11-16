@@ -238,3 +238,45 @@ test("flow 15: an allocation on a posted receipt is removed with a reason and th
   await filterByPayment(page, "Part paid");
   await expect(listRows(page).filter({ hasText: second })).toHaveCount(1);
 });
+
+test("flow 16: a double tap on an open invoice allocates what is open on it, and fills in a blank amount", async ({ page }) => {
+  test.setTimeout(240_000);
+  await signIn(page, "owner");
+
+  const total = withVat(61);
+  await postSalesDocument(page, "SIN", "ACME", "61", "Flow sixteen goods");
+
+  await openList(page, "SRC");
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  const receipt = paymentDialog(page, /receipt/i);
+  await chooseByCode(receipt.locator('select[name="customer_id"]'), "ACME");
+  const amount = receipt.locator('input[name="amount"]');
+  const row = receipt.getByRole("row").filter({ hasText: total });
+  const box = row.getByRole("textbox");
+  // The tap is on the first cell, not on the allocation box, which keeps its own text selection.
+  const tap = () => row.locator("td").first().dblclick();
+
+  // With no amount entered, one double tap fills in the amount and the allocation.
+  await expect(amount).toHaveValue("");
+  await tap();
+  await expect(amount).toHaveValue(total);
+  await expect(box).toHaveValue(total);
+
+  // An amount smaller than what is open refuses it, says what is left, and changes nothing.
+  await box.fill("");
+  await typeInto(amount, "10.00");
+  await tap();
+  await expect(receipt.getByRole("alert")).toContainText("is more than the 10.00 left to allocate");
+  await expect(box).toHaveValue("");
+  await expect(amount).toHaveValue("10.00");
+
+  // An amount that is enough takes it, and leaves the rest on account.
+  await typeInto(amount, "100.00");
+  await tap();
+  await expect(box).toHaveValue(total);
+  await expect(receipt.getByText("On account")).toBeVisible();
+
+  // Nothing is saved, so the invoice stays open.
+  await receipt.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(receipt).toHaveCount(0);
+});

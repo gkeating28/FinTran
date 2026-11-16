@@ -240,3 +240,38 @@ export function settlementState(paid: string | number, due: string | number): Se
   if (amount(due) <= 0) return "paid";
   return amount(paid) > 0 ? "part" : "unpaid";
 }
+
+/**
+ * What a double tap on an open document does on the allocation list. The full amount still open on it goes into its
+ * allocation box, as long as it fits in what is left of the payment once the other boxes are counted. When no amount
+ * has been entered yet (only a draft can be in that state) the amount is filled in from the document instead, so one
+ * double tap is enough to start a payment. Anything that does not fit is refused and nothing changes.
+ */
+export type DoubleTapAllocation =
+  | { kind: "allocate"; box: string; amount: string | null }
+  | { kind: "refuse"; message: string };
+
+export function allocateOnDoubleTap(input: {
+  /** What is still open on the document that was tapped. */
+  open: number;
+  /** The amount of the payment, or of the money still on account on a posted one. Blank counts as none. */
+  amount: number;
+  /** Whether the amount box is empty, which a draft fills in. A posted payment's amount is fixed. */
+  amountBlank: boolean;
+  /** The total of the other documents' boxes. The tapped document's own box is not counted. */
+  allocatedElsewhere: number;
+}): DoubleTapAllocation {
+  const cents = (value: number) => Math.round(roundCents(value) * 100);
+  const open = cents(input.open);
+  if (open <= 0) return { kind: "refuse", message: "Nothing is open on that document." };
+  const elsewhere = cents(input.allocatedElsewhere);
+  if (input.amountBlank) {
+    return { kind: "allocate", box: (open / 100).toFixed(2), amount: ((open + elsewhere) / 100).toFixed(2) };
+  }
+  const left = cents(input.amount) - elsewhere;
+  if (open > left) {
+    const show = (value: number) => (Math.max(value, 0) / 100).toFixed(2);
+    return { kind: "refuse", message: `${show(open)} is more than the ${show(left)} left to allocate.` };
+  }
+  return { kind: "allocate", box: (open / 100).toFixed(2), amount: null };
+}
