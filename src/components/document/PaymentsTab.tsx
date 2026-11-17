@@ -29,7 +29,12 @@ import {
  */
 function Outside({ children }: { children: ReactNode }) {
   return createPortal(
-    <div onInput={(event) => event.stopPropagation()} onChange={(event) => event.stopPropagation()}>
+    <div
+      onInput={(event) => event.stopPropagation()}
+      onChange={(event) => event.stopPropagation()}
+      // React sends events from a portal up to the form the tab sits in, which would treat this form's submit as its own.
+      onSubmit={(event) => event.stopPropagation()}
+    >
       {children}
     </div>,
     document.body,
