@@ -8,8 +8,8 @@ import { signIn } from "./sign-in";
  * flows)"). They run in order and share one database: flow 12 offers the standard payment types and adds the bank
  * account the others pay from, so the rest are skipped if it fails.
  *
- * Every invoice here has an amount no other flow uses, so a row can be found by its total. A price of 100 at 23% VAT
- * is a total of 123.00.
+ * Every invoice here has an amount no other flow uses, so a row can be found by its total. A net of 97 at 23% VAT is a
+ * total of 119.31. Other flows post invoices too (flow 1 has one of 123.00), so check an amount against theirs before using it.
  *
  * These flows have not been run against a local Supabase stack. Selectors for the payment screen are taken from the
  * components, not from a run, so expect small fixes the first time they run.
@@ -94,8 +94,8 @@ test("flow 12: the standard payment types are offered once, a receipt is recorde
   await expect(page.getByRole("button", { name: "Add payment and receipt types" })).toHaveCount(0);
 
   // An invoice, posted.
-  const total = withVat(100);
-  await postSalesDocument(page, "SIN", "ACME", "100", "Flow eleven goods");
+  const total = withVat(97);
+  await postSalesDocument(page, "SIN", "ACME", "97", "Flow twelve goods");
 
   // Record receipt opens a new receipt for the customer with the whole amount due already allocated.
   await openPaymentsTab(page, "SIN", total);
