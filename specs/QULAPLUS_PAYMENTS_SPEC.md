@@ -1,6 +1,6 @@
 # Qula Plus payments and receipts spec
 
-Version 3, 13 November 2026. Revised after the Claude Code reviews of versions 1 and 2.
+Version 4, 17 November 2026. Version 3 (13 November) was revised after the Claude Code reviews of versions 1 and 2. Version 4 records what was decided while building it: see "Changes made while building" after the decisions table. Where a section below still shows an old name or an earlier plan, that list and the notes in the sections win.
 
 Goal: record money paid and received as proper records, allocate it to invoices and credit notes, and make "paid" and "amount due" trustworthy. This replaces the typed paid amount.
 
@@ -87,6 +87,30 @@ Exchange rates follow the existing convention: a rate is how many units of the c
 | K11 | Small differences | No write-off in this spec. A short payment leaves its difference open. Write-offs and bank charges come with the cross-currency follow-up. |
 | K12 | Credit limit on credit notes | Unchanged. Posted credit notes against an invoice may not exceed its **total**, not its amount due. The limit is about what was invoiced, not what was paid. A credit note against a paid invoice leaves its value on account, to be refunded. |
 
+## Changes made while building
+
+These were decided while the spec was built and tested. They are in the code, the tests and `CORE.md`.
+
+**Transaction type codes.** Every transaction type code has three characters: `S` or `P` for the direction, then `RQ` requisition, `OR` order, `IN` invoice, `CN` credit note, `RC` receipt, `PY` payment or `RF` refund. The standard payment types are `SRC`, `PPY`, `SRF` and `PRF`. The hidden types for migrated figures are `SMR`, `PMP`, `SMF` and `PMF`. A saved code never changes, and the app decides what a type is from its kind and direction, never from its code. Old links with the earlier codes are redirected (`src/lib/legacy-type-codes.ts`).
+
+**Database.**
+- `tenant_id` on `bank_accounts` cascades. On `payments` and `allocations` it restricts.
+- `replace_pending_allocations` is in `public` (see 3.10). `allocate_lines(p_source, p_lines)` applies several amounts together or not at all.
+- Settlement may update a document dated in a locked period. The lock date applies to the allocation date, not to the document.
+- A planned allocation is refused at once if the invoice has nothing open, not only when the payment posts.
+- A typed `amount_due` on a posted document is recomputed from the paid amount, so it does not stick. A typed `paid_amount` is refused.
+- The migration of typed paid amounts is one `DO` block, so it is one transaction however it is run, and it does nothing on a second run.
+- A posted sales credit note must name its invoice (the readiness rule `FINTRAN-CREDIT`, business term BT-25). Posting allocates it to that invoice up to what is open on it. A credit note keeps a balance only when its invoice was already paid.
+- Allocate oldest first orders by due date (documents with no due date last), then document date, then id.
+
+**Screens.**
+- A double click or double tap on an open item allocates everything still open on it, if that fits within the Amount entered. When the Amount is blank, it fills the Amount with that figure. When it does not fit, a message says so. The Apply to an invoice dialog on a credit note works the same way against the credit note's balance.
+- When any add or edit form opens, the first editable field has focus.
+- The party summary shows what the party owes after unapplied receipts and credit notes, and can show a party in credit.
+- The exchange rate on a payment is read-only when the party's currency is the organisation's home currency.
+
+**Tests.** Flows 12 to 19 in `e2e/payments.spec.ts` cover phase 6, the double click, printing and the payment form designer. The SQL tests are in `supabase/tests`.
+
 The four payment combinations (K2):
 
 | Kind | Type | Party | Typical use | Allocated to |
@@ -157,7 +181,7 @@ New column on `transaction_types`: `is_system boolean not null default false`. S
   - Ask Qula tools that filter by kind
 - `transaction_headers` refuses these kinds. Payments never become headers.
 - Types of these kinds number on post by default, and may number on insert.
-- Nothing is seeded. On first use, the Transactions menu offers to create the four standard types: `REC` Customer receipt, `PAY` Supplier payment, `CREF` Customer refund, `SREF` Supplier refund.
+- Nothing is seeded. On first use, the Transactions menu offers to create the four standard types: `SRC` Sales receipt (customer receipt), `PPY` Purchases payment (supplier payment), `SRF` Sales payment (customer refund), `PRF` Purchases receipt (supplier refund). These follow the coding system in "Changes made while building". The first draft of this spec used `REC`, `PAY`, `CREF` and `SREF`.
 
 ### 2.2 Table `payments`
 
@@ -343,7 +367,7 @@ The credit note limit (K12) is unchanged: posted credit notes against an invoice
 ### 3.10 Access
 
 - No direct insert, update or delete on `allocations` for `authenticated`. All writes go through security definer functions that check membership themselves.
-- `save_payment` (phase 4) is security invoker for the payment row. It replaces pending allocations by calling `private.replace_pending_allocations(p_payment_id, p_lines jsonb)`, security definer, which checks that the caller is a member and the payment is a draft.
+- `save_payment` (phase 4) is security invoker for the payment row. It replaces pending allocations by calling `public.replace_pending_allocations(p_payment_id, p_lines jsonb)`, security definer, which checks that the caller is a member and the payment is a draft. It is in `public` and not `private` because `save_payment` runs with the caller's rights and cannot reach the private schema.
 
 ### 3.11 Functions
 
@@ -385,7 +409,7 @@ The credit note limit (K12) is unchanged: posted credit notes against an invoice
 
 | Function | Behaviour |
 | --- | --- |
-| `save_payment(p_payment jsonb) returns uuid` | Security invoker. Inserts or replaces a draft payment, then calls `private.replace_pending_allocations`. Refuses a non-draft. Fills party name, currency and default rate |
+| `save_payment(p_payment jsonb) returns uuid` | Security invoker. Inserts or replaces a draft payment, then calls `public.replace_pending_allocations`. Refuses a non-draft. Fills party name, currency and default rate |
 | `post_payment(p_payment_id uuid)` | Any member. Locks as in 3.2. Re-checks every pending allocation against current open amounts and fails, naming each document that no longer has enough open, if any would over-allocate or now targets a void document. Sets allocation dates (3.3), checks the lock date, makes the allocations effective, issues the number when the type numbers on post, and sets the posting fields |
 | `void_payment(p_payment_id uuid, p_reason text)` | Owner or admin. Posted payments only. Lock date as in 3.3. Marks every effective allocation removed with the void reason, then voids |
 | `delete_payment(p_payment_id uuid)` | Drafts only |
@@ -437,7 +461,7 @@ For each posted document in 5.2:
 | Sales credit note | `payment` on a Sales type (customer refund) |
 | Purchase credit note | `receipt` on a Purchases type (supplier refund) |
 
-- Use dedicated migrated types per kind and direction: `MIGREC`, `MIGPAY`, `MIGCREF`, `MIGSREF`, prefix `MIG-`, numbering on insert, with `is_system = true` (phase 2). They never share a number sequence with real payment types, and users cannot see, edit or delete them in the menu or the type admin screen.
+- Use dedicated migrated types per kind and direction: `SMR` migrated customer receipt, `PMP` migrated supplier payment, `SMF` migrated customer refund and `PMF` migrated supplier refund (first written as `MIGREC`, `MIGPAY`, `MIGCREF` and `MIGSREF`), prefix `MIG-`, numbering on insert, with `is_system = true` (phase 2). They never share a number sequence with real payment types, and users cannot see, edit or delete them in the menu or the type admin screen.
 - The payment has `source = 'migrated'`, no bank account, the document's party, the **document's** currency and exchange rate, `payment_date` = the document date, amount = the old `paid_amount`, and notes "Migrated from the typed paid amount".
 - One effective allocation of the smaller of the old `paid_amount` and the document's total plus rounding, dated the document date. Any excess stays on the migrated payment as unallocated and is listed (see the overpaid row in 5.2).
 - The migration runs with a migration-only setting that lets it bypass the lock date. No function exposes that setting.
@@ -493,17 +517,27 @@ On a posted payment, the open items panel stays usable for allocating unallocate
 
 ## Phase 7: printing (release C)
 
-- Add standard printable layouts:
-  - **Remittance advice** for supplier payments and customer refunds
-  - **Receipt** for customer receipts and supplier refunds
-- Each shows the organisation and party details, the payment date, number, method, bank reference, amount, a table of effective allocations (document number, date, document total, amount applied) and any amount on account.
-- They print from the payment page through the existing print route, with Print and PDF.
-- Add `payment` and `receipt` kinds to the form designer, with the allocation table columns as line columns.
+Built in two steps.
+
+**7a, printing.** Two standard layouts, printed from the payment page through the existing print route, with Print and PDF:
+
+- **Remittance advice** for money paid out: supplier payments and customer refunds
+- **Receipt** for money received: customer receipts and supplier refunds
+- Each shows the organisation and party details, the payment date, number, method, bank reference, bank account, amount, a table of the documents it settled (document number, date, document total, amount applied) and any amount on account. A draft prints with DRAFT and no number, a void payment with VOID and its reason.
+- A payment keeps no copy of the organisation or party when it posts, so it prints their details as they are now.
+
+**7b, the form designer.** Payment and receipt types have a form in `transaction_forms`, designed like a document's, with the same settings (title, page size, logo, field lists) but their own fields:
+
+- Party: name, address, VAT number. Payment: number, date, payment method, bank reference, bank account, currency. Documents settled (the line columns): document, date, document total, amount applied.
+- The organisation name, party name, number, date, document and amount applied cannot be taken off. The database refuses a saved layout without them (`private.validate_form_layout`).
+- The VAT summary and banking footer settings do not apply. The totals, notes and DRAFT and VOID marks are fixed.
+- The document designer cannot open for a payment type (`getFormType` treats it as not found). `getPaymentFormType` and `PaymentFormDesigner` serve it.
 
 ### Acceptance
 
-- [ ] A supplier payment allocated to three invoices prints a remittance advice listing all three.
-- [ ] A draft payment prints with the DRAFT watermark; a void one with VOID.
+- [x] A supplier payment allocated to three invoices prints a remittance advice listing all three (flow 18).
+- [x] A draft payment prints with the DRAFT watermark; a void one with VOID (flow 18).
+- [x] The form of a payment type can be designed and the print follows it, and the required fields cannot be removed (flow 19, `payment_forms.sql`).
 
 ---
 
@@ -524,6 +558,14 @@ On a posted payment, the open items panel stays usable for allocating unallocate
 ### 8.3 Received e-invoices
 
 When an imported document's `supplier_stated_paid_amount` is greater than 0, the import screen and the document show that the supplier says it is partly paid, so the user can record or check the payment. Nothing is created automatically.
+
+### 8.4 As built
+
+- `search_payments` takes party, date, kind, amount, status and an unallocated filter, and shows posted payments unless a status is asked for.
+- `top_parties` has metric `owed`. It ranks by `home_amount_due` on posted documents, less the balance of the party's credit notes. Money received or paid but not yet applied to a document is not taken off, and the lookup says so.
+- Ageing and the overdue search use the calculated amount due. A credit note's amount due is a balance it still has to give, so it comes off what a party owes and is never reported as overdue or due soon.
+- Money on account counts posted payments and credit notes with a balance that are more than 7 days old. A likely match needs the same party, the same currency and an open amount equal to the unapplied amount on exactly one invoice. Money received from a customer is matched to sales invoices and money paid to a supplier to purchase invoices. A refund is not matched.
+- The supplier-says-paid notice shows on the import screen and on the Payments tab of the posted invoice while something is open. It does not show on the stored e-document view, which also serves invoices we sent.
 
 ### Acceptance
 
