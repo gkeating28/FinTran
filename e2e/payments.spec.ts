@@ -389,3 +389,41 @@ test("flow 18: a supplier payment for three invoices prints a remittance advice 
   await expect(body).toContainText("VOID");
   await expect(body).toContainText("Voided: Flow eighteen void");
 });
+
+test("flow 19: the form of a payment type is designed, and the print of a payment follows it", async ({ page }) => {
+  test.setTimeout(120_000);
+  await signIn(page, "owner");
+
+  // The designer for a payment type offers the fields of a payment, not of a document.
+  await page.goto("/forms/PPY");
+  await expect(page.getByRole("heading", { name: /form$/i })).toBeVisible();
+  const settled = page.getByRole("group", { name: "Invoices settled" });
+  await expect(settled.getByLabel("Document total")).toBeVisible();
+  await expect(page.getByRole("group", { name: "Payment", exact: true }).getByLabel("Bank reference")).toBeVisible();
+  await expect(page.getByLabel("VAT summary")).toHaveCount(0);
+  // What every payment form must show cannot be taken off.
+  await expect(settled.getByLabel("Amount applied")).toBeDisabled();
+
+  // A new title and one column fewer, saved.
+  await typeInto(page.locator('input[name="title"]'), "Payment advice flow nineteen");
+  await settled.getByLabel("Document total").uncheck();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByText(/^Saved\./)).toBeVisible();
+
+  // The latest payment of this type now prints from it.
+  await openList(page, "PPY");
+  await listRows(page).first().getByRole("link", { name: "Print", exact: true }).click();
+  await page.waitForURL(/\/print\/PPY\//);
+  const body = page.locator("body");
+  await expect(body).toContainText("Payment advice flow nineteen");
+  await expect(body).not.toContainText("Document total");
+  await expect(body).toContainText("Amount applied");
+
+  // The standard form brings it back.
+  await page.goto("/forms/PPY");
+  await page.getByRole("button", { name: "Standard", exact: true }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByText(/^Saved\./)).toBeVisible();
+  await page.goto("/forms/PPY");
+  await expect(page.locator('input[name="title"]')).toHaveValue("Remittance advice");
+});

@@ -2,9 +2,9 @@ import { PAGE_SIZE_OPTIONS } from "@/lib/form-layout";
 import type { PaymentPrintView } from "@/lib/payment-print";
 import styles from "@/components/PrintForm.module.css";
 
-/** A payment, receipt or refund on paper. It has one fixed layout, on A4, and uses the same paper as a printed document. */
+/** A payment, receipt or refund on paper, laid out by the form saved for its transaction type. */
 export default function PrintedPayment({ view }: { view: PaymentPrintView }) {
-  const page = PAGE_SIZE_OPTIONS.A4;
+  const page = PAGE_SIZE_OPTIONS[view.pageSize];
   return (
     <article
       className={styles.paper}
@@ -38,7 +38,7 @@ export default function PrintedPayment({ view }: { view: PaymentPrintView }) {
             <p className={styles.kicker}>{view.partyLabel}</p>
             <p className={styles.partyLines}>
               <strong>{view.partyName}</strong>
-              <br />
+              {view.partyName ? <br /> : null}
               {view.partyLines.map((line, index) => (
                 <span key={`${line}-${index}`}>
                   {line}

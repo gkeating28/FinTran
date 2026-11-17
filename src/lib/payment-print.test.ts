@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { emptyOrganisation } from "@/lib/form-document";
-import { buildPaymentPrint, printedDate, printTitle, type PaymentPrintSource } from "./payment-print";
+import { defaultPaymentLayout } from "./payment-form-layout";
+import { buildPaymentPrint, printedDate, printTitle, samplePaymentSource, type PaymentPrintSource } from "./payment-print";
 
 function source(overrides: Partial<PaymentPrintSource> = {}): PaymentPrintSource {
   return {
@@ -12,7 +13,8 @@ function source(overrides: Partial<PaymentPrintSource> = {}): PaymentPrintSource
     paymentDate: "2026-11-17",
     organisation: { ...emptyOrganisation(), name: "Qula Test One", address: "1 Dock Road\nDublin\nD01 AB12", vatNumber: "IE1234567T", logoUrl: null },
     partyName: "Irish Solutions Ltd",
-    partyLines: ["2 Quay Street", "Cork"],
+    partyAddressLines: ["2 Quay Street", "Cork"],
+    partyVatNumber: "",
     currencyCode: "EUR",
     amount: 2460,
     meansLabel: "58 SEPA credit transfer",
@@ -99,4 +101,38 @@ test("dates print as day, month and year", () => {
   assert.equal(printedDate("2026-11-17"), "17-11-2026");
   assert.equal(printedDate("2026-11-17T10:00:00Z"), "17-11-2026");
   assert.equal(printedDate("nonsense"), "");
+});
+
+test("a saved layout decides the title, the page, the fields and the columns, in its order", () => {
+  const layout = {
+    ...defaultPaymentLayout("payment"),
+    title: "Payment advice",
+    pageSize: "A5" as const,
+    showLogo: false,
+    organisationFields: ["name", "vatNumber"] as ("name" | "vatNumber")[],
+    partyFields: ["name"] as "name"[],
+    headerFields: ["transactionDate", "documentNumber"] as ("transactionDate" | "documentNumber")[],
+    lineColumns: ["applied", "document"] as ("applied" | "document")[],
+  };
+  const view = buildPaymentPrint(source({ organisation: { ...emptyOrganisation(), name: "Qula Test One", vatNumber: "IE1", logoUrl: "https://logo.test/a.png" } }), layout);
+  assert.equal(view.title, "Payment advice");
+  assert.equal(view.downloadName, "Payment advice PPY-00007");
+  assert.equal(view.pageSize, "A5");
+  assert.equal(view.logoUrl, null);
+  assert.deepEqual(view.organisationLines, ["VAT ID: IE1"]);
+  assert.deepEqual(view.partyLines, []);
+  assert.deepEqual(view.details.map((line) => line.label), ["Date", "Number"]);
+  assert.deepEqual(view.headers.map((header) => header.label), ["Amount applied", "Invoice"]);
+  assert.deepEqual(view.rows[0].map((cell) => cell.text), ["1,000.00", "PIN-1"]);
+  assert.deepEqual(view.rows[0].map((cell) => cell.align), ["right", "left"]);
+});
+
+test("without a saved layout the standard one is used, and a sample payment fills the designer's preview", () => {
+  const view = buildPaymentPrint(source());
+  assert.equal(view.pageSize, "A4");
+  const sample = samplePaymentSource("receipt", "Sales", emptyOrganisation(), "EUR");
+  const printed = buildPaymentPrint(sample);
+  assert.equal(printed.title, "Receipt");
+  assert.equal(printed.rows.length, 2);
+  assert.equal(printed.totals.at(-1)?.label, "On account");
 });
