@@ -282,6 +282,7 @@ function ApplyCreditNoteDialog({ data, onClose, onApplied }: { data: DocumentPay
             Clear
           </button>
         </p>
+        <p className={styles.panelMeta}>Double click an invoice to apply everything still open on it.</p>
         <div className={paymentStyles.itemsScroll}>
           <table className={styles.lineTable} data-lines="both">
             <thead>
@@ -297,7 +298,11 @@ function ApplyCreditNoteDialog({ data, onClose, onApplied }: { data: DocumentPay
                 <tr
                   key={item.id}
                   title="Double click to apply everything still open"
-                  style={{ touchAction: "manipulation", userSelect: "none" }}
+                  style={{ touchAction: "manipulation" }}
+                  onMouseDown={(event) => {
+                    // A second click is a double click, which would otherwise select the word under it.
+                    if (event.detail > 1 && !(event.target as HTMLElement).closest("input")) event.preventDefault();
+                  }}
                   onDoubleClick={(event) => applyWhole(item, event)}
                 >
                   <td className={styles.mono}>{item.documentNumber}</td>
@@ -309,7 +314,7 @@ function ApplyCreditNoteDialog({ data, onClose, onApplied }: { data: DocumentPay
                       aria-label={`Apply to ${item.documentNumber}`}
                       value={boxes[item.id] ?? ""}
                       onChange={(event) => setBoxes((current) => ({ ...current, [item.id]: event.target.value }))}
-                      className={styles.mono}
+                      className={`${styles.mono} ${paymentStyles.allocateInput}`}
                     />
                   </td>
                 </tr>

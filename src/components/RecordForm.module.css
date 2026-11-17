@@ -83,9 +83,9 @@
 .sectionHeading {
   margin: 6px 0 -4px;
   padding-bottom: 6px;
-  border-bottom: 1px solid var(--ops-border-soft);
-  color: var(--ops-muted);
-  font-size: 11px;
+  border-bottom: 1px solid var(--color-border-soft);
+  color: var(--color-muted);
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.06em;
   line-height: 1.2;

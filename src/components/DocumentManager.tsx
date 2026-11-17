@@ -17,6 +17,7 @@ import { ORDER_PROGRESS_LABEL } from "@/lib/order-progress";
 import { formatInteger } from "@/lib/numbers";
 import type { DocumentLine, DocumentRow, ReadinessItem } from "@/lib/documents";
 import { useAskContext } from "@/components/askContext";
+import { useRegisterPageLabel } from "@/components/FormChrome";
 import styles from "@/components/OpsPage.module.css";
 import { OrderStatusButton } from "@/components/document/OrderStatusButton";
 import { ReadinessControl, readinessStatus } from "@/components/document/Readiness";
@@ -85,6 +86,7 @@ export default function DocumentManager({
   const sales = direction === "Sales";
   const [draft, setDraft] = useState<DocumentRow | "new" | null>(null);
   useAskContext("transaction", draft && draft !== "new" ? draft.id : undefined, typeCode);
+  useRegisterPageLabel(typeCode ? title : null);
   const [lines, setLines] = useState<DocumentLine[] | null>(null);
   const [lineError, setLineError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("");
@@ -314,7 +316,7 @@ export default function DocumentManager({
           },
           {
             key: "foreignTotal",
-            label: "Foreign total",
+            label: "Total",
             mono: true,
             align: "right",
             sortValue: (row) => row.foreignTotalAmount.replace(/,/g, ""),
@@ -322,7 +324,7 @@ export default function DocumentManager({
           },
           {
             key: "homeTotal",
-            label: "Home total",
+            label: "Total (home currency)",
             mono: true,
             align: "right",
             sortValue: (row) => row.homeTotalAmount.replace(/,/g, ""),

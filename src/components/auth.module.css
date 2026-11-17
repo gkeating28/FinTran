@@ -42,7 +42,7 @@
 .brand span {
   display: block;
   margin-top: 2px;
-  font-size: 11px;
+  font-size: var(--text-xs);
   letter-spacing: 0.14em;
   color: var(--chrome-muted);
   font-weight: 600;
@@ -97,7 +97,7 @@
   border: 0;
   border-radius: var(--radius);
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-on-dark);
   font: inherit;
   font-size: var(--text-base);
   font-weight: 600;

@@ -2,22 +2,6 @@
 
 .confirmDialog {
   composes: dialog from "./OpsPage.module.css";
-  --ops-page: var(--color-page);
-  --ops-panel: var(--color-surface);
-  --ops-panel-muted: var(--color-surface-muted);
-  --ops-border: var(--color-border);
-  --ops-border-soft: var(--color-border-soft);
-  --ops-text: var(--color-text);
-  --ops-text-2: var(--color-text-2);
-  --ops-muted: var(--color-muted);
-  --ops-accent: var(--color-accent);
-  --ops-warn: var(--color-warn);
-  --ops-danger: var(--color-danger);
-  --ops-ok: var(--color-ok);
-  --ops-radius: var(--radius);
-  --ops-radius-lg: var(--radius-lg);
-  --ops-font: var(--font-public-sans), system-ui, sans-serif;
-  --ops-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
 }
 
 .confirmDialog,
@@ -44,7 +28,7 @@
 
 .confirmMessage {
   margin: 0;
-  color: var(--ops-text-2);
+  color: var(--color-text-2);
 }
 
 .confirmActions {

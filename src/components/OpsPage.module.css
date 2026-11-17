@@ -21,25 +21,6 @@
  */
 
 .shell {
-  --ops-page: var(--color-page);
-  --ops-panel: var(--color-surface);
-  --ops-panel-muted: var(--color-surface-muted);
-  --ops-border: var(--color-border);
-  --ops-border-soft: var(--color-border-soft);
-  --ops-text: var(--color-text);
-  --ops-text-2: var(--color-text-2);
-  --ops-muted: var(--color-muted);
-  --ops-accent: var(--color-accent);
-  --ops-warn: var(--color-warn);
-  --ops-danger: var(--color-danger);
-  --ops-ok: var(--color-ok);
-  --ops-radius: var(--radius);
-  --ops-radius-lg: var(--radius-lg);
-  --ops-font: var(--font-public-sans), system-ui, sans-serif;
-  --ops-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
-}
-
-.shell {
   --app-sidebar: 232px;
   display: flex;
   flex: 1;
@@ -47,9 +28,9 @@
   min-height: 0;
   height: 100%;
   overflow: hidden;
-  background: var(--ops-page);
-  color: var(--ops-text);
-  font-family: var(--ops-font);
+  background: var(--color-page);
+  color: var(--color-text);
+  font-family: var(--font-public-sans), system-ui, sans-serif;
   font-size: var(--text-base);
   line-height: 1.45;
 }
@@ -90,19 +71,19 @@
 .lede {
   margin: 6px 0 var(--space-4);
   max-width: 68ch;
-  color: var(--ops-text-2);
+  color: var(--color-text-2);
   font-size: var(--text-base);
 }
 
 .trail {
   margin: 0 0 8px;
-  color: var(--ops-muted);
-  font-size: 12px;
+  color: var(--color-muted);
+  font-size: var(--text-xs);
   font-weight: 700;
 }
 
 .trail a {
-  color: var(--ops-accent);
+  color: var(--color-accent);
   text-decoration: none;
 }
 
@@ -113,9 +94,9 @@
 /* ---- 2. Panels ---- Panel and card surfaces, panel headers and small badges. */
 
 .panel {
-  background: var(--ops-panel);
-  border: 1px solid var(--ops-border);
-  border-radius: var(--ops-radius-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   overflow-x: auto;
 }
@@ -126,14 +107,14 @@
   justify-content: space-between;
   gap: 12px;
   padding: 12px 14px;
-  border-bottom: 1px solid var(--ops-border-soft);
+  border-bottom: 1px solid var(--color-border-soft);
   font-weight: 700;
 }
 
 .panelMeta {
-  color: var(--ops-muted);
+  color: var(--color-muted);
   font-weight: 500;
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 
 .reviewBadge {
@@ -143,7 +124,7 @@
   border-radius: var(--radius-sm);
   background: #efe6d6;
   color: #6a5428;
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -162,7 +143,7 @@
   text-align: left;
   height: var(--row-height);
   padding: 0 14px;
-  border-bottom: 1px solid var(--ops-border-soft);
+  border-bottom: 1px solid var(--color-border-soft);
   vertical-align: middle;
 }
 
@@ -171,10 +152,10 @@
   top: 0;
   height: 40px;
   font-size: var(--text-xs);
-  color: var(--ops-muted);
+  color: var(--color-muted);
   font-weight: 600;
-  background: var(--ops-panel-muted);
-  box-shadow: inset 0 -1px 0 var(--ops-border);
+  background: var(--color-surface-muted);
+  box-shadow: inset 0 -1px 0 var(--color-border);
   border-bottom: 0;
 }
 
@@ -187,7 +168,7 @@
 .lineTable[data-lines="both"] td:not(:last-child),
 .lineTable[data-lines="columns"] th:not(:last-child),
 .lineTable[data-lines="columns"] td:not(:last-child) {
-  border-right: 1px solid var(--ops-border-soft);
+  border-right: 1px solid var(--color-border-soft);
 }
 
 .table[data-lines="columns"] td,
@@ -266,7 +247,7 @@
   justify-content: flex-end;
   gap: 12px;
   padding: 10px 14px;
-  border-bottom: 1px solid var(--ops-border-soft);
+  border-bottom: 1px solid var(--color-border-soft);
 }
 
 .exportMenu {
@@ -293,9 +274,9 @@
   max-height: 340px;
   overflow-y: auto;
   padding: 8px;
-  border: 1px solid var(--ops-border);
-  border-radius: var(--ops-radius);
-  background: var(--ops-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
 }
 
@@ -306,7 +287,7 @@
   padding: 5px 6px;
   border-radius: 6px;
   font-size: var(--text-sm);
-  color: var(--ops-text);
+  color: var(--color-text);
   cursor: pointer;
 }
 
@@ -323,13 +304,13 @@
 .gridToolbar select,
 .gridToolbar input[type="date"] {
   height: var(--control-height);
-  border: 1px solid var(--ops-border);
-  border-radius: var(--ops-radius);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
   padding: 0 10px;
   font: inherit;
   font-weight: 500;
-  color: var(--ops-text);
-  background: var(--ops-panel);
+  color: var(--color-text);
+  background: var(--color-surface);
 }
 
 .search input {
@@ -340,7 +321,7 @@
 .gridToolbar select:focus-visible,
 .gridToolbar input[type="date"]:focus-visible {
   outline: none;
-  border-color: var(--ops-accent);
+  border-color: var(--color-accent);
   box-shadow: 0 0 0 3px var(--color-accent-soft);
 }
 
@@ -359,17 +340,17 @@
 }
 
 .sortButton:hover {
-  color: var(--ops-text);
+  color: var(--color-text);
 }
 
 .sortMark {
   display: inline-flex;
-  color: var(--ops-muted);
+  color: var(--color-muted);
   opacity: 0.55;
 }
 
 .sortMark[data-active="true"] {
-  color: var(--ops-accent);
+  color: var(--color-accent);
   opacity: 1;
 }
 
@@ -405,7 +386,7 @@
   align-items: end;
   margin-top: 4px;
   padding-top: 12px;
-  border-top: 1px solid var(--ops-border-soft);
+  border-top: 1px solid var(--color-border-soft);
 }
 
 .voidBar .field {
@@ -427,11 +408,11 @@
 
 .empty {
   padding: 28px 16px;
-  color: var(--ops-text-2);
+  color: var(--color-text-2);
 }
 
 .mono {
-  font-family: var(--ops-mono);
+  font-family: var(--font-ibm-plex-mono), ui-monospace, monospace;
 }
 
 /* ---- 4. Dialogs ---- Dialog shell, header, close button, modal form and the full page form variant. */
@@ -444,11 +425,11 @@
   padding: 0;
   border: 0;
   outline: none;
-  border-radius: var(--ops-radius-lg);
-  background: var(--ops-panel);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
   background-clip: padding-box;
-  color: var(--ops-text);
-  font-family: var(--ops-font);
+  color: var(--color-text);
+  font-family: var(--font-public-sans), system-ui, sans-serif;
   font-size: var(--text-base);
   box-shadow: var(--shadow-lg);
 }
@@ -468,10 +449,10 @@
   justify-content: space-between;
   gap: 12px;
   padding: 16px 20px;
-  border-bottom: 1px solid var(--ops-border-soft);
-  border-radius: var(--ops-radius-lg) var(--ops-radius-lg) 0 0;
-  background: var(--ops-panel);
-  color: var(--ops-text);
+  border-bottom: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--color-surface);
+  color: var(--color-text);
 }
 
 .dialogHead h2 {
@@ -489,11 +470,11 @@
   justify-content: center;
   padding: 0;
   border: 0;
-  border-radius: var(--ops-radius);
+  border-radius: var(--radius);
   background: transparent;
-  color: var(--ops-muted);
+  color: var(--color-muted);
   font: inherit;
-  font-size: 20px;
+  font-size: var(--text-xl);
   line-height: 1;
   cursor: pointer;
   appearance: none;
@@ -501,7 +482,7 @@
 
 .dialogClose:hover {
   background: var(--color-hover);
-  color: var(--ops-text);
+  color: var(--color-text);
 }
 
 .modalForm {
@@ -578,7 +559,7 @@
 .headerBody textarea:focus-visible,
 .headerSummary input:focus-visible,
 .headerSummary select:focus-visible {
-  outline: 2px solid var(--ops-accent);
+  outline: 2px solid var(--color-accent);
   outline-offset: -2px;
 }
 
@@ -620,8 +601,8 @@
 
 .sectionLabel {
   margin: 8px 0 0;
-  color: var(--ops-muted);
-  font-size: 11px;
+  color: var(--color-muted);
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -635,7 +616,7 @@
   flex: none;
   justify-content: flex-end;
   padding-top: 8px;
-  border-top: 1px solid var(--ops-border-soft);
+  border-top: 1px solid var(--color-border-soft);
 }
 
 .pageDialog .documentFields {
@@ -657,7 +638,7 @@
   flex: none;
   justify-content: space-between;
   padding-top: 8px;
-  border-top: 1px solid var(--ops-border-soft);
+  border-top: 1px solid var(--color-border-soft);
 }
 
 /* ---- 6. Transaction shell ---- The invoice split view: header pane, line pane, line table and the drag handle. */
@@ -673,7 +654,7 @@
   width: 10px;
   padding: 0;
   border: 0;
-  border-left: 1px solid var(--ops-border);
+  border-left: 1px solid var(--color-border);
   border-right: 1px solid transparent;
   background: transparent;
   cursor: col-resize;
@@ -783,7 +764,7 @@
   max-height: 46%;
   overflow: auto;
   padding-top: 10px;
-  border-top: 1px solid var(--ops-border);
+  border-top: 1px solid var(--color-border);
 }
 
 .headerSummary .field {
@@ -798,7 +779,7 @@
   margin: 0;
   padding-top: 0;
   padding-bottom: 0;
-  border-bottom: 1px solid var(--ops-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .linesPane {
@@ -813,7 +794,7 @@
 .invoiceStacked .linesPane {
   padding-left: 0;
   padding-top: 12px;
-  border-top: 1px solid var(--ops-border);
+  border-top: 1px solid var(--color-border);
 }
 
 .invoiceStacked .headerPane {
@@ -838,13 +819,13 @@
 .lineTable th,
 .lineTable td {
   padding: 8px 8px;
-  border-bottom: 1px solid var(--ops-border-soft);
+  border-bottom: 1px solid var(--color-border-soft);
   text-align: left;
-  font-size: 12.5px;
+  font-size: var(--text-sm);
 }
 
 .lineTable th {
-  color: var(--ops-muted);
+  color: var(--color-muted);
   font-size: var(--text-xs);
   font-weight: 600;
 }
@@ -854,9 +835,9 @@
   top: 0;
   height: 34px;
   box-sizing: border-box;
-  background: var(--ops-panel);
+  background: var(--color-surface);
   border-bottom: 0;
-  box-shadow: inset 0 -1px 0 var(--ops-border);
+  box-shadow: inset 0 -1px 0 var(--color-border);
   z-index: 1;
 }
 
@@ -864,10 +845,10 @@
 .lineTable tfoot td {
   position: sticky;
   bottom: 0;
-  background: var(--ops-panel-muted);
-  color: var(--ops-text);
+  background: var(--color-surface-muted);
+  color: var(--color-text);
   font-weight: 700;
-  border-top: 1px solid var(--ops-border);
+  border-top: 1px solid var(--color-border);
   border-bottom: 0;
   z-index: 1;
 }
@@ -905,7 +886,7 @@
 .formReadOnly textarea,
 .formReadOnly .lookupButton {
   pointer-events: none;
-  background: var(--ops-panel-muted);
+  background: var(--color-surface-muted);
 }
 
 .lookupButton {
@@ -914,11 +895,11 @@
   justify-content: space-between;
   gap: 8px;
   height: var(--control-height);
-  border: 1px solid var(--ops-border);
-  border-radius: var(--ops-radius);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
   padding: 0 10px;
-  background: var(--ops-panel);
-  color: var(--ops-text);
+  background: var(--color-surface);
+  color: var(--color-text);
   font: inherit;
   font-weight: 500;
   text-align: left;
@@ -971,10 +952,10 @@
   height: var(--control-height);
   margin-right: 12px;
   padding: 0 12px;
-  border: 1px solid var(--ops-border);
-  border-radius: var(--ops-radius);
-  background: var(--ops-panel);
-  color: var(--ops-text-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text-2);
   font: inherit;
   font-size: var(--text-sm);
   font-weight: 600;
@@ -983,8 +964,8 @@
 
 .field input.logoInput::file-selector-button:hover {
   background: var(--color-surface-muted);
-  border-color: #c3cad6;
-  color: var(--ops-text);
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
 }
 
 /* The sidebar takes 240px, so the four column form needs about 1200px of screen. Below that it goes
@@ -1028,12 +1009,12 @@
   flex: 1;
   font-size: var(--text-xs);
   font-weight: 600;
-  color: var(--ops-text-2);
+  color: var(--color-text-2);
 }
 
 .field input::placeholder,
 .field textarea::placeholder {
-  color: var(--ops-muted);
+  color: var(--color-muted);
   font-weight: 500;
 }
 
@@ -1041,28 +1022,28 @@
 .field select,
 .field textarea {
   height: var(--control-height);
-  border: 1px solid var(--ops-border);
-  border-radius: var(--ops-radius);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
   padding: 0 10px;
   font: inherit;
   font-size: var(--text-base);
   font-weight: 500;
-  color: var(--ops-text);
-  background: var(--ops-panel);
+  color: var(--color-text);
+  background: var(--color-surface);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.field input:hover:not(:disabled):not(.locked),
+.field input:hover:not(:disabled):not(.locked):not([data-locked="true"]):not([readonly]:not([data-quiet])),
 .field select:hover:not(:disabled),
 .field textarea:hover:not(:disabled) {
-  border-color: #c3cad6;
+  border-color: var(--color-border-strong);
 }
 
 .field input:focus-visible,
 .field select:focus-visible,
 .field textarea:focus-visible {
   outline: none;
-  border-color: var(--ops-accent);
+  border-color: var(--color-accent);
   box-shadow: 0 0 0 3px var(--color-accent-soft);
 }
 
@@ -1073,16 +1054,23 @@
   resize: vertical;
 }
 
+/* A field that cannot be typed in looks different from one that can: a quiet background and no hover. This covers
+   locked codes, fields worked out by the app (a paid amount, an exchange rate of 1) and plain read-only inputs.
+   QuietField inputs start read-only until touched, so they are told apart by data-quiet and data-locked. */
 .field input:disabled,
 .field select:disabled,
 .field textarea:disabled,
-.field input.locked {
-  color: var(--ops-text);
-  background: var(--ops-panel-muted);
+.field input.locked,
+.field input[data-locked="true"],
+.field input[readonly]:not([data-quiet]) {
+  color: var(--color-text);
+  background: var(--color-surface-muted);
   opacity: 1;
 }
 
-.field input.locked {
+.field input.locked,
+.field input[data-locked="true"],
+.field input[readonly]:not([data-quiet]) {
   cursor: default;
 }
 
@@ -1092,7 +1080,7 @@
 .quiet,
 .danger {
   height: var(--control-height);
-  border-radius: var(--ops-radius);
+  border-radius: var(--radius);
   font: inherit;
   font-size: var(--text-sm);
   font-weight: 600;
@@ -1102,8 +1090,8 @@
 
 .primary {
   border: 0;
-  background: var(--ops-accent);
-  color: #fff;
+  background: var(--color-accent);
+  color: var(--color-on-dark);
   padding: 0 16px;
   box-shadow: var(--shadow-sm);
 }
@@ -1120,8 +1108,8 @@
 
 .danger {
   border: 0;
-  background: var(--ops-danger);
-  color: #fff;
+  background: var(--color-danger);
+  color: var(--color-on-dark);
   padding: 0 16px;
 }
 
@@ -1130,16 +1118,16 @@
 }
 
 .quiet {
-  border: 1px solid var(--ops-border);
-  background: var(--ops-panel);
-  color: var(--ops-text-2);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-2);
   padding: 0 12px;
 }
 
 .quiet:hover:not(:disabled) {
   background: var(--color-surface-muted);
-  border-color: #c3cad6;
-  color: var(--ops-text);
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
 }
 
 /* Row actions in a grid are text buttons. Edit and View are accent coloured, Remove is red. */
@@ -1150,7 +1138,7 @@
   padding: 0 10px;
   border-color: transparent;
   background: transparent;
-  color: var(--ops-accent);
+  color: var(--color-accent);
   box-shadow: none;
 }
 
@@ -1163,7 +1151,7 @@
 
 .table td .actions .quiet[data-destructive],
 .lineTable td.actions .quiet[data-destructive] {
-  color: var(--ops-danger);
+  color: var(--color-danger);
 }
 
 .table td .actions .quiet[data-destructive]:hover:not(:disabled),
@@ -1217,19 +1205,19 @@ label.quiet {
 .alert {
   margin: 0 0 12px;
   padding: 10px 12px;
-  border-radius: var(--ops-radius);
-  background: var(--ops-panel);
-  border: 1px solid var(--ops-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
 }
 
 .alert {
-  color: var(--ops-warn);
+  color: var(--color-warn);
   border-color: var(--color-warn-border);
   background: var(--color-warn-soft);
 }
 
 .notice {
-  color: var(--ops-ok);
+  color: var(--color-ok);
   border-color: var(--color-ok-border);
   background: var(--color-ok-soft);
 }
@@ -1239,8 +1227,8 @@ label.quiet {
   flex-wrap: wrap;
   gap: 4px 12px;
   margin: 0;
-  color: var(--ops-warn);
-  font-size: 12px;
+  color: var(--color-warn);
+  font-size: var(--text-xs);
   font-weight: 600;
 }
 
@@ -1249,7 +1237,7 @@ label.quiet {
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--ops-accent);
+  color: var(--color-accent);
   font: inherit;
   font-weight: 700;
   cursor: pointer;
@@ -1313,9 +1301,9 @@ label.quiet {
   gap: 8px;
   min-height: 34px;
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-xs);
   font-weight: 600;
-  color: var(--ops-text-2);
+  color: var(--color-text-2);
 }
 
 .checkLine input[type="checkbox"] {
@@ -1325,7 +1313,7 @@ label.quiet {
   margin: 0;
   padding: 0;
   flex: none;
-  accent-color: var(--ops-accent);
+  accent-color: var(--color-accent);
 }
 
 /* ---- 12. Detail lists ---- Key and value lists on detail pages. */

@@ -10,7 +10,7 @@
 .control:hover {
   border-color: rgba(255, 255, 255, 0.7);
   background: var(--chrome-hover);
-  color: #fff;
+  color: var(--color-on-dark);
 }
 
 .control:focus-visible {

@@ -50,15 +50,18 @@ Every colour, corner, text size, space, and shadow comes from the tokens at the 
 
 | Token group | Notes |
 | --- | --- |
-| Surfaces | `--color-page`, `--color-surface`, `--color-surface-muted`, `--color-hover` |
+| Surfaces | `--color-page`, `--color-surface`, `--color-surface-muted`, `--color-hover`, `--color-neutral-soft` |
+| Lines | `--color-border`, `--color-border-soft`, `--color-border-strong` (hover) |
 | Text | `--color-text`, `--color-text-2`, `--color-muted` |
-| Accent and status | `--color-accent` (+ hover and soft), `--color-ok`, `--color-warn`, `--color-danger` (+ soft and border) |
+| Accent and status | `--color-accent` (+ hover and soft), `--color-ok`, `--color-warn`, `--color-danger` (+ soft and border), and `--color-on-dark` for text on a filled accent, status or navy surface |
 | Navy chrome | `--chrome-bg` for the sidebar and title bar, with `--chrome-text`, `--chrome-muted`, `--chrome-line`, `--chrome-hover`, `--chrome-focus` |
 | Shape | `--radius-sm` 4px, `--radius` 8px (controls), `--radius-lg` 12px (panels, dialogs) |
-| Type | 12, 13, 14 (base), 16, 20, 24px as `--text-xs` to `--text-2xl` |
+| Type | 12, 13, 14 (base), 16, 20, 24px as `--text-xs` to `--text-2xl`. Nothing in the screens is smaller than 12px. Display figures (28 to 40px) and the printed forms are outside the scale |
 | Controls | `--control-height` 36px, `--row-height` 44px |
 
-Fonts: Public Sans for body, fields, and buttons. Plus Jakarta Sans for page and dialog titles. IBM Plex Mono for codes and references.
+Fonts: Public Sans for body, fields, and buttons. Plus Jakarta Sans for page and dialog titles. IBM Plex Mono (500 and 600) for codes, references and amounts, with 600 for emphasised figures such as totals. A weight that is not loaded is faked by the browser, so load a face before asking for its weight.
+
+There is one layer of tokens. Components read the `--color-*`, `--radius*` and `--text-*` names directly, and no stylesheet carries a fallback colour. A field that cannot be typed in (a locked code, a figure worked out by the app, a plain read-only input) takes the muted look from the shared `.field` rules, so a form does not need to add a class. A status in a grid or list is a soft tint with a border (`statusTag`). Solid status colours are for the Readiness button, which asks for action.
 
 ### Styling files
 

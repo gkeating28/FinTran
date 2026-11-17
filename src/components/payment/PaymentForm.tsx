@@ -28,6 +28,7 @@ import {
   distributeOldestFirst,
   parseAllocationAmount,
   paymentNoun,
+  targetKindFor,
   type AllocationLine,
   type OpenItem,
   type PaymentChoices,
@@ -39,6 +40,11 @@ import paymentStyles from "./Payment.module.css";
 
 /** The id of the form that holds the open payment. Buttons outside it submit it by this id. */
 export const PAYMENT_FORM = "payment-document";
+
+/** A second click on a row is a double click, which would otherwise select the word under it. Text can still be selected by dragging. */
+function keepFromSelecting(event: MouseEvent) {
+  if (event.detail > 1 && !(event.target as HTMLElement).closest("input")) event.preventDefault();
+}
 
 function today() {
   const date = new Date();
@@ -280,6 +286,11 @@ export default function PaymentForm({
           </>
         )}
       </div>
+      {items.length > 0 && !voided ? (
+        <p className={styles.panelMeta}>
+          Double click {targetKindFor(type.kind, type.direction) === "invoice" ? "an invoice" : "a credit note"} to allocate everything still open on it.
+        </p>
+      ) : null}
       <div className={paymentStyles.itemsScroll}>
         <table className={styles.lineTable} data-lines="both">
           <thead>
@@ -305,7 +316,8 @@ export default function PaymentForm({
                   <tr
                     key={item.id}
                     title="Double click to allocate everything still open"
-                    style={voided ? undefined : { touchAction: "manipulation", userSelect: "none" }}
+                    style={voided ? undefined : { touchAction: "manipulation" }}
+                    onMouseDown={voided ? undefined : keepFromSelecting}
                     onDoubleClick={voided ? undefined : (event) => allocateWhole(item, event)}
                   >
                     <td className={styles.mono}>{item.documentNumber}</td>

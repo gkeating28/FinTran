@@ -20,8 +20,8 @@
 
 .menuHeading {
   margin: 0;
-  color: var(--ops-text-2);
-  font-size: 13px;
+  color: var(--color-text-2);
+  font-size: var(--text-sm);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -31,7 +31,7 @@
   height: 1px;
   margin: 0;
   border: 0;
-  background: var(--ops-border);
+  background: var(--color-border);
 }
 
 .adminTile {
@@ -40,9 +40,9 @@
   gap: 8px;
   min-height: 148px;
   padding: 16px;
-  background: var(--ops-panel);
-  border: 1px solid var(--ops-border);
-  border-radius: var(--ops-radius-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   color: inherit;
   text-decoration: none;
@@ -51,12 +51,12 @@
 
 .adminTile:hover,
 .adminTile:focus-visible {
-  border-color: var(--ops-accent);
+  border-color: var(--color-accent);
   box-shadow: var(--shadow-md);
 }
 
 .adminTile:focus-visible {
-  outline: 2px solid var(--ops-accent);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
@@ -65,11 +65,11 @@
   width: 28px;
   height: 28px;
   place-items: center;
-  color: var(--ops-accent);
+  color: var(--color-accent);
 }
 
 .adminTileLabel {
-  font-size: 15px;
+  font-size: var(--text-lg);
   font-weight: 700;
 }
 
@@ -82,7 +82,7 @@
 }
 
 .adminTileMeta {
-  color: var(--ops-muted);
-  font-size: 12px;
+  color: var(--color-muted);
+  font-size: var(--text-xs);
 }
 

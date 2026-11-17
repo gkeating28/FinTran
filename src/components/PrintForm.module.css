@@ -83,9 +83,9 @@
   flex-direction: column;
   gap: 14px;
   padding: 14px;
-  border: 1px solid var(--ops-border);
-  border-radius: var(--ops-radius);
-  background: var(--ops-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
 }
 
 .section {
@@ -99,14 +99,14 @@
 
 .section legend {
   padding: 0;
-  color: var(--ops-text-2);
+  color: var(--color-text-2);
   font-size: 12px;
   font-weight: 700;
 }
 
 .hiddenLabel {
   margin: 8px 0 0;
-  color: var(--ops-muted);
+  color: var(--color-muted);
   font-size: 11px;
   font-weight: 700;
 }
@@ -116,7 +116,7 @@
   grid-template-columns: 16px minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
-  color: var(--ops-text);
+  color: var(--color-text);
   font-size: 13px;
   font-weight: 600;
 }
@@ -135,10 +135,10 @@
 .moves button {
   width: 26px;
   height: 26px;
-  border: 1px solid var(--ops-border);
-  border-radius: var(--ops-radius);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
   background: #fff;
-  color: var(--ops-text-2);
+  color: var(--color-text-2);
   font: inherit;
   font-weight: 700;
   cursor: pointer;
@@ -159,7 +159,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--ops-text);
+  color: var(--color-text);
   font-size: 13px;
   font-weight: 600;
 }
@@ -176,7 +176,7 @@
 
 .previewNote {
   margin: 0 0 8px;
-  color: var(--ops-muted);
+  color: var(--color-muted);
   font-size: 12px;
   font-weight: 600;
 }

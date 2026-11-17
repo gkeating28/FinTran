@@ -24,15 +24,6 @@
 }
 
 .drawer {
-  --ops-panel-muted: var(--color-surface-muted);
-  --ops-border: var(--color-border);
-  --ops-border-soft: var(--color-border-soft);
-  --ops-text: var(--color-text);
-  --ops-text-2: var(--color-text-2);
-  --ops-muted: var(--color-muted);
-  --ops-accent: var(--color-accent);
-  --ops-font: var(--font-public-sans), system-ui, sans-serif;
-  --ops-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
 
   position: fixed;
   right: 0;
@@ -41,10 +32,10 @@
   display: flex;
   flex-direction: column;
   width: min(400px, 100vw);
-  border-left: 1px solid var(--ops-border);
-  background: #fff;
-  color: var(--ops-text);
-  font-family: var(--ops-font);
+  border-left: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-public-sans), system-ui, sans-serif;
   font-size: var(--text-base);
   line-height: 1.45;
   overflow: hidden;
@@ -72,22 +63,22 @@
   justify-content: space-between;
   gap: 12px;
   padding: 12px 12px 10px;
-  border-bottom: 1px solid var(--ops-border-soft, #e3e6ec);
-  background: var(--ops-panel-muted, #f8f9fb);
+  border-bottom: 1px solid var(--color-border-soft);
+  background: var(--color-surface-muted);
 }
 
 .title {
   margin: 0;
   font-family: var(--font-jakarta), var(--font-public-sans), system-ui, sans-serif;
-  font-size: 16px;
+  font-size: var(--text-lg);
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
 .subtitle {
   margin: 2px 0 0;
-  color: var(--ops-text-2, #3a4356);
-  font-size: 12px;
+  color: var(--color-text-2);
+  font-size: var(--text-xs);
 }
 
 .headActions {
@@ -98,12 +89,12 @@
 .close {
   height: 28px;
   padding: 0 8px;
-  border: 1px solid var(--ops-border, #dde1e8);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  background: #fff;
-  color: var(--ops-text-2, #3a4356);
+  background: var(--color-surface);
+  color: var(--color-text-2);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--text-xs);
   font-weight: 700;
   cursor: pointer;
 }
@@ -136,7 +127,7 @@
 .assistant,
 .typing {
   align-self: flex-start;
-  color: var(--ops-text, #151b2b);
+  color: var(--color-text);
 }
 
 .user {
@@ -144,8 +135,8 @@
   max-width: 85%;
   padding: 8px 10px;
   border-radius: 6px 6px 2px 6px;
-  background: var(--ops-accent, #2c4c78);
-  color: #fff;
+  background: var(--color-accent);
+  color: var(--color-on-dark);
 }
 
 .assistant {
@@ -174,9 +165,9 @@
   gap: 2px 8px;
   width: 100%;
   padding: 8px;
-  border: 1px solid var(--ops-border, #dde1e8);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  background: #fff;
+  background: var(--color-surface);
   color: inherit;
   font: inherit;
   text-align: left;
@@ -187,20 +178,20 @@ button.card {
 }
 
 button.card:hover {
-  border-color: var(--ops-accent, #2c4c78);
+  border-color: var(--color-accent);
 }
 
 .ref {
   grid-column: 1;
   grid-row: 1 / span 2;
   align-self: center;
-  font-family: var(--ops-mono, var(--font-ibm-plex-mono), ui-monospace, monospace);
-  font-size: 12px;
+  font-family: var(--font-ibm-plex-mono), ui-monospace, monospace;
+  font-size: var(--text-xs);
   font-weight: 600;
 }
 
 .cardTitle {
-  color: var(--ops-text, #151b2b);
+  color: var(--color-text);
   font-weight: 600;
 }
 
@@ -208,8 +199,8 @@ button.card:hover {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--ops-text-2, #3a4356);
-  font-size: 12px;
+  color: var(--color-text-2);
+  font-size: var(--text-xs);
 }
 
 .dot {
@@ -222,8 +213,8 @@ button.card:hover {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--ops-muted, #8891a0);
-  font-size: 12px;
+  color: var(--color-muted);
+  font-size: var(--text-xs);
 }
 
 .dots {
@@ -256,12 +247,12 @@ button.card:hover {
 
 .chip,
 .send {
-  border: 1px solid var(--ops-border, #dde1e8);
+  border: 1px solid var(--color-border);
   border-radius: 999px;
-  background: #fff;
-  color: var(--ops-text, #151b2b);
+  background: var(--color-surface);
+  color: var(--color-text);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--text-xs);
   font-weight: 700;
   cursor: pointer;
 }
@@ -272,7 +263,7 @@ button.card:hover {
 
 .chip:hover,
 .send:hover {
-  border-color: var(--ops-accent, #2c4c78);
+  border-color: var(--color-accent);
 }
 
 .chip:disabled,
@@ -285,7 +276,7 @@ button.card:hover {
   display: flex;
   gap: 8px;
   padding: 10px 12px 12px;
-  border-top: 1px solid var(--ops-border-soft, #e3e6ec);
+  border-top: 1px solid var(--color-border-soft);
 }
 
 .questionLabel {
@@ -305,18 +296,18 @@ button.card:hover {
   min-width: 0;
   height: 34px;
   padding: 0 10px;
-  border: 1px solid var(--ops-border, #dde1e8);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius);
   font: inherit;
-  color: var(--ops-text, #151b2b);
+  color: var(--color-text);
 }
 
 .send {
   height: 34px;
   padding: 0 12px;
   border-radius: var(--radius);
-  background: var(--ops-accent, #2c4c78);
-  color: #fff;
+  background: var(--color-accent);
+  color: var(--color-on-dark);
   border-color: transparent;
 }
 
@@ -346,8 +337,8 @@ button.card:hover {
   padding: 1px 4px;
   border-radius: var(--radius-sm);
   background: var(--color-hover);
-  font-family: var(--ops-mono, ui-monospace, monospace);
-  font-size: 12px;
+  font-family: var(--font-ibm-plex-mono), ui-monospace, monospace;
+  font-size: var(--text-xs);
 }
 
 .rating,
@@ -364,22 +355,22 @@ button.card:hover {
   width: 28px;
   height: 24px;
   padding: 0;
-  border: 1px solid var(--ops-border, #dde1e8);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  background: #fff;
-  color: var(--ops-text-2, #3a4356);
+  background: var(--color-surface);
+  color: var(--color-text-2);
   cursor: pointer;
 }
 
 .thumb:hover {
-  border-color: var(--ops-accent, #2c4c78);
-  color: var(--ops-accent, #2c4c78);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 .rated {
   margin: 0;
-  color: var(--ops-muted, #8891a0);
-  font-size: 12px;
+  color: var(--color-muted);
+  font-size: var(--text-xs);
 }
 
 .proposal {
@@ -403,19 +394,19 @@ button.card:hover {
 }
 
 .proposal[data-state="cancelled"] {
-  border-color: var(--ops-border, #dde1e8);
+  border-color: var(--color-border);
   background: var(--color-surface-muted);
 }
 
 .proposalTitle {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--text-base);
   font-weight: 700;
 }
 
 .proposalLabel {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -426,7 +417,7 @@ button.card:hover {
   display: grid;
   gap: 2px;
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 
 .proposalRows > div {
@@ -449,7 +440,7 @@ button.card:hover {
 .proposalIssues {
   margin: 0;
   padding-left: 18px;
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 
 .proposalIssues li[data-severity="error"] {
@@ -458,13 +449,13 @@ button.card:hover {
 
 .proposalReady {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 
 .proposalLines {
   margin: 0;
   padding-left: 18px;
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 
 .proposalActions {
@@ -474,27 +465,27 @@ button.card:hover {
 
 .proposalResult {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 600;
 }
 
 .message {
   padding: 10px;
-  border: 1px solid var(--ops-border, #dde1e8);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-surface-muted);
 }
 
 .messageHead {
   margin: 0 0 8px;
-  color: var(--ops-text-2, #3a4356);
-  font-size: 12px;
+  color: var(--color-text-2);
+  font-size: var(--text-xs);
   font-weight: 600;
 }
 
 .messageBody {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-sm);
   white-space: pre-wrap;
 }
 
@@ -516,8 +507,8 @@ button.card:hover {
 }
 
 .blockTitle {
-  color: var(--ops-text-2, #3a4356);
-  font-size: 12px;
+  color: var(--color-text-2);
+  font-size: var(--text-xs);
   font-weight: 700;
 }
 
@@ -526,9 +517,9 @@ button.card:hover {
   padding: 0;
   border: 0;
   background: none;
-  color: var(--ops-accent, #2c4c78);
+  color: var(--color-accent);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--text-xs);
   font-weight: 700;
   cursor: pointer;
 }
@@ -539,27 +530,27 @@ button.card:hover {
 
 .tableWrap {
   overflow-x: auto;
-  border: 1px solid var(--ops-border, #dde1e8);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius);
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 
 .table th,
 .table td {
   padding: 6px 8px;
-  border-bottom: 1px solid var(--ops-border-soft, #e3e6ec);
+  border-bottom: 1px solid var(--color-border-soft);
   text-align: left;
   white-space: nowrap;
 }
 
 .table th {
-  background: var(--ops-panel-muted, #f8f9fb);
-  color: var(--ops-text-2, #3a4356);
+  background: var(--color-surface-muted);
+  color: var(--color-text-2);
   font-weight: 700;
 }
 
@@ -574,7 +565,7 @@ button.card:hover {
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 
 .chartRow {
@@ -586,7 +577,7 @@ button.card:hover {
 
 .chartLabel {
   overflow: hidden;
-  color: var(--ops-text-2, #3a4356);
+  color: var(--color-text-2);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
