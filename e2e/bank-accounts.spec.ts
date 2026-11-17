@@ -1,10 +1,10 @@
 import { apiAs } from "./api";
 import { expect, test } from "./fixtures";
-import { expectNoError } from "./documents";
+import { expectNoError, typeInto } from "./documents";
 import { signIn } from "./sign-in";
 
 // Payments release A: the Bank accounts setup list. The owner adds accounts, a member can only look.
-test("flow 9: bank accounts are set up by an owner, and a member can only read them", async ({ browser, page }) => {
+test("flow 11: bank accounts are set up by an owner, and a member can only read them", async ({ browser, page }) => {
   test.setTimeout(120_000);
 
   await signIn(page, "owner");
@@ -16,15 +16,15 @@ test("flow 9: bank accounts are set up by an owner, and a member can only read t
   await page.getByRole("button", { name: "Add", exact: true }).click();
   const dialog = page.getByRole("dialog");
   // A form opens with the first field to type in focused. Here that is Code, not the Currency list below it.
-  await expect(dialog.getByLabel("Code")).toBeFocused();
-  await dialog.getByLabel("Code").fill("e2e-main");
-  await dialog.getByLabel("Name").fill("Flow nine current account");
-  await dialog.getByLabel("IBAN").fill("ie29 aibk 9311 5212 3456 79");
+  await expect(dialog.getByLabel("Code", { exact: true })).toBeFocused();
+  await typeInto(dialog.getByLabel("Code", { exact: true }), "e2e-main");
+  await typeInto(dialog.getByLabel("Name", { exact: true }), "Flow nine current account");
+  await typeInto(dialog.getByLabel("IBAN"), "ie29 aibk 9311 5212 3456 79");
   await dialog.getByRole("button", { name: "Save", exact: true }).click();
   await expect(dialog.getByRole("alert")).toContainText("IBAN");
 
-  await dialog.getByLabel("IBAN").fill("ie29 aibk 9311 5212 3456 78");
-  await dialog.getByLabel("BIC").fill("aibkie2d");
+  await typeInto(dialog.getByLabel("IBAN"), "ie29 aibk 9311 5212 3456 78");
+  await typeInto(dialog.getByLabel("BIC"), "aibkie2d");
   await dialog.getByLabel("Default for its currency").check();
   await dialog.getByRole("button", { name: "Save", exact: true }).click();
   await expect(dialog).toBeHidden();
@@ -36,18 +36,18 @@ test("flow 9: bank accounts are set up by an owner, and a member can only read t
 
   // The same IBAN again, spaced differently, is a duplicate.
   await page.getByRole("button", { name: "Add", exact: true }).click();
-  await dialog.getByLabel("Code").fill("E2E-COPY");
-  await dialog.getByLabel("Name").fill("Same IBAN");
-  await dialog.getByLabel("IBAN").fill("IE29AIBK93115212345678");
+  await typeInto(dialog.getByLabel("Code", { exact: true }), "E2E-COPY");
+  await typeInto(dialog.getByLabel("Name", { exact: true }), "Same IBAN");
+  await typeInto(dialog.getByLabel("IBAN"), "IE29AIBK93115212345678");
   await dialog.getByRole("button", { name: "Save", exact: true }).click();
   await expect(dialog.getByRole("alert")).toContainText("already used");
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
 
   // The code is fixed once saved.
   await row.getByRole("button", { name: "Edit" }).click();
-  await expect(dialog.getByLabel("Code")).toHaveAttribute("readonly", "");
+  await expect(dialog.locator('input[name="code"]')).toHaveAttribute("readonly", "");
   // The code is locked, so the first field to type in is the name.
-  await expect(dialog.getByLabel("Name")).toBeFocused();
+  await expect(dialog.getByLabel("Name", { exact: true })).toBeFocused();
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
 
   // A member sees the account but has no Add, Edit or Remove, and the database refuses a direct write.

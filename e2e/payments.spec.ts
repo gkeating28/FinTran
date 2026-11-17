@@ -5,7 +5,7 @@ import { signIn } from "./sign-in";
 
 /*
  * Payments release B, phase 6: the five acceptance flows (QULAPLUS_PAYMENTS_SPEC.md, "Acceptance (also as end-to-end
- * flows)"). They run in order and share one database: flow 11 offers the standard payment types and adds the bank
+ * flows)"). They run in order and share one database: flow 12 offers the standard payment types and adds the bank
  * account the others pay from, so the rest are skipped if it fails.
  *
  * Every invoice here has an amount no other flow uses, so a row can be found by its total. A price of 100 at 23% VAT
@@ -67,7 +67,7 @@ async function filterByPayment(page: Page, state: "Unpaid" | "Part paid" | "Paid
   await page.getByLabel("Payment", { exact: true }).selectOption({ label: state });
 }
 
-test("flow 11: the standard payment types are offered once, a receipt is recorded from a posted invoice, and the invoice shows paid", async ({ page }) => {
+test("flow 12: the standard payment types are offered once, a receipt is recorded from a posted invoice, and the invoice shows paid", async ({ page }) => {
   test.setTimeout(240_000);
   await signIn(page, "owner");
 
@@ -75,9 +75,9 @@ test("flow 11: the standard payment types are offered once, a receipt is recorde
   await page.goto("/bank-accounts");
   await page.getByRole("button", { name: "Add", exact: true }).click();
   const bank = page.getByRole("dialog");
-  await bank.getByLabel("Code").fill(BANK);
-  await bank.getByLabel("Name").fill("Flow eleven current account");
-  await bank.getByLabel("IBAN").fill("DE89 3704 0044 0532 0130 00");
+  await typeInto(bank.getByLabel("Code", { exact: true }), BANK);
+  await typeInto(bank.getByLabel("Name", { exact: true }), "Flow eleven current account");
+  await typeInto(bank.getByLabel("IBAN"), "DE89 3704 0044 0532 0130 00");
   await bank.getByLabel("Default for its currency").check();
   await bank.getByRole("button", { name: "Save", exact: true }).click();
   await expect(bank).toBeHidden();
@@ -100,7 +100,7 @@ test("flow 11: the standard payment types are offered once, a receipt is recorde
   // Record receipt opens a new receipt for the customer with the whole amount due already allocated.
   await openPaymentsTab(page, "SIN", total);
   await documentDialog(page).getByRole("link", { name: "Record receipt" }).click();
-  await page.waitForURL(/\/transactions\/SR\?new=1/);
+  await page.waitForURL(/\/transactions\/SRC\?new=1/);
   const receipt = paymentDialog(page, /receipt/i);
   await expect(receipt).toBeVisible();
   await expect(receipt.locator('input[name="amount"]')).toHaveValue(total);
@@ -116,7 +116,7 @@ test("flow 11: the standard payment types are offered once, a receipt is recorde
   await expect(listRows(page).filter({ hasText: total })).toHaveCount(0);
 });
 
-test("flow 12: one receipt pays two invoices with Allocate oldest first", async ({ page }) => {
+test("flow 13: one receipt pays two invoices with Allocate oldest first", async ({ page }) => {
   test.setTimeout(240_000);
   await signIn(page, "owner");
 
@@ -146,7 +146,7 @@ test("flow 12: one receipt pays two invoices with Allocate oldest first", async 
   await expect(listRows(page).filter({ hasText: second })).toHaveCount(1);
 });
 
-test("flow 13: a credit note's balance is applied to a second invoice", async ({ page }) => {
+test("flow 14: a credit note's balance is applied to a second invoice", async ({ page }) => {
   test.setTimeout(240_000);
   await signIn(page, "owner");
 
@@ -174,7 +174,7 @@ test("flow 13: a credit note's balance is applied to a second invoice", async ({
   await expect(listRows(page).filter({ hasText: invoice })).toHaveCount(1);
 });
 
-test("flow 14: a customer is refunded the unallocated balance of a credit note", async ({ page }) => {
+test("flow 15: a customer is refunded the unallocated balance of a credit note", async ({ page }) => {
   test.setTimeout(240_000);
   await signIn(page, "owner");
 
@@ -184,7 +184,7 @@ test("flow 14: a customer is refunded the unallocated balance of a credit note",
   // Refund opens a customer refund for the whole balance. It settles the credit note, not an invoice.
   await openPaymentsTab(page, "SCN", credit);
   await documentDialog(page).getByRole("link", { name: "Refund" }).click();
-  await page.waitForURL(/\/transactions\/SF\?new=1/);
+  await page.waitForURL(/\/transactions\/SRF\?new=1/);
   const refund = paymentDialog(page, /refund/i);
   await expect(refund).toBeVisible();
   await expect(refund.locator('input[name="amount"]')).toHaveValue(credit);
@@ -197,7 +197,7 @@ test("flow 14: a customer is refunded the unallocated balance of a credit note",
   await expect(listRows(page).filter({ hasText: credit })).toHaveCount(1);
 });
 
-test("flow 15: an allocation on a posted receipt is removed with a reason and the money goes to another invoice", async ({ page }) => {
+test("flow 16: an allocation on a posted receipt is removed with a reason and the money goes to another invoice", async ({ page }) => {
   test.setTimeout(240_000);
   await signIn(page, "owner");
 
@@ -209,7 +209,7 @@ test("flow 15: an allocation on a posted receipt is removed with a reason and th
   // A receipt for the first invoice.
   await openPaymentsTab(page, "SIN", first);
   await documentDialog(page).getByRole("link", { name: "Record receipt" }).click();
-  await page.waitForURL(/\/transactions\/SR\?new=1/);
+  await page.waitForURL(/\/transactions\/SRC\?new=1/);
   await payFromBank(page, paymentDialog(page, /receipt/i));
   await expectNoError(page);
 
@@ -239,7 +239,7 @@ test("flow 15: an allocation on a posted receipt is removed with a reason and th
   await expect(listRows(page).filter({ hasText: second })).toHaveCount(1);
 });
 
-test("flow 16: a double tap on an open invoice allocates what is open on it, and fills in a blank amount", async ({ page }) => {
+test("flow 17: a double tap on an open invoice allocates what is open on it, and fills in a blank amount", async ({ page }) => {
   test.setTimeout(240_000);
   await signIn(page, "owner");
 
@@ -279,4 +279,76 @@ test("flow 16: a double tap on an open invoice allocates what is open on it, and
   // Nothing is saved, so the invoice stays open.
   await receipt.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(receipt).toHaveCount(0);
+});
+
+test("flow 18: a supplier payment for three invoices prints a remittance advice listing all three, a draft prints with DRAFT and a void one with VOID", async ({ page }) => {
+  test.setTimeout(300_000);
+  await signIn(page, "owner");
+
+  // Three purchase invoices for one supplier. Their totals tell them apart: nets of 31, 37 and 41 at 23% VAT.
+  const nets = ["31", "37", "41"];
+  for (const [index, net] of nets.entries()) {
+    await openList(page, "PIN");
+    await startDocument(page, {
+      party: "HARB",
+      sales: false,
+      supplierReference: `HARB-F18-${index + 1}`,
+      lines: [{ description: `Flow eighteen ${index + 1}`, quantity: "1", price: net, gl: "6000", vat: "P23" }],
+    });
+    await documentDialog(page).getByRole("button", { name: "Save and post", exact: true }).click();
+    await backOnList(page, "PIN");
+    await expectNoError(page);
+  }
+  const totals = nets.map((net) => withVat(Number(net)));
+  const sum = totals.reduce((acc, value) => acc + Number(value), 0).toFixed(2);
+
+  // One supplier payment for all three, allocated oldest first, then posted.
+  await openList(page, "PPY");
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  const payment = paymentDialog(page, /payment/i);
+  await chooseByCode(payment.locator('select[name="supplier_id"]'), "HARB");
+  await typeInto(payment.locator('input[name="amount"]'), sum);
+  await payment.getByRole("button", { name: "Allocate oldest first" }).click();
+  await payFromBank(page, payment);
+  await expectNoError(page);
+
+  // Print it. The page is a remittance advice that lists every invoice and what was applied to it.
+  const row = listRows(page).filter({ hasText: sum }).first();
+  await row.getByRole("link", { name: "Print", exact: true }).click();
+  await page.waitForURL(/\/print\/PPY\//);
+  const body = page.locator("body");
+  await expect(body).toContainText("Remittance advice");
+  await expect(body).toContainText("Harbour Supplies");
+  for (const total of totals) await expect(body).toContainText(total);
+  await expect(body).toContainText(sum);
+  await expect(body).not.toContainText("DRAFT");
+  await expect(body).not.toContainText("VOID");
+
+  // A draft has no number and prints with DRAFT on it.
+  await openList(page, "PPY");
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  const draft = paymentDialog(page, /payment/i);
+  await chooseByCode(draft.locator('select[name="supplier_id"]'), "HARB");
+  await typeInto(draft.locator('input[name="amount"]'), "5.55");
+  await chooseByCode(draft.locator('select[name="bank_account_id"]'), BANK);
+  await draft.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(draft).toHaveCount(0);
+  await listRows(page).filter({ hasText: "5.55" }).first().getByRole("link", { name: "Print", exact: true }).click();
+  await page.waitForURL(/\/print\/PPY\//);
+  await expect(body).toContainText("DRAFT");
+  await expect(body).toContainText("Not applied to any document");
+
+  // Voiding the first payment makes its print say so, with the reason.
+  await openList(page, "PPY");
+  await listRows(page).filter({ hasText: sum }).first().locator("td").nth(1).click();
+  const posted = paymentDialog(page, /payment/i);
+  await posted.getByRole("button", { name: "Void", exact: true }).click();
+  const voiding = page.getByRole("dialog", { name: /void/i });
+  await typeInto(voiding.getByLabel("Void reason"), "Flow eighteen void");
+  await voiding.getByRole("button", { name: /^void/i }).click();
+  await expect(posted).toHaveCount(0);
+  await listRows(page).filter({ hasText: sum }).first().getByRole("link", { name: "Print", exact: true }).click();
+  await page.waitForURL(/\/print\/PPY\//);
+  await expect(body).toContainText("VOID");
+  await expect(body).toContainText("Voided: Flow eighteen void");
 });

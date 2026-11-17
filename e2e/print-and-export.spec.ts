@@ -56,7 +56,7 @@ test("flow 10: print and PDF of a posted invoice keep the customer's address as 
   await expectNoError(page);
   expect(await rowText(page, "15.99")).toContain("Posted");
   const printHref = await listRows(page).filter({ hasText: "15.99" }).first().getByRole("link", { name: "Print", exact: true }).getAttribute("href");
-  expect(printHref).toMatch(/^\/print\/SI\//);
+  expect(printHref).toMatch(/^\/print\/SIN\//);
 
   await page.goto(printHref ?? "");
   await expect(page.locator("body")).toContainText("9 Main Street");

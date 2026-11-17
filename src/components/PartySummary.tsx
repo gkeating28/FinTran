@@ -55,6 +55,9 @@ export default function PartySummary({
   const checks = partyChecks(kind, values);
   const readiness = partyReadiness(checks);
   const customer = kind === "customers";
+  // Money on account comes off what is owed. A party in credit turns the card round and shows what is held for them.
+  const inCredit = Boolean(summary && summary.due < 0);
+  const owedToYou = customer !== inCredit;
   const money = (value: number) => `${formatMoney(value)}${currencyCode ? ` ${currencyCode}` : ""}`;
 
   return (
@@ -85,14 +88,14 @@ export default function PartySummary({
       {partyId ? (
         <>
           <section className={styles.card}>
-            <h3 className={styles.cardTitle}>{customer ? "They owe you" : "You owe them"}</h3>
+            <h3 className={styles.cardTitle}>{owedToYou ? "They owe you" : "You owe them"}</h3>
             {summary === undefined ? (
               <p className={styles.muted}>Loading…</p>
             ) : summary === null ? (
               <p className={styles.muted}>The figures could not be loaded.</p>
             ) : (
               <>
-                <p className={styles.big}>{money(summary.due)}</p>
+                <p className={styles.big}>{money(Math.abs(summary.due))}</p>
                 <dl className={styles.facts}>
                   <dt>Past due</dt>
                   <dd data-alert={summary.overdue > 0}>

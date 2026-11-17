@@ -4,6 +4,7 @@ import FormDesigner from "@/components/FormDesigner";
 import styles from "@/components/OpsPage.module.css";
 import { loadFormDesigner } from "@/lib/form-data";
 import { getWorkspace } from "@/lib/data";
+import { currentCodeFor } from "@/lib/legacy-type-codes";
 import { canManage } from "@/lib/types";
 
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }) {
@@ -29,7 +30,11 @@ export default async function FormDesignerPage({ params }: { params: Promise<{ c
       </section>
     );
   }
-  if (!loaded.type || !loaded.source) notFound();
+  if (!loaded.type || !loaded.source) {
+    const next = currentCodeFor(code);
+    if (next) redirect(`/forms/${next}`);
+    notFound();
+  }
 
   return (
     <section className={styles.stack}>

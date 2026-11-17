@@ -43,7 +43,7 @@ test("flow 5: a received e-invoice from a new supplier is uploaded, the supplier
 
   // Import makes a draft purchase invoice and opens it.
   await dialog.getByRole("button", { name: "Save", exact: true }).click();
-  await page.waitForURL(/\/transactions\/PI\?open=/);
+  await page.waitForURL(/\/transactions\/PIN\?open=/);
   await expect(page.locator("form#purchase-document")).toBeVisible();
   await press(page, /^(save and )?post$/i);
   await expect(page.locator("form#purchase-document")).toHaveCount(0, { timeout: 30_000 });

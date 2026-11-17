@@ -82,3 +82,14 @@ test("recent payments are posted ones, newest first, and none gives an empty lis
   assert.deepEqual(summary.recentPayments.map((item) => item.id), ["new", "old"]);
   assert.deepEqual(buildPartySummary([], today).onAccount, []);
 });
+
+test("what a party owes is reduced by receipts not yet applied, and can be below nothing", () => {
+  const invoice = doc({ id: "i", total: 500, amountDue: 500, dueDate: "2026-12-01" });
+  const credit = doc({ id: "c", kind: "credit_note", total: 100, amountDue: 40 });
+  // 500 due, less a credit note balance of 40, less 100 received and not applied.
+  assert.equal(buildPartySummary([invoice, credit], today, 0, [pay({ id: "a", amount: 100, unallocated: 100 })]).due, 360);
+  // A refund does not pay an invoice, a draft has taken no money, and an applied receipt is already in the invoice.
+  assert.equal(buildPartySummary([invoice], today, 0, [pay({ id: "r", settlesInvoices: false, unallocated: 80 }), pay({ id: "d", status: "draft", unallocated: 80 }), pay({ id: "x", unallocated: 0 })]).due, 500);
+  // More money on account than is owed leaves the party in credit.
+  assert.equal(buildPartySummary([invoice], today, 0, [pay({ id: "big", amount: 800, unallocated: 800 })]).due, -300);
+});

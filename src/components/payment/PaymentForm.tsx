@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState, useTransition, type FormEvent, type MouseEvent } from "react";
 import ConfirmSubmitButton from "@/components/ConfirmDialog";
 import documentStyles from "@/components/Document.module.css";
@@ -577,6 +578,12 @@ export default function PaymentForm({
                 <button className={styles.quiet} type="button" onClick={() => setVoidOpen(true)}>
                   Void
                 </button>
+              ) : null}
+              {/* The printed page shows what is saved, so it is offered once nothing is waiting to be saved. */}
+              {current && !dirty ? (
+                <Link className={styles.quiet} href={`/print/${type.code}/${current.id}`}>
+                  Print
+                </Link>
               ) : null}
             </div>
             <div className={documentStyles.actionCluster}>

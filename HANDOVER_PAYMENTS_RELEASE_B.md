@@ -14,7 +14,9 @@ Branch: `claude/intelligent-cerf-j32nz3`. Everything below that is marked done i
 | Phase 4, save, post, void, delete | Done. `supabase/tests/payment_functions.sql` |
 | Phase 5, typed paid amount removed and migrated | Done. `supabase/tests/migrate_paid_amounts.sql` runs the migration file itself |
 | Phase 6, screens | Part one done: see below |
-| Phases 7 and 8 | Not started. Release C |
+| Phase 7a, printed payments | Written (see below), unrun | 
+| Phase 7b, payment kinds in the form designer | Not started |
+| Phase 8 | Not started. Release C |
 
 **Release B migrations are applied to the hosted project** (`hxueqzgdwlaschcvwdke`), at the owner's request, so that the branch could be run against it. The files are renamed to the versions the project records, and the path in `supabase/tests/migrate_paid_amounts.sql` is fixed. The hosted project had no typed paid amounts (0 of 10 documents), so the data migration changed nothing. Phase 5 removed the typed paid amount, so recording a payment now depends on the phase 6 screens, which have not been opened in a browser.
 
@@ -42,7 +44,7 @@ None of the screen code has been opened in a browser. It compiles and passes lin
    Original note: A fourth header tab on posted invoices and credit notes: effective and removed allocations (source, date, amount, exchange difference, who and when), the open amount, and Record receipt or Record payment. Those open a new draft payment of the right type with the party, currency and full open amount allocated (`PaymentPrefill` is ready). A posted credit note with a balance shows Apply to an invoice (uses `applyAllocations` with `credit_note_id`) and Refund. Load the allocations in `document-data.ts` or by an action when the tab opens.
 4. **Grids and parties** (6.3). **DONE (not opened in a browser).** Unpaid, part paid and paid filter and an Applied label on credit note grids in `DocumentManager.tsx` (`settlementState`); money on account and recent payments in the party summary (tests in `party-summary.test.ts`).
    Original note: Document grids: Paid and Amount due columns and an unpaid, part paid or paid filter (`DocumentManager.tsx` already has a Paid column). Party summary (`party-summary.ts`, `party-summary-actions.ts`): money on account and recent payments, with tests in `party-summary.test.ts`.
-5. **End-to-end flows. WRITTEN, UNRUN.** `e2e/payments.spec.ts`, flows 11 to 15, one per acceptance case. Selectors come from the components, not from a run. The first CI run will show what needs fixing.
+5. **End-to-end flows. WRITTEN, UNRUN.** `e2e/payments.spec.ts`, flows 12 to 16 (and 17 for the double tap), one per acceptance case. Selectors come from the components, not from a run. The first CI run will show what needs fixing.
    Original note: in `e2e/` for the five acceptance flows in phase 6. They cannot be run without the local Supabase stack, so write them carefully and say they are unrun.
 6. **Documentation. DONE.** `CORE.md` has a Payments and settlement section and updated header, transaction type and screen text. `TECHNICAL.md` has the actions, functions, permissions, tests and e2e flows. There is no separate status document in the repository. The gap line about a typed paid amount was not in `CORE.md` or `TECHNICAL.md`.
    Original note: `CORE.md`, `TECHNICAL.md` and the status document: payments, receipts, allocations, settlement, calculated paid amounts. Drop "Paid amount is a single figure typed on the document" from the gaps if it is there. Add `supabase/tests/*` and the new concurrency test to the testing section.
@@ -66,4 +68,8 @@ None of the screen code has been opened in a browser. It compiles and passes lin
 
 ## Transaction type codes (added later)
 
-Every type code is three characters: direction (`S` or `P`) plus `RQ`, `OR`, `IN`, `CN`, `RC`, `PY` or `RF`. See CORE.md, Transaction type codes. The migration `20261113184039_three_character_type_codes` renamed the hosted types (QulaPlus Dublin: nine types, all renamed, guard back on, documents still attached). The standard payment types, the e2e seed and flows, and the unit test examples use the new codes. The SQL tests keep their own throwaway codes. The hidden `MIG…` system types made by `remove_typed_paid_amount` keep their long codes: the hosted project has none, and they are never shown.
+Every type code is three characters: direction (`S` or `P`) plus `RQ`, `OR`, `IN`, `CN`, `RC`, `PY` or `RF`. See CORE.md, Transaction type codes. The migration `20261113184039_three_character_type_codes` renamed the hosted types (QulaPlus Dublin: nine types, all renamed, guard back on, documents still attached). The standard payment types, the e2e seed and flows, and the unit test examples use the new codes. The SQL tests keep their own throwaway codes. The hidden system types made by `remove_typed_paid_amount` are renamed by `three_character_migrated_type_codes` to `SMR`, `PMP`, `SMF` and `PMF` (direction, M for migrated, then the kind's first letter). Old links with the old codes are redirected by `src/lib/legacy-type-codes.ts`.
+
+## Phase 7a, printing (added later)
+
+Fixed layouts for payments, receipts and refunds: remittance advice for money out, receipt for money in. `payment-print.ts` (builder and tests), `payment-print-data.ts` (loader), `PrintedPayment.tsx`, a branch in the print route, and Print on the payment list and the open payment. Flow 18 covers the acceptance cases and has not run. Not done, and left for 7b: payment and receipt kinds in the form designer, with the allocation table columns, and the database check on saved layouts that goes with it. `getFormType` now treats a payment type as not found, so `/forms/{payment code}` cannot open a designer for the wrong kind. 7b has to lift that when it adds the kinds.

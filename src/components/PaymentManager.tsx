@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
 import DataGrid, { type GridColumn } from "@/components/DataGrid";
 import styles from "@/components/OpsPage.module.css";
@@ -202,16 +203,21 @@ export default function PaymentManager({
           ] satisfies GridColumn<PaymentRow>[]
         }
         actions={(row) => (
-          <button
-            className={styles.quiet}
-            type="button"
-            onClick={() => {
-              setActivePrefill(null);
-              setDraft(row);
-            }}
-          >
-            {row.status === "draft" ? "Edit" : "View"}
-          </button>
+          <>
+            <Link className={styles.quiet} href={`/print/${choices.type.code}/${row.id}`}>
+              Print
+            </Link>
+            <button
+              className={styles.quiet}
+              type="button"
+              onClick={() => {
+                setActivePrefill(null);
+                setDraft(row);
+              }}
+            >
+              {row.status === "draft" ? "Edit" : "View"}
+            </button>
+          </>
         )}
       />
       {draft ? (
