@@ -38,6 +38,32 @@ async function postSalesDocument(page: Page, typeCode: "SIN" | "SCN", party: str
   await expectNoError(page);
 }
 
+/**
+ * A posted sales credit note that is left with its whole total as a balance. A credit note always names the invoice it
+ * applies to, and posting applies it to that invoice up to what is open on it. So the invoice is paid first, by a
+ * receipt, and then credited. Returns the total, which is the invoice's own total because the credit copies its lines.
+ */
+async function creditNoteOnAccount(page: Page, party: string, net: string, description: string) {
+  const total = withVat(Number(net));
+  await postSalesDocument(page, "SIN", party, net, description);
+  await openPaymentsTab(page, "SIN", total);
+  await documentDialog(page).getByRole("link", { name: "Record receipt" }).click();
+  await page.waitForURL(/\/transactions\/SRC\?new=1/);
+  await payFromBank(page, paymentDialog(page, /receipt/i));
+  await expectNoError(page);
+
+  await openList(page, "SIN");
+  await openRow(page, total);
+  await documentDialog(page).getByRole("button", { name: "Credit notes", exact: true }).click();
+  await page.getByRole("dialog", { name: "Credit notes" }).getByRole("button", { name: "Create credit note" }).click();
+  await page.waitForURL(/\/transactions\/SCN\?open=/);
+  await expect(page.locator("form#purchase-document")).toBeVisible();
+  await documentDialog(page).getByRole("button", { name: /^(save and )?post$/i }).click();
+  await backOnList(page, "SCN");
+  await expectNoError(page);
+  return total;
+}
+
 /** The total of a document of net price `net` at 23% VAT, as the grids show it. */
 function withVat(net: number) {
   return (Math.round(net * 123) / 100).toFixed(2);
@@ -153,7 +179,7 @@ test("flow 14: a credit note's balance is applied to a second invoice", async ({
   const invoice = withVat(417);
   const credit = withVat(30);
   await postSalesDocument(page, "SIN", "ACME", "417", "Flow thirteen goods");
-  await postSalesDocument(page, "SCN", "ACME", "30", "Flow thirteen allowance");
+  await creditNoteOnAccount(page, "ACME", "30", "Flow fourteen allowance");
 
   // The credit note has its whole total as balance. Apply it to the invoice with this total.
   await openPaymentsTab(page, "SCN", credit);
@@ -179,7 +205,7 @@ test("flow 15: a customer is refunded the unallocated balance of a credit note",
   await signIn(page, "owner");
 
   const credit = withVat(20);
-  await postSalesDocument(page, "SCN", "ACME", "20", "Flow fourteen allowance");
+  await creditNoteOnAccount(page, "ACME", "20", "Flow fifteen allowance");
 
   // Refund opens a customer refund for the whole balance. It settles the credit note, not an invoice.
   await openPaymentsTab(page, "SCN", credit);
