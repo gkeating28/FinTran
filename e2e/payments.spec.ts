@@ -250,7 +250,7 @@ test("flow 16: an allocation on a posted receipt is removed with a reason and th
   await remove.getByRole("button", { name: "Remove allocation" }).click();
   await expect(remove).toHaveCount(0);
   await expect(posted).toContainText("Removed: Paid the wrong invoice");
-  await expect(posted).toContainText("on account");
+  await expect(posted).toContainText(/on account/i);
 
   // The money is on account again, so it is allocated to the second invoice.
   await typeInto(posted.getByRole("row").filter({ hasText: second }).getByRole("textbox"), first);
@@ -289,7 +289,7 @@ test("flow 17: a double tap on an open invoice allocates what is open on it, and
   await expect(box).toHaveValue(total);
 
   // An amount smaller than what is open refuses it, says what is left, and changes nothing.
-  await box.fill("");
+  await typeInto(box, "");
   await typeInto(amount, "10.00");
   await tap();
   await expect(receipt.getByRole("alert")).toContainText("is more than the 10.00 left to allocate");
@@ -300,7 +300,7 @@ test("flow 17: a double tap on an open invoice allocates what is open on it, and
   await typeInto(amount, "100.00");
   await tap();
   await expect(box).toHaveValue(total);
-  await expect(receipt.getByText("On account")).toBeVisible();
+  await expect(receipt.getByText("On account").first()).toBeVisible();
 
   // Nothing is saved, so the invoice stays open.
   await receipt.getByRole("button", { name: "Cancel", exact: true }).click();
@@ -334,7 +334,9 @@ test("flow 18: a supplier payment for three invoices prints a remittance advice 
   const payment = paymentDialog(page, /payment/i);
   await chooseByCode(payment.locator('select[name="supplier_id"]'), "HARB");
   await typeInto(payment.locator('input[name="amount"]'), sum);
-  await payment.getByRole("button", { name: "Allocate oldest first" }).click();
+  // A double click on each of the three invoices allocates what is open on it. Other flows leave open invoices for
+  // this supplier too, so Allocate oldest first would pay those first.
+  for (const total of totals) await payment.getByRole("row").filter({ hasText: total }).locator("td").first().dblclick();
   await payFromBank(page, payment);
   await expectNoError(page);
 
