@@ -30,9 +30,18 @@ async function chooseByCode(select: Locator, code: string) {
 }
 
 /** Posts a sales invoice or credit note of one line, and returns once the list shows it posted. */
-async function postSalesDocument(page: Page, typeCode: "SIN" | "SCN", party: string, net: string, description: string) {
+async function postSalesDocument(
+  page: Page,
+  typeCode: "SIN" | "SCN",
+  party: string,
+  net: string,
+  description: string,
+  options: { dueDate?: string } = {},
+) {
   await openList(page, typeCode);
   await startDocument(page, { party, sales: true, lines: [{ description, quantity: "1", price: net, gl: "4000", vat: "S23" }] });
+  // Allocate oldest first goes by due date, so a flow that depends on the order gives its invoices early due dates.
+  if (options.dueDate) await typeInto(page.locator('input[name="due_date"]'), options.dueDate);
   await documentDialog(page).getByRole("button", { name: "Save and post", exact: true }).click();
   await backOnList(page, typeCode);
   await expectNoError(page);
@@ -148,8 +157,8 @@ test("flow 13: one receipt pays two invoices with Allocate oldest first", async 
 
   const first = withVat(110);
   const second = withVat(210);
-  await postSalesDocument(page, "SIN", "BETA", "110", "Flow twelve A");
-  await postSalesDocument(page, "SIN", "BETA", "210", "Flow twelve B");
+  await postSalesDocument(page, "SIN", "BETA", "110", "Flow thirteen A", { dueDate: "2025-01-01" });
+  await postSalesDocument(page, "SIN", "BETA", "210", "Flow thirteen B", { dueDate: "2025-01-02" });
   const sum = (Number(first) + Number(second)).toFixed(2);
 
   // A receipt for the two together. Allocate oldest first fills both boxes, and nothing is left on account.
