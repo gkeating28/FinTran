@@ -5,6 +5,7 @@ import PrintedForm from "@/components/PrintedForm";
 import styles from "@/components/PrintForm.module.css";
 import { loadPrintedDocument } from "@/lib/form-data";
 import { getWorkspace } from "@/lib/data";
+import { currentCodeFor } from "@/lib/legacy-type-codes";
 import { PAGE_SIZE_OPTIONS } from "@/lib/form-layout";
 import PdfButton from "./PdfButton";
 import PrintButton from "./PrintButton";
@@ -34,7 +35,11 @@ export default async function PrintDocumentPage({ params }: { params: Promise<{ 
       </main>
     );
   }
-  if (!loaded.view || !loaded.type) notFound();
+  if (!loaded.view || !loaded.type) {
+    const next = currentCodeFor(code);
+    if (next) redirect(`/print/${next}/${id}`);
+    notFound();
+  }
 
   return (
     <main className={styles.stage}>

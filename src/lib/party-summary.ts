@@ -37,7 +37,7 @@ export type PartyOnAccount = {
 };
 
 export type PartySummary = {
-  /** Still due on posted invoices, less posted credit notes. */
+  /** Still due on posted invoices, less posted credit notes and less receipts or payments not yet applied. Below nothing when the party is in credit. */
   due: number;
   /** The part of what is due that is past its due date. */
   overdue: number;
@@ -90,6 +90,10 @@ export function buildPartySummary(documents: PartyDocument[], today: string, toI
       .filter((document) => document.status === "posted" && document.kind === "credit_note" && document.amountDue > 0)
       .map((document): PartyOnAccount => ({ id: document.id, typeCode: document.typeCode, number: document.number, date: document.date, amount: cents(document.amountDue), kind: "credit_note" })),
   ].sort((left, right) => right.date.localeCompare(left.date) || left.id.localeCompare(right.id));
+  // Credit notes are already taken off above, through their amount due. Money received or paid that has not been applied
+  // to an invoice is money the party has already given, so it comes off what they owe.
+  const unapplied = onAccount.filter((item) => item.kind === "payment").reduce((sum, item) => sum + item.amount, 0);
+  due -= unapplied;
   return {
     onAccountTotal: cents(onAccount.reduce((sum, item) => sum + item.amount, 0)),
     onAccount,

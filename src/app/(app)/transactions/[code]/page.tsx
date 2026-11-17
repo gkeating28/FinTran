@@ -5,6 +5,7 @@ import styles from "@/components/OpsPage.module.css";
 import { getWorkspace } from "@/lib/data";
 import { canManage } from "@/lib/types";
 import { listDocuments } from "@/lib/document-data";
+import { currentCodeFor } from "@/lib/legacy-type-codes";
 import { getTransactionTypeByCode } from "@/lib/transaction-type-data";
 import { listPayments } from "@/lib/payment-data";
 import { parsePaymentPrefill } from "@/lib/payments";
@@ -41,7 +42,16 @@ export default async function TransactionTypePage({
       </section>
     );
   }
-  if (!tile) notFound();
+  if (!tile) {
+    // A saved link may still carry an old type code such as SI. Send it to the current one, with its query.
+    const next = currentCodeFor(code);
+    if (next) {
+      const kept = new URLSearchParams();
+      for (const [key, value] of Object.entries(query)) if (typeof value === "string") kept.set(key, value);
+      redirect(`/transactions/${next}${kept.size ? `?${kept.toString()}` : ""}`);
+    }
+    notFound();
+  }
 
   // Payments and receipts have their own list and entry screen. Everything else is a document.
   if (isPaymentKind(tile.documentKind)) {

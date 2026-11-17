@@ -5,7 +5,7 @@ import { signIn } from "./sign-in";
 
 /*
  * Payments release B, phase 6: the five acceptance flows (QULAPLUS_PAYMENTS_SPEC.md, "Acceptance (also as end-to-end
- * flows)"). They run in order and share one database: flow 11 offers the standard payment types and adds the bank
+ * flows)"). They run in order and share one database: flow 12 offers the standard payment types and adds the bank
  * account the others pay from, so the rest are skipped if it fails.
  *
  * Every invoice here has an amount no other flow uses, so a row can be found by its total. A price of 100 at 23% VAT
@@ -67,7 +67,7 @@ async function filterByPayment(page: Page, state: "Unpaid" | "Part paid" | "Paid
   await page.getByLabel("Payment", { exact: true }).selectOption({ label: state });
 }
 
-test("flow 11: the standard payment types are offered once, a receipt is recorded from a posted invoice, and the invoice shows paid", async ({ page }) => {
+test("flow 12: the standard payment types are offered once, a receipt is recorded from a posted invoice, and the invoice shows paid", async ({ page }) => {
   test.setTimeout(240_000);
   await signIn(page, "owner");
 
@@ -75,9 +75,9 @@ test("flow 11: the standard payment types are offered once, a receipt is recorde
   await page.goto("/bank-accounts");
   await page.getByRole("button", { name: "Add", exact: true }).click();
   const bank = page.getByRole("dialog");
-  await bank.getByLabel("Code", { exact: true }).fill(BANK);
-  await bank.getByLabel("Name", { exact: true }).fill("Flow eleven current account");
-  await bank.getByLabel("IBAN").fill("DE89 3704 0044 0532 0130 00");
+  await typeInto(bank.getByLabel("Code", { exact: true }), BANK);
+  await typeInto(bank.getByLabel("Name", { exact: true }), "Flow eleven current account");
+  await typeInto(bank.getByLabel("IBAN"), "DE89 3704 0044 0532 0130 00");
   await bank.getByLabel("Default for its currency").check();
   await bank.getByRole("button", { name: "Save", exact: true }).click();
   await expect(bank).toBeHidden();
@@ -116,7 +116,7 @@ test("flow 11: the standard payment types are offered once, a receipt is recorde
   await expect(listRows(page).filter({ hasText: total })).toHaveCount(0);
 });
 
-test("flow 12: one receipt pays two invoices with Allocate oldest first", async ({ page }) => {
+test("flow 13: one receipt pays two invoices with Allocate oldest first", async ({ page }) => {
   test.setTimeout(240_000);
   await signIn(page, "owner");
 
@@ -146,7 +146,7 @@ test("flow 12: one receipt pays two invoices with Allocate oldest first", async 
   await expect(listRows(page).filter({ hasText: second })).toHaveCount(1);
 });
 
-test("flow 13: a credit note's balance is applied to a second invoice", async ({ page }) => {
+test("flow 14: a credit note's balance is applied to a second invoice", async ({ page }) => {
   test.setTimeout(240_000);
   await signIn(page, "owner");
 
@@ -174,7 +174,7 @@ test("flow 13: a credit note's balance is applied to a second invoice", async ({
   await expect(listRows(page).filter({ hasText: invoice })).toHaveCount(1);
 });
 
-test("flow 14: a customer is refunded the unallocated balance of a credit note", async ({ page }) => {
+test("flow 15: a customer is refunded the unallocated balance of a credit note", async ({ page }) => {
   test.setTimeout(240_000);
   await signIn(page, "owner");
 
@@ -197,7 +197,7 @@ test("flow 14: a customer is refunded the unallocated balance of a credit note",
   await expect(listRows(page).filter({ hasText: credit })).toHaveCount(1);
 });
 
-test("flow 15: an allocation on a posted receipt is removed with a reason and the money goes to another invoice", async ({ page }) => {
+test("flow 16: an allocation on a posted receipt is removed with a reason and the money goes to another invoice", async ({ page }) => {
   test.setTimeout(240_000);
   await signIn(page, "owner");
 
@@ -239,7 +239,7 @@ test("flow 15: an allocation on a posted receipt is removed with a reason and th
   await expect(listRows(page).filter({ hasText: second })).toHaveCount(1);
 });
 
-test("flow 16: a double tap on an open invoice allocates what is open on it, and fills in a blank amount", async ({ page }) => {
+test("flow 17: a double tap on an open invoice allocates what is open on it, and fills in a blank amount", async ({ page }) => {
   test.setTimeout(240_000);
   await signIn(page, "owner");
 
