@@ -398,15 +398,15 @@ test("flow 19: the form of a payment type is designed, and the print of a paymen
   await page.goto("/forms/PPY");
   await expect(page.getByRole("heading", { name: /form$/i })).toBeVisible();
   const settled = page.getByRole("group", { name: "Invoices settled" });
-  await expect(settled.getByLabel("Document total")).toBeVisible();
-  await expect(page.getByRole("group", { name: "Payment", exact: true }).getByLabel("Bank reference")).toBeVisible();
+  await expect(settled.getByRole("checkbox", { name: "Document total" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Payment", exact: true }).getByRole("checkbox", { name: "Bank reference" })).toBeVisible();
   await expect(page.getByLabel("VAT summary")).toHaveCount(0);
   // What every payment form must show cannot be taken off.
-  await expect(settled.getByLabel("Amount applied")).toBeDisabled();
+  await expect(settled.getByRole("checkbox", { name: "Amount applied" })).toBeDisabled();
 
   // A new title and one column fewer, saved.
   await typeInto(page.locator('input[name="title"]'), "Payment advice flow nineteen");
-  await settled.getByLabel("Document total").uncheck();
+  await settled.getByRole("checkbox", { name: "Document total" }).uncheck();
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByText(/^Saved\./)).toBeVisible();
 
