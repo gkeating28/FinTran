@@ -16,7 +16,7 @@ Branch: `claude/intelligent-cerf-j32nz3`. Everything below that is marked done i
 | Phase 6, screens | Part one done: see below |
 | Phase 7a, printed payments | Written (see below), unrun | 
 | Phase 7b, payment kinds in the form designer | Done and green in CI (flow 19, `payment_forms.sql`) |
-| Phase 8 | Not started. Release C |
+| Phase 8 | Written, unrun in CI. Release C (see below) |
 
 **Release B migrations are applied to the hosted project** (`hxueqzgdwlaschcvwdke`), at the owner's request, so that the branch could be run against it. The files are renamed to the versions the project records, and the path in `supabase/tests/migrate_paid_amounts.sql` is fixed. The hosted project had no typed paid amounts (0 of 10 documents), so the data migration changed nothing. Phase 5 removed the typed paid amount, so recording a payment now depends on the phase 6 screens, which have not been opened in a browser.
 
@@ -77,3 +77,10 @@ Fixed layouts for payments, receipts and refunds: remittance advice for money ou
 ## Phase 7b, form designer for payments (added later)
 
 Payment and receipt types now have forms. The layout uses the same table and settings as a document's, but its own field lists: `src/lib/payment-form-layout.ts` (fields, labels, standard layout, `parsePaymentLayout`, `withRequiredPaymentFields`, tests). `private.validate_form_layout` has a payment branch (migration `20261117150118_payment_form_layouts`, test `supabase/tests/payment_forms.sql`). `buildPaymentPrint` takes the saved layout. `PaymentFormDesigner.tsx` is the screen, `getPaymentFormType` and `savedPaymentLayout` (in `payment-print-data.ts`) find the type and its form, and the Forms list and the payment list link to it. Decision: `getFormType` still treats a payment type as not found, as the document designer must not open for one, so the handover's earlier note to lift it was not followed. The migration is applied to the hosted project (recorded as `20261117150118`). Flow 19 passes in CI.
+
+## Phase 8, Ask Qula, Worth a look and e-invoices (added later)
+
+- **Ask Qula (8.1).** `search_payments` (`src/lib/ai/tools.ts`, prompt, status label and table in `blocks.ts`). `top_parties` has metric `owed`, which ranks by what is still due after payments and credit notes. `aging_summary` and the overdue search use the calculated amount due and treat a credit note's balance as coming off what is owed (`creditNotesOffWhatIsOwed`). Tests in `tools.test.ts` and `blocks.test.ts`. Money received but not yet applied is not taken off what a party owes: the note on the lookup says so.
+- **Worth a look (8.2).** Part paid and overdue, money on account (older than 7 days, payments and credit notes) and likely matches, in `src/lib/insights.ts` with tests. A credit note is no longer reported as overdue or due soon.
+- **Received e-invoices (8.3).** The notice on the import screen and on the Payments tab of the posted invoice (`supplierStatedPaidMessage`). The stored e-document view does not show it, as that view also serves invoices we sent, whose BT-113 is our own.
+- **Not covered by an end-to-end flow:** an acceptance case needs a receipt dated 8 days ago and an e-invoice with BT-113, so they are covered by unit tests and the existing SQL test of BT-113 only.

@@ -42,3 +42,21 @@ test("the table is shown automatically and the model is told not to repeat it", 
   assert.match(tool && tool.role === "tool" ? tool.results[0].output : "", /already on the person's screen/);
   assert.equal(run.timings.firstTextMs !== null, true);
 });
+
+test("who owes the most shows what is owed, and a payment search shows what is not yet applied", () => {
+  const owed = autoBlock("top_parties", { parties: [{ party: "Acme", documents: 2, owed: "1200.50" }, { party: "Beta", documents: 1, owed: "300.00" }] });
+  assert.deepEqual(owed && "columns" in owed ? owed.columns : null, ["Name", "Documents", "Owed"]);
+  assert.deepEqual(owed && "rows" in owed ? owed.rows[0] : null, ["Acme", "2", "€1,200.50"]);
+  const biggest = autoBlock("top_parties", { parties: [{ party: "Acme", documents: 2, nett: "100.00", total: "123.00" }] });
+  assert.deepEqual(biggest && "columns" in biggest ? biggest.columns : null, ["Name", "Documents", "Nett", "Total"]);
+
+  assert.equal(autoBlock("search_payments", { payments: [{ document: "SRC-1" }] }), null, "a single payment is a card, not a table");
+  const list = autoBlock("search_payments", {
+    payments: [
+      { document: "SRC-2", party: "Acme", status: "posted", date: "2026-11-02", currency: "EUR", amount: "150.00", unallocated: "50.00" },
+      { document: "SRC-1", party: "Beta", status: "posted", date: "2026-11-01", currency: "EUR", amount: "99.00", unallocated: "0.00" },
+    ],
+  });
+  assert.deepEqual(list && "columns" in list ? list.columns.slice(-2) : null, ["Amount", "Not applied"]);
+  assert.deepEqual(list && "rows" in list ? list.rows[0] : null, ["SRC-2", "Acme", "posted", "2 Nov 2026", "EUR", "150.00", "50.00"]);
+});

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { allocateOnDoubleTap, allocationTotals, distributeOldestFirst, parseAllocationAmount, parsePaymentPrefill, paymentNoun, recordPaymentHref, settlementState, targetKindFor } from "./payments";
+import { allocateOnDoubleTap, allocationTotals, distributeOldestFirst, parseAllocationAmount, parsePaymentPrefill, paymentNoun, recordPaymentHref, settlementState, supplierStatedPaidMessage, targetKindFor } from "./payments";
 
 test("a receipt or a payment clears invoices and a refund clears credit notes", () => {
   assert.equal(targetKindFor("receipt", "Sales"), "invoice");
@@ -114,4 +114,13 @@ test("a double tap with no amount entered fills the amount in from the document"
 test("a double tap on a document with nothing open does nothing", () => {
   assert.equal(allocateOnDoubleTap({ open: 0, amount: 500, amountBlank: false, allocatedElsewhere: 0 }).kind, "refuse");
   assert.equal(allocateOnDoubleTap({ open: 0, amount: 0, amountBlank: true, allocatedElsewhere: 0 }).kind, "refuse");
+});
+
+test("a supplier saying part of an invoice is paid is told to the person, who records nothing automatically", () => {
+  assert.equal(supplierStatedPaidMessage(0, "EUR"), null);
+  assert.equal(supplierStatedPaidMessage(-5, "EUR"), null);
+  const message = supplierStatedPaidMessage(50, "EUR");
+  assert.match(message ?? "", /The supplier says EUR 50\.00 of this invoice is already paid/);
+  assert.match(message ?? "", /Nothing has been recorded/);
+  assert.match(supplierStatedPaidMessage(1234.5, "") ?? "", /says 1,234\.50 of this invoice/);
 });

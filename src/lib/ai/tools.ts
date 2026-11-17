@@ -43,7 +43,7 @@ function dateOf(value: unknown) {
   return /^\d{4}-\d{2}-\d{2}$/.test(word) ? word : null;
 }
 
-type Filtered = { eq: (c: string, v: unknown) => Filtered; gte: (c: string, v: unknown) => Filtered; lte: (c: string, v: unknown) => Filtered; lt: (c: string, v: unknown) => Filtered; gt: (c: string, v: unknown) => Filtered; ilike: (c: string, v: string) => Filtered };
+type Filtered = { eq: (c: string, v: unknown) => Filtered; gte: (c: string, v: unknown) => Filtered; lte: (c: string, v: unknown) => Filtered; lt: (c: string, v: unknown) => Filtered; gt: (c: string, v: unknown) => Filtered; neq: (c: string, v: unknown) => Filtered; ilike: (c: string, v: string) => Filtered };
 
 /** The filters every document search and total shares, pushed into the query so a limit never hides rows. */
 function filterHeaders<T>(query: T, input: Record<string, unknown>, prefix = "", defaults: { status?: string } = {}): T {
@@ -58,6 +58,40 @@ function filterHeaders<T>(query: T, input: Record<string, unknown>, prefix = "",
   if (from) next = next.gte(column("transaction_date"), from);
   if (to) next = next.lte(column("transaction_date"), to);
   return next as unknown as T;
+}
+
+/**
+ * The filters a payment search takes, pushed into the query so a limit never hides rows. Posted payments unless a status
+ * is asked for, because a draft has not happened and a void one has been undone.
+ */
+function filterPayments<T>(query: T, input: Record<string, unknown>): T {
+  let next = query as unknown as Filtered;
+  const status = word(input.status);
+  next = next.eq("status", status === "draft" || status === "void" ? status : "posted");
+  const dir = direction(input.direction);
+  if (dir) next = next.eq("transaction_types.type", dir);
+  const kind = word(input.kind);
+  if (kind === "payment" || kind === "receipt") next = next.eq("transaction_types.document_kind", kind);
+  const from = dateOf(input.from);
+  const to = dateOf(input.to);
+  if (from) next = next.gte("payment_date", from);
+  if (to) next = next.lte("payment_date", to);
+  if (input.party) next = next.ilike("party_name", `%${String(input.party).replace(/[,()%]/g, " ")}%`);
+  if (input.minAmount != null) next = next.gte("amount", Number(input.minAmount));
+  if (input.maxAmount != null) next = next.lte("amount", Number(input.maxAmount));
+  if (input.unallocated) next = next.gt("unallocated_amount", 0);
+  return next as unknown as T;
+}
+
+function word(value: unknown) {
+  return String(value ?? "").toLowerCase();
+}
+
+/** Documents with a credit note's amount due made negative: the balance it still has to give comes off what the party owes. */
+export function creditNotesOffWhatIsOwed(documents: Row[]) {
+  return documents.map((document) =>
+    embedded(document.transaction_types)?.document_kind === "credit_note" ? { ...document, amount_due: -Number(document.amount_due ?? 0) } : document,
+  );
 }
 
 export function agingBands(documents: Row[], asOf = new Date().toISOString().slice(0, 10), keep = LIST_LIMIT) {
@@ -259,7 +293,8 @@ async function runTool(supabase: Client, organisationId: string, name: string, i
     if (input.id) query = query.eq("id", String(input.id));
     if (input.number) query = query.ilike("document_number", `%${String(input.number)}%`);
     if (input.party) query = query.ilike("party_name", `%${String(input.party)}%`);
-    if (input.overdue) query = query.lt("due_date", dateOf(input.asOf) ?? new Date().toISOString().slice(0, 10)).gt("amount_due", 0);
+    // Overdue means invoices. A credit note's amount due is a balance it still has to give, not money that is late.
+    if (input.overdue) query = (query.lt("due_date", dateOf(input.asOf) ?? new Date().toISOString().slice(0, 10)).gt("amount_due", 0) as unknown as Filtered).neq("transaction_types.document_kind", "credit_note") as unknown as typeof query;
     if (input.minAmount != null) query = query.gte("foreign_total_amount", Number(input.minAmount));
     if (input.maxAmount != null) query = query.lte("foreign_total_amount", Number(input.maxAmount));
     const { data } = await query.order("transaction_date", { ascending: false }).limit(LIST_LIMIT);
@@ -278,10 +313,12 @@ async function runTool(supabase: Client, organisationId: string, name: string, i
   }
 
   if (name === "aging_summary") {
-    let query = supabase.from("transaction_headers").select("party_name, due_date, amount_due, transaction_types!inner(type)").eq("organisation_id", organisationId).eq("status", "posted").gt("amount_due", 0);
+    let query = supabase.from("transaction_headers").select("party_name, due_date, amount_due, transaction_types!inner(type, document_kind)").eq("organisation_id", organisationId).eq("status", "posted").gt("amount_due", 0);
     query = filterHeaders(query, { direction: input.direction }, "");
     const { data } = await query.limit(AGGREGATE_LIMIT);
-    const documents = rowsOf(data, AGGREGATE_LIMIT);
+    // What is still due is the calculated amount due, after everything applied to a document. A credit note's balance is
+    // what the party is owed back, so it comes off what they owe.
+    const documents = creditNotesOffWhatIsOwed(rowsOf(data, AGGREGATE_LIMIT));
     const bands = agingBands(documents, dateOf(input.asOf) ?? new Date().toISOString().slice(0, 10), 1000);
     return { parties: bands.slice(0, LIST_LIMIT), partyCount: bands.length, documentsRead: documents.length, truncated: documents.length >= AGGREGATE_LIMIT, note: "Amounts are in each document's own currency." };
   }
@@ -296,26 +333,82 @@ async function runTool(supabase: Client, organisationId: string, name: string, i
   }
 
   if (name === "top_parties") {
-    let query = supabase.from("transaction_headers").select("party_name, home_nett_amount, home_total_amount, transaction_types!inner(type)").eq("organisation_id", organisationId);
+    const owed = input.metric === "owed";
+    let query = supabase
+      .from("transaction_headers")
+      .select(owed ? "party_name, home_amount_due, transaction_types!inner(type, document_kind)" : "party_name, home_nett_amount, home_total_amount, transaction_types!inner(type)")
+      .eq("organisation_id", organisationId);
     query = filterHeaders(query, input, "", { status: "posted" });
+    if (owed) query = (query as unknown as Filtered).gt("home_amount_due", 0) as unknown as typeof query;
     const { data } = await query.limit(AGGREGATE_LIMIT);
     const documents = rowsOf(data, AGGREGATE_LIMIT);
-    const totals = new Map<string, { total: number; nett: number; count: number }>();
+    const totals = new Map<string, { total: number; nett: number; count: number; owed: number }>();
     for (const document of documents) {
       const party = text(document.party_name) || "Unknown";
-      const entry = totals.get(party) ?? { total: 0, nett: 0, count: 0 };
+      const entry = totals.get(party) ?? { total: 0, nett: 0, count: 0, owed: 0 };
       entry.total += Number(document.home_total_amount ?? 0);
       entry.nett += Number(document.home_nett_amount ?? 0);
+      // What a party owes is what is still due on their invoices, after everything applied to them, less the balance
+      // of their credit notes.
+      const credit = embedded(document.transaction_types)?.document_kind === "credit_note";
+      entry.owed += (credit ? -1 : 1) * Number(document.home_amount_due ?? 0);
       entry.count += 1;
       totals.set(party, entry);
     }
-    const metric = input.metric === "count" || input.metric === "nett" ? String(input.metric) : "total";
+    const metric = input.metric === "count" || input.metric === "nett" || owed ? String(input.metric) : "total";
     const limit = Math.min(25, Math.max(1, Number(input.limit) || 10));
     const ranked = [...totals.entries()]
-      .sort((a, b) => (metric === "count" ? b[1].count - a[1].count : metric === "nett" ? b[1].nett - a[1].nett : b[1].total - a[1].total))
+      .sort((a, b) =>
+        metric === "count" ? b[1].count - a[1].count : metric === "nett" ? b[1].nett - a[1].nett : metric === "owed" ? b[1].owed - a[1].owed : b[1].total - a[1].total,
+      )
       .slice(0, limit)
-      .map(([party, entry]) => ({ party, documents: entry.count, nett: entry.nett.toFixed(2), total: entry.total.toFixed(2) }));
-    return { parties: ranked, partyCount: totals.size, documentsRead: documents.length, truncated: documents.length >= AGGREGATE_LIMIT, note: "Posted documents only unless a status was asked for. Amounts are in the home currency." };
+      .map(([party, entry]) =>
+        owed
+          ? { party, documents: entry.count, owed: entry.owed.toFixed(2) }
+          : { party, documents: entry.count, nett: entry.nett.toFixed(2), total: entry.total.toFixed(2) },
+      );
+    return {
+      parties: ranked,
+      partyCount: totals.size,
+      documentsRead: documents.length,
+      truncated: documents.length >= AGGREGATE_LIMIT,
+      note: owed
+        ? "What each party still owes, in the home currency: the amount due on their posted documents after payments and credit notes applied to them, less the balance of their own credit notes. Money received or paid but not yet applied to a document is not taken off."
+        : "Posted documents only unless a status was asked for. Amounts are in the home currency.",
+    };
+  }
+
+  if (name === "search_payments") {
+    let query = supabase
+      .from("payments")
+      .select("id, document_number, status, payment_date, party_name, amount, allocated_amount, unallocated_amount, bank_reference, transaction_types!inner(code, type, document_kind), currencies(code)")
+      .eq("organisation_id", organisationId);
+    query = filterPayments(query, input);
+    const { data } = await query.order("payment_date", { ascending: false }).limit(LIST_LIMIT);
+    const payments = rowsOf(data).map((row) => {
+      const type = embedded(row.transaction_types);
+      return {
+        id: row.id,
+        document: text(row.document_number) || "Draft",
+        type: text(type?.code),
+        direction: text(type?.type),
+        kind: text(type?.document_kind),
+        status: row.status,
+        party: row.party_name,
+        date: row.payment_date,
+        currency: text(embedded(row.currencies)?.code),
+        amount: money(row.amount),
+        allocated: money(row.allocated_amount),
+        unallocated: money(row.unallocated_amount),
+        bank_reference: text(row.bank_reference),
+      };
+    });
+    return {
+      payments,
+      shown: payments.length,
+      limit: LIST_LIMIT,
+      note: "Payments, receipts and refunds, newest first. Unallocated is what is not yet applied to a document. Posted ones only unless a status was asked for. Amounts are in the payment's own currency.",
+    };
   }
 
   if (name === "vat_summary") {

@@ -21,8 +21,29 @@ export type InsightDoc = {
   date: string;
   dueDate: string | null;
   amountDue: number;
+  /** What has been applied to it by payments and credit notes. */
+  paidAmount: number;
   total: number;
   supplierReference: string;
+  /** An invoice, or a credit note, whose amount due is the balance it still has to give. */
+  kind: "invoice" | "credit_note";
+  currencyCode: string;
+};
+
+/** A posted payment or receipt with money left that is not applied to any document. */
+export type InsightPayment = {
+  id: string;
+  number: string;
+  typeCode: string;
+  /** Sales for money from customers, Purchases for money to suppliers. */
+  direction: "Purchases" | "Sales";
+  /** payment is money paid out, receipt is money received. */
+  kind: "payment" | "receipt";
+  party: string;
+  partyId: string;
+  date: string;
+  currencyCode: string;
+  unallocated: number;
 };
 
 const DAY = 86_400_000;
@@ -31,6 +52,8 @@ const LARGE_MIN_PRIOR = 3;
 const LARGE_MIN_AMOUNT = 1000;
 const RECENT_DAYS = 30;
 const DUE_SOON_DAYS = 7;
+/** Money left on account for longer than this is flagged. */
+export const ON_ACCOUNT_DAYS = 7;
 /** A draft invoice older than this that still holds order quantity is flagged. */
 export const STALE_DRAFT_DAYS = 14;
 
@@ -94,15 +117,68 @@ export function findLargeInvoices(docs: InsightDoc[], today: string) {
 }
 
 export function findOverdue(docs: InsightDoc[], today: string) {
-  return docs.filter((doc) => doc.status === "posted" && doc.amountDue > 0 && doc.dueDate && doc.dueDate < today);
+  // A credit note's amount due is the balance it still has to give, so it is never overdue.
+  return docs.filter((doc) => doc.status === "posted" && doc.kind === "invoice" && doc.amountDue > 0 && doc.dueDate && doc.dueDate < today);
 }
 
 export function findDueSoon(docs: InsightDoc[], today: string) {
   return docs.filter((doc) => {
-    if (doc.status !== "posted" || doc.amountDue <= 0 || !doc.dueDate) return false;
+    if (doc.status !== "posted" || doc.kind !== "invoice" || doc.amountDue <= 0 || !doc.dueDate) return false;
     const left = days(today, doc.dueDate);
     return left >= 0 && left <= DUE_SOON_DAYS;
   });
+}
+
+function money(value: number, currencyCode: string) {
+  return `${currencyCode ? `${currencyCode} ` : "€"}${value.toLocaleString("en-IE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function cents(value: number) {
+  return Math.round(value * 100);
+}
+
+/** Money that has sat on account for more than a week: posted payments, and posted credit notes with a balance. */
+export type OnAccountItem = { id: string; number: string; typeCode: string; party: string; date: string; currencyCode: string; amount: number; credit: boolean };
+
+export function findMoneyOnAccount(docs: InsightDoc[], payments: InsightPayment[], today: string): OnAccountItem[] {
+  const fromPayments = payments
+    .filter((payment) => payment.unallocated > 0)
+    .map((payment) => ({ id: payment.id, number: payment.number, typeCode: payment.typeCode, party: payment.party, date: payment.date, currencyCode: payment.currencyCode, amount: payment.unallocated, credit: false }));
+  const fromCreditNotes = docs
+    .filter((doc) => doc.status === "posted" && doc.kind === "credit_note" && doc.amountDue > 0)
+    .map((doc) => ({ id: doc.id, number: doc.number, typeCode: doc.typeCode, party: doc.party, date: doc.date, currencyCode: doc.currencyCode, amount: doc.amountDue, credit: true }));
+  return [...fromPayments, ...fromCreditNotes]
+    .filter((item) => item.date && days(item.date, today) > ON_ACCOUNT_DAYS)
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/** Invoices past due that have had something applied to them but are not settled. */
+export function findPartPaidOverdue(docs: InsightDoc[], today: string) {
+  return docs.filter((doc) => doc.status === "posted" && doc.kind === "invoice" && doc.amountDue > 0 && doc.paidAmount > 0 && doc.dueDate && doc.dueDate < today);
+}
+
+/**
+ * Unallocated money that equals what is open on exactly one invoice of the same party and currency. Money received from
+ * a customer is matched to that customer's sales invoices, and money paid to a supplier to that supplier's purchase invoices.
+ */
+export function findLikelyMatches(docs: InsightDoc[], payments: InsightPayment[]) {
+  const found: { payment: InsightPayment; invoice: InsightDoc }[] = [];
+  for (const payment of payments) {
+    if (payment.unallocated <= 0 || !payment.partyId) continue;
+    const settlesInvoices = (payment.kind === "receipt" && payment.direction === "Sales") || (payment.kind === "payment" && payment.direction === "Purchases");
+    if (!settlesInvoices) continue;
+    const candidates = docs.filter(
+      (doc) =>
+        doc.status === "posted" &&
+        doc.kind === "invoice" &&
+        doc.direction === payment.direction &&
+        doc.partyId === payment.partyId &&
+        doc.currencyCode === payment.currencyCode &&
+        cents(doc.amountDue) === cents(payment.unallocated),
+    );
+    if (candidates.length === 1) found.push({ payment, invoice: candidates[0] });
+  }
+  return found;
 }
 
 /** What needs a look on orders beyond the open ones: orders closed by hand with quantity left, and drafts holding quantity. */
@@ -119,7 +195,14 @@ export function findStaleDrafts(drafts: HoldingDraft[], today: string) {
 
 export type NotReady = { id: string; number: string; direction: "Purchases" | "Sales"; typeCode: string; errors: string[] };
 
-export function buildInsights(docs: InsightDoc[], notReady: NotReady[], today: string, openOrders: OpenOrder[] = [], watch: OrderWatch = { closedWithLeft: [], holdingDrafts: [] }): Insight[] {
+export function buildInsights(
+  docs: InsightDoc[],
+  notReady: NotReady[],
+  today: string,
+  openOrders: OpenOrder[] = [],
+  watch: OrderWatch = { closedWithLeft: [], holdingDrafts: [] },
+  payments: InsightPayment[] = [],
+): Insight[] {
   const insights: Insight[] = [];
 
   const overdue = findOverdue(docs, today);
@@ -137,6 +220,42 @@ export function buildInsights(docs: InsightDoc[], notReady: NotReady[], today: s
       title: `${plural(overdue.length, "document")} past due`,
       detail: `${parts.join(" and ")}. The oldest is ${oldest.number} for ${oldest.party}, ${plural(days(oldest.dueDate ?? today, today), "day")} late.`,
       href: openHref(oldest),
+    });
+  }
+
+  const partPaid = findPartPaidOverdue(docs, today);
+  if (partPaid.length > 0) {
+    const oldest = [...partPaid].sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? ""))[0];
+    insights.push({
+      id: "part-paid-overdue",
+      tone: "attention",
+      title: `${plural(partPaid.length, "invoice")} part paid and past due`,
+      detail: `${oldest.number} for ${oldest.party} has ${money(oldest.paidAmount, oldest.currencyCode)} paid and ${money(oldest.amountDue, oldest.currencyCode)} still due, ${plural(days(oldest.dueDate ?? today, today), "day")} late.`,
+      href: openHref(oldest),
+    });
+  }
+
+  const onAccount = findMoneyOnAccount(docs, payments, today);
+  if (onAccount.length > 0) {
+    const oldest = onAccount[0];
+    insights.push({
+      id: "money-on-account",
+      tone: "attention",
+      title: `${plural(onAccount.length, "item")} with money on account`,
+      detail: `${oldest.number} for ${oldest.party} has ${money(oldest.amount, oldest.currencyCode)} ${oldest.credit ? "left to apply" : "not applied to any document"} since ${shortDate(oldest.date)}. Apply it to a document${oldest.credit ? " or refund it" : ""}.`,
+      href: `/transactions/${oldest.typeCode}?open=${oldest.id}`,
+    });
+  }
+
+  const matches = findLikelyMatches(docs, payments);
+  if (matches.length > 0) {
+    const { payment, invoice } = matches[0];
+    insights.push({
+      id: "likely-matches",
+      tone: "info",
+      title: `${plural(matches.length, "likely match")} for unapplied money`,
+      detail: `${payment.number} from ${payment.party} has ${money(payment.unallocated, payment.currencyCode)} unapplied, the same as what is open on ${invoice.number}.`,
+      href: `/transactions/${payment.typeCode}?open=${payment.id}`,
     });
   }
 
@@ -257,7 +376,7 @@ export async function getInsights(supabase: SupabaseClient, organisationId: stri
   const since = new Date(Date.parse(today) - 365 * DAY).toISOString().slice(0, 10);
   const { data, error } = await supabase
     .from("transaction_headers")
-    .select("id, document_number, reference, status, party_name, supplier_id, customer_id, transaction_date, due_date, amount_due, home_total_amount, supplier_reference, transaction_types!inner(type, code, document_kind)")
+    .select("id, document_number, reference, status, party_name, supplier_id, customer_id, transaction_date, due_date, amount_due, paid_amount, home_total_amount, supplier_reference, transaction_types!inner(type, code, document_kind), currencies(code)")
     .eq("organisation_id", organisationId)
     .gte("transaction_date", since)
     .order("transaction_date", { ascending: false })
@@ -282,8 +401,11 @@ export async function getInsights(supabase: SupabaseClient, organisationId: stri
         date: String(row.transaction_date ?? ""),
         dueDate: row.due_date ? String(row.due_date) : null,
         amountDue: Number(row.amount_due ?? 0),
+        paidAmount: Number(row.paid_amount ?? 0),
         total: Number(row.home_total_amount ?? 0),
         supplierReference: String(row.supplier_reference ?? ""),
+        kind: type?.document_kind === "credit_note" ? "credit_note" : "invoice",
+        currencyCode: String(embedded(row.currencies)?.code ?? ""),
       },
     ];
   });
@@ -297,9 +419,41 @@ export async function getInsights(supabase: SupabaseClient, organisationId: stri
       return errors.length ? { id: draft.id, number: draft.number, direction: draft.direction, typeCode: draft.typeCode, errors } : null;
     }),
   );
-  const [closedWithLeft, holdingDrafts] = await Promise.all([
+  const [closedWithLeft, holdingDrafts, payments] = await Promise.all([
     listClosedOrdersWithQuantityLeft(supabase, organisationId),
     listDraftsHoldingOrders(supabase, organisationId),
+    listUnallocatedPayments(supabase, organisationId),
   ]);
-  return buildInsights(docs, checked.filter((item): item is NotReady => item !== null), today, (await openOrders).orders, { closedWithLeft, holdingDrafts });
+  return buildInsights(docs, checked.filter((item): item is NotReady => item !== null), today, (await openOrders).orders, { closedWithLeft, holdingDrafts }, payments);
+}
+
+/** Posted payments and receipts with something left that is not applied. A void payment has nothing left. */
+async function listUnallocatedPayments(supabase: SupabaseClient, organisationId: string): Promise<InsightPayment[]> {
+  const { data, error } = await supabase
+    .from("payments")
+    .select("id, document_number, payment_date, party_name, supplier_id, customer_id, unallocated_amount, transaction_types!inner(code, type, document_kind), currencies(code)")
+    .eq("organisation_id", organisationId)
+    .eq("status", "posted")
+    .gt("unallocated_amount", 0)
+    .order("payment_date", { ascending: true })
+    .limit(1000);
+  if (error) return [];
+  return ((data ?? []) as Row[]).flatMap((row) => {
+    const type = embedded(row.transaction_types);
+    if ((type?.type !== "Purchases" && type?.type !== "Sales") || (type.document_kind !== "payment" && type.document_kind !== "receipt")) return [];
+    return [
+      {
+        id: String(row.id),
+        number: String(row.document_number ?? "Payment"),
+        typeCode: String(type.code ?? ""),
+        direction: type.type,
+        kind: type.document_kind,
+        party: String(row.party_name ?? ""),
+        partyId: String(row.customer_id ?? row.supplier_id ?? ""),
+        date: String(row.payment_date ?? ""),
+        currencyCode: String(embedded(row.currencies)?.code ?? ""),
+        unallocated: Number(row.unallocated_amount ?? 0),
+      },
+    ];
+  });
 }

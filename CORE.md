@@ -456,6 +456,10 @@ Allowed line columns: `date`, `item`, `description`, `tax`, `quantity`, `price`,
 
 If no row has been saved, printing uses this standard layout. The VAT summary and bank details are drawn at the bottom of the page. Print opens the browser print dialog. PDF downloads the same page at the layout's page size.
 
+### Received e-invoices that say they are part paid
+
+When an e-invoice is received with an amount in BT-113 (what the supplier says is paid), the import screen shows a notice under Paid amount, and the Payments tab of the posted invoice shows it while something is still open. It says the supplier states an amount is paid and that nothing was recorded from it: record the payment if it is yours, or check it with the supplier. The figure is information only (`supplier_stated_paid_amount`). It is never allocated and never changes what is due. The notice is `supplierStatedPaidMessage` in `src/lib/payments.ts`.
+
 ### Printed payments, receipts and refunds
 
 A payment prints from its own page, on the payment list or the open payment, with Print and PDF through the same print route as a document (`/print/{code}/{id}`). The layout comes from the form saved for its transaction type, and from the standard form when none is saved. It is designed in the form designer, on the Forms list like any other type (see below).

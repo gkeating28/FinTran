@@ -30,6 +30,7 @@ const STATUS_LABELS: Record<string, string> = {
   aging_summary: "Working out what is due",
   totals_by_period: "Adding up the totals",
   top_parties: "Ranking suppliers and customers",
+  search_payments: "Looking through payments and receipts",
   vat_summary: "Adding up the VAT",
   insights: "Looking for anything worth a look",
   search_parties: "Looking up suppliers and customers",

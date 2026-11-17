@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildInsights, findDuplicates, findDueSoon, findLargeInvoices, findOverdue, findStaleDrafts, type InsightDoc } from "./insights";
+import { buildInsights, findDuplicates, findDueSoon, findLargeInvoices, findLikelyMatches, findMoneyOnAccount, findOverdue, findPartPaidOverdue, findStaleDrafts, type InsightDoc, type InsightPayment } from "./insights";
 
 const today = "2026-11-09";
 
 function doc(overrides: Partial<InsightDoc>): InsightDoc {
-  return { id: "d", number: "PI-1", status: "posted", direction: "Purchases", typeCode: "PI", party: "Acme", partyId: "s1", date: "2026-10-01", dueDate: null, amountDue: 0, total: 100, supplierReference: "", ...overrides };
+  return { id: "d", number: "PI-1", status: "posted", direction: "Purchases", typeCode: "PI", party: "Acme", partyId: "s1", date: "2026-10-01", dueDate: null, amountDue: 0, paidAmount: 0, total: 100, supplierReference: "", kind: "invoice", currencyCode: "EUR", ...overrides };
 }
 
 test("the same party, amount and supplier reference is a duplicate, and a void one is not", () => {
@@ -96,4 +96,79 @@ test("a draft holding order quantity is flagged after 14 days, and a hand-closed
 
   // Nothing is said when only young drafts hold quantity and no hand-closed order has anything left.
   assert.deepEqual(buildInsights([], [], "2026-11-12", [], { closedWithLeft: [], holdingDrafts: drafts.slice(1) }), []);
+});
+
+function payment(overrides: Partial<InsightPayment>): InsightPayment {
+  return { id: "p", number: "SRC-1", typeCode: "SRC", direction: "Sales", kind: "receipt", party: "Acme", partyId: "c1", date: "2026-10-01", currencyCode: "EUR", unallocated: 100, ...overrides };
+}
+
+test("money left on account for more than a week is flagged, for payments and for credit notes", () => {
+  const items = findMoneyOnAccount(
+    [
+      doc({ id: "cn", number: "SCN-1", kind: "credit_note", direction: "Sales", amountDue: 36.9, date: "2026-10-20" }),
+      doc({ id: "cn-used", kind: "credit_note", amountDue: 0, date: "2026-10-01" }),
+      doc({ id: "cn-draft", kind: "credit_note", status: "draft", amountDue: 10, date: "2026-10-01" }),
+      doc({ id: "inv", amountDue: 500, date: "2026-10-01" }),
+    ],
+    [
+      payment({ id: "old", date: "2026-10-30", unallocated: 200 }),
+      payment({ id: "eight", date: "2026-11-01", unallocated: 5 }),
+      payment({ id: "seven", date: "2026-11-02", unallocated: 5 }),
+      payment({ id: "none", date: "2026-10-01", unallocated: 0 }),
+    ],
+    today,
+  );
+  // Eight days is flagged and seven is not. The oldest comes first.
+  assert.deepEqual(items.map((item) => item.id), ["cn", "old", "eight"]);
+  assert.equal(items[0].credit, true);
+});
+
+test("an invoice that is past due with something applied is part paid and overdue, and an unpaid or settled one is not", () => {
+  const found = findPartPaidOverdue(
+    [
+      doc({ id: "part", dueDate: "2026-11-01", amountDue: 60, paidAmount: 40 }),
+      doc({ id: "unpaid", dueDate: "2026-11-01", amountDue: 100, paidAmount: 0 }),
+      doc({ id: "settled", dueDate: "2026-11-01", amountDue: 0, paidAmount: 100 }),
+      doc({ id: "not-due", dueDate: "2026-11-20", amountDue: 60, paidAmount: 40 }),
+      doc({ id: "credit", kind: "credit_note", dueDate: "2026-11-01", amountDue: 60, paidAmount: 40 }),
+    ],
+    today,
+  );
+  assert.deepEqual(found.map((item) => item.id), ["part"]);
+});
+
+test("unapplied money equal to what is open on exactly one invoice of that party is a likely match", () => {
+  const sales = (id: string, amountDue: number, overrides: Partial<InsightDoc> = {}) => doc({ id, direction: "Sales", partyId: "c1", amountDue, ...overrides });
+  const one = findLikelyMatches([sales("a", 100), sales("b", 250)], [payment({ unallocated: 100 })]);
+  assert.deepEqual(one.map((match) => [match.payment.id, match.invoice.id]), [["p", "a"]]);
+  // Two invoices with the same open amount are not a match, nor is another customer's, another currency or a credit note.
+  assert.equal(findLikelyMatches([sales("a", 100), sales("b", 100)], [payment({ unallocated: 100 })]).length, 0);
+  assert.equal(findLikelyMatches([sales("a", 100, { partyId: "c2" })], [payment({ unallocated: 100 })]).length, 0);
+  assert.equal(findLikelyMatches([sales("a", 100, { currencyCode: "GBP" })], [payment({ unallocated: 100 })]).length, 0);
+  assert.equal(findLikelyMatches([sales("a", 100, { kind: "credit_note" })], [payment({ unallocated: 100 })]).length, 0);
+  // Money paid to a supplier is matched to that supplier's purchase invoices. A refund is not matched to an invoice.
+  const supplier = findLikelyMatches([doc({ id: "pi", direction: "Purchases", partyId: "s1", amountDue: 75 })], [payment({ id: "pay", kind: "payment", direction: "Purchases", partyId: "s1", unallocated: 75 })]);
+  assert.equal(supplier.length, 1);
+  assert.equal(findLikelyMatches([sales("a", 100)], [payment({ kind: "payment", direction: "Sales", unallocated: 100 })]).length, 0);
+});
+
+test("the three payment rules read in plain words and link to the document", () => {
+  const insights = buildInsights(
+    [
+      doc({ id: "part", number: "SIN-9", direction: "Sales", partyId: "c1", party: "Acme", typeCode: "SIN", dueDate: "2026-11-01", amountDue: 60, paidAmount: 40 }),
+      doc({ id: "open", number: "SIN-10", direction: "Sales", partyId: "c1", party: "Acme", typeCode: "SIN", amountDue: 150, total: 150 }),
+    ],
+    [],
+    today,
+    [],
+    undefined,
+    [payment({ id: "rec", number: "SRC-4", date: "2026-10-20", unallocated: 150 })],
+  );
+  assert.deepEqual(insights.map((item) => item.id), ["overdue", "part-paid-overdue", "money-on-account", "likely-matches"]);
+  const byId = Object.fromEntries(insights.map((item) => [item.id, item]));
+  assert.match(byId["part-paid-overdue"].detail, /EUR 40\.00 paid and EUR 60\.00 still due, 8 days late/);
+  assert.match(byId["money-on-account"].detail, /SRC-4 for Acme has EUR 150\.00 not applied to any document since 20 Oct 2026/);
+  assert.match(byId["likely-matches"].detail, /the same as what is open on SIN-10/);
+  assert.equal(byId["money-on-account"].href, "/transactions/SRC?open=rec");
+  assert.equal(byId["likely-matches"].tone, "info");
 });
