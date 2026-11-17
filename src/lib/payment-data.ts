@@ -263,7 +263,7 @@ export async function loadDocumentPayments(
 ): Promise<{ data: DocumentPayments | null; error: string | null }> {
   const header = await supabase
     .from("transaction_headers")
-    .select("id, status, transaction_type_id, customer_id, supplier_id, currency_id, foreign_total_amount, rounding_amount, paid_amount, amount_due")
+    .select("id, status, transaction_type_id, customer_id, supplier_id, currency_id, foreign_total_amount, rounding_amount, paid_amount, amount_due, supplier_stated_paid_amount")
     .eq("organisation_id", organisationId)
     .eq("id", headerId)
     .maybeSingle();
@@ -355,6 +355,7 @@ export async function loadDocumentPayments(
       allocations,
       recordTypes,
       openInvoices,
+      supplierStatedPaid: numberValue(header.data.supplier_stated_paid_amount),
     },
     error: null,
   };

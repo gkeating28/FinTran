@@ -18,6 +18,7 @@ import {
   distributeOldestFirst,
   parseAllocationAmount,
   recordPaymentHref,
+  supplierStatedPaidMessage,
   type DocumentAllocation,
   type DocumentPayments,
   type OpenItem,
@@ -77,6 +78,7 @@ export function PaymentsTab({ headerId, active }: { headerId: string; active: bo
   const removed = data.allocations.filter((item) => item.removedAt);
   const sales = data.direction === "Sales";
   // For an invoice the money is a receipt (sales) or a payment (purchases). For a credit note it is a refund.
+  const statedPaid = supplierStatedPaidMessage(data.supplierStatedPaid, data.currencyCode);
   const recordLabel = creditNote ? "Refund" : sales ? "Record receipt" : "Record payment";
 
   return (
@@ -86,6 +88,7 @@ export function PaymentsTab({ headerId, active }: { headerId: string; active: bo
           {error}
         </p>
       ) : null}
+      {statedPaid && open > 0 ? <p className={styles.notice}>{statedPaid}</p> : null}
       <table className={styles.lineTable} data-lines="both">
         <tbody>
           <tr>

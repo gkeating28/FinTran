@@ -224,7 +224,19 @@ export type DocumentPayments = {
   recordTypes: { id: string; code: string; description: string; kind: PaymentKind }[];
   /** For a credit note with a balance: the party's open invoices it can be applied to. */
   openInvoices: OpenItem[];
+  /** BT-113 on an imported e-invoice: what the supplier says is paid. Information only, 0 when there is none. */
+  supplierStatedPaid: number;
 };
+
+/**
+ * What to tell someone when an imported e-invoice says the supplier has been part paid. Nothing is recorded from it, so the
+ * message says what to do. Null when the supplier states nothing paid.
+ */
+export function supplierStatedPaidMessage(amount: number, currencyCode: string): string | null {
+  if (!(amount > 0)) return null;
+  const shown = amount.toLocaleString("en-IE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `The supplier says ${currencyCode ? `${currencyCode} ` : ""}${shown} of this invoice is already paid. Nothing has been recorded from that. Record the payment if it is yours, or check it with the supplier.`;
+}
 
 /** The address that opens a new draft of a payment type with this document's open amount allocated to it. */
 export function recordPaymentHref(typeCode: string, documentId: string, partyId: string, open: string) {

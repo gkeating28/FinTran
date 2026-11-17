@@ -30,8 +30,14 @@ export function autoBlock(tool: string, result: unknown): AskBlock | null {
   const data = result as Record<string, unknown>;
   if (data.error) return null;
   switch (tool) {
-    case "top_parties":
-      return table("Biggest by value", ["Name", "Documents", "Nett", "Total"], rows(data.parties).map((row) => [String(row.party ?? ""), String(row.documents ?? ""), money(row.nett), money(row.total)]));
+    case "top_parties": {
+      const parties = rows(data.parties);
+      // Ranked by what is owed, the table shows that and not the totals that were invoiced.
+      if (parties.some((row) => row.owed !== undefined)) {
+        return table("Owed, in the home currency", ["Name", "Documents", "Owed"], parties.map((row) => [String(row.party ?? ""), String(row.documents ?? ""), money(row.owed)]));
+      }
+      return table("Biggest by value", ["Name", "Documents", "Nett", "Total"], parties.map((row) => [String(row.party ?? ""), String(row.documents ?? ""), money(row.nett), money(row.total)]));
+    }
     case "aging_summary":
       return table("Still due, in the document currency", ["Name", "Not yet due", "1 to 30 days", "31 to 60", "61 to 90", "Over 90"], rows(data.parties).map((row) => [String(row.party ?? ""), money(row.current, ""), money(row.days0to30, ""), money(row.days31to60, ""), money(row.days61to90, ""), money(row.over90, "")]));
     case "totals_by_period":
@@ -42,6 +48,15 @@ export function autoBlock(tool: string, result: unknown): AskBlock | null {
       const documents = rows(data.documents);
       if (documents.length < 2) return null;
       return table("Documents", ["Number", "Name", "Status", "Date", "Due", "Still due"], documents.map((row) => [String(row.document_number ?? "Draft"), String(row.party_name ?? ""), String(row.status ?? ""), day(row.transaction_date), day(row.due_date), money(row.amount_due)]));
+    }
+    case "search_payments": {
+      const payments = rows(data.payments);
+      if (payments.length < 2) return null;
+      return table(
+        "Payments and receipts",
+        ["Number", "Name", "Status", "Date", "Currency", "Amount", "Not applied"],
+        payments.map((row) => [String(row.document ?? "Draft"), String(row.party ?? ""), String(row.status ?? ""), day(row.date), String(row.currency ?? ""), money(row.amount, ""), money(row.unallocated, "")]),
+      );
     }
     default:
       return null;

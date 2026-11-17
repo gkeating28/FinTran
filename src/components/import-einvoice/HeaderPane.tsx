@@ -4,6 +4,7 @@ import { QuietInput, QuietTextarea } from "@/components/QuietField";
 import styles from "@/components/OpsPage.module.css";
 import documentStyles from "@/components/Document.module.css";
 import { semanticAt, semanticText } from "@/lib/einvoice/semantic-read";
+import { supplierStatedPaidMessage } from "@/lib/payments";
 import { dateValue, fieldMoney } from "./format";
 import type { ImportFormState } from "./useImportForm";
 import { TotalsSummary } from "./TotalsSummary";
@@ -11,6 +12,7 @@ import { TotalsSummary } from "./TotalsSummary";
 /** The Document, Notes and Payment tabs, read from the e-invoice, with the totals under them. */
 export function HeaderPane({ form }: { form: ImportFormState }) {
   const { semantic, documentNumber, creditNote, suppliers, supplierId, setSupplierId, purchaseTypes, typesReady, typeId, setTypeId, setShowCreate, savePeppol, setSavePeppol, code, setCode, name, setName, headerTab, setHeaderTab, createSupplier, sellerName, endpoint, totals, activeFlexLabels, grnIndex, otherRefIndex, showFlex, peppolMatch, vatMatch, matched, selected, rateText, currencyLabel, paymentCode, means, contact } = form;
+  const statedPaid = supplierStatedPaidMessage(Number(semanticText(totals?.["BT-113"])) || 0, semanticText(semantic?.["BT-5"]));
   return (
     <div className={styles.headerPane}>
                     <div className={documentStyles.headerTabs} role="tablist" aria-label="Header">
@@ -263,6 +265,7 @@ export function HeaderPane({ form }: { form: ImportFormState }) {
                           Paid amount
                           <input disabled value={fieldMoney(semanticText(totals?.["BT-113"]) || "0")} className={styles.mono} />
                         </label>
+                        {statedPaid ? <p className={`${styles.notice} ${styles.wide}`}>{statedPaid}</p> : null}
                         <label className={`${styles.field} ${styles.wide}`}>
                           Contact details
                           <QuietTextarea value={contact} maxLength={500} rows={4} disabled />
