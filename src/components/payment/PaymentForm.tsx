@@ -203,12 +203,13 @@ export default function PaymentForm({
       amountBlank: !posted && !(amountValue > 0),
       allocatedElsewhere: boxTotal - (typeof own === "number" ? own : 0),
     });
-    setError(null);
+    setNotice(null);
     if (result.kind === "refuse") {
-      setNotice(result.message);
+      // Something the person asked for that does not fit is shown as a problem, not as news.
+      setError(result.message);
       return;
     }
-    setNotice(null);
+    setError(null);
     setBoxes((previous) => ({ ...previous, [item.id]: result.box }));
     if (result.amount) setAmount(result.amount);
   }

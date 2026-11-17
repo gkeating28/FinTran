@@ -8,8 +8,8 @@ import { signIn } from "./sign-in";
  * flows)"). They run in order and share one database: flow 12 offers the standard payment types and adds the bank
  * account the others pay from, so the rest are skipped if it fails.
  *
- * Every invoice here has an amount no other flow uses, so a row can be found by its total. A price of 100 at 23% VAT
- * is a total of 123.00.
+ * Every invoice here has an amount no other flow uses, so a row can be found by its total. A net of 97 at 23% VAT is a
+ * total of 119.31. Other flows post invoices too (flow 1 has one of 123.00), so check an amount against theirs before using it.
  *
  * These flows have not been run against a local Supabase stack. Selectors for the payment screen are taken from the
  * components, not from a run, so expect small fixes the first time they run.
@@ -30,12 +30,47 @@ async function chooseByCode(select: Locator, code: string) {
 }
 
 /** Posts a sales invoice or credit note of one line, and returns once the list shows it posted. */
-async function postSalesDocument(page: Page, typeCode: "SIN" | "SCN", party: string, net: string, description: string) {
+async function postSalesDocument(
+  page: Page,
+  typeCode: "SIN" | "SCN",
+  party: string,
+  net: string,
+  description: string,
+  options: { dueDate?: string } = {},
+) {
   await openList(page, typeCode);
   await startDocument(page, { party, sales: true, lines: [{ description, quantity: "1", price: net, gl: "4000", vat: "S23" }] });
+  // Allocate oldest first goes by due date, so a flow that depends on the order gives its invoices early due dates.
+  if (options.dueDate) await typeInto(page.locator('input[name="due_date"]'), options.dueDate);
   await documentDialog(page).getByRole("button", { name: "Save and post", exact: true }).click();
   await backOnList(page, typeCode);
   await expectNoError(page);
+}
+
+/**
+ * A posted sales credit note that is left with its whole total as a balance. A credit note always names the invoice it
+ * applies to, and posting applies it to that invoice up to what is open on it. So the invoice is paid first, by a
+ * receipt, and then credited. Returns the total, which is the invoice's own total because the credit copies its lines.
+ */
+async function creditNoteOnAccount(page: Page, party: string, net: string, description: string) {
+  const total = withVat(Number(net));
+  await postSalesDocument(page, "SIN", party, net, description);
+  await openPaymentsTab(page, "SIN", total);
+  await documentDialog(page).getByRole("link", { name: "Record receipt" }).click();
+  await page.waitForURL(/\/transactions\/SRC\?new=1/);
+  await payFromBank(page, paymentDialog(page, /receipt/i));
+  await expectNoError(page);
+
+  await openList(page, "SIN");
+  await openRow(page, total);
+  await documentDialog(page).getByRole("button", { name: "Credit notes", exact: true }).click();
+  await page.getByRole("dialog", { name: "Credit notes" }).getByRole("button", { name: "Create credit note" }).click();
+  await page.waitForURL(/\/transactions\/SCN\?open=/);
+  await expect(page.locator("form#purchase-document")).toBeVisible();
+  await documentDialog(page).getByRole("button", { name: /^(save and )?post$/i }).click();
+  await backOnList(page, "SCN");
+  await expectNoError(page);
+  return total;
 }
 
 /** The total of a document of net price `net` at 23% VAT, as the grids show it. */
@@ -94,8 +129,8 @@ test("flow 12: the standard payment types are offered once, a receipt is recorde
   await expect(page.getByRole("button", { name: "Add payment and receipt types" })).toHaveCount(0);
 
   // An invoice, posted.
-  const total = withVat(100);
-  await postSalesDocument(page, "SIN", "ACME", "100", "Flow eleven goods");
+  const total = withVat(97);
+  await postSalesDocument(page, "SIN", "ACME", "97", "Flow twelve goods");
 
   // Record receipt opens a new receipt for the customer with the whole amount due already allocated.
   await openPaymentsTab(page, "SIN", total);
@@ -122,8 +157,8 @@ test("flow 13: one receipt pays two invoices with Allocate oldest first", async 
 
   const first = withVat(110);
   const second = withVat(210);
-  await postSalesDocument(page, "SIN", "BETA", "110", "Flow twelve A");
-  await postSalesDocument(page, "SIN", "BETA", "210", "Flow twelve B");
+  await postSalesDocument(page, "SIN", "BETA", "110", "Flow thirteen A", { dueDate: "2025-01-01" });
+  await postSalesDocument(page, "SIN", "BETA", "210", "Flow thirteen B", { dueDate: "2025-01-02" });
   const sum = (Number(first) + Number(second)).toFixed(2);
 
   // A receipt for the two together. Allocate oldest first fills both boxes, and nothing is left on account.
@@ -153,7 +188,7 @@ test("flow 14: a credit note's balance is applied to a second invoice", async ({
   const invoice = withVat(417);
   const credit = withVat(30);
   await postSalesDocument(page, "SIN", "ACME", "417", "Flow thirteen goods");
-  await postSalesDocument(page, "SCN", "ACME", "30", "Flow thirteen allowance");
+  await creditNoteOnAccount(page, "ACME", "30", "Flow fourteen allowance");
 
   // The credit note has its whole total as balance. Apply it to the invoice with this total.
   await openPaymentsTab(page, "SCN", credit);
@@ -179,7 +214,7 @@ test("flow 15: a customer is refunded the unallocated balance of a credit note",
   await signIn(page, "owner");
 
   const credit = withVat(20);
-  await postSalesDocument(page, "SCN", "ACME", "20", "Flow fourteen allowance");
+  await creditNoteOnAccount(page, "ACME", "20", "Flow fifteen allowance");
 
   // Refund opens a customer refund for the whole balance. It settles the credit note, not an invoice.
   await openPaymentsTab(page, "SCN", credit);
@@ -224,7 +259,7 @@ test("flow 16: an allocation on a posted receipt is removed with a reason and th
   await remove.getByRole("button", { name: "Remove allocation" }).click();
   await expect(remove).toHaveCount(0);
   await expect(posted).toContainText("Removed: Paid the wrong invoice");
-  await expect(posted).toContainText("on account");
+  await expect(posted).toContainText(/on account/i);
 
   // The money is on account again, so it is allocated to the second invoice.
   await typeInto(posted.getByRole("row").filter({ hasText: second }).getByRole("textbox"), first);
@@ -263,7 +298,7 @@ test("flow 17: a double tap on an open invoice allocates what is open on it, and
   await expect(box).toHaveValue(total);
 
   // An amount smaller than what is open refuses it, says what is left, and changes nothing.
-  await box.fill("");
+  await typeInto(box, "");
   await typeInto(amount, "10.00");
   await tap();
   await expect(receipt.getByRole("alert")).toContainText("is more than the 10.00 left to allocate");
@@ -274,7 +309,7 @@ test("flow 17: a double tap on an open invoice allocates what is open on it, and
   await typeInto(amount, "100.00");
   await tap();
   await expect(box).toHaveValue(total);
-  await expect(receipt.getByText("On account")).toBeVisible();
+  await expect(receipt.getByText("On account").first()).toBeVisible();
 
   // Nothing is saved, so the invoice stays open.
   await receipt.getByRole("button", { name: "Cancel", exact: true }).click();
@@ -308,7 +343,9 @@ test("flow 18: a supplier payment for three invoices prints a remittance advice 
   const payment = paymentDialog(page, /payment/i);
   await chooseByCode(payment.locator('select[name="supplier_id"]'), "HARB");
   await typeInto(payment.locator('input[name="amount"]'), sum);
-  await payment.getByRole("button", { name: "Allocate oldest first" }).click();
+  // A double click on each of the three invoices allocates what is open on it. Other flows leave open invoices for
+  // this supplier too, so Allocate oldest first would pay those first.
+  for (const total of totals) await payment.getByRole("row").filter({ hasText: total }).locator("td").first().dblclick();
   await payFromBank(page, payment);
   await expectNoError(page);
 

@@ -106,8 +106,12 @@ test("flow 3: requisition to purchase order to invoice, and voiding the invoice 
   expect(await lineText(page, 1)).toContain("8.00");
 
   // Activate the order and invoice all of it.
-  await press(page, /activate order$/i);
-  await expect(documentDialog(page).getByRole("button", { name: /close order$/i })).toBeVisible();
+  // The page has just been reached by a redirect, so a click made before it has hydrated can be lost. Press again
+  // until the order is active: Activate is gone once it is.
+  await expect(async () => {
+    if (await documentDialog(page).getByRole("button", { name: /activate order$/i }).isVisible()) await press(page, /activate order$/i);
+    await expect(documentDialog(page).getByRole("button", { name: /close order$/i })).toBeVisible({ timeout: 5_000 });
+  }).toPass({ timeout: 30_000 });
   await press(page, /create invoice$/i);
   await page.waitForURL(/\/transactions\/PIN\?open=/);
   await expect(page.locator("form#purchase-document")).toBeVisible();
