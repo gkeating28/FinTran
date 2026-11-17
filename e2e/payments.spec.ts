@@ -75,8 +75,8 @@ test("flow 11: the standard payment types are offered once, a receipt is recorde
   await page.goto("/bank-accounts");
   await page.getByRole("button", { name: "Add", exact: true }).click();
   const bank = page.getByRole("dialog");
-  await bank.getByLabel("Code").fill(BANK);
-  await bank.getByLabel("Name").fill("Flow eleven current account");
+  await bank.getByLabel("Code", { exact: true }).fill(BANK);
+  await bank.getByLabel("Name", { exact: true }).fill("Flow eleven current account");
   await bank.getByLabel("IBAN").fill("DE89 3704 0044 0532 0130 00");
   await bank.getByLabel("Default for its currency").check();
   await bank.getByRole("button", { name: "Save", exact: true }).click();
@@ -100,7 +100,7 @@ test("flow 11: the standard payment types are offered once, a receipt is recorde
   // Record receipt opens a new receipt for the customer with the whole amount due already allocated.
   await openPaymentsTab(page, "SIN", total);
   await documentDialog(page).getByRole("link", { name: "Record receipt" }).click();
-  await page.waitForURL(/\/transactions\/SR\?new=1/);
+  await page.waitForURL(/\/transactions\/SRC\?new=1/);
   const receipt = paymentDialog(page, /receipt/i);
   await expect(receipt).toBeVisible();
   await expect(receipt.locator('input[name="amount"]')).toHaveValue(total);
@@ -184,7 +184,7 @@ test("flow 14: a customer is refunded the unallocated balance of a credit note",
   // Refund opens a customer refund for the whole balance. It settles the credit note, not an invoice.
   await openPaymentsTab(page, "SCN", credit);
   await documentDialog(page).getByRole("link", { name: "Refund" }).click();
-  await page.waitForURL(/\/transactions\/SF\?new=1/);
+  await page.waitForURL(/\/transactions\/SRF\?new=1/);
   const refund = paymentDialog(page, /refund/i);
   await expect(refund).toBeVisible();
   await expect(refund.locator('input[name="amount"]')).toHaveValue(credit);
@@ -209,7 +209,7 @@ test("flow 15: an allocation on a posted receipt is removed with a reason and th
   // A receipt for the first invoice.
   await openPaymentsTab(page, "SIN", first);
   await documentDialog(page).getByRole("link", { name: "Record receipt" }).click();
-  await page.waitForURL(/\/transactions\/SR\?new=1/);
+  await page.waitForURL(/\/transactions\/SRC\?new=1/);
   await payFromBank(page, paymentDialog(page, /receipt/i));
   await expectNoError(page);
 

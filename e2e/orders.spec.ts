@@ -20,7 +20,7 @@ test("flow 1: a sales order is activated, invoiced in two parts, and closes by i
 
   // Invoice 4 of the 10. The quantity is changed on the new invoice and Save and post saves it first.
   await press(page, /create invoice$/i);
-  await page.waitForURL(/\/transactions\/SI\?open=/);
+  await page.waitForURL(/\/transactions\/SIN\?open=/);
   await expect(page.locator("form#purchase-document")).toBeVisible();
   expect(await lineText(page, 1)).toContain("10.00");
   await setLineQuantity(page, 1, "4");
@@ -37,7 +37,7 @@ test("flow 1: a sales order is activated, invoiced in two parts, and closes by i
 
   // Invoice the rest. Create invoice starts with what is left.
   await press(page, /create invoice$/i);
-  await page.waitForURL(/\/transactions\/SI\?open=/);
+  await page.waitForURL(/\/transactions\/SIN\?open=/);
   await expect(page.locator("form#purchase-document")).toBeVisible();
   expect(await lineText(page, 1)).toContain("6.00");
   await documentDialog(page).getByRole("button", { name: /^(save and )?post$/i }).click();
@@ -101,7 +101,7 @@ test("flow 3: requisition to purchase order to invoice, and voiding the invoice 
   await openRow(page, "Vodafone");
   await press(page, /activate requisition$/i);
   await press(page, /create purchase order$/i);
-  await page.waitForURL(/\/transactions\/PO\?open=/);
+  await page.waitForURL(/\/transactions\/POR\?open=/);
   await expect(page.locator("form#purchase-document")).toBeVisible();
   expect(await lineText(page, 1)).toContain("8.00");
 
@@ -109,7 +109,7 @@ test("flow 3: requisition to purchase order to invoice, and voiding the invoice 
   await press(page, /activate order$/i);
   await expect(documentDialog(page).getByRole("button", { name: /close order$/i })).toBeVisible();
   await press(page, /create invoice$/i);
-  await page.waitForURL(/\/transactions\/PI\?open=/);
+  await page.waitForURL(/\/transactions\/PIN\?open=/);
   await expect(page.locator("form#purchase-document")).toBeVisible();
   await typeInto(page.locator('input[name="supplier_reference"]'), "VOD-FLOW3");
   await documentDialog(page).getByRole("button", { name: "Save and post", exact: true }).click();
@@ -147,7 +147,7 @@ test("flow 4: a credit note marked Return to order gives the quantity back and r
   await openRow(page, "73.80");
   await press(page, /activate order$/i);
   await press(page, /create invoice$/i);
-  await page.waitForURL(/\/transactions\/SI\?open=/);
+  await page.waitForURL(/\/transactions\/SIN\?open=/);
   await documentDialog(page).getByRole("button", { name: /^(save and )?post$/i }).click();
   await backOnList(page, "SIN");
   await expectNoError(page);
@@ -160,7 +160,7 @@ test("flow 4: a credit note marked Return to order gives the quantity back and r
   await documentDialog(page).getByRole("button", { name: "Credit notes", exact: true }).click();
   const credits = page.getByRole("dialog", { name: "Credit notes" });
   await credits.getByRole("button", { name: "Create credit note" }).click();
-  await page.waitForURL(/\/transactions\/SC\?open=/);
+  await page.waitForURL(/\/transactions\/SCN\?open=/);
   await expect(page.locator("form#purchase-document")).toBeVisible();
   expect(await lineText(page, 1)).toContain("Yes");
 

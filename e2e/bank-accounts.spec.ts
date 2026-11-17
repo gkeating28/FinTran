@@ -16,9 +16,9 @@ test("flow 9: bank accounts are set up by an owner, and a member can only read t
   await page.getByRole("button", { name: "Add", exact: true }).click();
   const dialog = page.getByRole("dialog");
   // A form opens with the first field to type in focused. Here that is Code, not the Currency list below it.
-  await expect(dialog.getByLabel("Code")).toBeFocused();
-  await dialog.getByLabel("Code").fill("e2e-main");
-  await dialog.getByLabel("Name").fill("Flow nine current account");
+  await expect(dialog.getByLabel("Code", { exact: true })).toBeFocused();
+  await dialog.getByLabel("Code", { exact: true }).fill("e2e-main");
+  await dialog.getByLabel("Name", { exact: true }).fill("Flow nine current account");
   await dialog.getByLabel("IBAN").fill("ie29 aibk 9311 5212 3456 79");
   await dialog.getByRole("button", { name: "Save", exact: true }).click();
   await expect(dialog.getByRole("alert")).toContainText("IBAN");
@@ -36,8 +36,8 @@ test("flow 9: bank accounts are set up by an owner, and a member can only read t
 
   // The same IBAN again, spaced differently, is a duplicate.
   await page.getByRole("button", { name: "Add", exact: true }).click();
-  await dialog.getByLabel("Code").fill("E2E-COPY");
-  await dialog.getByLabel("Name").fill("Same IBAN");
+  await dialog.getByLabel("Code", { exact: true }).fill("E2E-COPY");
+  await dialog.getByLabel("Name", { exact: true }).fill("Same IBAN");
   await dialog.getByLabel("IBAN").fill("IE29AIBK93115212345678");
   await dialog.getByRole("button", { name: "Save", exact: true }).click();
   await expect(dialog.getByRole("alert")).toContainText("already used");
@@ -45,9 +45,9 @@ test("flow 9: bank accounts are set up by an owner, and a member can only read t
 
   // The code is fixed once saved.
   await row.getByRole("button", { name: "Edit" }).click();
-  await expect(dialog.getByLabel("Code")).toHaveAttribute("readonly", "");
+  await expect(dialog.getByLabel("Code", { exact: true })).toHaveAttribute("readonly", "");
   // The code is locked, so the first field to type in is the name.
-  await expect(dialog.getByLabel("Name")).toBeFocused();
+  await expect(dialog.getByLabel("Name", { exact: true })).toBeFocused();
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
 
   // A member sees the account but has no Add, Edit or Remove, and the database refuses a direct write.
