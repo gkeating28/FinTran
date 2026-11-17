@@ -14,7 +14,9 @@ Branch: `claude/intelligent-cerf-j32nz3`. Everything below that is marked done i
 | Phase 4, save, post, void, delete | Done. `supabase/tests/payment_functions.sql` |
 | Phase 5, typed paid amount removed and migrated | Done. `supabase/tests/migrate_paid_amounts.sql` runs the migration file itself |
 | Phase 6, screens | Part one done: see below |
-| Phases 7 and 8 | Not started. Release C |
+| Phase 7a, printed payments | Written (see below), unrun | 
+| Phase 7b, payment kinds in the form designer | Not started |
+| Phase 8 | Not started. Release C |
 
 **Release B migrations are applied to the hosted project** (`hxueqzgdwlaschcvwdke`), at the owner's request, so that the branch could be run against it. The files are renamed to the versions the project records, and the path in `supabase/tests/migrate_paid_amounts.sql` is fixed. The hosted project had no typed paid amounts (0 of 10 documents), so the data migration changed nothing. Phase 5 removed the typed paid amount, so recording a payment now depends on the phase 6 screens, which have not been opened in a browser.
 
@@ -67,3 +69,7 @@ None of the screen code has been opened in a browser. It compiles and passes lin
 ## Transaction type codes (added later)
 
 Every type code is three characters: direction (`S` or `P`) plus `RQ`, `OR`, `IN`, `CN`, `RC`, `PY` or `RF`. See CORE.md, Transaction type codes. The migration `20261113184039_three_character_type_codes` renamed the hosted types (QulaPlus Dublin: nine types, all renamed, guard back on, documents still attached). The standard payment types, the e2e seed and flows, and the unit test examples use the new codes. The SQL tests keep their own throwaway codes. The hidden system types made by `remove_typed_paid_amount` are renamed by `three_character_migrated_type_codes` to `SMR`, `PMP`, `SMF` and `PMF` (direction, M for migrated, then the kind's first letter). Old links with the old codes are redirected by `src/lib/legacy-type-codes.ts`.
+
+## Phase 7a, printing (added later)
+
+Fixed layouts for payments, receipts and refunds: remittance advice for money out, receipt for money in. `payment-print.ts` (builder and tests), `payment-print-data.ts` (loader), `PrintedPayment.tsx`, a branch in the print route, and Print on the payment list and the open payment. Flow 18 covers the acceptance cases and has not run. Not done, and left for 7b: payment and receipt kinds in the form designer, with the allocation table columns, and the database check on saved layouts that goes with it. `getFormType` now treats a payment type as not found, so `/forms/{payment code}` cannot open a designer for the wrong kind. 7b has to lift that when it adds the kinds.

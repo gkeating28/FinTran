@@ -280,3 +280,75 @@ test("flow 17: a double tap on an open invoice allocates what is open on it, and
   await receipt.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(receipt).toHaveCount(0);
 });
+
+test("flow 18: a supplier payment for three invoices prints a remittance advice listing all three, a draft prints with DRAFT and a void one with VOID", async ({ page }) => {
+  test.setTimeout(300_000);
+  await signIn(page, "owner");
+
+  // Three purchase invoices for one supplier. Their totals tell them apart: nets of 31, 37 and 41 at 23% VAT.
+  const nets = ["31", "37", "41"];
+  for (const [index, net] of nets.entries()) {
+    await openList(page, "PIN");
+    await startDocument(page, {
+      party: "HARB",
+      sales: false,
+      supplierReference: `HARB-F18-${index + 1}`,
+      lines: [{ description: `Flow eighteen ${index + 1}`, quantity: "1", price: net, gl: "6000", vat: "P23" }],
+    });
+    await documentDialog(page).getByRole("button", { name: "Save and post", exact: true }).click();
+    await backOnList(page, "PIN");
+    await expectNoError(page);
+  }
+  const totals = nets.map((net) => withVat(Number(net)));
+  const sum = totals.reduce((acc, value) => acc + Number(value), 0).toFixed(2);
+
+  // One supplier payment for all three, allocated oldest first, then posted.
+  await openList(page, "PPY");
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  const payment = paymentDialog(page, /payment/i);
+  await chooseByCode(payment.locator('select[name="supplier_id"]'), "HARB");
+  await typeInto(payment.locator('input[name="amount"]'), sum);
+  await payment.getByRole("button", { name: "Allocate oldest first" }).click();
+  await payFromBank(page, payment);
+  await expectNoError(page);
+
+  // Print it. The page is a remittance advice that lists every invoice and what was applied to it.
+  const row = listRows(page).filter({ hasText: sum }).first();
+  await row.getByRole("link", { name: "Print", exact: true }).click();
+  await page.waitForURL(/\/print\/PPY\//);
+  const body = page.locator("body");
+  await expect(body).toContainText("Remittance advice");
+  await expect(body).toContainText("Harbour Supplies");
+  for (const total of totals) await expect(body).toContainText(total);
+  await expect(body).toContainText(sum);
+  await expect(body).not.toContainText("DRAFT");
+  await expect(body).not.toContainText("VOID");
+
+  // A draft has no number and prints with DRAFT on it.
+  await openList(page, "PPY");
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  const draft = paymentDialog(page, /payment/i);
+  await chooseByCode(draft.locator('select[name="supplier_id"]'), "HARB");
+  await typeInto(draft.locator('input[name="amount"]'), "5.55");
+  await chooseByCode(draft.locator('select[name="bank_account_id"]'), BANK);
+  await draft.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(draft).toHaveCount(0);
+  await listRows(page).filter({ hasText: "5.55" }).first().getByRole("link", { name: "Print", exact: true }).click();
+  await page.waitForURL(/\/print\/PPY\//);
+  await expect(body).toContainText("DRAFT");
+  await expect(body).toContainText("Not applied to any document");
+
+  // Voiding the first payment makes its print say so, with the reason.
+  await openList(page, "PPY");
+  await listRows(page).filter({ hasText: sum }).first().locator("td").nth(1).click();
+  const posted = paymentDialog(page, /payment/i);
+  await posted.getByRole("button", { name: "Void", exact: true }).click();
+  const voiding = page.getByRole("dialog", { name: /void/i });
+  await typeInto(voiding.getByLabel("Void reason"), "Flow eighteen void");
+  await voiding.getByRole("button", { name: /^void/i }).click();
+  await expect(posted).toHaveCount(0);
+  await listRows(page).filter({ hasText: sum }).first().getByRole("link", { name: "Print", exact: true }).click();
+  await page.waitForURL(/\/print\/PPY\//);
+  await expect(body).toContainText("VOID");
+  await expect(body).toContainText("Voided: Flow eighteen void");
+});

@@ -45,7 +45,7 @@ test("flow 11: bank accounts are set up by an owner, and a member can only read 
 
   // The code is fixed once saved.
   await row.getByRole("button", { name: "Edit" }).click();
-  await expect(dialog.getByLabel("Code", { exact: true })).toHaveAttribute("readonly", "");
+  await expect(dialog.locator('input[name="code"]')).toHaveAttribute("readonly", "");
   // The code is locked, so the first field to type in is the name.
   await expect(dialog.getByLabel("Name", { exact: true })).toBeFocused();
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();

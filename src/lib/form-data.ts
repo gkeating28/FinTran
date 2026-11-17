@@ -92,7 +92,7 @@ function flexLabels(row: Loose): [string, string, string, string, string] {
   ];
 }
 
-async function organisationDetails(organisationId: string, organisationName: string) {
+export async function organisationDetails(organisationId: string, organisationName: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("organisation_defaults")
@@ -316,6 +316,9 @@ export async function getFormType(code: string): Promise<{ type: FormType | null
   if (error) return { type: null, error: "That form could not be loaded." };
   const kind = data ? parseTransactionTypeKind(data.type) : null;
   if (!data || !kind) return { type: null, error: null };
+  // Payments, receipts and refunds print from a fixed layout and have no form to design. Treat them as not found here,
+  // so the address of one cannot open a designer for the wrong kind of document.
+  if (isPaymentKind(data.document_kind)) return { type: null, error: null };
 
   return {
     type: {

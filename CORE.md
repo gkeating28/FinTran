@@ -456,6 +456,19 @@ Allowed line columns: `date`, `item`, `description`, `tax`, `quantity`, `price`,
 
 If no row has been saved, printing uses this standard layout. The VAT summary and bank details are drawn at the bottom of the page. Print opens the browser print dialog. PDF downloads the same page at the layout's page size.
 
+### Printed payments, receipts and refunds
+
+A payment prints from its own page, on the payment list or the open payment, with Print and PDF through the same print route as a document (`/print/{code}/{id}`). The layout is fixed and is the same for every organisation. It is not stored in `transaction_forms` and it is not designed in the form designer: payment and receipt types are left off the Forms list.
+
+- **Title.** Money paid out is a **Remittance advice**: a supplier payment, or a refund to a customer. Money received is a **Receipt**: a customer receipt, or a refund from a supplier.
+- **Content.** The organisation (name, address, phone, email, website, VAT and company numbers, logo), the party under "Paid to" or "Received from", then the number, date, payment method, bank reference, bank account with its IBAN, and currency. Empty details are left out.
+- **Table.** One row for each document the payment settles, with its number, date, total and the amount applied. A posted payment lists its effective allocations. A draft lists what it has planned. A void payment lists what it settled before it was voided. A payment settling nothing says it is not applied to any document.
+- **Totals.** The amount, the amount applied, and what is on account when something is left.
+- **Status.** A draft prints with DRAFT and no number. A void payment prints with VOID and its reason. A posted payment has neither.
+- **Details are live.** A payment keeps no copy of the organisation or the party when it is posted, so it prints their details as they are now. An invoice keeps a copy. Print a payment after changing the address and the new address shows.
+
+`src/lib/payment-print.ts` builds the page from plain values and has the tests. `src/lib/payment-print-data.ts` reads the rows and `src/components/PrintedPayment.tsx` draws them on the same paper as a printed document.
+
 ## EN 16931 export and readiness
 
 `en16931_document(header id)` returns the posted or draft document as EN 16931 business terms in JSON. Amounts are strings with two decimal places and prices keep four. Empty terms are left out. `BT-23` and `BT-24` are the Peppol process and specification identifiers. `BT-83` repeats the invoice number. A line discount is an allowance with reason code `95`, and the unit price stays the price before that discount. Purchases use the supplier invoice number as `BT-1`. Sales use `document_number`. Orders raise an error. A document the caller cannot see returns no row.
