@@ -474,7 +474,7 @@ A payment, receipt or refund type has a form in `transaction_forms` like a docum
 - **Party.** Name, address, VAT number.
 - **Payment (header).** Number, date, payment method, bank reference, bank account (Paid from or Paid into), currency.
 - **Invoices settled (line columns).** Document, date, document total, amount applied. A refund settles credit notes, and the first column says so.
-- **Always shown.** The organisation name, the party name, the number and date, and the document and the amount applied. The designer will not let them be taken off, and the database refuses a saved layout without them (`private.validate_form_layout`, migration `20261117120000_payment_form_layouts`). The VAT summary and banking footer settings do not apply and are not offered.
+- **Always shown.** The organisation name, the party name, the number and date, and the document and the amount applied. The designer will not let them be taken off, and the database refuses a saved layout without them (`private.validate_form_layout`, migration `20261117150118_payment_form_layouts`). The VAT summary and banking footer settings do not apply and are not offered.
 - **Fixed.** The totals block, the notes and the DRAFT and VOID marks are always printed.
 
 The designer for a payment type is `PaymentFormDesigner.tsx`. It previews the latest payment of the type, or a sample. `getFormType` still treats a payment type as not found, so the document designer cannot open for one; `getPaymentFormType` finds it instead, and `saveTransactionForm` saves either kind.
