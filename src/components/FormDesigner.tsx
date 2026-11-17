@@ -200,7 +200,7 @@ export default function FormDesigner({
   );
 }
 
-function FieldList<T extends OrganisationField | PartyField | HeaderField | LineColumn>({
+export function FieldList<T extends string>({
   legend,
   fields,
   selected,

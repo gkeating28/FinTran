@@ -458,16 +458,28 @@ If no row has been saved, printing uses this standard layout. The VAT summary an
 
 ### Printed payments, receipts and refunds
 
-A payment prints from its own page, on the payment list or the open payment, with Print and PDF through the same print route as a document (`/print/{code}/{id}`). The layout is fixed and is the same for every organisation. It is not stored in `transaction_forms` and it is not designed in the form designer: payment and receipt types are left off the Forms list.
+A payment prints from its own page, on the payment list or the open payment, with Print and PDF through the same print route as a document (`/print/{code}/{id}`). The layout comes from the form saved for its transaction type, and from the standard form when none is saved. It is designed in the form designer, on the Forms list like any other type (see below).
 
-- **Title.** Money paid out is a **Remittance advice**: a supplier payment, or a refund to a customer. Money received is a **Receipt**: a customer receipt, or a refund from a supplier.
+- **Title.** The form's title, which starts as the standard one. Money paid out is a **Remittance advice**: a supplier payment, or a refund to a customer. Money received is a **Receipt**: a customer receipt, or a refund from a supplier.
 - **Content.** The organisation (name, address, phone, email, website, VAT and company numbers, logo), the party under "Paid to" or "Received from", then the number, date, payment method, bank reference, bank account with its IBAN, and currency. Empty details are left out.
 - **Table.** One row for each document the payment settles, with its number, date, total and the amount applied. A posted payment lists its effective allocations. A draft lists what it has planned. A void payment lists what it settled before it was voided. A payment settling nothing says it is not applied to any document.
 - **Totals.** The amount, the amount applied, and what is on account when something is left.
 - **Status.** A draft prints with DRAFT and no number. A void payment prints with VOID and its reason. A posted payment has neither.
 - **Details are live.** A payment keeps no copy of the organisation or the party when it is posted, so it prints their details as they are now. An invoice keeps a copy. Print a payment after changing the address and the new address shows.
 
-`src/lib/payment-print.ts` builds the page from plain values and has the tests. `src/lib/payment-print-data.ts` reads the rows and `src/components/PrintedPayment.tsx` draws them on the same paper as a printed document.
+#### Designing the form of a payment type
+
+A payment, receipt or refund type has a form in `transaction_forms` like a document, with the same settings (title, page size, logo, and lists of organisation fields, party fields, header fields and line columns). What it can list is its own, in `src/lib/payment-form-layout.ts`:
+
+- **Party.** Name, address, VAT number.
+- **Payment (header).** Number, date, payment method, bank reference, bank account (Paid from or Paid into), currency.
+- **Invoices settled (line columns).** Document, date, document total, amount applied. A refund settles credit notes, and the first column says so.
+- **Always shown.** The organisation name, the party name, the number and date, and the document and the amount applied. The designer will not let them be taken off, and the database refuses a saved layout without them (`private.validate_form_layout`, migration `20261117120000_payment_form_layouts`). The VAT summary and banking footer settings do not apply and are not offered.
+- **Fixed.** The totals block, the notes and the DRAFT and VOID marks are always printed.
+
+The designer for a payment type is `PaymentFormDesigner.tsx`. It previews the latest payment of the type, or a sample. `getFormType` still treats a payment type as not found, so the document designer cannot open for one; `getPaymentFormType` finds it instead, and `saveTransactionForm` saves either kind.
+
+`src/lib/payment-print.ts` builds the page from plain values and a layout, and has the tests. `src/lib/payment-print-data.ts` reads the rows and `src/components/PrintedPayment.tsx` draws them on the same paper as a printed document.
 
 ## EN 16931 export and readiness
 

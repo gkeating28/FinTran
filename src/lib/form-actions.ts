@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getFormType } from "@/lib/form-data";
 import { parseLayout } from "@/lib/form-layout";
+import { parsePaymentLayout, withRequiredPaymentFields } from "@/lib/payment-form-layout";
+import { getPaymentFormType } from "@/lib/payment-print-data";
 import { getWorkspace } from "@/lib/data";
 import { requireCurrentOrganisation } from "@/lib/organisation-guard";
 import { createClient } from "@/lib/supabase/server";
@@ -18,16 +20,34 @@ export async function saveTransactionForm(_state: ActionState, formData: FormDat
   const workspace = await getWorkspace();
   if (workspace.status !== "ready") redirect("/");
 
-  const loaded = await getFormType(text(formData, "code"));
-  if (loaded.error) return { error: loaded.error };
-  if (!loaded.type) return { error: "That transaction type is not in this organisation." };
-
   let parsed: unknown;
   try {
     parsed = JSON.parse(text(formData, "layout") || "{}");
   } catch {
     return { error: "That form could not be saved." };
   }
+
+  // A payment, receipt or refund has a form of its own, with its own fields.
+  const payment = await getPaymentFormType(text(formData, "code"));
+  if (payment.error) return { error: payment.error };
+  if (payment.type) {
+    const layout = withRequiredPaymentFields(parsePaymentLayout(parsed, payment.type.kind));
+    if (!layout.title.trim()) return { error: "Enter a document title." };
+    const supabase = await createClient();
+    const { error } = await supabase.from("transaction_forms").upsert(
+      { tenant_id: current.tenantId, organisation_id: current.organisationId, transaction_type_id: payment.type.id, layout },
+      { onConflict: "organisation_id,transaction_type_id" },
+    );
+    if (error) return { error: error.message || "That form could not be saved." };
+    revalidatePath("/forms");
+    revalidatePath(`/forms/${payment.type.code}`);
+    revalidatePath("/admin");
+    return { message: "Saved." };
+  }
+
+  const loaded = await getFormType(text(formData, "code"));
+  if (loaded.error) return { error: loaded.error };
+  if (!loaded.type) return { error: "That transaction type is not in this organisation." };
   const layout = parseLayout(parsed, loaded.type.kind, loaded.type.description, loaded.type.documentKind);
   if (!layout.title.trim()) return { error: "Enter a document title." };
   if (layout.lineColumns.length === 0) return { error: "Choose at least one line column." };

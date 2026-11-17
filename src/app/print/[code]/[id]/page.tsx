@@ -45,13 +45,13 @@ export default async function PrintDocumentPage({ params }: { params: Promise<{ 
     if (!payment.view) notFound();
     return (
       <main className={styles.stage}>
-        <div className={styles.toolbar} style={{ ["--page-width" as string]: PAGE_SIZE_OPTIONS.A4.width }}>
+        <div className={styles.toolbar} style={{ ["--page-width" as string]: PAGE_SIZE_OPTIONS[payment.view.pageSize].width }}>
           <Link className={styles.back} href={`/transactions/${payment.typeCode}`}>
             <ArrowLeftIcon />
             Back
           </Link>
           <span className={styles.spacer} />
-          <PdfButton pageSize="A4" fileName={pdfFileName(payment.view.downloadName)} />
+          <PdfButton pageSize={payment.view.pageSize} fileName={pdfFileName(payment.view.downloadName)} />
           <PrintButton />
         </div>
         <PrintedPayment view={payment.view} />

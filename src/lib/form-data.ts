@@ -316,8 +316,8 @@ export async function getFormType(code: string): Promise<{ type: FormType | null
   if (error) return { type: null, error: "That form could not be loaded." };
   const kind = data ? parseTransactionTypeKind(data.type) : null;
   if (!data || !kind) return { type: null, error: null };
-  // Payments, receipts and refunds print from a fixed layout and have no form to design. Treat them as not found here,
-  // so the address of one cannot open a designer for the wrong kind of document.
+  // Payments, receipts and refunds have a form of their own (payment-form-layout.ts). Treat them as not found here,
+  // so the address of one cannot open the document designer for the wrong kind of form.
   if (isPaymentKind(data.document_kind)) return { type: null, error: null };
 
   return {
@@ -350,8 +350,7 @@ export async function listFormMenu(): Promise<{ tiles: FormMenuTile[]; error: st
 
   const custom = new Set((data ?? []).map((row) => row.transaction_type_id));
   return {
-    // Payments and receipts get printed layouts in a later release. Until then they have no form to design.
-    tiles: menu.tiles.filter((tile) => !isPaymentKind(tile.documentKind)).map((tile) => ({ ...tile, custom: custom.has(tile.id) })),
+    tiles: menu.tiles.map((tile) => ({ ...tile, custom: custom.has(tile.id) })),
     error: null,
   };
 }

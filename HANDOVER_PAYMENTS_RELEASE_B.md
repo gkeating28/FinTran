@@ -15,7 +15,7 @@ Branch: `claude/intelligent-cerf-j32nz3`. Everything below that is marked done i
 | Phase 5, typed paid amount removed and migrated | Done. `supabase/tests/migrate_paid_amounts.sql` runs the migration file itself |
 | Phase 6, screens | Part one done: see below |
 | Phase 7a, printed payments | Written (see below), unrun | 
-| Phase 7b, payment kinds in the form designer | Not started |
+| Phase 7b, payment kinds in the form designer | Written, unrun in CI (flow 19, `payment_forms.sql`) |
 | Phase 8 | Not started. Release C |
 
 **Release B migrations are applied to the hosted project** (`hxueqzgdwlaschcvwdke`), at the owner's request, so that the branch could be run against it. The files are renamed to the versions the project records, and the path in `supabase/tests/migrate_paid_amounts.sql` is fixed. The hosted project had no typed paid amounts (0 of 10 documents), so the data migration changed nothing. Phase 5 removed the typed paid amount, so recording a payment now depends on the phase 6 screens, which have not been opened in a browser.
@@ -73,3 +73,7 @@ Every type code is three characters: direction (`S` or `P`) plus `RQ`, `OR`, `IN
 ## Phase 7a, printing (added later)
 
 Fixed layouts for payments, receipts and refunds: remittance advice for money out, receipt for money in. `payment-print.ts` (builder and tests), `payment-print-data.ts` (loader), `PrintedPayment.tsx`, a branch in the print route, and Print on the payment list and the open payment. Flow 18 covers the acceptance cases and has not run. Not done, and left for 7b: payment and receipt kinds in the form designer, with the allocation table columns, and the database check on saved layouts that goes with it. `getFormType` now treats a payment type as not found, so `/forms/{payment code}` cannot open a designer for the wrong kind. 7b has to lift that when it adds the kinds.
+
+## Phase 7b, form designer for payments (added later)
+
+Payment and receipt types now have forms. The layout uses the same table and settings as a document's, but its own field lists: `src/lib/payment-form-layout.ts` (fields, labels, standard layout, `parsePaymentLayout`, `withRequiredPaymentFields`, tests). `private.validate_form_layout` has a payment branch (migration `20261117120000_payment_form_layouts`, test `supabase/tests/payment_forms.sql`). `buildPaymentPrint` takes the saved layout. `PaymentFormDesigner.tsx` is the screen, `getPaymentFormType` and `savedPaymentLayout` (in `payment-print-data.ts`) find the type and its form, and the Forms list and the payment list link to it. Decision: `getFormType` still treats a payment type as not found, as the document designer must not open for one, so the handover's earlier note to lift it was not followed. The migration is not yet applied to the hosted project. Flow 19 has not run.

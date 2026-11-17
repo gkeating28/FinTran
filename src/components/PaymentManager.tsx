@@ -83,7 +83,9 @@ export default function PaymentManager({
     <section className={styles.stack}>
       <div>
         <h1 className={styles.heading}>{title}</h1>
-        <p className={styles.lede}>{summary}</p>
+        <p className={styles.lede}>
+          {summary} <Link href={`/forms/${choices.type.code}`}>Design the printed form.</Link>
+        </p>
       </div>
       {loadError ? (
         <p className={styles.alert} role="alert">

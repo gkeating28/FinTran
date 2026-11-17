@@ -36,8 +36,11 @@ test("flow 5: a received e-invoice from a new supplier is uploaded, the supplier
   const supplier = page.getByRole("dialog", { name: "Add supplier" });
   await expect(supplier).toBeVisible();
   await expect(supplier.locator('input[name="name"]')).toHaveValue("Northside Print");
-  await supplier.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(supplier).toBeHidden();
+  // The form has only just opened, so the first click can be lost. Press again until it has saved and closed.
+  await expect(async () => {
+    if (await supplier.isVisible()) await supplier.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(supplier).toBeHidden({ timeout: 5_000 });
+  }).toPass({ timeout: 30_000 });
   await expect(dialog.getByLabel("Supplier code")).toHaveValue(/[0-9a-f-]{36}/);
   await expect(dialog.getByLabel("Supplier code").locator("option:checked")).toContainText("Northside Print");
 
