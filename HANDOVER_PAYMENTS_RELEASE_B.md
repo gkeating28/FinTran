@@ -1,22 +1,23 @@
 # Payments release B: hand-over
 
-Written at the end of the session that built phases 2 to 5 and part one of phase 6. Start the next session from this file. The spec is `specs/QULAPLUS_PAYMENTS_SPEC.md`, version 3. It does not yet record the decisions listed at the end of this note.
+Started as the note from the session that built phases 2 to 5 and part one of phase 6, and kept up to date since. Start the next session from this file. The spec is `specs/QULAPLUS_PAYMENTS_SPEC.md`, version 4, which records the decisions made while building (see "Changes made while building").
 
-Branch: `claude/intelligent-cerf-j32nz3`. Everything below that is marked done is committed and pushed.
+Everything in the table below is merged to `main`. All 19 end-to-end flows and all the SQL tests pass in CI. **Nothing has been opened by a person in a browser yet.** The next step is the manual run in `docs/payments-test-script.md`, and fixes from what it finds.
 
 ## State
 
 | Part | State |
 | --- | --- |
-| Release A, bank accounts | Done, pushed and applied to the FinTran Supabase project (`hxueqzgdwlaschcvwdke`) |
+| Release A, bank accounts | Done, merged and applied to the FinTran Supabase project (`hxueqzgdwlaschcvwdke`) |
 | Phase 2, payment kinds and `payments` | Done. `supabase/tests/payments.sql` |
 | Phase 3, allocations and settlement | Done. `supabase/tests/allocations.sql` and `concurrency/last_amount.sh` |
 | Phase 4, save, post, void, delete | Done. `supabase/tests/payment_functions.sql` |
 | Phase 5, typed paid amount removed and migrated | Done. `supabase/tests/migrate_paid_amounts.sql` runs the migration file itself |
-| Phase 6, screens | Part one done: see below |
-| Phase 7a, printed payments | Written (see below), unrun | 
-| Phase 7b, payment kinds in the form designer | Done and green in CI (flow 19, `payment_forms.sql`) |
-| Phase 8 | Written, unrun in CI. Release C (see below) |
+| Phase 6, screens | Done and green in CI (flows 12 to 17). Not yet opened by a person |
+| Phase 7a, printed payments | Done and green in CI (flow 18) |
+| Phase 7b, payment forms in the form designer | Done and green in CI (flow 19, `payment_forms.sql`). Migration applied to the hosted project |
+| Phase 8, Ask Qula, Worth a look, supplier-says-paid notice | Done and green in CI (smoke test, unit tests). Two acceptance cases have no end-to-end flow (see below) |
+| Manual run | Not done. `docs/payments-test-script.md` |
 
 **Release B migrations are applied to the hosted project** (`hxueqzgdwlaschcvwdke`), at the owner's request, so that the branch could be run against it. The files are renamed to the versions the project records, and the path in `supabase/tests/migrate_paid_amounts.sql` is fixed. The hosted project had no typed paid amounts (0 of 10 documents), so the data migration changed nothing. Phase 5 removed the typed paid amount, so recording a payment now depends on the phase 6 screens, which have not been opened in a browser.
 
@@ -50,7 +51,9 @@ None of the screen code has been opened in a browser. It compiles and passes lin
    Original note: `CORE.md`, `TECHNICAL.md` and the status document: payments, receipts, allocations, settlement, calculated paid amounts. Drop "Paid amount is a single figure typed on the document" from the gaps if it is there. Add `supabase/tests/*` and the new concurrency test to the testing section.
 7. **DONE.** `database.types.ts` already has every table, column and payment function the code calls: `node scripts/check-db-types.mjs` and `tsc` pass. Original note: regenerate or hand-check `database.types.ts` (`node scripts/check-db-types.mjs` passes now).
 
-## Decisions made while building, which the spec should say
+## Decisions made while building (now in the spec)
+
+These are in the spec's "Changes made while building". The list is kept here as the record of why.
 
 - `tenant_id` on `bank_accounts` cascades. On `payments` and `allocations` it restricts.
 - `replace_pending_allocations` is in `public`, not `private`, because `save_payment` runs with the caller's rights and cannot reach the private schema. It checks membership and draft status itself.
@@ -84,3 +87,10 @@ Payment and receipt types now have forms. The layout uses the same table and set
 - **Worth a look (8.2).** Part paid and overdue, money on account (older than 7 days, payments and credit notes) and likely matches, in `src/lib/insights.ts` with tests. A credit note is no longer reported as overdue or due soon.
 - **Received e-invoices (8.3).** The notice on the import screen and on the Payments tab of the posted invoice (`supplierStatedPaidMessage`). The stored e-document view does not show it, as that view also serves invoices we sent, whose BT-113 is our own.
 - **Not covered by an end-to-end flow:** an acceptance case needs a receipt dated 8 days ago and an e-invoice with BT-113, so they are covered by unit tests and the existing SQL test of BT-113 only.
+
+## What is left
+
+1. **The manual run.** `docs/payments-test-script.md`. Include a check of Home's "Worth a look" card with a posted receipt that has been unapplied for more than 7 days, and with an imported e-invoice that has an amount in BT-113: no end-to-end flow covers either, because they need a backdated receipt and a new test file. Unit tests cover the rules and the message.
+2. **Fixes from that run.** The screens have only been driven by the end-to-end suite, which found real bugs (a dialog's submit reaching the document form it is portalled out of, and lost first clicks on freshly opened pages).
+3. **Lost first clicks.** Flows 3, 5 and 6 each failed once because a button was pressed just after a page or dialog opened. Flows 3 and 5 now press again until it takes. If it happens to people as well as tests, the app has a loading race to find, and the retries should come out.
+4. **Not built, by design.** Cross-currency payments, write-offs and bank charges, and bank feeds. The spec lists them as follow-ups.
