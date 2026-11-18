@@ -91,7 +91,7 @@ async function openPaymentsTab(page: Page, typeCode: "SIN" | "SCN", total: strin
 
 /**
  * Records money on its own screen: a receipt, a payment or a refund. It chooses the party, enters the amount, allocates
- * the document with this total by a double click on its row, and posts.
+ * the document with this total in its allocation box, and posts.
  */
 async function recordMoney(
   page: Page,
@@ -106,13 +106,10 @@ async function recordMoney(
   const dialog = paymentDialog(page, noun);
   await chooseByCode(dialog.locator(`select[name="${partyField}"]`), party);
   await typeInto(dialog.locator('input[name="amount"]'), total);
-  // The double click is on the first cell, not the allocation box. It is repeated until the box holds the total, because the
-  // open items are read after the party is chosen and a click before they settle can be lost.
-  const row = dialog.getByRole("row").filter({ hasText: total });
-  await expect(async () => {
-    if ((await row.getByRole("textbox").inputValue()) === "") await row.locator("td").first().dblclick();
-    await expect(row.getByRole("textbox")).toHaveValue(total, { timeout: 3_000 });
-  }).toPass({ timeout: 30_000 });
+  // The amount is typed into the document's allocation box. Flows 17 and 18 test the double click itself.
+  const box = dialog.getByRole("row").filter({ hasText: total }).getByRole("textbox");
+  await typeInto(box, total);
+  await expect(box).toHaveValue(total);
   await payFromBank(page, dialog);
   await expectNoError(page);
 }
