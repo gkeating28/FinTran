@@ -301,11 +301,21 @@ export async function loadDocumentPayments(
   const headerIds = [...new Set((rows.data ?? []).flatMap((row) => [row.source_header_id, row.target_header_id]).filter((id): id is string => Boolean(id) && id !== headerId))];
   const personIds = [...new Set((rows.data ?? []).flatMap((row) => [row.created_by, row.removed_by]).filter((id): id is string => Boolean(id)))];
   const [payments, others, people] = await Promise.all([
-    paymentIds.length ? supabase.from("payments").select("id, document_number").in("id", paymentIds) : Promise.resolve({ data: [], error: null }),
-    headerIds.length ? supabase.from("transaction_headers").select("id, document_number, reference").in("id", headerIds) : Promise.resolve({ data: [], error: null }),
+    paymentIds.length ? supabase.from("payments").select("id, document_number, transaction_type_id").in("id", paymentIds) : Promise.resolve({ data: [], error: null }),
+    headerIds.length ? supabase.from("transaction_headers").select("id, document_number, reference, transaction_type_id").in("id", headerIds) : Promise.resolve({ data: [], error: null }),
     personIds.length ? supabase.from("profiles").select("id, display_name").in("id", personIds) : Promise.resolve({ data: [], error: null }),
   ]);
   if (payments.error || others.error || people.error) return { data: null, error: READ_ERROR };
+  // The codes of the types on the other side, so a number can open its receipt, payment or document. A system type, such
+  // as the one a migrated payment has, is not on any menu, so it has no screen to open.
+  const otherTypeIds = [...new Set([...(payments.data ?? []), ...(others.data ?? [])].map((row) => row.transaction_type_id))];
+  const otherTypes = otherTypeIds.length
+    ? await supabase.from("transaction_types").select("id, code, is_system").eq("organisation_id", organisationId).in("id", otherTypeIds)
+    : { data: [], error: null };
+  if (otherTypes.error) return { data: null, error: READ_ERROR };
+  const typeCode = new Map((otherTypes.data ?? []).map((row) => [row.id, row.is_system ? "" : row.code]));
+  const paymentType = new Map((payments.data ?? []).map((row) => [row.id, typeCode.get(row.transaction_type_id) ?? ""]));
+  const headerType = new Map((others.data ?? []).map((row) => [row.id, typeCode.get(row.transaction_type_id) ?? ""]));
   const paymentNumber = new Map((payments.data ?? []).map((row) => [row.id, row.document_number ?? ""]));
   const headerNumber = new Map((others.data ?? []).map((row) => [row.id, row.document_number ?? String(row.reference ?? "")]));
   const person = new Map((people.data ?? []).map((row) => [row.id, row.display_name]));
@@ -320,6 +330,7 @@ export async function loadDocumentPayments(
       otherKind,
       otherId,
       otherNumber: (row.source_payment_id && settledBy ? paymentNumber.get(row.source_payment_id) : headerNumber.get(otherId)) ?? "",
+      otherTypeCode: (row.source_payment_id && settledBy ? paymentType.get(row.source_payment_id) : headerType.get(otherId)) ?? "",
       date: row.allocation_date,
       amount: formatMoney(row.amount),
       exchangeDifference: formatMoney(row.exchange_difference),

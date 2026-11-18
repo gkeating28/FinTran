@@ -197,6 +197,8 @@ export type DocumentAllocation = {
   otherKind: "payment" | "credit_note" | "invoice";
   otherId: string;
   otherNumber: string;
+  /** The code of the other side's transaction type, so it can be opened. Empty when it cannot be, such as a migrated payment. */
+  otherTypeCode: string;
   date: string;
   amount: string;
   exchangeDifference: string;
@@ -207,7 +209,7 @@ export type DocumentAllocation = {
   createdAt: string;
 };
 
-/** Everything the Payments tab of a posted invoice or credit note shows. */
+/** Everything the Payments tab of a posted invoice or credit note shows. Its tab is called Receipts, Payments or Applied. */
 export type DocumentPayments = {
   documentId: string;
   kind: "invoice" | "credit_note";
@@ -236,12 +238,6 @@ export function supplierStatedPaidMessage(amount: number, currencyCode: string):
   if (!(amount > 0)) return null;
   const shown = amount.toLocaleString("en-IE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return `The supplier says ${currencyCode ? `${currencyCode} ` : ""}${shown} of this invoice is already paid. Nothing has been recorded from that. Record the payment if it is yours, or check it with the supplier.`;
-}
-
-/** The address that opens a new draft of a payment type with this document's open amount allocated to it. */
-export function recordPaymentHref(typeCode: string, documentId: string, partyId: string, open: string) {
-  const query = new URLSearchParams({ new: "1", party: partyId, allocate: `${documentId}:${open}` });
-  return `/transactions/${encodeURIComponent(typeCode)}?${query.toString()}`;
 }
 
 export type SettlementState = "unpaid" | "part" | "paid";

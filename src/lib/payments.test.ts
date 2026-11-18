@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { allocateOnDoubleTap, allocationTotals, distributeOldestFirst, parseAllocationAmount, parsePaymentPrefill, paymentNoun, recordPaymentHref, settlementState, supplierStatedPaidMessage, targetKindFor } from "./payments";
+import { allocateOnDoubleTap, allocationTotals, distributeOldestFirst, parseAllocationAmount, parsePaymentPrefill, paymentNoun, settlementState, supplierStatedPaidMessage, targetKindFor } from "./payments";
 
 test("a receipt or a payment clears invoices and a refund clears credit notes", () => {
   assert.equal(targetKindFor("receipt", "Sales"), "invoice");
@@ -67,18 +67,6 @@ test("parsePaymentPrefill ignores bad amounts and needs a party", () => {
   assert.equal(parsePaymentPrefill({ allocate: "a:10" }), null);
   assert.deepEqual(parsePaymentPrefill({ party: "p1", allocate: "a:x,b:0,:5,c:1.234" }), { partyId: "p1", amount: "", allocations: {} });
   assert.deepEqual(parsePaymentPrefill({ party: "p1" }), { partyId: "p1", amount: "", allocations: {} });
-});
-
-test("recordPaymentHref round-trips through parsePaymentPrefill", () => {
-  const href = recordPaymentHref("SRC", "doc-1", "party-1", "120.50");
-  const query = new URL(href, "http://x").searchParams;
-  assert.equal(new URL(href, "http://x").pathname, "/transactions/SRC");
-  assert.equal(query.get("new"), "1");
-  assert.deepEqual(parsePaymentPrefill({ party: query.get("party") ?? "", allocate: query.get("allocate") ?? "" }), {
-    partyId: "party-1",
-    amount: "120.50",
-    allocations: { "doc-1": "120.50" },
-  });
 });
 
 test("settlementState tells unpaid, part paid and paid apart", () => {

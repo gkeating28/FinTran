@@ -23,14 +23,18 @@ For each step, note what you saw if it was not what is written. A screenshot hel
 4. Open Transactions, then a payment type, then Add. **Number**, **Currency** and (for a euro customer) **Exchange
    rate** have a quiet grey background. The other fields are white. Hovering a grey field does not change its border.
 
-## 2. A receipt from an invoice (owner)
+## 2. A receipt for an invoice (owner)
 
-1. Open a posted sales invoice. A fourth tab, **Payments**, is next to Payment. Open it.
-2. It shows the total, what is paid and what is open, and a **Record receipt** button.
-3. Press it. A new receipt opens for the same customer. The amount and the invoice's allocation both show the open amount.
+1. Open a posted sales invoice. A fourth tab, **Receipts**, is after **Payment terms**. Open it.
+2. It shows the total, what is paid and what is open. It has no button to record anything. A line says a receipt is
+   recorded on the **Customer receipt** screen, and the name is a link.
+3. Follow the link. Add a receipt, choose the customer and enter the amount. Double click the invoice to allocate it.
 4. Choose the bank account if it is not already chosen. Press **Save and post**.
 5. The invoice list now has the invoice under the **Paid** filter, and **Amount due** is 0.00.
-6. The title bar reads "Customer receipt (SRC)", not just the code.
+6. Open the invoice again. **Receipts** lists the receipt, and its number opens it.
+7. The title bar reads "Customer receipt (SRC)", not just the code.
+8. On a purchase invoice the tab is called **Payments** and points to **Supplier payment**. On a credit note it is
+   called **Applied**, has **Apply to an invoice**, and points to **Customer refund**. It has no Refund button.
 
 ## 3. Allocating by double click (owner)
 

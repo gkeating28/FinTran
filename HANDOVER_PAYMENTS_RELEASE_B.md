@@ -107,3 +107,7 @@ Every acceptance box in the spec was checked against the tests. 59 of 67 are tic
 6. A receipt eight days old in Worth a look: unit tested only.
 7. An imported e-invoice with BT-113: notice wording unit tested, stored figure SQL tested, no flow.
 8. The release B migration was never run against a copy of the live project, as "Done when" asks.
+
+## Invoice tab changed to display only (18 November 2026)
+
+At the owner's request the tab on posted invoices and credit notes no longer records anything. It is called Receipts (sales invoice), Payments (purchase invoice) or Applied (credit note), lists what settled the document with a link to open each receipt or payment, and says which screen records one. Record receipt, Record payment and Refund are gone. Apply to an invoice and removing an application stay on credit notes. The earlier Payment tab is now Payment terms. `recordPaymentHref` is deleted, and flows 12, 15 and 16 and the credit note helper record money on the receipts and refund screens. `parsePaymentPrefill` and the `?new=1&party=&allocate=` address still work but nothing links to them.

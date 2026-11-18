@@ -18,14 +18,16 @@ export function HeaderPane({ form }: { form: DocumentFormState }) {
   const { header, choices, typeId, transactionDate, setTransactionDate, dueDate, setDueDate, supplierId, termsDays, supplierName, setSupplierName, contactDetails, setContactDetails, notes, setNotes, currencyId, setExchangeRate, orderNumber, setOrderNumber, salesOrderReference, setSalesOrderReference, supplierReference, setSupplierReference, supplyDate, setSupplyDate, roundingAmount, setRoundingAmount, precedingHeaderId, precedingReference, setPrecedingReference, precedingDate, setPrecedingDate, buyerReference, setBuyerReference, contractReference, setContractReference, paymentTerms, setPaymentTerms, invoicePeriodStart, setInvoicePeriodStart, invoicePeriodEnd, setInvoicePeriodEnd, paymentMeansCode, setPaymentMeansCode, flex, setFlex, headerTab, setHeaderTab, ordersOpen, sales, posted, locked, selectedType, sameAsHome, rateValue, flexLabels, grnIndex, otherRefIndex, showFlex, parties, creditNote, orderDocument, canBringIn, paymentMeans, creditChoices, chooseSupplier, chooseCredit, openPanel } = form;
   // Posted invoices and credit notes list what has settled them. Orders and drafts have nothing to list.
   const showPayments = Boolean(header && posted && !orderDocument);
+  // What settled it is a receipt on a sales invoice and a payment on a purchase invoice. A credit note is applied.
+  const settledLabel = creditNote ? "Applied" : sales ? "Receipts" : "Payments";
   return (
     <div className={styles.headerPane}>
             <div className={documentStyles.headerTabs} role="tablist" aria-label="Header">
               {([
                 ["document", "Document"],
                 ["notes", "Notes"],
-                ["payment", "Payment"],
-                ...(showPayments ? ([["payments", "Payments"]] as const) : []),
+                ["payment", "Payment terms"],
+                ...(showPayments ? ([["payments", settledLabel]] as const) : []),
               ] as const).map(([id, label]) => (
                 <button
                   key={id}

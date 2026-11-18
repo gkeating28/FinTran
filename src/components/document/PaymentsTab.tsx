@@ -17,7 +17,6 @@ import {
   allocationTotals,
   distributeOldestFirst,
   parseAllocationAmount,
-  recordPaymentHref,
   supplierStatedPaidMessage,
   type DocumentAllocation,
   type DocumentPayments,
@@ -42,7 +41,11 @@ function Outside({ children }: { children: ReactNode }) {
   );
 }
 
-/** The Payments tab of a posted invoice or credit note. It reads its figures when it opens, and again after a change. */
+/**
+ * What has settled a posted invoice or credit note: the receipts or payments applied to it, or, for a credit note, what it
+ * was applied to. It only shows them. Receipts, payments and refunds are recorded on their own screens, and a credit note's
+ * balance can be applied to an invoice from here. It reads its figures when it opens, and again after a change.
+ */
 export function PaymentsTab({ headerId, active }: { headerId: string; active: boolean }) {
   const region = useRegion();
   const [data, setData] = useState<DocumentPayments | null>(null);
@@ -77,9 +80,9 @@ export function PaymentsTab({ headerId, active }: { headerId: string; active: bo
   const effective = data.allocations.filter((item) => !item.removedAt);
   const removed = data.allocations.filter((item) => item.removedAt);
   const sales = data.direction === "Sales";
-  // For an invoice the money is a receipt (sales) or a payment (purchases). For a credit note it is a refund.
+  // A sales invoice is settled by receipts, a purchase invoice by payments, and a credit note by being applied or refunded.
+  const noun = creditNote ? "applied" : sales ? "receipt" : "payment";
   const statedPaid = supplierStatedPaidMessage(data.supplierStatedPaid, data.currencyCode);
-  const recordLabel = creditNote ? "Refund" : sales ? "Record receipt" : "Record payment";
 
   return (
     <div className={paymentStyles.itemsScroll}>
@@ -114,26 +117,27 @@ export function PaymentsTab({ headerId, active }: { headerId: string; active: bo
               Apply to an invoice
             </button>
           ) : null}
-          {data.recordTypes.map((type) => (
-            <Link
-              key={type.id}
-              className={creditNote ? styles.quiet : styles.primary}
-              href={recordPaymentHref(type.code, data.documentId, data.partyId, data.open)}
-              title={type.description}
-            >
-              {data.recordTypes.length > 1 ? `${recordLabel} (${type.code})` : recordLabel}
-            </Link>
-          ))}
-          {data.recordTypes.length === 0 ? (
+          {data.recordTypes.length > 0 ? (
+            <p className={styles.panelMeta}>
+              {creditNote ? "A refund is recorded on the " : sales ? "A receipt is recorded on the " : "A payment is recorded on the "}
+              {data.recordTypes.map((type, index) => (
+                <span key={type.id}>
+                  {index > 0 ? " or " : ""}
+                  <Link href={`/transactions/${type.code}`}>{type.description}</Link>
+                </span>
+              ))}{" "}
+              screen.
+            </p>
+          ) : (
             <p className={styles.panelMeta}>Add a {creditNote ? "refund" : sales ? "receipt" : "payment"} type under Transactions to record one.</p>
-          ) : null}
+          )}
         </div>
       ) : null}
-      <p className={paymentStyles.subheading}>Allocations</p>
+      <p className={paymentStyles.subheading}>{creditNote ? "Applied and refunded" : sales ? "Receipts" : "Payments"}</p>
       <table className={styles.lineTable} data-lines="both">
         <thead>
           <tr>
-            <th>From or to</th>
+            <th>{creditNote ? "Applied to or from" : sales ? "Receipt" : "Payment"}</th>
             <th>Date</th>
             <th className={styles.num}>Amount</th>
             <th className={styles.num}>Exchange difference</th>
@@ -145,15 +149,15 @@ export function PaymentsTab({ headerId, active }: { headerId: string; active: bo
           {effective.length === 0 ? (
             <tr>
               <td colSpan={6} className={styles.empty}>
-                Nothing has been {creditNote ? "applied" : "paid"} yet.
+                {creditNote ? "Nothing has been applied yet." : `No ${noun}s yet.`}
               </td>
             </tr>
           ) : (
             effective.map((item) => (
               <tr key={item.id}>
                 <td className={styles.mono}>
-                  {item.role === "applied-to" ? "To " : "From "}
-                  {item.otherNumber || (item.otherKind === "payment" ? "payment" : "document")}
+                  {creditNote ? (item.role === "applied-to" ? "To " : "From ") : ""}
+                  <OtherDocument item={item} />
                 </td>
                 <td>{formatDate(item.date, region)}</td>
                 <td className={`${styles.num} ${styles.mono}`}>{item.amount}</td>
@@ -187,8 +191,8 @@ export function PaymentsTab({ headerId, active }: { headerId: string; active: bo
               {removed.map((item) => (
                 <tr key={item.id}>
                   <td className={styles.mono}>
-                    {item.role === "applied-to" ? "To " : "From "}
-                    {item.otherNumber}
+                    {creditNote ? (item.role === "applied-to" ? "To " : "From ") : ""}
+                    <OtherDocument item={item} />
                   </td>
                   <td className={`${styles.num} ${styles.mono}`}>{item.amount}</td>
                   <td>{[item.removedByName, formatDate(item.removedAt.slice(0, 10), region)].filter(Boolean).join(", ")}</td>
@@ -238,6 +242,13 @@ export function PaymentsTab({ headerId, active }: { headerId: string; active: bo
       ) : null}
     </div>
   );
+}
+
+/** The number of the receipt, payment or document on the other side, as a link to open it when it can be opened. */
+function OtherDocument({ item }: { item: DocumentAllocation }) {
+  const label = item.otherNumber || (item.otherKind === "payment" ? "payment" : "document");
+  if (!item.otherTypeCode || !item.otherId) return <>{label}</>;
+  return <Link href={`/transactions/${item.otherTypeCode}?open=${item.otherId}`}>{label}</Link>;
 }
 
 /** Applies what is left of a posted credit note to the party's open invoices. */

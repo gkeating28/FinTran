@@ -55,11 +55,7 @@ async function postSalesDocument(
 async function creditNoteOnAccount(page: Page, party: string, net: string, description: string) {
   const total = withVat(Number(net));
   await postSalesDocument(page, "SIN", party, net, description);
-  await openPaymentsTab(page, "SIN", total);
-  await documentDialog(page).getByRole("link", { name: "Record receipt" }).click();
-  await page.waitForURL(/\/transactions\/SRC\?new=1/);
-  await payFromBank(page, paymentDialog(page, /receipt/i));
-  await expectNoError(page);
+  await recordMoney(page, "SRC", /receipt/i, "customer_id", party, total);
 
   await openList(page, "SIN");
   await openRow(page, total);
@@ -83,11 +79,36 @@ function paymentDialog(page: Page, noun: RegExp) {
   return page.getByRole("dialog", { name: noun });
 }
 
-/** Opens the posted invoice or credit note with this total and shows its Payments tab. */
+/**
+ * Opens the posted invoice or credit note with this total and shows the tab that lists what settled it: Receipts on a
+ * sales invoice and Applied on a credit note.
+ */
 async function openPaymentsTab(page: Page, typeCode: "SIN" | "SCN", total: string) {
   await openList(page, typeCode);
   await openRow(page, total);
-  await documentDialog(page).getByRole("tab", { name: "Payments" }).click();
+  await documentDialog(page).getByRole("tab", { name: typeCode === "SIN" ? "Receipts" : "Applied" }).click();
+}
+
+/**
+ * Records money on its own screen: a receipt, a payment or a refund. It chooses the party, enters the amount, allocates
+ * the document with this total by a double click on its row, and posts.
+ */
+async function recordMoney(
+  page: Page,
+  typeCode: "SRC" | "PPY" | "SRF",
+  noun: RegExp,
+  partyField: "customer_id" | "supplier_id",
+  party: string,
+  total: string,
+) {
+  await openList(page, typeCode);
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  const dialog = paymentDialog(page, noun);
+  await chooseByCode(dialog.locator(`select[name="${partyField}"]`), party);
+  await typeInto(dialog.locator('input[name="amount"]'), total);
+  await dialog.getByRole("row").filter({ hasText: total }).locator("td").first().dblclick();
+  await payFromBank(page, dialog);
+  await expectNoError(page);
 }
 
 /** Chooses the bank account, then saves and posts the open payment, and waits for it to close. */
@@ -102,7 +123,7 @@ async function filterByPayment(page: Page, state: "Unpaid" | "Part paid" | "Paid
   await page.getByLabel("Payment", { exact: true }).selectOption({ label: state });
 }
 
-test("flow 12: the standard payment types are offered once, a receipt is recorded from a posted invoice, and the invoice shows paid", async ({ page }) => {
+test("flow 12: the standard payment types are offered once, a receipt is recorded on the receipts screen, and the invoice shows paid and lists the receipt", async ({ page }) => {
   test.setTimeout(240_000);
   await signIn(page, "owner");
 
@@ -132,15 +153,15 @@ test("flow 12: the standard payment types are offered once, a receipt is recorde
   const total = withVat(97);
   await postSalesDocument(page, "SIN", "ACME", "97", "Flow twelve goods");
 
-  // Record receipt opens a new receipt for the customer with the whole amount due already allocated.
+  // The invoice does not record anything itself. Its Receipts tab points to the receipts screen and lists nothing yet.
   await openPaymentsTab(page, "SIN", total);
-  await documentDialog(page).getByRole("link", { name: "Record receipt" }).click();
-  await page.waitForURL(/\/transactions\/SRC\?new=1/);
-  const receipt = paymentDialog(page, /receipt/i);
-  await expect(receipt).toBeVisible();
-  await expect(receipt.locator('input[name="amount"]')).toHaveValue(total);
-  await payFromBank(page, receipt);
-  await expectNoError(page);
+  await expect(documentDialog(page).getByRole("link", { name: /Record/ })).toHaveCount(0);
+  await expect(documentDialog(page).getByText("No receipts yet.")).toBeVisible();
+  await documentDialog(page).getByRole("link", { name: "Customer receipt" }).click();
+  await page.waitForURL(/\/transactions\/SRC$/);
+
+  // The receipt is recorded there: the customer, the amount, and the invoice allocated by a double click.
+  await recordMoney(page, "SRC", /receipt/i, "customer_id", "ACME", total);
   await expect(listRows(page).filter({ hasText: total }).first()).toContainText("Posted");
 
   // The invoice now shows paid.
@@ -149,6 +170,10 @@ test("flow 12: the standard payment types are offered once, a receipt is recorde
   await expect(listRows(page).filter({ hasText: total })).toHaveCount(1);
   await filterByPayment(page, "Unpaid");
   await expect(listRows(page).filter({ hasText: total })).toHaveCount(0);
+
+  // And it lists the receipt, with a link to open it.
+  await openPaymentsTab(page, "SIN", total);
+  await expect(documentDialog(page).getByRole("link", { name: /^SRC-/ })).toBeVisible();
 });
 
 test("flow 13: one receipt pays two invoices with Allocate oldest first", async ({ page }) => {
@@ -216,15 +241,11 @@ test("flow 15: a customer is refunded the unallocated balance of a credit note",
   const credit = withVat(20);
   await creditNoteOnAccount(page, "ACME", "20", "Flow fifteen allowance");
 
-  // Refund opens a customer refund for the whole balance. It settles the credit note, not an invoice.
+  // A refund is recorded on the customer refund screen. It settles the credit note, not an invoice. The credit note itself
+  // has no Refund button.
   await openPaymentsTab(page, "SCN", credit);
-  await documentDialog(page).getByRole("link", { name: "Refund" }).click();
-  await page.waitForURL(/\/transactions\/SRF\?new=1/);
-  const refund = paymentDialog(page, /refund/i);
-  await expect(refund).toBeVisible();
-  await expect(refund.locator('input[name="amount"]')).toHaveValue(credit);
-  await payFromBank(page, refund);
-  await expectNoError(page);
+  await expect(documentDialog(page).getByRole("link", { name: "Refund" })).toHaveCount(0);
+  await recordMoney(page, "SRF", /refund/i, "customer_id", "ACME", credit);
 
   // The credit note has nothing left.
   await openList(page, "SCN");
@@ -242,11 +263,7 @@ test("flow 16: an allocation on a posted receipt is removed with a reason and th
   await postSalesDocument(page, "SIN", "ACME", "73", "Flow fifteen B");
 
   // A receipt for the first invoice.
-  await openPaymentsTab(page, "SIN", first);
-  await documentDialog(page).getByRole("link", { name: "Record receipt" }).click();
-  await page.waitForURL(/\/transactions\/SRC\?new=1/);
-  await payFromBank(page, paymentDialog(page, /receipt/i));
-  await expectNoError(page);
+  await recordMoney(page, "SRC", /receipt/i, "customer_id", "ACME", first);
 
   // Open the posted receipt and remove its allocation. The dialog asks for a reason.
   await page.goto("/transactions/SRC");
