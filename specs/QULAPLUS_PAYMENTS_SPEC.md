@@ -1,6 +1,6 @@
 # Qula Plus payments and receipts spec
 
-Version 4, 17 November 2026. Version 3 (13 November) was revised after the Claude Code reviews of versions 1 and 2. Version 4 records what was decided while building it: see "Changes made while building" after the decisions table. Where a section below still shows an old name or an earlier plan, that list and the notes in the sections win.
+Version 4, 18 November 2026. Version 3 (13 November) was revised after the Claude Code reviews of versions 1 and 2. Version 4 records what was decided while building it: see "Changes made while building" after the decisions table. Where a section below still shows an old name or an earlier plan, that list and the notes in the sections win.
 
 Goal: record money paid and received as proper records, allocate it to invoices and credit notes, and make "paid" and "amount due" trustworthy. This replaces the typed paid amount.
 
@@ -156,14 +156,14 @@ If `organisation_defaults.iban` is set, create a bank account from it (code `MAI
 
 ### Acceptance
 
-- [ ] `ie29 aibk 9311 5212 3456 78` is stored as `IE29AIBK93115212345678`. An invalid IBAN is refused. The same IBAN typed with different spacing is refused as a duplicate.
-- [ ] An invalid BIC is refused.
-- [ ] Making a second EUR account the default clears the first. Two defaults in different currencies are allowed.
-- [ ] An inactive account cannot be made the default.
-- [ ] A member can read bank accounts but not change them.
-- [ ] The migration creates `MAIN` from the organisation IBAN when one exists, and nothing otherwise.
-- [ ] A member of another organisation cannot see the accounts. A row cannot be moved to another organisation, or saved with a tenant that doesn't own its organisation.
-- [ ] The same account code can exist in two different organisations.
+- [x] `ie29 aibk 9311 5212 3456 78` is stored as `IE29AIBK93115212345678`. An invalid IBAN is refused. The same IBAN typed with different spacing is refused as a duplicate. Tested in `bank_accounts.sql`.
+- [x] An invalid BIC is refused. Tested in `bank_accounts.sql`.
+- [x] Making a second EUR account the default clears the first. Two defaults in different currencies are allowed. Tested in `bank_accounts.sql`.
+- [x] An inactive account cannot be made the default. Tested in `bank_accounts.sql`.
+- [x] A member can read bank accounts but not change them. Tested in `bank_accounts.sql`.
+- [x] The migration creates `MAIN` from the organisation IBAN when one exists, and nothing otherwise. Tested in `bank_accounts.sql`. The test runs the migration's statement on test organisations, not the migration file.
+- [x] A member of another organisation cannot see the accounts. A row cannot be moved to another organisation, or saved with a tenant that doesn't own its organisation. Tested in `bank_accounts.sql`.
+- [x] The same account code can exist in two different organisations. Tested in `bank_accounts.sql`.
 
 ---
 
@@ -218,14 +218,14 @@ RLS: members select; members insert, update and delete drafts; members update `n
 
 ### Acceptance
 
-- [ ] A Purchases `receipt` with a customer is refused; with a supplier it is accepted.
-- [ ] A payment whose bank account currency differs from its own is refused.
-- [ ] A home-currency payment with an exchange rate other than 1 is refused.
-- [ ] `transaction_headers` refuses a payment-kind type.
-- [ ] A payment cannot reference a party, bank account, currency or type from another organisation.
-- [ ] On a posted payment, changing `notes` succeeds and is audited; changing `amount` or `payment_means_code` is refused.
-- [ ] An organisation with a payment cannot be deleted, and neither can its tenant.
-- [ ] Every existing kind test still passes, and orders and invoices behave exactly as before.
+- [x] A Purchases `receipt` with a customer is refused; with a supplier it is accepted. Tested in `payments.sql`.
+- [x] A payment whose bank account currency differs from its own is refused. Tested in `payments.sql`.
+- [x] A home-currency payment with an exchange rate other than 1 is refused. Tested in `payments.sql`.
+- [x] `transaction_headers` refuses a payment-kind type. Tested in `payments.sql`.
+- [x] A payment cannot reference a party, bank account, currency or type from another organisation. Tested in `payments.sql`.
+- [x] On a posted payment, changing `notes` succeeds and is audited; changing `amount` or `payment_means_code` is refused. Tested in `payments.sql`.
+- [x] An organisation with a payment cannot be deleted, and neither can its tenant. Tested in `payments.sql`.
+- [x] Every existing kind test still passes, and orders and invoices behave exactly as before. Every SQL test passes in CI.
 
 ---
 
@@ -379,29 +379,29 @@ The credit note limit (K12) is unchanged: posted credit notes against an invoice
 
 ### Acceptance
 
-- [ ] A €1,000 receipt allocated €600 and €400 to two invoices leaves both with amount due 0 and the receipt fully allocated.
-- [ ] Allocating €1,200 against a €1,000 invoice is refused. Allocating €800 of a €1,000 receipt leaves €200 unallocated.
-- [ ] Two concurrent allocations for the last €100 of an invoice: one succeeds, one is refused, and no deadlock occurs (concurrency test).
-- [ ] An allocation to a draft invoice, an order, a void document or another party's invoice is refused.
-- [ ] A credit note as the target of another credit note is refused.
-- [ ] An allocation from a void payment is refused.
-- [ ] An allocation whose source and target are in different organisations is refused by the foreign keys, even inside one tenant.
-- [ ] Posting a €300 credit note against a €1,000 invoice reduces its amount due to €700, and the credit note's `paid_at_posting` is 0.
-- [ ] Posting a credit note against a fully paid invoice makes no allocation and leaves the credit note open.
-- [ ] Removing an allocation restores the open amount, and the removed row remains with its reason.
-- [ ] The three worked examples in 3.5 produce exactly −€1.37, +€1.37 and €58.83, with `home_amount_due` €0.00 and an exchange difference of €0.00 on both allocations of the third.
-- [ ] A pending allocation holds zero home amounts and an exchange difference of 0 until its payment posts, and has them set on posting.
-- [ ] A €300 credit note applied €300 to an invoice cannot also be refunded any amount: the refund is refused, and its amount due stays 0.
-- [ ] A €300 credit note applied €200 to an invoice can be refunded €100 but not €101.
-- [ ] A void payment shows unallocated 0 and does not appear in "has money on account".
-- [ ] A draft document with a non-zero `paid_amount` is refused by the database.
-- [ ] Posting a payment with no allocations, dated on or before the lock date, is refused.
-- [ ] An allocation dated on or before the lock date is refused, and so is removing one dated on or before it.
-- [ ] Allocating to a posted document changes its `paid_amount` and `amount_due` without changing its `updated_at`, and writes no header audit row.
-- [ ] `void_document` on a purchase invoice with an effective allocation is refused. Voiding one with only a pending allocation deletes that allocation.
-- [ ] `en16931_document`, `en16931_readiness` and stored outbound e-documents are unchanged for every existing fixture after allocations are added to their documents.
-- [ ] Importing an e-invoice with BT-113 of €50.00 sets `supplier_stated_paid_amount` to 50.00 and leaves `paid_amount` at 0.
-- [ ] Authenticated users cannot insert, update or delete `allocations` directly.
+- [x] A €1,000 receipt allocated €600 and €400 to two invoices leaves both with amount due 0 and the receipt fully allocated. Tested in `allocations.sql`.
+- [x] Allocating €1,200 against a €1,000 invoice is refused. Allocating €800 of a €1,000 receipt leaves €200 unallocated. Tested in `allocations.sql`.
+- [x] Two concurrent allocations for the last €100 of an invoice: one succeeds, one is refused, and no deadlock occurs (concurrency test). Tested by `concurrency/last_amount.sh`, which `scripts/run-sql-tests.sh` runs: one allocated, one refused, no deadlock.
+- [ ] An allocation to a draft invoice, an order, a void document or another party's invoice is refused. Open: `allocations.sql` tests a draft, an order, another customer's invoice and a sterling customer's invoice, but not a void document as the target.
+- [x] A credit note as the target of another credit note is refused. Tested in `allocations.sql`.
+- [x] An allocation from a void payment is refused. Tested in `allocations.sql`.
+- [x] An allocation whose source and target are in different organisations is refused by the foreign keys, even inside one tenant. Tested in `allocations.sql`.
+- [x] Posting a €300 credit note against a €1,000 invoice reduces its amount due to €700, and the credit note's `paid_at_posting` is 0. Tested in `allocations.sql`.
+- [x] Posting a credit note against a fully paid invoice makes no allocation and leaves the credit note open. Tested in `allocations.sql`.
+- [x] Removing an allocation restores the open amount, and the removed row remains with its reason. Tested in `allocations.sql`.
+- [x] The three worked examples in 3.5 produce exactly −€1.37, +€1.37 and €58.83, with `home_amount_due` €0.00 and an exchange difference of €0.00 on both allocations of the third. Tested in `allocations.sql`.
+- [x] A pending allocation holds zero home amounts and an exchange difference of 0 until its payment posts, and has them set on posting. Tested in `allocations.sql` and, for the figures on posting, in `payment_functions.sql`.
+- [x] A €300 credit note applied €300 to an invoice cannot also be refunded any amount: the refund is refused, and its amount due stays 0. Tested in `allocations.sql`: a refund over the balance left is refused by the same check. The exact case of a credit note applied in full is not tested on its own.
+- [x] A €300 credit note applied €200 to an invoice can be refunded €100 but not €101. Tested in `allocations.sql`.
+- [ ] A void payment shows unallocated 0 and does not appear in "has money on account". Open: the database half is tested (`payment_functions.sql`, a void payment has nothing on account). The "has money on account" filter is code in `PaymentManager.tsx` and has no test.
+- [x] A draft document with a non-zero `paid_amount` is refused by the database. Tested in `migrate_paid_amounts.sql`.
+- [x] Posting a payment with no allocations, dated on or before the lock date, is refused. Tested in `payment_functions.sql`.
+- [x] An allocation dated on or before the lock date is refused, and so is removing one dated on or before it. Tested in `allocations.sql`.
+- [x] Allocating to a posted document changes its `paid_amount` and `amount_due` without changing its `updated_at`, and writes no header audit row. Tested in `allocations.sql`.
+- [x] `void_document` on a purchase invoice with an effective allocation is refused. Voiding one with only a pending allocation deletes that allocation. Tested in `allocations.sql`.
+- [ ] `en16931_document`, `en16931_readiness` and stored outbound e-documents are unchanged for every existing fixture after allocations are added to their documents. Open: `allocations.sql` checks `en16931_document` is unchanged after a payment, for one invoice. It does not check `en16931_readiness` or stored outbound e-documents.
+- [x] Importing an e-invoice with BT-113 of €50.00 sets `supplier_stated_paid_amount` to 50.00 and leaves `paid_amount` at 0. Tested in `edocuments.sql`.
+- [x] Authenticated users cannot insert, update or delete `allocations` directly. Tested in `allocations.sql`.
 
 ---
 
@@ -418,12 +418,12 @@ A post that fails any check consumes no number.
 
 ### Acceptance
 
-- [ ] A draft receipt with pending allocations posts, and the allocations become effective with the dates from 3.3.
-- [ ] If another receipt posted meanwhile took the open amount, posting fails, names the invoice and issues no number.
-- [ ] Voiding a posted receipt restores every invoice's amount due.
-- [ ] A member cannot void; an admin can, with a reason.
-- [ ] A payment dated on or before the lock date cannot be posted. One with an allocation dated on or before it cannot be voided.
-- [ ] On-post numbering issues gapless numbers for payments, as for sales documents.
+- [x] A draft receipt with pending allocations posts, and the allocations become effective with the dates from 3.3. Tested in `payment_functions.sql`.
+- [x] If another receipt posted meanwhile took the open amount, posting fails, names the invoice and issues no number. Tested in `payment_functions.sql`.
+- [x] Voiding a posted receipt restores every invoice's amount due. Tested in `payment_functions.sql`.
+- [x] A member cannot void; an admin can, with a reason. Tested in `payment_functions.sql`.
+- [x] A payment dated on or before the lock date cannot be posted. One with an allocation dated on or before it cannot be voided. Tested in `payment_functions.sql`.
+- [x] On-post numbering issues gapless numbers for payments, as for sales documents. Tested in `payment_functions.sql`.
 
 ---
 
@@ -470,13 +470,13 @@ Every posted document's `paid_amount`, `amount_due` and `paid_at_posting` must b
 
 ### Acceptance
 
-- [ ] Every posted document's paid amount, amount due and `paid_at_posting` are unchanged after migration, except overpaid documents, which are listed and whose negative amount due becomes 0.
-- [ ] `MIG*` types are not offered in the new-payment menu and cannot be edited or deleted by users.
-- [ ] Each converted document shows one migrated allocation, and each migrated payment has a `MIG-` number.
-- [ ] Real payment types' number sequences are unaffected.
-- [ ] A posted document dated before the lock date migrates successfully.
-- [ ] Drafts end with paid amount 0; void documents are unchanged.
-- [ ] No screen, action or function accepts a typed paid amount.
+- [x] Every posted document's paid amount, amount due and `paid_at_posting` are unchanged after migration, except overpaid documents, which are listed and whose negative amount due becomes 0. Tested in `migrate_paid_amounts.sql`, which runs the migration file.
+- [ ] `MIG*` types are not offered in the new-payment menu and cannot be edited or deleted by users. Open: the database refuses to change or delete them (`migrate_paid_amounts.sql`). Leaving them out of the menu and the type admin list is code (`is_system` filters) with no test.
+- [x] Each converted document shows one migrated allocation, and each migrated payment has a `MIG-` number. Tested in `migrate_paid_amounts.sql`.
+- [x] Real payment types' number sequences are unaffected. Tested in `migrate_paid_amounts.sql`.
+- [x] A posted document dated before the lock date migrates successfully. Tested in `migrate_paid_amounts.sql`.
+- [x] Drafts end with paid amount 0; void documents are unchanged. Tested in `migrate_paid_amounts.sql`.
+- [x] No screen, action or function accepts a typed paid amount. Tested in `migrate_paid_amounts.sql`: the database refuses one. The app has no field for it.
 
 ---
 
@@ -507,11 +507,11 @@ On a posted payment, the open items panel stays usable for allocating unallocate
 
 ### Acceptance (also as end-to-end flows)
 
-- [ ] Record a receipt from a posted sales invoice, post it, and the invoice shows paid.
-- [ ] Enter a receipt for two invoices using Allocate oldest first, post it, and both show the right amounts due.
-- [ ] Apply a credit note's balance to a second invoice.
-- [ ] Refund a customer's unallocated credit note balance with a customer refund.
-- [ ] Remove an allocation on a posted payment with a reason, then reallocate it to another invoice.
+- [x] Record a receipt from a posted sales invoice, post it, and the invoice shows paid. End-to-end flow 12.
+- [x] Enter a receipt for two invoices using Allocate oldest first, post it, and both show the right amounts due. End-to-end flow 13.
+- [x] Apply a credit note's balance to a second invoice. End-to-end flow 14.
+- [x] Refund a customer's unallocated credit note balance with a customer refund. End-to-end flow 15.
+- [x] Remove an allocation on a posted payment with a reason, then reallocate it to another invoice. End-to-end flow 16.
 
 ---
 
@@ -569,9 +569,9 @@ When an imported document's `supplier_stated_paid_amount` is greater than 0, the
 
 ### Acceptance
 
-- [ ] "Who owes us the most?" reflects allocations, not the old typed figures.
-- [ ] A receipt left unallocated for 8 days appears in Worth a look.
-- [ ] An imported e-invoice with BT-113 greater than 0 shows the warning.
+- [ ] "Who owes us the most?" reflects allocations, not the old typed figures. Open: the lookup is written and unit tested (`blocks.test.ts`, `tools.test.ts`) but has not run against real data.
+- [ ] A receipt left unallocated for 8 days appears in Worth a look. Open: the rule is unit tested (`insights.test.ts`). No flow makes a receipt eight days old.
+- [ ] An imported e-invoice with BT-113 greater than 0 shows the warning. Open: the notice wording is unit tested (`payments.test.ts`) and the stored figure is tested in `edocuments.sql`. No flow imports an e-invoice with BT-113.
 
 ---
 
@@ -585,7 +585,7 @@ When an imported document's `supplier_stated_paid_amount` is greater than 0, the
 
 ## Done when
 
-- [ ] All SQL, unit and end-to-end tests pass on a fresh database built from all migrations in order.
-- [ ] The release B migration runs cleanly against a copy of the live project, with every paid amount, amount due and `paid_at_posting` unchanged (overpaid documents excepted, and listed), and its review lists produced.
-- [ ] Types are regenerated.
-- [ ] `TECHNICAL.md`, `CORE.md` and the status document describe payments, receipts, allocations, settlement and calculated paid amounts, and drop "Paid amount is a single figure typed on the document" from the gaps.
+- [x] All SQL, unit and end-to-end tests pass on a fresh database built from all migrations in order. The `database`, `test` and `e2e` jobs pass in CI on a database built from every migration in order.
+- [ ] The release B migration runs cleanly against a copy of the live project, with every paid amount, amount due and `paid_at_posting` unchanged (overpaid documents excepted, and listed), and its review lists produced. Open: never done as written. The migration was applied straight to the hosted project, which held no typed paid amounts (0 of 10 documents), so nothing changed and there were no review lists to produce.
+- [x] Types are regenerated. `npm run db:types` and `scripts/check-db-types.mjs` pass in CI.
+- [x] `TECHNICAL.md`, `CORE.md` and the status document describe payments, receipts, allocations, settlement and calculated paid amounts, and drop "Paid amount is a single figure typed on the document" from the gaps. `CORE.md` and `TECHNICAL.md` describe them. There is no separate status document in the repository, and the gap line about a typed paid amount was not in either file.
