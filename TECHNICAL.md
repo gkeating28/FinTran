@@ -586,8 +586,15 @@ The flows run one at a time, in file order, on one database, and each signs in t
 | 17 | A double tap on an open invoice allocates what is open on it, is refused when it does not fit, and fills in a blank amount. |
 | 18 | A supplier payment for three invoices prints a remittance advice listing all three, a draft prints with DRAFT and a void payment with VOID. |
 | 19 | The form of a payment type is designed (new title, one column off, required fields locked), the payment prints from it, and Standard brings the original back. |
+| 20 | An owner sets a rule, a member's invoice over it has no Post, the member requests approval, an admin approves, and the member posts it. |
+| 21 | Editing an approved invoice cancels the approval. |
+| 22 | An admin refuses with a reason, the member sees it, changes the invoice and asks again. |
+| 23 | An invoice raised from an order and priced over the tolerance needs approval and marks the line, and one within it does not. |
+| 24 | Ask Qula gives a card with the reason and no Confirm button for a draft that needs approval. |
+| 25 | With no rule, a member posts a large purchase invoice as before. It runs first in its file, before a rule exists. |
+| 26 | A request emails each approver and not the requester, a decision emails the requester, and the mock adapter marks each sent. |
 
-The helpers are `e2e/documents.ts` (open a list, fill a document, press a button, read a row), `e2e/api.ts` (call the API as a test person, to check what the screens hide) and `e2e/upload.ts` (upload an e-invoice and fail with the server's own message). The test files are in `e2e/files`.
+Flows 20 to 26 are in `e2e/z-approvals.spec.ts`, named to run after every other file because they leave a rule and many Vodafone documents behind (the last flow removes the rule and the tolerance). The helpers are `e2e/documents.ts` (open a list, fill a document, press a button, read a row), `e2e/api.ts` (call the API as a test person, to check what the screens hide) and `e2e/upload.ts` (upload an e-invoice and fail with the server's own message). The test files are in `e2e/files`.
 
 To run them locally, start the stack with `supabase start -x studio,imgproxy,edge-runtime,logflare,vector,realtime` and set the variables below. Then run:
 

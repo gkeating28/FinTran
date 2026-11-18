@@ -238,7 +238,7 @@ A credit note is never reported as overdue or due soon.
 | Unit tests | `npm test` | 161 tests in 30 files |
 | SQL tests | `scripts/run-sql-tests.sh` against a local Supabase stack built from every migration | 38 test files and 2 two-session concurrency scripts |
 | Types | `npm run db:types` | Fails if the generated types stop matching the migrations |
-| End to end | Playwright in Chromium on the built app and a seeded stack | 19 flows and a smoke test of every main page for owner, admin and member |
+| End to end | Playwright in Chromium on the built app and a seeded stack | 26 flows and a smoke test of every main page for owner, admin and member |
 
 CI runs all five on every pull request and every push to a `claude/` branch. Every pull request merged so far had a passing run on its branch.
 

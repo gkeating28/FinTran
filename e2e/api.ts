@@ -31,6 +31,11 @@ export async function apiAs(role: Role) {
       if (!response.ok) throw new Error(`Reading ${table} failed with ${response.status}.`);
       return (await response.json()) as T[];
     },
+    /** Deletes rows through the API and returns the status. A row the person may not delete is simply not removed. */
+    async remove(table: string, query: string) {
+      const response = await fetch(`${url}/rest/v1/${table}?${query}`, { method: "DELETE", headers: { ...headers, Prefer: "return=representation" } });
+      return { status: response.status, rows: response.ok ? ((await response.json()) as unknown[]) : [] };
+    },
     /** Updates rows through the API and returns the rows that changed. */
     async update<T = Record<string, unknown>>(table: string, query: string, values: Record<string, unknown>) {
       const response = await fetch(`${url}/rest/v1/${table}?${query}`, {
