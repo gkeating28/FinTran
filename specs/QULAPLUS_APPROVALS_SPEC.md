@@ -1,6 +1,6 @@
 # Qula Plus purchase approvals and price tolerance spec
 
-Version 3, 18 November 2026. The seven review questions are answered and the three readings are confirmed (see "Answers to the review questions"). Being built.
+Version 3, 18 November 2026. The seven review questions are answered and the three readings are confirmed (see "Answers to the review questions"). Built and passing CI on PR 99 (SQL, unit and end-to-end, flows 20 to 26). Boxes still open are behaviours no test proves yet. Not applied to the hosted project yet.
 
 Goal: let an organisation say that a purchase order or purchase invoice above a set amount, or an invoice whose prices have gone over what was ordered, must be approved by someone senior before it takes effect. This is step 2 of the agreed order (aged debtors and creditors, approvals with price tolerance, journal export, bank statement import, live connectors and bank feeds). It comes before journal export so that what is exported has already passed the posting rules.
 
@@ -103,19 +103,19 @@ A trigger on the header and on the lines sets a `requested` or `approved` docume
 
 ### Acceptance
 
-- [ ] With no rule set, posting a purchase invoice and activating a purchase order behave exactly as before.
-- [ ] A rule of €1,000 for admin on a purchase invoice type: a €999.99 invoice posts for a member. A €1,000.00 one is refused with the request message.
-- [ ] A member requests approval, an admin approves, and then a member posts it.
-- [ ] A ladder of €1,000 for admin and €10,000 for owner: a €5,000 invoice can be approved by an admin and a €12,000 one only by an owner.
-- [ ] A member cannot approve. An admin cannot approve a document that needs an owner.
-- [ ] The requester cannot approve their own request when another person with a high enough role exists. When none does, they can, and `approval_self` is true.
-- [ ] Editing a line, the price, the supplier or the date of a requested or approved document sets it back to `required`.
-- [ ] A rejection without a reason is refused. A rejected document can be changed and requested again.
-- [ ] The same gate applies to activating a purchase order. A requisition, a credit note, a sales document and a payment are not gated.
+- [x] With no rule set, posting a purchase invoice and activating a purchase order behave exactly as before.
+- [x] A rule of €1,000 for admin on a purchase invoice type: a €999.99 invoice posts for a member. A €1,000.00 one is refused with the request message.
+- [x] A member requests approval, an admin approves, and then a member posts it.
+- [x] A ladder of €1,000 for admin and €10,000 for owner: a €5,000 invoice can be approved by an admin and a €12,000 one only by an owner.
+- [x] A member cannot approve. An admin cannot approve a document that needs an owner.
+- [x] The requester cannot approve their own request when another person with a high enough role exists. When none does, they can, and `approval_self` is true.
+- [x] Editing a line, the price, the supplier or the date of a requested or approved document sets it back to `required`.
+- [x] A rejection without a reason is refused. A rejected document can be changed and requested again.
+- [x] The same gate applies to activating a purchase order. A requisition, a credit note, a sales document and a payment are not gated.
 - [ ] A document needing approval cannot be posted through Ask Qula's route, an imported draft's Post, or the save-before-acting button, because all of them end in `post_document`.
-- [ ] Nobody can write the approval columns or the rules table directly, except owners and admins on the rules. A member can read the rules.
-- [ ] Requests, approvals and rejections are in the audit log with the note.
-- [ ] A posted document's approval record cannot change.
+- [x] Nobody can write the approval columns or the rules table directly, except owners and admins on the rules. A member can read the rules.
+- [x] Requests, approvals and rejections are in the audit log with the note.
+- [x] A posted document's approval record cannot change.
 
 ## Phase 2: price tolerance
 
@@ -129,12 +129,12 @@ New columns on `organisation_defaults`: `price_tolerance_percent` (null, or from
 
 ### Acceptance
 
-- [ ] An invoice line priced 4% over its order line with a 5% tolerance is not over. At 5.01% it is.
-- [ ] A line priced below the order price is never over.
-- [ ] A discount on the invoice line counts: a higher price with an offsetting discount that leaves the unit net price equal is not over.
-- [ ] A line with no order line is not compared.
-- [ ] With a null percentage nothing is checked, and with approvals turned on for the type a breach makes the invoice need approval from an admin even when its amount is under every rule.
-- [ ] With `price_tolerance_needs_approval` false, a breach is shown and does not block posting.
+- [x] An invoice line priced 4% over its order line with a 5% tolerance is not over. At 5.01% it is.
+- [x] A line priced below the order price is never over.
+- [x] A discount on the invoice line counts: a higher price with an offsetting discount that leaves the unit net price equal is not over.
+- [x] A line with no order line is not compared.
+- [x] With a null percentage nothing is checked, and with approvals turned on for the type a breach makes the invoice need approval from an admin even when its amount is under every rule.
+- [x] With `price_tolerance_needs_approval` false, a breach is shown and does not block posting.
 
 ## Phase 3: screens
 
@@ -146,12 +146,12 @@ New columns on `organisation_defaults`: `price_tolerance_percent` (null, or from
 
 ### Acceptance
 
-- [ ] A member sees Request approval where a rule applies, and Post where none does.
-- [ ] An approver sees Approve and Reject only on a document in the requested state and only with a high enough role.
+- [x] A member sees Request approval where a rule applies, and Post where none does.
+- [x] An approver sees Approve and Reject only on a document in the requested state and only with a high enough role.
 - [ ] Request approval on a form with unsaved edits saves first and then requests, and a failed save does not request.
-- [ ] A line over tolerance shows the marker and the percentage.
+- [x] A line over tolerance shows the marker and the percentage.
 - [ ] The list filter finds documents waiting for approval, and the home page count matches it.
-- [ ] The rules list and the tolerance setting cannot be changed by a member.
+- [x] The rules list and the tolerance setting cannot be changed by a member.
 
 ## Phase 4: Ask Qula, Worth a look and imports
 
@@ -161,8 +161,8 @@ New columns on `organisation_defaults`: `price_tolerance_percent` (null, or from
 
 ### Acceptance
 
-- [ ] A document waiting for approval appears in Worth a look for an admin and not for a member.
-- [ ] Asking Ask Qula to post a document that needs approval gives a card with the reason and no Confirm button.
+- [x] A document waiting for approval appears in Worth a look for an admin and not for a member.
+- [x] Asking Ask Qula to post a document that needs approval gives a card with the reason and no Confirm button.
 - [ ] Ask Qula can list documents waiting for approval.
 - [ ] An imported draft over a rule's amount is refused at posting until approved.
 
@@ -175,12 +175,12 @@ New columns on `organisation_defaults`: `price_tolerance_percent` (null, or from
 
 ### Acceptance
 
-- [ ] A request writes one outbox row for each person with a high enough role, not the requester, and none when the switch is off.
-- [ ] An approval or a rejection writes one row for the requester, with the note or reason and a link.
-- [ ] With the mock adapter every row ends `sent` and nothing leaves the system.
-- [ ] A failing adapter leaves rows `failed`, shows them to an owner or admin, and the request, approval and posting still work.
-- [ ] A member cannot read or write the outbox directly.
-- [ ] A person with a lower role than needed gets no email for that request.
+- [x] A request writes one outbox row for each person with a high enough role, not the requester, and none when the switch is off.
+- [x] An approval or a rejection writes one row for the requester, with the note or reason and a link.
+- [x] With the mock adapter every row ends `sent` and nothing leaves the system.
+- [x] A failing adapter leaves rows `failed`, shows them to an owner or admin, and the request, approval and posting still work.
+- [x] A member cannot read or write the outbox directly.
+- [x] A person with a lower role than needed gets no email for that request.
 
 ## Phase 6: end-to-end tests
 
@@ -196,7 +196,7 @@ New flows, numbered from 20, each with amounts no other flow uses:
 
 ### Acceptance
 
-- [ ] All seven flows pass in CI, and the existing flows pass without changes beyond any new setup they need.
+- [x] All seven flows pass in CI, and the existing flows pass without changes beyond any new setup they need.
 
 ## Out of scope
 
@@ -209,9 +209,9 @@ New flows, numbered from 20, each with amounts no other flow uses:
 
 ## Done when
 
-- [ ] All SQL, unit and end-to-end tests pass on a fresh database built from all migrations in order.
-- [ ] With no approval rule and no tolerance set, every existing flow passes unchanged.
-- [ ] Types are regenerated.
-- [ ] `CORE.md`, `TECHNICAL.md` and `docs/QULA_PLUS_REFERENCE.md` describe approvals and tolerance, and `npm run check:docs` passes.
+- [x] All SQL, unit and end-to-end tests pass on a fresh database built from all migrations in order.
+- [x] With no approval rule and no tolerance set, every existing flow passes unchanged.
+- [x] Types are regenerated.
+- [x] `CORE.md`, `TECHNICAL.md` and `docs/QULA_PLUS_REFERENCE.md` describe approvals and tolerance, and `npm run check:docs` passes.
 - [ ] The migration is applied to the hosted FinTran project, with the date recorded.
 - [ ] A mail provider is chosen and the real adapter is built, or the spec says email is mock-only until it is.
