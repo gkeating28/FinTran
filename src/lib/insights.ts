@@ -193,6 +193,47 @@ export function findStaleDrafts(drafts: HoldingDraft[], today: string) {
   return drafts.filter((draft) => draft.created && days(draft.created.slice(0, 10), today) > STALE_DRAFT_DAYS);
 }
 
+/** A draft purchase document waiting for this person to decide, or one of theirs that was refused. */
+export type ApprovalQueueItem = {
+  id: string;
+  state: "waiting" | "refused";
+  typeCode: string;
+  number: string;
+  party: string;
+  amount: number;
+  requestedAt: string;
+  note: string;
+  decidedBy: string;
+};
+
+/** Worth a look for approvals: what waits on this person, oldest first, and what was refused to them. */
+export function buildApprovalInsights(items: ApprovalQueueItem[]): Insight[] {
+  const insights: Insight[] = [];
+  const waiting = items.filter((item) => item.state === "waiting");
+  if (waiting.length > 0) {
+    const oldest = [...waiting].sort((a, b) => a.requestedAt.localeCompare(b.requestedAt))[0];
+    insights.push({
+      id: "approvals-waiting",
+      tone: "attention",
+      title: `${plural(waiting.length, "document")} waiting for your approval`,
+      detail: `The oldest is ${oldest.typeCode} ${oldest.number} for ${oldest.party || "no supplier"}, ${euro(oldest.amount)}, asked for ${shortDate(oldest.requestedAt)}. Open it to approve or refuse it.`,
+      href: `/transactions/${oldest.typeCode}?open=${oldest.id}`,
+    });
+  }
+  const refused = items.filter((item) => item.state === "refused");
+  if (refused.length > 0) {
+    const first = refused[0];
+    insights.push({
+      id: "approvals-refused",
+      tone: "attention",
+      title: `${plural(refused.length, "document")} refused approval`,
+      detail: `${first.typeCode} ${first.number} for ${first.party || "no supplier"} was refused${first.decidedBy ? ` by ${first.decidedBy}` : ""}: ${first.note || "no reason was given"}. Change it and ask again, or delete it.`,
+      href: `/transactions/${first.typeCode}?open=${first.id}`,
+    });
+  }
+  return insights;
+}
+
 export type NotReady = { id: string; number: string; direction: "Purchases" | "Sales"; typeCode: string; errors: string[] };
 
 export function buildInsights(
@@ -202,8 +243,9 @@ export function buildInsights(
   openOrders: OpenOrder[] = [],
   watch: OrderWatch = { closedWithLeft: [], holdingDrafts: [] },
   payments: InsightPayment[] = [],
+  approvals: ApprovalQueueItem[] = [],
 ): Insight[] {
-  const insights: Insight[] = [];
+  const insights: Insight[] = buildApprovalInsights(approvals);
 
   const overdue = findOverdue(docs, today);
   if (overdue.length > 0) {
@@ -419,12 +461,24 @@ export async function getInsights(supabase: SupabaseClient, organisationId: stri
       return errors.length ? { id: draft.id, number: draft.number, direction: draft.direction, typeCode: draft.typeCode, errors } : null;
     }),
   );
+  const queue = supabase.rpc("approval_queue", { p_organisation_id: organisationId });
   const [closedWithLeft, holdingDrafts, payments] = await Promise.all([
     listClosedOrdersWithQuantityLeft(supabase, organisationId),
     listDraftsHoldingOrders(supabase, organisationId),
     listUnallocatedPayments(supabase, organisationId),
   ]);
-  return buildInsights(docs, checked.filter((item): item is NotReady => item !== null), today, (await openOrders).orders, { closedWithLeft, holdingDrafts }, payments);
+  const approvals: ApprovalQueueItem[] = ((await queue).data ?? []).map((row: Record<string, unknown>) => ({
+    id: String(row.header_id),
+    state: row.state === "refused" ? "refused" : "waiting",
+    typeCode: String(row.type_code ?? ""),
+    number: String(row.document_number ?? "Draft"),
+    party: String(row.party ?? ""),
+    amount: Number(row.amount ?? 0),
+    requestedAt: String(row.requested_at ?? ""),
+    note: String(row.note ?? ""),
+    decidedBy: String(row.decided_by_name ?? ""),
+  }));
+  return buildInsights(docs, checked.filter((item): item is NotReady => item !== null), today, (await openOrders).orders, { closedWithLeft, holdingDrafts }, payments, approvals);
 }
 
 /** Posted payments and receipts with something left that is not applied. A void payment has nothing left. */

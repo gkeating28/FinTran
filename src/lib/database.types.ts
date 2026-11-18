@@ -586,6 +586,84 @@ export type Database = {
           },
         ]
       }
+      approval_rules: {
+        Row: {
+          active: boolean
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          organisation_id: string
+          required_role: string
+          tenant_id: string
+          transaction_type_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          organisation_id: string
+          required_role: string
+          tenant_id: string
+          transaction_type_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          organisation_id?: string
+          required_role?: string
+          tenant_id?: string
+          transaction_type_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_rules_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_rules_type_fkey"
+            columns: ["organisation_id", "transaction_type_id"]
+            isOneToOne: false
+            referencedRelation: "transaction_types"
+            referencedColumns: ["organisation_id", "id"]
+          },
+          {
+            foreignKeyName: "approval_rules_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -1369,6 +1447,99 @@ export type Database = {
           },
         ]
       }
+      email_outbox: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          error: string | null
+          header_id: string
+          id: string
+          link_path: string
+          organisation_id: string
+          reason: string
+          recipient_email: string
+          recipient_id: string | null
+          recipient_name: string
+          sent_at: string | null
+          status: string
+          subject: string
+          tenant_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          header_id: string
+          id?: string
+          link_path: string
+          organisation_id: string
+          reason: string
+          recipient_email: string
+          recipient_id?: string | null
+          recipient_name?: string
+          sent_at?: string | null
+          status?: string
+          subject: string
+          tenant_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          header_id?: string
+          id?: string
+          link_path?: string
+          organisation_id?: string
+          reason?: string
+          recipient_email?: string
+          recipient_id?: string | null
+          recipient_name?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_outbox_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_outbox_header_id_fkey"
+            columns: ["header_id"]
+            isOneToOne: false
+            referencedRelation: "transaction_headers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_outbox_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_outbox_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_outbox_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gl_codes: {
         Row: {
           account_type: string
@@ -1511,6 +1682,7 @@ export type Database = {
       }
       organisation_defaults: {
         Row: {
+          approval_emails: boolean
           address_line1: string | null
           address_line2: string | null
           address_line3: string | null
@@ -1537,6 +1709,8 @@ export type Database = {
           peppol_scheme: string | null
           phone: string | null
           post_code: string | null
+          price_tolerance_needs_approval: boolean
+          price_tolerance_percent: number | null
           tenant_id: string
           updated_at: string
           updated_by: string | null
@@ -1544,6 +1718,7 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          approval_emails?: boolean
           address_line1?: string | null
           address_line2?: string | null
           address_line3?: string | null
@@ -1570,6 +1745,8 @@ export type Database = {
           peppol_scheme?: string | null
           phone?: string | null
           post_code?: string | null
+          price_tolerance_needs_approval?: boolean
+          price_tolerance_percent?: number | null
           tenant_id: string
           updated_at?: string
           updated_by?: string | null
@@ -1577,6 +1754,7 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          approval_emails?: boolean
           address_line1?: string | null
           address_line2?: string | null
           address_line3?: string | null
@@ -1603,6 +1781,8 @@ export type Database = {
           peppol_scheme?: string | null
           phone?: string | null
           post_code?: string | null
+          price_tolerance_needs_approval?: boolean
+          price_tolerance_percent?: number | null
           tenant_id?: string
           updated_at?: string
           updated_by?: string | null
@@ -2537,6 +2717,16 @@ export type Database = {
       transaction_headers: {
         Row: {
           amount_due: number
+          approval_decided_at: string | null
+          approval_decided_by: string | null
+          approval_hash: string | null
+          approval_note: string | null
+          approval_reason: string | null
+          approval_requested_at: string | null
+          approval_requested_by: string | null
+          approval_required_role: string | null
+          approval_self: boolean
+          approval_status: string | null
           buyer_reference: string | null
           closed_by_system: boolean
           contact_details: string | null
@@ -2597,6 +2787,16 @@ export type Database = {
         }
         Insert: {
           amount_due: number
+          approval_decided_at?: string | null
+          approval_decided_by?: string | null
+          approval_hash?: string | null
+          approval_note?: string | null
+          approval_reason?: string | null
+          approval_requested_at?: string | null
+          approval_requested_by?: string | null
+          approval_required_role?: string | null
+          approval_self?: boolean
+          approval_status?: string | null
           buyer_reference?: string | null
           closed_by_system?: boolean
           contact_details?: string | null
@@ -2657,6 +2857,16 @@ export type Database = {
         }
         Update: {
           amount_due?: number
+          approval_decided_at?: string | null
+          approval_decided_by?: string | null
+          approval_hash?: string | null
+          approval_note?: string | null
+          approval_reason?: string | null
+          approval_requested_at?: string | null
+          approval_requested_by?: string | null
+          approval_required_role?: string | null
+          approval_self?: boolean
+          approval_status?: string | null
           buyer_reference?: string | null
           closed_by_system?: boolean
           contact_details?: string | null
@@ -2716,6 +2926,20 @@ export type Database = {
           voided_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "transaction_headers_approval_decided_by_fkey"
+            columns: ["approval_decided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_headers_approval_requested_by_fkey"
+            columns: ["approval_requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transaction_headers_created_by_fkey"
             columns: ["created_by"]
@@ -3337,6 +3561,43 @@ export type Database = {
         Args: { p_source: Json }
         Returns: number
       }
+      approval_queue: {
+        Args: { p_organisation_id: string }
+        Returns: {
+          amount: number
+          decided_at: string
+          decided_by_name: string
+          document_number: string
+          header_id: string
+          note: string
+          party: string
+          requested_at: string
+          requested_by_name: string
+          state: string
+          type_code: string
+        }[]
+      }
+      approval_status: {
+        Args: { p_header_ids: string[] }
+        Returns: {
+          can_decide: boolean
+          decided_at: string
+          decided_by_name: string
+          header_id: string
+          note: string
+          price_over: boolean
+          reason: string
+          requested_at: string
+          requested_by_name: string
+          required_role: string
+          self: boolean
+          state: string
+        }[]
+      }
+      approve_document: {
+        Args: { p_header_id: string; p_note?: string }
+        Returns: undefined
+      }
       clear_organisation_secret: {
         Args: { p_kind: string; p_organisation_id: string }
         Returns: undefined
@@ -3425,6 +3686,20 @@ export type Database = {
         Args: { p_payment_id: string }
         Returns: undefined
       }
+      price_checks: {
+        Args: { p_header_id: string }
+        Returns: {
+          description: string
+          difference_percent: number
+          invoice_price: number
+          invoice_unit_net: number
+          line_id: string
+          line_number: number
+          order_price: number
+          order_unit_net: number
+          over: boolean
+        }[]
+      }
       propose_ai_action: {
         Args: {
           p_action: string
@@ -3435,6 +3710,21 @@ export type Database = {
           p_token_hash: string
         }
         Returns: string
+      }
+      queued_emails: {
+        Args: { p_header_id: string }
+        Returns: {
+          body: string
+          id: string
+          link_path: string
+          recipient_email: string
+          recipient_name: string
+          subject: string
+        }[]
+      }
+      record_email_result: {
+        Args: { p_error?: string; p_id: string }
+        Returns: undefined
       }
       record_ai_feedback: {
         Args: {
@@ -3458,6 +3748,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      reject_document: {
+        Args: { p_header_id: string; p_reason: string }
+        Returns: undefined
+      }
       reject_e_document: {
         Args: { p_id: string; p_reason: string }
         Returns: undefined
@@ -3476,6 +3770,10 @@ export type Database = {
       }
       replace_pending_allocations: {
         Args: { p_lines: Json; p_payment_id: string }
+        Returns: undefined
+      }
+      request_approval: {
+        Args: { p_header_id: string; p_note?: string }
         Returns: undefined
       }
       revoke_organisation_access: {

@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { listAuditLog } from "@/lib/audit-data";
 import { explainIssue } from "@/lib/einvoice/rule-help";
 import { getInsights } from "@/lib/insights";
+import { approvalFromRow, approvalLabel, approvalMatches, type ApprovalInfo, type ApprovalRow } from "@/lib/approvals";
 import { listOpenOrders } from "@/lib/order-data";
 
 type Client = SupabaseClient;
@@ -169,9 +170,24 @@ function embedded(value: unknown) {
 const HEADER_COLUMNS =
   "id, document_number, status, party_name, transaction_date, due_date, amount_due, foreign_nett_amount, foreign_vat_amount, foreign_total_amount, home_nett_amount, home_vat_amount, home_total_amount, transaction_types!inner(type, code)";
 
-function shapeHeader(document: Row) {
+/** Where each draft stands on approval. A document that needs none has no entry. */
+async function approvalStates(supabase: Client, ids: string[]) {
+  const found = new Map<string, ApprovalInfo>();
+  if (ids.length === 0) return found;
+  const { data, error } = await supabase.rpc("approval_status", { p_header_ids: ids.slice(0, 200) });
+  if (error) return found;
+  for (const row of (data ?? []) as ApprovalRow[]) {
+    const info = approvalFromRow(row);
+    if (info) found.set(row.header_id, info);
+  }
+  return found;
+}
+
+function shapeHeader(document: Row, approvals: Map<string, ApprovalInfo> = new Map()) {
   const type = embedded(document.transaction_types);
+  const approval = approvals.get(String(document.id));
   return {
+    ...(approval ? { approval: approvalLabel(approval).toLowerCase(), approval_for: approval.reason, approval_role: approval.role } : {}),
     id: document.id,
     document_number: document.document_number,
     type: type?.type,
@@ -216,7 +232,7 @@ async function runTool(supabase: Client, organisationId: string, name: string, i
     const { data } = await query.gt("amount_due", 0).order("due_date", { ascending: true }).limit(2);
     const rows = rowsOf(data);
     if (rows.length === 0) return { error: "No posted sales document with an amount still due matches that." };
-    if (rows.length > 1 && !input.id) return { error: "More than one document matches. Ask which one, by its number.", candidates: rows.map(shapeHeader) };
+    if (rows.length > 1 && !input.id) return { error: "More than one document matches. Ask which one, by its number.", candidates: rows.map((row) => shapeHeader(row)) };
     const header = rows[0];
     const [customer, organisation] = await Promise.all([
       supabase.from("customers").select("email").eq("organisation_id", organisationId).eq("id", String(header.customer_id)).maybeSingle(),
@@ -297,19 +313,24 @@ async function runTool(supabase: Client, organisationId: string, name: string, i
     if (input.overdue) query = (query.lt("due_date", dateOf(input.asOf) ?? new Date().toISOString().slice(0, 10)).gt("amount_due", 0) as unknown as Filtered).neq("transaction_types.document_kind", "credit_note") as unknown as typeof query;
     if (input.minAmount != null) query = query.gte("foreign_total_amount", Number(input.minAmount));
     if (input.maxAmount != null) query = query.lte("foreign_total_amount", Number(input.maxAmount));
-    const { data } = await query.order("transaction_date", { ascending: false }).limit(LIST_LIMIT);
-    const documents = rowsOf(data).filter((document) => within(document, input));
+    // An approval filter looks only at draft purchase documents, and reads more of them because it narrows after reading.
+    const approvalFilter = word(input.approval);
+    if (approvalFilter) query = (query as unknown as Filtered).eq("status", "draft").eq("transaction_types.type", "Purchases") as unknown as typeof query;
+    const { data } = await query.order("transaction_date", { ascending: false }).limit(approvalFilter ? 200 : LIST_LIMIT);
+    let documents = rowsOf(data, approvalFilter ? 200 : LIST_LIMIT).filter((document) => within(document, input));
+    const approvals = await approvalStates(supabase, documents.filter((document) => document.status === "draft").map((document) => String(document.id)));
+    if (approvalFilter) documents = documents.filter((document) => approvalMatches(approvals.get(String(document.id)), approvalFilter === "refused" || approvalFilter === "rejected" ? "refused" : approvalFilter)).slice(0, LIST_LIMIT);
     if (name === "get_transaction" && documents[0]?.id) {
       const lines = await supabase.from("transaction_lines").select("line_number, description, quantity, price, nett_amount, vat_amount, vat_percentage").eq("organisation_id", organisationId).eq("header_id", String(documents[0].id)).order("line_number").limit(LIST_LIMIT);
       const direction = embedded(documents[0].transaction_types)?.type === "Sales" ? "Sales" : "Purchases";
       const readiness = documents[0].status === "draft" ? await supabase.rpc("en16931_readiness", { p_header_id: String(documents[0].id) }) : null;
       return {
-        document: shapeHeader(documents[0]),
+        document: shapeHeader(documents[0], approvals),
         ...(readiness ? { readiness: withHelp(rowsOf(readiness.data), direction) } : {}),
         lines: rowsOf(lines.data).map((line) => ({ ...line, nett_amount: money(line.nett_amount), vat_amount: money(line.vat_amount), price: money(line.price) })),
       };
     }
-    return { documents: documents.map(shapeHeader), shown: documents.length, limit: LIST_LIMIT };
+    return { documents: documents.map((document) => shapeHeader(document, approvals)), shown: documents.length, limit: LIST_LIMIT };
   }
 
   if (name === "aging_summary") {

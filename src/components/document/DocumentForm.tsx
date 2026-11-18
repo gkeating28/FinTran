@@ -1,5 +1,6 @@
 "use client";
 
+import { ApprovalButtons, RefuseDialog } from "./ApprovalActions";
 import { keepEntries } from "@/components/keepEntries";
 import FormModal from "@/components/FormModal";
 import styles from "@/components/OpsPage.module.css";
@@ -76,12 +77,14 @@ export default function DocumentForm(props: DocumentFormProps) {
         </div>
       </form>
       <VoidDialog form={form} />
+      <RefuseDialog form={form} />
       <BringInOrders form={form} />
       <LinkedDocumentsPanel form={form} />
       <CreditNotesDialog form={form} />
       <div className={styles.modalActions}>
         <div className={documentStyles.actionCluster}>
           <InvoiceActionButtons form={form} />
+          <ApprovalButtons form={form} />
           <OrderActionButtons form={form} />
         </div>
         <div className={documentStyles.actionCluster}>

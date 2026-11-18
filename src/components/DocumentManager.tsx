@@ -8,6 +8,8 @@ import DataGrid, { type GridColumn } from "@/components/DataGrid";
 import type { ExportField } from "@/components/GridExport";
 import { deleteDocument, postDocument } from "@/lib/document-actions";
 import { loadTransactionReadiness } from "@/lib/readiness-actions";
+import { loadApprovalStatus } from "@/lib/approval-actions";
+import { APPROVAL_FILTERS, approvalLabel, approvalMatches, type ApprovalInfo } from "@/lib/approvals";
 import type { DocumentChoices } from "@/lib/document-data";
 import { documentStatusLabel, isOrderKind, statusesForKind } from "@/lib/transaction-types";
 import { useRegion } from "@/components/useRegion";
@@ -112,6 +114,23 @@ export default function DocumentManager({
     };
   }, [rows]);
 
+  // Approval is read the same way, for the drafts only. Sales documents have none.
+  const [loadedApprovals, setLoadedApprovals] = useState<{ rows: DocumentRow[]; value: Record<string, ApprovalInfo> } | null>(null);
+  const approvalById: Record<string, ApprovalInfo> = loadedApprovals?.rows === rows ? loadedApprovals.value : {};
+  const [approvalFilter, setApprovalFilter] = useState("");
+  useEffect(() => {
+    const drafts = rows.filter((row) => row.status === "draft").map((row) => row.id);
+    if (sales || drafts.length === 0) return;
+    let cancelled = false;
+    loadApprovalStatus(drafts).then((result) => {
+      if (!cancelled) setLoadedApprovals({ rows, value: result });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [rows, sales]);
+  const showApproval = Object.keys(approvalById).length > 0;
+
   // Moving to another page closes any open document.
   const [seenPath, setSeenPath] = useState(pathname);
   if (pathname !== seenPath) {
@@ -159,6 +178,7 @@ export default function DocumentManager({
     if (fromDate && row.transactionDate < fromDate) return false;
     if (toDate && row.transactionDate > toDate) return false;
     if (settlementFilter && !ordersOnly && (row.status !== "posted" || settlementState(row.paidAmount, row.amountDue) !== settlementFilter)) return false;
+    if (approvalFilter && showApproval && !approvalMatches(approvalById[row.id], approvalFilter)) return false;
     if (ordersOnly && invoicingFilter && row.invoicing !== invoicingFilter) return false;
     if (sales && readinessFilter && !ordersOnly) {
       const status = readinessStatus(row.readiness);
@@ -239,6 +259,16 @@ export default function DocumentManager({
                 <option value="paid">Paid</option>
               </select>
             ) : null}
+            {showApproval ? (
+              <select value={approvalFilter} onChange={(event) => setApprovalFilter(event.target.value)} aria-label="Approval">
+                <option value="">Any approval</option>
+                {APPROVAL_FILTERS.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            ) : null}
             {sales && !ordersOnly ? (
               <select value={readinessFilter} onChange={(event) => setReadinessFilter(event.target.value)} aria-label="Readiness">
                 <option value="">Any readiness</option>
@@ -281,6 +311,16 @@ export default function DocumentManager({
             sortValue: (row) => row.status,
             render: (row) => statusLabel(row.status),
           },
+          ...(showApproval
+            ? [
+                {
+                  key: "approval",
+                  label: "Approval",
+                  sortValue: (row: DocumentRow) => approvalLabel(approvalById[row.id]),
+                  render: (row: DocumentRow) => approvalLabel(approvalById[row.id]),
+                },
+              ]
+            : []),
           {
             key: "readiness",
             label: "Readiness",
@@ -428,6 +468,7 @@ export default function DocumentManager({
           header={draft === "new" ? null : draft}
           readiness={draft === "new" ? [] : (readinessById?.[draft.id] ?? draft.readiness)}
           readinessPending={draft !== "new" && readinessById == null}
+          approval={draft === "new" ? null : (approvalById[draft.id] ?? null)}
           lines={lines}
           lineError={lineError}
           choices={choices}

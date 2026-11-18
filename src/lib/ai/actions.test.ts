@@ -24,7 +24,7 @@ type Stored = { p_organisation_id: string; p_action: string; p_token_hash: strin
 
 const PURCHASE = { id: DRAFT, document_number: "PI-1", status: "draft", party_name: "Acme", transaction_date: "2026-11-02", due_date: "2026-12-02", foreign_nett_amount: 100, foreign_vat_amount: 23, foreign_total_amount: 123, currencies: { code: "EUR" }, transaction_types: { type: "Purchases", description: "Purchase invoice", numbering: "on_insert", last_reference: 1, reference_prefix: null, reference_padding: 0 } };
 
-function fake(options: { header?: Record<string, unknown> | null; lines?: number; readiness?: { severity: string; message: string }[]; parties?: unknown[]; breakdown?: unknown[]; stored?: Stored[]; proposeError?: string }) {
+function fake(options: { header?: Record<string, unknown> | null; lines?: number; readiness?: { severity: string; message: string }[]; parties?: unknown[]; breakdown?: unknown[]; approval?: Record<string, unknown>[]; stored?: Stored[]; proposeError?: string }) {
   return {
     from(table: string) {
       if (table === "transaction_headers") return chain({ data: options.header === undefined ? PURCHASE : options.header });
@@ -40,6 +40,7 @@ function fake(options: { header?: Record<string, unknown> | null; lines?: number
         options.stored?.push(args);
         return { data: "id", error: null };
       }
+      if (name === "approval_status") return { data: options.approval ?? [], error: null };
       return { data: options.readiness ?? [], error: null };
     },
   } as never;
@@ -204,4 +205,27 @@ test("the model can only propose: no proposal without a signed in person, and th
   assert.equal(off.result.proposal, null);
   assert.ok(!off.events.some((event) => event.type === "proposal"));
   assert.match(off.seen[0], /not available/);
+});
+
+const WAITING = { header_id: DRAFT, state: "requested", required_role: "admin", reason: "amount", requested_by_name: "Una", requested_at: "2026-11-03T10:00:00Z", decided_by_name: null, decided_at: null, note: null, self: false, can_decide: false, price_over: false };
+
+test("a draft that needs approval gets a card with the reason and nothing to confirm", async () => {
+  for (const state of ["required", "requested", "rejected"]) {
+    const result = await proposeAction(fake({ approval: [{ ...WAITING, state, note: "Too dear", decided_by_name: "Ann" }] }), ORG, USER, { action: "post_draft", id: DRAFT });
+    assert.ok("proposal" in result, state);
+    if ("proposal" in result) {
+      assert.equal(result.proposal.token, null, `${state}: no token, so no Confirm button`);
+      const messages = result.proposal.issues.filter((issue) => issue.severity === "error").map((issue) => issue.message).join(" ");
+      assert.match(messages, /approval/i);
+      assert.match(messages, /Qula cannot ask for or give approval/);
+    }
+  }
+});
+
+test("an approved draft is proposed as usual, and so is one that needs none", async () => {
+  for (const approval of [[{ ...WAITING, state: "approved" }], []]) {
+    const result = await proposeAction(fake({ approval }), ORG, USER, { action: "post_draft", id: DRAFT });
+    assert.ok("proposal" in result);
+    if ("proposal" in result) assert.ok(result.proposal.token, "there is something to confirm");
+  }
 });

@@ -301,6 +301,8 @@ Server actions run on the server with the user session and return `{ error }` or
 | `document-actions.ts` | `saveDocument`, `postDocument`, `voidDocument`, `createCreditNote`, `deleteDocument`, `createFromOrder`, `setOrderStatus` | Documents, for both directions |
 | `party-summary-actions.ts` | `loadPartySummary` | Read-only. What a customer or supplier owes or is owed, money on account and recent payments, for the summary beside the party form |
 | `readiness-actions.ts` | `loadTransactionReadiness` | Read-only `en16931_readiness` for a list of headers |
+| `approval-actions.ts` | `loadApprovalStatus`, `loadPriceChecks`, `requestApproval`, `approveDocument`, `rejectDocument` | Read where drafts stand on approval and each invoice line against its order price. Ask for, give or refuse approval through `request_approval`, `approve_document` and `reject_document`, then reopen the document |
+| `approval-rule-actions.ts` | `createApprovalRule`, `updateApprovalRule`, `deleteApprovalRule` | The approval rules screen. The type is set when the rule is created and cannot change |
 
 `saveDocument` sends this JSON to `save_document`:
 
@@ -325,6 +327,14 @@ These are the `public` functions the app is allowed to call. Arguments match `sr
 | `save_document(p_document jsonb)` | uuid | Inserts or replaces a draft header and its lines. Security invoker, so header and line policies still apply. |
 | `post_document(p_header_id, p_logo_path default null)` | void | Posts a draft. Sales types that number on post take the next number here. |
 | `void_document(p_header_id, p_reason)` | void | Voids a posted purchase with no effective allocation. A posted sale is corrected with a credit note. |
+| `request_approval(p_header_id, p_note default null)` | void | Any member asks for approval of a draft purchase invoice or order that needs it (`private.approval_check`). Records who and when, and a fingerprint of the document |
+| `approve_document(p_header_id, p_note default null)` | void | A role at least the one the rule needs. Refused for the person who asked, unless nobody else could decide (then `approval_self` is true). Only while the approval is waiting and the document is as it was |
+| `reject_document(p_header_id, p_reason)` | void | Same role test. A reason is required |
+| `approval_status(p_header_ids uuid[])` | rows | For drafts that need approval: state (required, requested, approved or rejected), the role asked for, why, who asked and decided, and whether the caller can decide. Documents that need none are left out |
+| `approval_queue(p_organisation_id)` | rows | What waits on the caller on approvals: drafts they could approve or refuse (`waiting`) and their own that were refused (`refused`), oldest first. Feeds Worth a look and the home page count |
+| `queued_emails(p_header_id)` | rows | The approval emails the caller queued for a document that still wait to be handed to the mail adapter |
+| `record_email_result(p_id, p_error default null)` | void | Marks a queued email `sent`, or `failed` with the reason. Only the person who queued it, or an owner or admin |
+| `price_checks(p_header_id)` | rows | For a purchase invoice, each line that came from an order line with both unit prices after discount, the percentage difference and whether it is over the tolerance. Nothing when no tolerance is set |
 | `save_payment(p_payment jsonb)` | uuid | Inserts or replaces a draft payment and its planned allocations. Security invoker. |
 | `post_payment(p_payment_id)` | void | Posts a draft payment and makes its allocations effective. Fails with the documents that no longer have enough open. |
 | `void_payment(p_payment_id, p_reason)` | void | Owners and admins. Removes every effective allocation, then voids. |
@@ -392,6 +402,8 @@ The logo file is an object in `organisation-logos` at `{organisation_id}/logo`: 
 `currencies`: `code` (read-only after save), `iso_code` linked to `ref_currencies` and unique in the organisation, `name`, `rate`. The rate is how many units of that currency equal one home unit, greater than 0, up to 8 decimal places. The home rate is 1 and cannot move. On a document, home amount = foreign amount ÷ `exchange_rate`.
 
 ### Setup lists
+
+`approval_rules` (organisation, a purchase invoice or order type, an amount in the home currency, the role that must approve at or above it, active) is read by members and written by owners and admins. A type that has rules keeps its direction and kind. The header carries `approval_status`, `approval_required_role`, `approval_reason`, `approval_requested_by` and `_at`, `approval_decided_by` and `_at`, `approval_note`, `approval_self` and `approval_hash`, which only the functions above write (`private.guard_approval_columns`). `organisation_defaults` has `price_tolerance_percent` and `price_tolerance_needs_approval`. It also has `approval_emails`. `email_outbox` holds the emails about approvals (organisation, document, recipient address and name, reason `approval requested`, `approved` or `rejected`, subject, text, a link path, status `queued`, `sent` or `failed`, the error). Owners and admins can read it. Nobody writes it directly: `request_approval`, `approve_document` and `reject_document` queue rows through `private.queue_approval_emails`, and `record_email_result` marks them. The server sends each queued row through the adapter in `src/lib/email/` (`deliverQueuedEmails` in `src/lib/email/send.ts`), and a failure marks the row failed without touching the approval.
 
 Each list is scoped by `(organisation_id, code)`. `code` matches `^[A-Z0-9][A-Z0-9.-]*$` after the triggers run. Products may be 30 characters. Other codes may be 20. Description is 1–200.
 
@@ -574,8 +586,15 @@ The flows run one at a time, in file order, on one database, and each signs in t
 | 17 | A double tap on an open invoice allocates what is open on it, is refused when it does not fit, and fills in a blank amount. |
 | 18 | A supplier payment for three invoices prints a remittance advice listing all three, a draft prints with DRAFT and a void payment with VOID. |
 | 19 | The form of a payment type is designed (new title, one column off, required fields locked), the payment prints from it, and Standard brings the original back. |
+| 20 | An owner sets a rule, a member's invoice over it has no Post, the member requests approval, an admin approves, and the member posts it. |
+| 21 | Editing an approved invoice cancels the approval. |
+| 22 | An admin refuses with a reason, the member sees it, changes the invoice and asks again. |
+| 23 | An invoice raised from an order and priced over the tolerance needs approval and marks the line, and one within it does not. |
+| 24 | Ask Qula gives a card with the reason and no Confirm button for a draft that needs approval. |
+| 25 | With no rule, a member posts a large purchase invoice as before. It runs first in its file, before a rule exists. |
+| 26 | A request emails each approver and not the requester, a decision emails the requester, and the mock adapter marks each sent. |
 
-The helpers are `e2e/documents.ts` (open a list, fill a document, press a button, read a row), `e2e/api.ts` (call the API as a test person, to check what the screens hide) and `e2e/upload.ts` (upload an e-invoice and fail with the server's own message). The test files are in `e2e/files`.
+Flows 20 to 26 are in `e2e/z-approvals.spec.ts`, named to run after every other file because they leave a rule and many Vodafone documents behind (the last flow removes the rule and the tolerance). The helpers are `e2e/documents.ts` (open a list, fill a document, press a button, read a row), `e2e/api.ts` (call the API as a test person, to check what the screens hide) and `e2e/upload.ts` (upload an e-invoice and fail with the server's own message). The test files are in `e2e/files`.
 
 To run them locally, start the stack with `supabase start -x studio,imgproxy,edge-runtime,logflare,vector,realtime` and set the variables below. Then run:
 

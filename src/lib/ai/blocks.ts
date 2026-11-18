@@ -47,7 +47,7 @@ export function autoBlock(tool: string, result: unknown): AskBlock | null {
     case "search_transactions": {
       const documents = rows(data.documents);
       if (documents.length < 2) return null;
-      return table("Documents", ["Number", "Name", "Status", "Date", "Due", "Still due"], documents.map((row) => [String(row.document_number ?? "Draft"), String(row.party_name ?? ""), String(row.status ?? ""), day(row.transaction_date), day(row.due_date), money(row.amount_due)]));
+      return table("Documents", ["Number", "Name", "Status", "Date", "Due", "Still due"], documents.map((row) => [String(row.document_number ?? "Draft"), String(row.party_name ?? ""), String(row.status ?? "") + (row.approval ? `, ${String(row.approval)}` : ""), day(row.transaction_date), day(row.due_date), money(row.amount_due)]));
     }
     case "search_payments": {
       const payments = rows(data.payments);

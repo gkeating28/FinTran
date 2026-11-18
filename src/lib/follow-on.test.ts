@@ -13,8 +13,8 @@ test("a plain save asks for nothing to follow", () => {
   assert.equal(followOnFrom(form(""), AFTER_SAVE), null);
 });
 
-test("a draft or an active order can be followed by post, activate, close, cancel or create", () => {
-  for (const action of ["post", "open", "close", "cancel", "create_from_order"]) {
+test("a draft or an active order can be followed by post, activate, close, cancel, create or a request for approval", () => {
+  for (const action of ["post", "open", "close", "cancel", "create_from_order", "request_approval"]) {
     assert.equal(followOnFrom(form(action), AFTER_SAVE), action);
   }
 });

@@ -14,6 +14,7 @@ import {
   parseUuid,
   type DocumentLine,
 } from "@/lib/documents";
+import { requestApproval } from "@/lib/approval-actions";
 import { postDocumentNow } from "@/lib/post-document";
 import { parseAmount } from "@/lib/products";
 import { createClient } from "@/lib/supabase/server";
@@ -220,6 +221,7 @@ async function runFollowOn(action: FollowOn, id: string, formData: FormData): Pr
   next.set("id", id);
   next.set("return_to", text(formData, "return_to"));
   if (action === "post") return postDocument(next);
+  if (action === "request_approval") return requestApproval(next);
   if (action === "create_from_order") {
     next.set("target_type_id", text(formData, "target_type_id"));
     return createFromOrder(next);

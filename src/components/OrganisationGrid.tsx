@@ -167,6 +167,9 @@ function OrganisationForm({
   const [bankingDetails, setBankingDetails] = useState(organisation.profile.bankingDetails);
   const orderedCountries = countryChoices(countries);
   const [lockDate, setLockDate] = useState(organisation.profile.lockDate);
+  const [tolerance, setTolerance] = useState(organisation.profile.priceTolerancePercent);
+  const [approvalEmails, setApprovalEmails] = useState(organisation.profile.approvalEmails ? "yes" : "no");
+  const [toleranceNeedsApproval, setToleranceNeedsApproval] = useState(organisation.profile.priceToleranceNeedsApproval ? "yes" : "no");
   const [inboundInvoiceTypeId, setInboundInvoiceTypeId] = useState(organisation.inboundInvoiceTypeId ?? "");
   const [inboundCreditNoteTypeId, setInboundCreditNoteTypeId] = useState(organisation.inboundCreditNoteTypeId ?? "");
   const invoiceTypes = organisation.purchaseTypes.filter((type) => type.documentKind === "invoice");
@@ -416,6 +419,40 @@ function OrganisationForm({
             </label>
 
             {/* Logo, then the notes that explain the settings above */}
+            <div className={`${recordStyles.pair} ${slot("right", 7)}`}>
+              <label className={recordStyles.cell}>
+                Price tolerance (%)
+                <QuietInput
+                  name="price_tolerance_percent"
+                  inputMode="decimal"
+                  maxLength={6}
+                  autoComplete="off"
+                  value={tolerance}
+                  onChange={(event) => setTolerance(event.target.value)}
+                />
+              </label>
+              <label className={recordStyles.cell}>
+                A breach needs approval
+                <select
+                  name="price_tolerance_needs_approval"
+                  value={toleranceNeedsApproval}
+                  onChange={(event) => setToleranceNeedsApproval(event.target.value)}
+                >
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                </select>
+              </label>
+            </div>
+            <div className={`${recordStyles.pair} ${slot("right", 8)}`}>
+              <label className={recordStyles.cell}>
+                Approval emails
+                <select name="approval_emails" value={approvalEmails} onChange={(event) => setApprovalEmails(event.target.value)}>
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                </select>
+              </label>
+              <p className={styles.panelMeta}>Nothing is delivered yet. Emails go to the mock adapter until a mail provider is chosen.</p>
+            </div>
             <div className={`${styles.field} ${slot("left", 9)}`}>
               <label htmlFor={logoInputId}>Logo</label>
               <div className={logoStyles.logoControl}>

@@ -195,6 +195,13 @@ export default function HomeOverview({
                   <span className={homeStyles.tileValue}>{count(overview.eDocumentsNeedReview)}</span>
                   <span className={homeStyles.tileLabel}>E-invoices to review</span>
                 </Link>
+                {(overview.approvalsWaiting ?? 0) > 0 ? (
+                  <Link prefetch href="/transactions" className={`${homeStyles.tile} ${homeStyles.tileWarn}`}>
+                    <DocumentIcon size={24} />
+                    <span className={homeStyles.tileValue}>{count(overview.approvalsWaiting)}</span>
+                    <span className={homeStyles.tileLabel}>Waiting for your approval</span>
+                  </Link>
+                ) : null}
               </div>
             </section>
 
