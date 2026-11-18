@@ -168,6 +168,7 @@ function OrganisationForm({
   const orderedCountries = countryChoices(countries);
   const [lockDate, setLockDate] = useState(organisation.profile.lockDate);
   const [tolerance, setTolerance] = useState(organisation.profile.priceTolerancePercent);
+  const [approvalEmails, setApprovalEmails] = useState(organisation.profile.approvalEmails ? "yes" : "no");
   const [toleranceNeedsApproval, setToleranceNeedsApproval] = useState(organisation.profile.priceToleranceNeedsApproval ? "yes" : "no");
   const [inboundInvoiceTypeId, setInboundInvoiceTypeId] = useState(organisation.inboundInvoiceTypeId ?? "");
   const [inboundCreditNoteTypeId, setInboundCreditNoteTypeId] = useState(organisation.inboundCreditNoteTypeId ?? "");
@@ -441,6 +442,16 @@ function OrganisationForm({
                   <option value="no">No</option>
                 </select>
               </label>
+            </div>
+            <div className={`${recordStyles.pair} ${slot("right", 8)}`}>
+              <label className={recordStyles.cell}>
+                Approval emails
+                <select name="approval_emails" value={approvalEmails} onChange={(event) => setApprovalEmails(event.target.value)}>
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                </select>
+              </label>
+              <p className={styles.panelMeta}>Nothing is delivered yet. Emails go to the mock adapter until a mail provider is chosen.</p>
             </div>
             <div className={`${styles.field} ${slot("left", 9)}`}>
               <label htmlFor={logoInputId}>Logo</label>

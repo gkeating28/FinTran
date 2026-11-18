@@ -62,3 +62,12 @@ export function parseApprovalRuleForm(input: {
   if (!role) return { error: "Choose who must approve." };
   return { fields: { transaction_type_id: input.typeId.trim(), amount, required_role: role, active: input.active } };
 }
+
+/** An approval email the mail adapter could not send. Owners and admins see these. */
+export type FailedEmail = {
+  id: string;
+  recipient: string;
+  subject: string;
+  error: string;
+  createdAt: string;
+};

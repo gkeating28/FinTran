@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildInsights, findDuplicates, findDueSoon, findLargeInvoices, findLikelyMatches, findMoneyOnAccount, findOverdue, findPartPaidOverdue, findStaleDrafts, type InsightDoc, type InsightPayment } from "./insights";
+import { buildApprovalInsights, buildInsights, findDuplicates, findDueSoon, findLargeInvoices, findLikelyMatches, findMoneyOnAccount, findOverdue, findPartPaidOverdue, findStaleDrafts, type InsightDoc, type InsightPayment } from "./insights";
 
 const today = "2026-11-09";
 
@@ -171,4 +171,19 @@ test("the three payment rules read in plain words and link to the document", () 
   assert.match(byId["likely-matches"].detail, /the same as what is open on SIN-10/);
   assert.equal(byId["money-on-account"].href, "/transactions/SRC?open=rec");
   assert.equal(byId["likely-matches"].tone, "info");
+});
+
+test("documents waiting for approval are listed with the oldest, and a refusal shows its reason", () => {
+  const item = { id: "w1", state: "waiting" as const, typeCode: "PI", number: "7", party: "Acme", amount: 1500, requestedAt: "2026-11-02T10:00:00Z", note: "", decidedBy: "" };
+  const insights = buildApprovalInsights([
+    { ...item, id: "w2", number: "8", requestedAt: "2026-11-05T10:00:00Z" },
+    item,
+    { ...item, id: "r1", state: "refused" as const, number: "9", note: "Too dear", decidedBy: "Ann" },
+  ]);
+  assert.deepEqual(insights.map((entry) => entry.id), ["approvals-waiting", "approvals-refused"]);
+  assert.match(insights[0].title, /^2 documents waiting for your approval/);
+  assert.match(insights[0].detail, /PI 7 for Acme/);
+  assert.equal(insights[0].href, "/transactions/PI?open=w1");
+  assert.match(insights[1].detail, /refused by Ann: Too dear/);
+  assert.deepEqual(buildApprovalInsights([]), []);
 });

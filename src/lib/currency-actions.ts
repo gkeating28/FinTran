@@ -274,6 +274,7 @@ function profileFrom(formData: FormData) {
     lock_date: lockDate,
     price_tolerance_percent: tolerance,
     price_tolerance_needs_approval: text(formData, "price_tolerance_needs_approval") !== "no",
+    approval_emails: text(formData, "approval_emails") !== "no",
     inbound_invoice_type_id: inboundInvoiceTypeId,
     inbound_credit_note_type_id: inboundCreditNoteTypeId,
   } as const;

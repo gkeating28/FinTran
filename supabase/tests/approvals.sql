@@ -404,4 +404,77 @@ begin
   end if;
 end $$;
 
+-- 7. Email (phase 5). A request writes one row for each person who could decide it, not the requester.
+select pg_temp.act_as('member');
+select set_config('test.e1', pg_temp.draft('PI', 1500)::text, true);
+select public.request_approval(current_setting('test.e1')::uuid, 'Needed for Friday');
+select pg_temp.act_as('owner');
+select pg_temp.eq('a request emails the owner and the admin', (select count(*)::int from public.email_outbox where header_id = current_setting('test.e1')::uuid and reason = 'approval requested'), 2);
+select pg_temp.eq('and not the requester', (select count(*)::int from public.email_outbox where header_id = current_setting('test.e1')::uuid and recipient_email = 'member-approve@fintran.test'), 0);
+select pg_temp.eq('the subject names the document and the amount', (select count(*)::int from public.email_outbox where header_id = current_setting('test.e1')::uuid and subject ~ '^Approval needed: PI [0-9a-zA-Z-]+ for €1,500.00$'), 2);
+select pg_temp.eq('the note is in the text', (select count(*)::int from public.email_outbox where header_id = current_setting('test.e1')::uuid and body like '%Needed for Friday%'), 2);
+select pg_temp.act_as('member');
+select pg_temp.eq('a member cannot read the outbox', (select count(*)::int from public.email_outbox), 0);
+select pg_temp.expect_error(
+  format($sql$insert into public.email_outbox (tenant_id, organisation_id, header_id, recipient_email, reason, subject, body, link_path) values (%L, %L, %L, 'x@y.test', 'approved', 's', 'b', '/')$sql$,
+    current_setting('test.tenant'), current_setting('test.org'), current_setting('test.e1')),
+  'permission denied', 'a member writing the outbox');
+select pg_temp.eq('the requester can fetch the queued emails to send', (select count(*)::int from public.queued_emails(current_setting('test.e1')::uuid)), 2);
+select pg_temp.act_as('admin');
+select pg_temp.eq('someone else cannot', (select count(*)::int from public.queued_emails(current_setting('test.e1')::uuid)), 0);
+select pg_temp.act_as('member');
+select public.record_email_result(id) from public.queued_emails(current_setting('test.e1')::uuid) order by recipient_email limit 1;
+select public.record_email_result(id, 'The mail server refused it') from public.queued_emails(current_setting('test.e1')::uuid);
+select pg_temp.act_as('owner');
+select pg_temp.eq('one row is sent', (select count(*)::int from public.email_outbox where header_id = current_setting('test.e1')::uuid and status = 'sent' and sent_at is not null), 1);
+select pg_temp.eq('one is failed with the reason', (select count(*)::int from public.email_outbox where header_id = current_setting('test.e1')::uuid and status = 'failed' and error = 'The mail server refused it'), 1);
+select pg_temp.act_as('outsider');
+select pg_temp.expect_error(
+  format($sql$select public.record_email_result(%L)$sql$, (select id from public.email_outbox limit 1)), 'could not be found', 'an outsider marking an email');
+select pg_temp.act_as('admin');
+select pg_temp.eq('an admin sees the queue as waiting', (select count(*)::int from public.approval_queue(current_setting('test.org')::uuid) where header_id = current_setting('test.e1')::uuid and state = 'waiting'), 1);
+select pg_temp.act_as('member');
+select pg_temp.eq('the requester has nothing waiting on them', (select count(*)::int from public.approval_queue(current_setting('test.org')::uuid) where state = 'waiting'), 0);
+select pg_temp.act_as('admin');
+select public.approve_document(current_setting('test.e1')::uuid, 'Fine');
+select pg_temp.act_as('owner');
+select pg_temp.eq('an approval emails the requester once', (select count(*)::int from public.email_outbox where header_id = current_setting('test.e1')::uuid and reason = 'approved' and recipient_email = 'member-approve@fintran.test'), 1);
+select pg_temp.eq('and carries the decider and the note', (select count(*)::int from public.email_outbox where header_id = current_setting('test.e1')::uuid and reason = 'approved' and body like 'admin approved%' and body like '%Note: Fine%'), 1);
+
+-- A refusal emails the requester with the reason, and the requester sees it in the queue.
+select pg_temp.act_as('member');
+select set_config('test.e2', pg_temp.draft('PI', 2500)::text, true);
+select public.request_approval(current_setting('test.e2')::uuid, null);
+select pg_temp.act_as('admin');
+select public.reject_document(current_setting('test.e2')::uuid, 'Too dear');
+select pg_temp.act_as('owner');
+select pg_temp.eq('a refusal emails the requester with the reason', (select count(*)::int from public.email_outbox where header_id = current_setting('test.e2')::uuid and reason = 'rejected' and body like '%Reason: Too dear%'), 1);
+select pg_temp.act_as('member');
+select pg_temp.eq('the requester sees it refused', (select count(*)::int from public.approval_queue(current_setting('test.org')::uuid) where header_id = current_setting('test.e2')::uuid and state = 'refused' and note = 'Too dear'), 1);
+select pg_temp.act_as('admin');
+select pg_temp.eq('the admin does not', (select count(*)::int from public.approval_queue(current_setting('test.org')::uuid) where header_id = current_setting('test.e2')::uuid), 0);
+select pg_temp.act_as('outsider');
+select pg_temp.eq('an outsider sees no queue', (select count(*)::int from public.approval_queue(current_setting('test.org')::uuid)), 0);
+
+-- With the switch off nothing is queued, and the request still works.
+select pg_temp.act_as('owner');
+update public.organisation_defaults set approval_emails = false where organisation_id = current_setting('test.org')::uuid;
+select pg_temp.act_as('member');
+select set_config('test.e3', pg_temp.draft('PI', 3500)::text, true);
+select public.request_approval(current_setting('test.e3')::uuid, null);
+select pg_temp.eq('the request is recorded', pg_temp.approval_of(current_setting('test.e3')::uuid), 'requested');
+select pg_temp.act_as('owner');
+select pg_temp.eq('with the switch off no email is queued', (select count(*)::int from public.email_outbox where header_id = current_setting('test.e3')::uuid), 0);
+select pg_temp.act_as('member');
+do $$
+declare
+  v_rows integer;
+begin
+  update public.organisation_defaults set approval_emails = true where organisation_id = current_setting('test.org')::uuid;
+  get diagnostics v_rows = row_count;
+  if v_rows <> 0 then
+    raise exception 'approvals: a member changed the email switch';
+  end if;
+end $$;
+
 rollback;

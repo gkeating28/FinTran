@@ -1,4 +1,4 @@
-import type { ApprovalRuleRow, ApprovalTypeChoice, ApproverRole } from "@/lib/approval-rules";
+import type { ApprovalRuleRow, ApprovalTypeChoice, ApproverRole, FailedEmail } from "@/lib/approval-rules";
 import { getOrganisationScope } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 
@@ -6,13 +6,14 @@ import { createClient } from "@/lib/supabase/server";
 export async function listApprovalRules(): Promise<{
   rows: ApprovalRuleRow[];
   types: ApprovalTypeChoice[];
+  failedEmails: FailedEmail[];
   error: string | null;
 }> {
   const organisationId = await getOrganisationScope();
-  if (!organisationId) return { rows: [], types: [], error: null };
+  if (!organisationId) return { rows: [], types: [], failedEmails: [], error: null };
 
   const supabase = await createClient();
-  const [rules, types] = await Promise.all([
+  const [rules, types, failed] = await Promise.all([
     supabase
       .from("approval_rules")
       .select("id, transaction_type_id, amount, required_role, active")
@@ -26,8 +27,16 @@ export async function listApprovalRules(): Promise<{
       .eq("is_system", false)
       .in("document_kind", ["invoice", "order"])
       .order("code"),
+    // Only owners and admins can read the outbox, so a member gets nothing here.
+    supabase
+      .from("email_outbox")
+      .select("id, recipient_name, recipient_email, subject, error, created_at")
+      .eq("organisation_id", organisationId)
+      .eq("status", "failed")
+      .order("created_at", { ascending: false })
+      .limit(20),
   ]);
-  if (rules.error || types.error) return { rows: [], types: [], error: "Approval rules could not be loaded." };
+  if (rules.error || types.error) return { rows: [], types: [], failedEmails: [], error: "Approval rules could not be loaded." };
 
   const choices: ApprovalTypeChoice[] = (types.data ?? []).map((row) => ({
     id: row.id,
@@ -53,5 +62,12 @@ export async function listApprovalRules(): Promise<{
     ];
   });
   rows.sort((a, b) => a.typeCode.localeCompare(b.typeCode) || Number(a.amount) - Number(b.amount));
-  return { rows, types: choices, error: null };
+  const failedEmails: FailedEmail[] = (failed.data ?? []).map((row) => ({
+    id: row.id,
+    recipient: row.recipient_name ? `${row.recipient_name} <${row.recipient_email}>` : row.recipient_email,
+    subject: row.subject,
+    error: row.error ?? "",
+    createdAt: row.created_at,
+  }));
+  return { rows, types: choices, failedEmails, error: null };
 }

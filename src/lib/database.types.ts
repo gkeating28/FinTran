@@ -1447,6 +1447,99 @@ export type Database = {
           },
         ]
       }
+      email_outbox: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          error: string | null
+          header_id: string
+          id: string
+          link_path: string
+          organisation_id: string
+          reason: string
+          recipient_email: string
+          recipient_id: string | null
+          recipient_name: string
+          sent_at: string | null
+          status: string
+          subject: string
+          tenant_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          header_id: string
+          id?: string
+          link_path: string
+          organisation_id: string
+          reason: string
+          recipient_email: string
+          recipient_id?: string | null
+          recipient_name?: string
+          sent_at?: string | null
+          status?: string
+          subject: string
+          tenant_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          header_id?: string
+          id?: string
+          link_path?: string
+          organisation_id?: string
+          reason?: string
+          recipient_email?: string
+          recipient_id?: string | null
+          recipient_name?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_outbox_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_outbox_header_id_fkey"
+            columns: ["header_id"]
+            isOneToOne: false
+            referencedRelation: "transaction_headers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_outbox_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_outbox_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_outbox_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gl_codes: {
         Row: {
           account_type: string
@@ -1589,6 +1682,7 @@ export type Database = {
       }
       organisation_defaults: {
         Row: {
+          approval_emails: boolean
           address_line1: string | null
           address_line2: string | null
           address_line3: string | null
@@ -1624,6 +1718,7 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          approval_emails?: boolean
           address_line1?: string | null
           address_line2?: string | null
           address_line3?: string | null
@@ -1659,6 +1754,7 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          approval_emails?: boolean
           address_line1?: string | null
           address_line2?: string | null
           address_line3?: string | null
@@ -3465,6 +3561,22 @@ export type Database = {
         Args: { p_source: Json }
         Returns: number
       }
+      approval_queue: {
+        Args: { p_organisation_id: string }
+        Returns: {
+          amount: number
+          decided_at: string
+          decided_by_name: string
+          document_number: string
+          header_id: string
+          note: string
+          party: string
+          requested_at: string
+          requested_by_name: string
+          state: string
+          type_code: string
+        }[]
+      }
       approval_status: {
         Args: { p_header_ids: string[] }
         Returns: {
@@ -3598,6 +3710,21 @@ export type Database = {
           p_token_hash: string
         }
         Returns: string
+      }
+      queued_emails: {
+        Args: { p_header_id: string }
+        Returns: {
+          body: string
+          id: string
+          link_path: string
+          recipient_email: string
+          recipient_name: string
+          subject: string
+        }[]
+      }
+      record_email_result: {
+        Args: { p_error?: string; p_id: string }
+        Returns: undefined
       }
       record_ai_feedback: {
         Args: {

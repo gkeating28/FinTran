@@ -425,6 +425,261 @@ $$;
 
 revoke all on function private.require_approval(uuid) from public, anon, authenticated, service_role;
 
+-- Email ----------------------------------------------------------------------------------------------------------
+
+alter table public.organisation_defaults
+  add column approval_emails boolean not null default true;
+
+comment on column public.organisation_defaults.approval_emails is 'Whether asking for, giving and refusing approval queues an email.';
+
+create table public.email_outbox (
+  id uuid not null default gen_random_uuid(),
+  tenant_id uuid not null,
+  organisation_id uuid not null,
+  header_id uuid not null,
+  recipient_id uuid,
+  recipient_email text not null,
+  recipient_name text not null default '',
+  reason text not null,
+  subject text not null,
+  body text not null,
+  link_path text not null,
+  status text not null default 'queued',
+  error text,
+  created_at timestamp with time zone not null default now(),
+  created_by uuid default auth.uid(),
+  sent_at timestamp with time zone,
+  constraint email_outbox_pkey primary key (id),
+  constraint email_outbox_reason_check check (reason in ('approval requested', 'approved', 'rejected')),
+  constraint email_outbox_status_check check (status in ('queued', 'sent', 'failed')),
+  constraint email_outbox_tenant_id_fkey foreign key (tenant_id) references public.tenants (id) on delete cascade,
+  constraint email_outbox_organisation_id_fkey foreign key (organisation_id) references public.organisations (id) on delete cascade,
+  constraint email_outbox_header_id_fkey foreign key (header_id) references public.transaction_headers (id) on delete cascade,
+  constraint email_outbox_recipient_id_fkey foreign key (recipient_id) references public.profiles (id) on delete set null,
+  constraint email_outbox_created_by_fkey foreign key (created_by) references public.profiles (id) on delete set null
+);
+
+comment on table public.email_outbox is 'Emails about approvals, written by the approval functions and marked sent or failed by the server. Owners and admins can read them. Nobody writes them directly.';
+
+create index email_outbox_organisation_id_idx on public.email_outbox (organisation_id);
+create index email_outbox_tenant_id_idx on public.email_outbox (tenant_id);
+create index email_outbox_header_id_idx on public.email_outbox (header_id);
+create index email_outbox_recipient_id_idx on public.email_outbox (recipient_id);
+create index email_outbox_created_by_idx on public.email_outbox (created_by);
+create index email_outbox_failed_idx on public.email_outbox (organisation_id, created_at desc) where status = 'failed';
+
+alter table public.email_outbox enable row level security;
+
+create policy email_outbox_select on public.email_outbox for select to authenticated
+  using ((select private.has_org_role(email_outbox.organisation_id, array['owner', 'admin'])));
+
+revoke all on table public.email_outbox from anon;
+revoke insert, update, delete, truncate, references, trigger on table public.email_outbox from authenticated, service_role;
+
+-- Queues the emails for a request (to everyone who could decide it, except the person asking) or a decision (to the
+-- person who asked, unless they decided it themselves). Does nothing when the organisation has turned approval emails off.
+create function private.queue_approval_emails(p_header_id uuid, p_reason text) returns void
+  language plpgsql security definer
+  set search_path to ''
+as $$
+declare
+  h record;
+  c record;
+  v_on boolean;
+  v_roles text[];
+  v_label text;
+  v_amount text;
+  v_link text;
+  v_subject text;
+  v_body text;
+  r record;
+begin
+  select header.organisation_id, header.tenant_id, header.document_number, header.home_total_amount,
+         header.approval_requested_by, header.approval_decided_by, header.approval_note,
+         kind.code as type_code,
+         (select supplier.name from public.suppliers as supplier where supplier.id = header.supplier_id) as party,
+         (select profile.display_name from public.profiles as profile where profile.id = header.approval_requested_by) as requester,
+         (select profile.display_name from public.profiles as profile where profile.id = header.approval_decided_by) as decider
+    into h
+  from public.transaction_headers as header
+  join public.transaction_types as kind on kind.id = header.transaction_type_id
+  where header.id = p_header_id;
+  if h.organisation_id is null then
+    return;
+  end if;
+
+  select defaults.approval_emails into v_on from public.organisation_defaults as defaults where defaults.organisation_id = h.organisation_id;
+  if not coalesce(v_on, true) then
+    return;
+  end if;
+
+  v_label := h.type_code || ' ' || coalesce(h.document_number, 'draft');
+  v_amount := '€' || to_char(round(coalesce(h.home_total_amount, 0), 2), 'FM999,999,999,990.00');
+  v_link := '/transactions/' || h.type_code || '?open=' || p_header_id;
+
+  if p_reason = 'approval requested' then
+    select * into c from private.approval_check(p_header_id);
+    v_roles := case c.role when 'owner' then array['owner'] else array['owner', 'admin'] end;
+    v_subject := 'Approval needed: ' || v_label || ' for ' || v_amount;
+    v_body := coalesce(h.requester, 'Someone') || ' asked for approval of ' || v_label
+      || coalesce(' from ' || h.party, '') || ', ' || v_amount || '.'
+      || coalesce(E'\n\nNote: ' || h.approval_note, '');
+    for r in
+      select profile.id, profile.email, profile.display_name
+      from public.organisation_access as access
+      join public.profiles as profile on profile.id = access.user_id
+      where access.organisation_id = h.organisation_id
+        and access.role = any (v_roles)
+        and access.user_id is distinct from (select auth.uid())
+    loop
+      insert into public.email_outbox (tenant_id, organisation_id, header_id, recipient_id, recipient_email, recipient_name, reason, subject, body, link_path)
+      values (h.tenant_id, h.organisation_id, p_header_id, r.id, r.email, r.display_name, p_reason, v_subject, v_body, v_link);
+    end loop;
+  else
+    if h.approval_requested_by is null or h.approval_requested_by is not distinct from (select auth.uid()) then
+      return;
+    end if;
+    v_subject := case p_reason when 'approved' then 'Approved: ' else 'Refused: ' end || v_label;
+    v_body := case p_reason
+        when 'approved' then coalesce(h.decider, 'Someone') || ' approved ' || v_label || ' for ' || v_amount || '. It can be posted.'
+        else coalesce(h.decider, 'Someone') || ' refused approval of ' || v_label || ' for ' || v_amount || '.'
+      end
+      || case when p_reason = 'rejected' then E'\n\nReason: ' || coalesce(h.approval_note, '') else coalesce(E'\n\nNote: ' || h.approval_note, '') end;
+    insert into public.email_outbox (tenant_id, organisation_id, header_id, recipient_id, recipient_email, recipient_name, reason, subject, body, link_path)
+    select h.tenant_id, h.organisation_id, p_header_id, profile.id, profile.email, profile.display_name, p_reason, v_subject, v_body, v_link
+    from public.profiles as profile
+    where profile.id = h.approval_requested_by;
+  end if;
+end;
+$$;
+
+revoke all on function private.queue_approval_emails(uuid, text) from public, anon, authenticated, service_role;
+
+-- The emails this person queued for a document that still wait to be handed to the mail adapter.
+create function public.queued_emails(p_header_id uuid)
+returns table (id uuid, recipient_email text, recipient_name text, subject text, body text, link_path text)
+language sql stable security definer
+set search_path to ''
+as $$
+  select outbox.id, outbox.recipient_email, outbox.recipient_name, outbox.subject, outbox.body, outbox.link_path
+  from public.email_outbox as outbox
+  where outbox.header_id = p_header_id
+    and outbox.status = 'queued'
+    and outbox.created_by = (select auth.uid())
+    and (select private.is_org_member(outbox.organisation_id))
+  order by outbox.created_at
+$$;
+
+revoke all on function public.queued_emails(uuid) from public, anon;
+grant execute on function public.queued_emails(uuid) to authenticated;
+
+-- Marks an email sent, or failed with the reason. Only the person who queued it, or an owner or admin, can.
+create function public.record_email_result(p_id uuid, p_error text default null) returns void
+  language plpgsql security definer
+  set search_path to ''
+as $$
+declare
+  o record;
+begin
+  select organisation_id, created_by, status into o from public.email_outbox where id = p_id for update;
+  if o.organisation_id is null then
+    raise exception 'That email could not be found';
+  end if;
+  if not (o.created_by is not distinct from (select auth.uid()) or (select private.has_org_role(o.organisation_id, array['owner', 'admin']))) then
+    raise exception 'You cannot change that email';
+  end if;
+  if o.status = 'sent' then
+    return;
+  end if;
+  update public.email_outbox
+  set status = case when p_error is null then 'sent' else 'failed' end,
+      error = left(p_error, 500),
+      sent_at = case when p_error is null then now() else null end
+  where id = p_id;
+end;
+$$;
+
+revoke all on function public.record_email_result(uuid, text) from public, anon;
+grant execute on function public.record_email_result(uuid, text) to authenticated;
+
+-- Waiting and refused -----------------------------------------------------------------------------------------------
+
+-- What needs this person's attention on approvals: requests they could decide (waiting) and their own that were refused
+-- (refused). Oldest first.
+create function public.approval_queue(p_organisation_id uuid)
+returns table (
+  header_id uuid,
+  state text,
+  type_code text,
+  document_number text,
+  party text,
+  amount numeric,
+  requested_by_name text,
+  requested_at timestamp with time zone,
+  decided_by_name text,
+  decided_at timestamp with time zone,
+  note text
+)
+language plpgsql stable security definer
+set search_path to ''
+as $$
+declare
+  h record;
+  c record;
+  v_state text;
+  v_roles text[];
+  v_decide boolean;
+begin
+  if not (select private.is_org_member(p_organisation_id)) then
+    return;
+  end if;
+  for h in
+    select header.id, header.document_number, header.home_total_amount, header.approval_requested_by, header.approval_requested_at,
+           header.approval_decided_by, header.approval_decided_at, header.approval_note, header.supplier_id, kind.code
+    from public.transaction_headers as header
+    join public.transaction_types as kind on kind.id = header.transaction_type_id
+    where header.organisation_id = p_organisation_id
+      and header.status = 'draft'
+      and header.approval_status in ('requested', 'rejected')
+    order by coalesce(header.approval_requested_at, header.created_at)
+  loop
+    select * into c from private.approval_check(h.id);
+    if not c.needed then
+      continue;
+    end if;
+    v_state := private.approval_state(h.id);
+    v_roles := case c.role when 'owner' then array['owner'] else array['owner', 'admin'] end;
+    v_decide := v_state = 'requested'
+      and (select private.has_org_role(p_organisation_id, v_roles))
+      and (
+        h.approval_requested_by is distinct from (select auth.uid())
+        or not exists (
+          select 1 from public.organisation_access as access
+          where access.organisation_id = p_organisation_id and access.user_id <> (select auth.uid()) and access.role = any (v_roles)
+        )
+      );
+    if not (v_decide or (v_state = 'rejected' and h.approval_requested_by is not distinct from (select auth.uid()))) then
+      continue;
+    end if;
+    return query select
+      h.id,
+      case when v_state = 'requested' then 'waiting' else 'refused' end,
+      h.code,
+      h.document_number,
+      (select supplier.name from public.suppliers as supplier where supplier.id = h.supplier_id),
+      h.home_total_amount,
+      (select profile.display_name from public.profiles as profile where profile.id = h.approval_requested_by),
+      h.approval_requested_at,
+      (select profile.display_name from public.profiles as profile where profile.id = h.approval_decided_by),
+      h.approval_decided_at,
+      h.approval_note;
+  end loop;
+end;
+$$;
+
+revoke all on function public.approval_queue(uuid) from public, anon;
+grant execute on function public.approval_queue(uuid) to authenticated;
+
 -- Asking, giving and refusing ---------------------------------------------------------------------------------------
 
 create function public.request_approval(p_header_id uuid, p_note text default null) returns void
@@ -476,6 +731,7 @@ begin
       approval_hash = private.approval_hash(p_header_id)
   where id = p_header_id;
   perform set_config('fintran.approval_change', 'off', true);
+  perform private.queue_approval_emails(p_header_id, 'approval requested');
 end;
 $$;
 
@@ -555,6 +811,7 @@ begin
       approval_self = v_self
   where id = p_header_id;
   perform set_config('fintran.approval_change', 'off', true);
+  perform private.queue_approval_emails(p_header_id, 'approved');
 end;
 $$;
 
@@ -585,6 +842,7 @@ begin
       approval_self = v_self
   where id = p_header_id;
   perform set_config('fintran.approval_change', 'off', true);
+  perform private.queue_approval_emails(p_header_id, 'rejected');
 end;
 $$;
 

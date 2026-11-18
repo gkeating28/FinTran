@@ -8,6 +8,7 @@ import { parseParty, PARTY_META, type PartyKind } from "@/lib/parties";
 import { createParty } from "@/lib/party-actions";
 import { postDocumentNow } from "@/lib/post-document";
 import { readinessMessages } from "./readiness";
+import { approvalBanner, approvalFromRow, needsApproval, type ApprovalRow } from "@/lib/approvals";
 
 /**
  * Things Ask Qula can do for a person, and only after they press Confirm.
@@ -125,10 +126,17 @@ async function checkPost(supabase: SupabaseClient, organisationId: string, id: s
   if ((lines.count ?? 0) < 1) return { ok: false, error: "That draft has no lines yet, so it cannot be posted." };
   const type = one(header.transaction_types);
   const sales = type?.type === "Sales";
-  const [issues, breakdown] = await Promise.all([
+  const [issues, breakdown, approval] = await Promise.all([
     readinessMessages(supabase, id),
     supabase.from("transaction_vat_breakdown").select("vat_category, vat_percentage, taxable_amount, vat_amount").eq("organisation_id", organisationId).eq("header_id", id).order("vat_percentage", { ascending: false }),
+    supabase.rpc("approval_status", { p_header_ids: [id] }),
   ]);
+  // A document that still needs approval cannot be posted from here. Qula cannot ask for or give approval, so the card
+  // says why and has nothing to confirm.
+  const approvalInfo = approvalFromRow(((approval.data ?? []) as ApprovalRow[])[0] ?? { header_id: id, state: "", required_role: null, reason: null, requested_by_name: null, requested_at: null, decided_by_name: null, decided_at: null, note: null, self: null, can_decide: null, price_over: null });
+  if (needsApproval(approvalInfo)) {
+    issues.errors.unshift(`${approvalBanner(approvalInfo)?.text ?? "This document needs approval."} Qula cannot ask for or give approval. Open the document to do it.`);
+  }
   const currency = str(one(header.currencies)?.code, 5);
   const description = str(type?.description) || (sales ? "Sales document" : "Purchase document");
   const vatRows = ((breakdown.data ?? []) as Row[]).map((row) => ({

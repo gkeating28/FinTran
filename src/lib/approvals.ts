@@ -31,6 +31,41 @@ export type PriceCheck = {
   over: boolean;
 };
 
+/** One row of `approval_status`, as the database returns it. */
+export type ApprovalRow = {
+  header_id: string;
+  state: string;
+  required_role: string | null;
+  reason: string | null;
+  requested_by_name: string | null;
+  requested_at: string | null;
+  decided_by_name: string | null;
+  decided_at: string | null;
+  note: string | null;
+  self: boolean | null;
+  can_decide: boolean | null;
+  price_over: boolean | null;
+};
+
+/** The screens' view of a row, or null for a state this code does not know. */
+export function approvalFromRow(row: ApprovalRow): ApprovalInfo | null {
+  const state = (["required", "requested", "approved", "rejected"] as const).find((item) => item === row.state);
+  if (!state) return null;
+  return {
+    state,
+    role: row.required_role === "owner" ? "owner" : "admin",
+    reason: row.reason ?? "amount",
+    requestedByName: row.requested_by_name ?? "",
+    requestedAt: row.requested_at ?? "",
+    decidedByName: row.decided_by_name ?? "",
+    decidedAt: row.decided_at ?? "",
+    note: row.note ?? "",
+    self: Boolean(row.self),
+    canDecide: Boolean(row.can_decide),
+    priceOver: Boolean(row.price_over),
+  };
+}
+
 /** Whether the document still has to be approved before it can be posted or activated. */
 export function needsApproval(info: ApprovalInfo | null | undefined) {
   return Boolean(info) && info?.state !== "approved";

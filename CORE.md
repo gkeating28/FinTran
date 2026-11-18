@@ -439,6 +439,14 @@ An organisation can require approval before a purchase order is activated or a p
 
 **Price tolerance.** The organisation can set a percentage (`price_tolerance_percent`, with the lock date). A purchase invoice line that came from an order line is compared with it by unit price after any discount. A line is over when its price is higher than the order's by more than the percentage. A lower price is never over, and a line typed in with no order line is not compared. `price_checks` gives the figures for the screen. If the invoice's type has approval rules, and `price_tolerance_needs_approval` is on, an invoice with a line over the tolerance needs approval from an admin or owner whatever its amount. Otherwise it is a warning only. Everything about approval is recorded in the audit log with its note.
 
+**Screens.** Owners and admins set the rules under Admin, Approval rules, and the tolerance percentage and its switch on the Organisations screen. On a draft purchase document that needs approval the status row says what is needed, and the Post or Activate button is replaced by Request approval (Save and request approval when there are unsaved edits, which saves first). On a requested document an approver with a high enough role sees Approve and Refuse, and Refuse asks for the reason. A line over the tolerance is marked "Over order price" on a purchase invoice. A purchase list shows an Approval column and filter only when a draft in it needs approval.
+
+**Worth a look and the home page.** Worth a look lists documents waiting for the person's approval, with the oldest and its amount, and the person's own documents that were refused, with the reason. The home page shows the number waiting for the person, and only when it is above zero.
+
+**Ask Qula.** The card for posting a draft that needs approval gives the reason and has nothing to confirm, because Ask Qula cannot ask for, give or refuse approval. Searching shows each draft's approval and can list those that need it, are waiting, approved or refused. An imported draft is no different from any other draft.
+
+**Email.** Asking for approval queues an email to every person with a high enough role except the person asking. Approving or refusing queues one to the person who asked, with the note or reason and a link, unless they decided it themselves. Owners and admins can switch approval emails off on the Organisations screen. No mail provider has been chosen, so the only adapter is a mock that records the email as sent and delivers nothing, and the Organisations screen says so. A failed email never stops an approval, a refusal or posting. Owners and admins see failed emails on the Approval rules screen.
+
 ## Printable forms
 
 `transaction_forms` has one row per organisation and transaction type. The `layout` column is JSON, at most 8000 characters. The page shape is fixed. The JSON chooses the title, page size, and which fields appear, in order, inside each band.

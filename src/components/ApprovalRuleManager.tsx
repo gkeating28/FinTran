@@ -10,13 +10,14 @@ import { keepEntries } from "@/components/keepEntries";
 import styles from "@/components/OpsPage.module.css";
 import recordStyles from "@/components/RecordForm.module.css";
 import { createApprovalRule, deleteApprovalRule, updateApprovalRule } from "@/lib/approval-rule-actions";
-import { APPROVER_ROLES, approverLabel, type ApprovalRuleRow, type ApprovalTypeChoice } from "@/lib/approval-rules";
+import { APPROVER_ROLES, approverLabel, type ApprovalRuleRow, type ApprovalTypeChoice, type FailedEmail } from "@/lib/approval-rules";
 import { formatMoney } from "@/lib/documents";
 import type { ActionState } from "@/lib/types";
 
 export default function ApprovalRuleManager({
   rows,
   types,
+  failedEmails = [],
   loadError,
   actionError,
   canEdit = true,
@@ -24,6 +25,7 @@ export default function ApprovalRuleManager({
 }: {
   rows: ApprovalRuleRow[];
   types: ApprovalTypeChoice[];
+  failedEmails?: FailedEmail[];
   loadError: string | null;
   actionError?: string;
   canEdit?: boolean;
@@ -50,6 +52,19 @@ export default function ApprovalRuleManager({
         <p className={styles.alert} role="alert">
           {actionError}
         </p>
+      ) : null}
+      {failedEmails.length > 0 ? (
+        <div className={styles.alert} role="alert">
+          <strong>{failedEmails.length === 1 ? "1 approval email could not be sent." : `${failedEmails.length} approval emails could not be sent.`}</strong>
+          <ul>
+            {failedEmails.map((email) => (
+              <li key={email.id}>
+                {email.recipient}: {email.subject}. {email.error}
+              </li>
+            ))}
+          </ul>
+          The approvals themselves were recorded. Tell the person directly.
+        </div>
       ) : null}
       <DataGrid
         form="approval-rules"

@@ -5,6 +5,8 @@ export type HomeOverview = {
   postedThisMonth: number | null;
   eDocumentsReady: number | null;
   eDocumentsNeedReview: number | null;
+  /** Drafts waiting for this person to approve or refuse. Null when it could not be read. */
+  approvalsWaiting: number | null;
   /** Documents posted in each of the last six weeks, oldest first. A week that could not be read is null. */
   weeklyPosted: { label: string; count: number | null }[];
 };
@@ -45,7 +47,7 @@ export async function getHomeOverview(organisationId: string): Promise<HomeOverv
     ),
   );
 
-  const [drafts, posted, ready, review, weeklyResults] = await Promise.all([
+  const [drafts, posted, ready, review, weeklyResults, queue] = await Promise.all([
     supabase
       .from("transaction_headers")
       .select("id", { count: "exact", head: true })
@@ -70,6 +72,7 @@ export async function getHomeOverview(organisationId: string): Promise<HomeOverv
       .eq("direction", "inbound")
       .in("status", ["duplicate", "invalid"]),
     weekly,
+    supabase.rpc("approval_queue", { p_organisation_id: organisationId }),
   ]);
 
   return {
@@ -77,6 +80,7 @@ export async function getHomeOverview(organisationId: string): Promise<HomeOverv
     postedThisMonth: posted.error ? null : (posted.count ?? 0),
     eDocumentsReady: ready.error ? null : (ready.count ?? 0),
     eDocumentsNeedReview: review.error ? null : (review.count ?? 0),
+    approvalsWaiting: queue.error ? null : ((queue.data ?? []) as { state: string }[]).filter((item) => item.state === "waiting").length,
     weeklyPosted: weeklyResults.map((result, index) => ({
       label: weeks[index].from.toLocaleDateString("en-IE", { day: "numeric", month: "short", timeZone: "UTC" }),
       count: result.error ? null : (result.count ?? 0),
