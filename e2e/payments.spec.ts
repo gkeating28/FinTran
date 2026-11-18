@@ -106,7 +106,13 @@ async function recordMoney(
   const dialog = paymentDialog(page, noun);
   await chooseByCode(dialog.locator(`select[name="${partyField}"]`), party);
   await typeInto(dialog.locator('input[name="amount"]'), total);
-  await dialog.getByRole("row").filter({ hasText: total }).locator("td").first().dblclick();
+  // The double click is on the first cell, not the allocation box. It is repeated until the box holds the total, because the
+  // open items are read after the party is chosen and a click before they settle can be lost.
+  const row = dialog.getByRole("row").filter({ hasText: total });
+  await expect(async () => {
+    if ((await row.getByRole("textbox").inputValue()) === "") await row.locator("td").first().dblclick();
+    await expect(row.getByRole("textbox")).toHaveValue(total, { timeout: 3_000 });
+  }).toPass({ timeout: 30_000 });
   await payFromBank(page, dialog);
   await expectNoError(page);
 }
