@@ -1,6 +1,6 @@
 # Qula Plus purchase approvals and price tolerance spec
 
-Version 2, 18 November 2026. The seven review questions are answered (see "Answers to the review questions"). A draft: three readings still need confirming, and nothing in it is built.
+Version 3, 18 November 2026. The seven review questions are answered and the three readings are confirmed (see "Answers to the review questions"). Being built.
 
 Goal: let an organisation say that a purchase order or purchase invoice above a set amount, or an invoice whose prices have gone over what was ordered, must be approved by someone senior before it takes effect. This is step 2 of the agreed order (aged debtors and creditors, approvals with price tolerance, journal export, bank statement import, live connectors and bank feeds). It comes before journal export so that what is exported has already passed the posting rules.
 
@@ -18,9 +18,9 @@ The rules from the earlier specs still apply: new migrations only, rules enforce
 | 2 | Entering and approving | **Default: no, unless nobody else could** | The requester cannot approve, unless no one else has a high enough role (A6) |
 | 3 | Purchase credit notes | **No for now** | Not gated (A1) |
 | 4 | Sales documents | **No** | Purchases only (A1) |
-| 5 | Payment approvals | **"Should they be next"** | **Needs confirming.** Read as: payment approvals are the candidate for the spec after this one, and the order in the reference (journal export next) is unchanged until you say. The spec leaves payments out (Out of scope) |
-| 6 | Email in the first version | **Yes** | Email is in. **Needs confirming, because it adds a dependency:** the app has no outbound email today. It is built behind an adapter with a mock, and real sending waits on a mail provider you choose, as the Access Point does (A14, A19, phase 5) |
-| 7 | Price tolerance | **"For any supplier"** | **Needs confirming.** Read as: one organisation-wide tolerance that applies to every supplier, not one per supplier (A13). The question's other half, whether a price **below** the order should be flagged, was not answered, so only an increase counts (A11) |
+| 5 | Payment approvals | **"Should they be next"**, confirmed **yes** | Payment approvals are the spec after this one, ahead of journal export. This spec leaves payments out (Out of scope) |
+| 6 | Email in the first version | **Yes**, confirmed | Email is in. The app has no outbound email today, so it is built behind an adapter with a mock, and real sending waits on a mail provider you choose, as the Access Point does (A14, A19, phase 5) |
+| 7 | Price tolerance | **"For any supplier"**, confirmed | One organisation-wide tolerance that applies to every supplier, not one per supplier (A13). Only a price above the order counts (A11) |
 
 ## What exists today that this changes
 

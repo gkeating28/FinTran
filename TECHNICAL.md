@@ -325,6 +325,10 @@ These are the `public` functions the app is allowed to call. Arguments match `sr
 | `save_document(p_document jsonb)` | uuid | Inserts or replaces a draft header and its lines. Security invoker, so header and line policies still apply. |
 | `post_document(p_header_id, p_logo_path default null)` | void | Posts a draft. Sales types that number on post take the next number here. |
 | `void_document(p_header_id, p_reason)` | void | Voids a posted purchase with no effective allocation. A posted sale is corrected with a credit note. |
+| `request_approval(p_header_id, p_note default null)` | void | Any member asks for approval of a draft purchase invoice or order that needs it (`private.approval_check`). Records who and when, and a fingerprint of the document |
+| `approve_document(p_header_id, p_note default null)` | void | A role at least the one the rule needs. Refused for the person who asked, unless nobody else could decide (then `approval_self` is true). Only while the approval is waiting and the document is as it was |
+| `reject_document(p_header_id, p_reason)` | void | Same role test. A reason is required |
+| `price_checks(p_header_id)` | rows | For a purchase invoice, each line that came from an order line with both unit prices after discount, the percentage difference and whether it is over the tolerance. Nothing when no tolerance is set |
 | `save_payment(p_payment jsonb)` | uuid | Inserts or replaces a draft payment and its planned allocations. Security invoker. |
 | `post_payment(p_payment_id)` | void | Posts a draft payment and makes its allocations effective. Fails with the documents that no longer have enough open. |
 | `void_payment(p_payment_id, p_reason)` | void | Owners and admins. Removes every effective allocation, then voids. |
@@ -392,6 +396,8 @@ The logo file is an object in `organisation-logos` at `{organisation_id}/logo`: 
 `currencies`: `code` (read-only after save), `iso_code` linked to `ref_currencies` and unique in the organisation, `name`, `rate`. The rate is how many units of that currency equal one home unit, greater than 0, up to 8 decimal places. The home rate is 1 and cannot move. On a document, home amount = foreign amount ÷ `exchange_rate`.
 
 ### Setup lists
+
+`approval_rules` (organisation, a purchase invoice or order type, an amount in the home currency, the role that must approve at or above it, active) is read by members and written by owners and admins. A type that has rules keeps its direction and kind. The header carries `approval_status`, `approval_required_role`, `approval_reason`, `approval_requested_by` and `_at`, `approval_decided_by` and `_at`, `approval_note`, `approval_self` and `approval_hash`, which only the functions above write (`private.guard_approval_columns`). `organisation_defaults` has `price_tolerance_percent` and `price_tolerance_needs_approval`.
 
 Each list is scoped by `(organisation_id, code)`. `code` matches `^[A-Z0-9][A-Z0-9.-]*$` after the triggers run. Products may be 30 characters. Other codes may be 20. Description is 1–200.
 

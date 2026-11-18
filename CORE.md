@@ -425,6 +425,20 @@ An allocation applies part or all of a payment, a receipt or a credit note to an
 
 Before settlement the paid amount was a figure typed on the document. The migration `remove_typed_paid_amount` turns each posted document with such a figure into a migrated payment and one allocation, so its paid amount and amount due come out as they were, and clears the figure on drafts. It reports every decision as a notice, checks every posted document afterwards, and does nothing on a second run. A document typed as paid for more than its total is allocated up to its total and the rest stays on the migrated payment.
 
+## Purchase approvals and price tolerance
+
+An organisation can require approval before a purchase order is activated or a purchase invoice is posted. It is off until an owner or admin sets a rule, and with no rule nothing changes for anyone. The design is in `specs/QULAPLUS_APPROVALS_SPEC.md`.
+
+**Rules.** `approval_rules` holds, for one purchase invoice type or one purchase order type, an amount in the home currency and the role that must approve at or above it, `admin` or `owner`. Several rules on a type make a ladder: the highest amount not above the document's total with VAT (`home_total_amount`) applies. An owner can approve anything an admin can. Requisitions, credit notes, sales documents and payments are not covered, and a rule cannot be made for them. Voiding a posted purchase stays with owners and admins, as before.
+
+**Asking and deciding.** A member asks with `request_approval` and an admin or owner (an owner only, for an owner rule) decides with `approve_document` or `reject_document`. A refusal needs a reason. The person who asked cannot decide, unless no one else in the organisation has a high enough role. Then they can, and `approval_self` records it. Once approved, any member can post or activate it.
+
+**What holds back.** `post_document` and the Activate action of `set_order_status` call `private.require_approval`, so every route to posting passes through it: the Post button, Save and post, Ask Qula's confirmed post and a draft made by importing an e-invoice. The messages say what to do: "This document needs approval from an admin or owner. Request approval first.", "Waiting for approval from an admin or owner." and "Approval was refused: {reason}.". Saving, editing and deleting a draft stay free.
+
+**A change cancels an approval.** The header keeps a fingerprint of the document and its lines (`approval_hash`) from when approval was asked for. A request, an approval or a refusal counts only while the document still gives the same fingerprint, so any change to a line, a price, the supplier or the date means it needs approval again. Saving a document without changing it does not. A rule raised after an approval, so that a higher role is needed, has the same effect. The approval columns are written only by the three functions and cannot be changed on a posted document.
+
+**Price tolerance.** The organisation can set a percentage (`price_tolerance_percent`, with the lock date). A purchase invoice line that came from an order line is compared with it by unit price after any discount. A line is over when its price is higher than the order's by more than the percentage. A lower price is never over, and a line typed in with no order line is not compared. `price_checks` gives the figures for the screen. If the invoice's type has approval rules, and `price_tolerance_needs_approval` is on, an invoice with a line over the tolerance needs approval from an admin or owner whatever its amount. Otherwise it is a warning only. Everything about approval is recorded in the audit log with its note.
+
 ## Printable forms
 
 `transaction_forms` has one row per organisation and transaction type. The `layout` column is JSON, at most 8000 characters. The page shape is fixed. The JSON chooses the title, page size, and which fields appear, in order, inside each band.
