@@ -94,3 +94,16 @@ Payment and receipt types now have forms. The layout uses the same table and set
 2. **Fixes from that run.** The screens have only been driven by the end-to-end suite, which found real bugs (a dialog's submit reaching the document form it is portalled out of, and lost first clicks on freshly opened pages).
 3. **Lost first clicks.** Flows 3, 5 and 6 each failed once because a button was pressed just after a page or dialog opened. Flows 3 and 5 now press again until it takes. If it happens to people as well as tests, the app has a loading race to find, and the retries should come out.
 4. **Not built, by design.** Cross-currency payments, write-offs and bank charges, and bank feeds. The spec lists them as follow-ups.
+
+## Spec audit (18 November 2026)
+
+Every acceptance box in the spec was checked against the tests. 59 of 67 are ticked, each with the test that proves it. The 8 left open, and why:
+
+1. A void document as an allocation target is not tested (a void payment is).
+2. The "has money on account" filter on the payment list has no test. Its database half is tested.
+3. `en16931_readiness` and stored outbound e-documents are not checked after a payment is allocated (`en16931_document` is, for one invoice).
+4. The migrated types being left out of the Transactions menu and the type admin list has no test. The database protects them.
+5. "Who owes us the most?" has not run against real data.
+6. A receipt eight days old in Worth a look: unit tested only.
+7. An imported e-invoice with BT-113: notice wording unit tested, stored figure SQL tested, no flow.
+8. The release B migration was never run against a copy of the live project, as "Done when" asks.
