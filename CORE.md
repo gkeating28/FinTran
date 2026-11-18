@@ -456,9 +456,15 @@ Allowed line columns: `date`, `item`, `description`, `tax`, `quantity`, `price`,
 
 If no row has been saved, printing uses this standard layout. The VAT summary and bank details are drawn at the bottom of the page. Print opens the browser print dialog. PDF downloads the same page at the layout's page size.
 
+### On the invoice screens
+
+Receipts, payments and refunds are recorded only on their own screens (Transactions, then Customer receipt, Supplier payment, Customer refund or Supplier refund). A posted invoice or credit note shows what has settled it on a tab of its own. The tab is **Receipts** on a sales invoice, **Payments** on a purchase invoice and **Applied** on a credit note. It lists each receipt or payment with its date and amount, with the number as a link that opens it, and shows the total, what is paid and what is open. It has no button to record money: a line under the figures names the screen that does, with a link to its list. The tab beside **Document** and **Notes** that holds payment means, terms and bank details is called **Payment terms**.
+
+A credit note's tab also has **Apply to an invoice** while it has a balance, and an application can be removed from it with a reason. Applying a credit note is not a receipt or a payment, so it has no other home. A refund is recorded on the Customer refund or Supplier refund screen, where the credit note appears among the open items.
+
 ### Received e-invoices that say they are part paid
 
-When an e-invoice is received with an amount in BT-113 (what the supplier says is paid), the import screen shows a notice under Paid amount, and the Payments tab of the posted invoice shows it while something is still open. It says the supplier states an amount is paid and that nothing was recorded from it: record the payment if it is yours, or check it with the supplier. The figure is information only (`supplier_stated_paid_amount`). It is never allocated and never changes what is due. The notice is `supplierStatedPaidMessage` in `src/lib/payments.ts`.
+When an e-invoice is received with an amount in BT-113 (what the supplier says is paid), the import screen shows a notice under Paid amount, and the tab of the posted invoice that lists its receipts or payments shows it while something is still open. It says the supplier states an amount is paid and that nothing was recorded from it: record the payment if it is yours, or check it with the supplier. The figure is information only (`supplier_stated_paid_amount`). It is never allocated and never changes what is due. The notice is `supplierStatedPaidMessage` in `src/lib/payments.ts`.
 
 ### Printed payments, receipts and refunds
 

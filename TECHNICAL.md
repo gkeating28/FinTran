@@ -102,7 +102,7 @@ Every sales and purchase entry screen is the document screen. Do not invent a se
 | --- | --- |
 | `document/useDocumentForm.ts` | The fields, lines, totals, which buttons show and the handlers. Returns one object, `DocumentFormState`, that every panel takes as `form` |
 | `document/useSplitLayout.ts` | The draggable split between header and lines, and its stored width |
-| `document/HeaderPane.tsx`, `TotalsSummary.tsx` | The Document, Notes and Payment tabs, and the totals under them. The e-invoice panel is `EInvoicePanel.tsx` |
+| `document/HeaderPane.tsx`, `TotalsSummary.tsx` | The Document, Notes and Payment terms tabs, the Receipts, Payments or Applied tab of a posted document, and the totals under them. The e-invoice panel is `EInvoicePanel.tsx` |
 | `document/LinesPane.tsx`, `LineEditor.tsx` | The line grid with its pager, and the line dialog |
 | `document/InvoiceActions.tsx` | Invoice and credit note actions: Void, Credit notes, Save and post, Post, Save |
 | `document/OrderActions.tsx` | Order and requisition actions: create from an order, Activate, Close, Cancel, Reopen |
@@ -244,7 +244,7 @@ Ask Qula knows the page. A screen that has a record open calls `useAskContext` (
 | `/login`, `/signup` | Email sign-in and account creation |
 | `/` | Home dashboard for the open organisation: a full width welcome banner that also carries the workspace facts, document counts, documents posted in each of the last six weeks, shortcuts, and the five latest changes for owners and admins in a column that runs from the cards to the bottom of the shortcuts. Styles are in `src/components/Home.module.css`, counts in `src/lib/home-data.ts`. A "Worth a look" card (`HomeInsights`, rules in `src/lib/insights.ts`) streams in after the rest: past due documents, drafts that cannot be sent as e-invoices (newest 10 checked), possible duplicates, unusually large documents, what falls due in 7 days, open orders still to invoice and open orders that are fully invoiced and can be closed. Three payment rules were added: invoices part paid and past due, money on account (posted payments, and credit notes with a balance, left unapplied for more than 7 days) and likely matches (an unapplied receipt, or payment to a supplier, equal to what is open on exactly one invoice of that party in the same currency). A credit note is never reported as overdue or due soon, as its amount due is a balance it still has to give. Orders and requisitions are left out of the invoice rules. The rules are fixed and use no AI. Ask Qula reads the same list through its `insights` tool. |
 | `/transactions` | Transaction types, with draft, posted, and void counts |
-| `/transactions/{code}` | Document list for that type, or the payment list when the type is a payment or receipt. `?new=1&party={id}&allocate={documentId}:{amount},…` opens a new payment already allocated, as Record receipt does |
+| `/transactions/{code}` | Document list for that type, or the payment list when the type is a payment or receipt. `?new=1&party={id}&allocate={documentId}:{amount},…` opens a new payment already allocated. Nothing links to it now: the invoice screens no longer have record buttons |
 | `/transactions/{code}` with a document open | The shared entry form. A payment or receipt opens the payment form |
 | `/customers`, `/suppliers` | Parties |
 | `/e-documents` | Received and sent e-documents, filtered by status, party, date, and number |

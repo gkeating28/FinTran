@@ -436,7 +436,7 @@ The `save_document` change and the screen change happen here, in the same releas
 - `save_document` refuses a `paidAmount` value: `The paid amount is calculated from payments and cannot be typed.`
 - Remove `paidAmount` from every caller: at least `src/lib/document-actions.ts` (the save and `updatePaidAmount` paths) and `HeaderPane.tsx`. Search for any other caller.
 - Remove `updatePaidAmount`.
-- The Payment tab shows paid (or "Applied" on credit notes) and amount due as read-only figures, with a link to the Payments tab (6.2, in the same release).
+- The Payment tab shows paid (or "Applied" on credit notes) and amount due as read-only figures, with the tab described in 6.2 beside it (Receipts, Payments or Applied).
 
 ### 5.2 Migration of existing figures
 
@@ -495,9 +495,10 @@ On a posted payment, the open items panel stays usable for allocating unallocate
 
 ### 6.2 Documents
 
-- Add a **Payments** tab to posted invoices and credit notes. It lists effective and removed allocations (source, date, amount, exchange difference, who and when), the open amount, and **Record receipt** or **Record payment**.
-- Those buttons open a new draft of the right kind, with the party, currency and the full open amount pre-allocated.
-- On credit notes the paid figure is labelled **Applied**. A posted credit note with an unallocated balance shows **Apply to an invoice** and **Refund**.
+- Add a tab to posted invoices and credit notes that lists what has settled them: effective and removed allocations (the receipt, payment or credit note, date, amount, exchange difference, who and when) and the open amount. The tab is **Receipts** on a sales invoice, **Payments** on a purchase invoice and **Applied** on a credit note. The number of each receipt or payment opens it.
+- The tab records nothing. Receipts, payments and refunds are recorded on their own screens, and the tab says which. (Version 3 had **Record receipt**, **Record payment** and **Refund** buttons here. They were taken out because they made the tab look like the place to record money.)
+- On credit notes the paid figure is labelled **Applied**. A posted credit note with an unallocated balance shows **Apply to an invoice**, and an applied amount can be removed from the tab with a reason.
+- The tab that held payment means and terms is called **Payment terms**, so the two tabs are not confused.
 
 ### 6.3 Lists and parties
 
