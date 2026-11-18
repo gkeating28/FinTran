@@ -29,6 +29,7 @@ const TILES = [
   { href: "/vat-rates", label: "VAT rates", count: "vatRates", icon: <VatIcon size={22} /> },
   { href: "/currencies", label: "Currencies", count: "currencies", icon: <CurrencyIcon size={22} /> },
   { href: "/bank-accounts", label: "Bank accounts", count: "bankAccounts", icon: <BankIcon size={22} /> },
+  { href: "/approval-rules", label: "Approval rules", count: "approvalRules", icon: <DocumentIcon size={22} /> },
   { href: "/transaction-types", label: "Transaction types", count: "transactionTypes", icon: <DocumentIcon size={22} /> },
   { href: "/forms", label: "Forms", count: "forms", icon: <DocumentIcon size={22} /> },
   { href: "/products", label: "Products", count: "products", icon: <ProductIcon size={22} /> },

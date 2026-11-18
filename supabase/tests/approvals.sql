@@ -181,7 +181,26 @@ select pg_temp.expect_error(
   format($sql$update public.transaction_headers set approval_status = 'requested' where id = %L$sql$, current_setting('test.a3')),
   'cannot be changed', 'changing the approval on a posted document');
 
+-- The status the screens read: waiting, who can decide, and what the document was asked for.
+select pg_temp.act_as('member');
+select set_config('test.s0', pg_temp.draft('PI', 1500)::text, true);
+select pg_temp.eq('a document that needs approval is listed', (select count(*)::int from public.approval_status(array[current_setting('test.s0')::uuid])), 1);
+select pg_temp.eq('and says it is required', (select state from public.approval_status(array[current_setting('test.s0')::uuid])), 'required');
+select pg_temp.eq('a document that needs nothing is not listed', (select count(*)::int from public.approval_status(array[current_setting('test.a2')::uuid])), 0);
+select public.request_approval(current_setting('test.s0')::uuid, 'Please');
+select pg_temp.eq('waiting', (select state from public.approval_status(array[current_setting('test.s0')::uuid])), 'requested');
+select pg_temp.eq('the requester knows who asked', (select requested_by_name from public.approval_status(array[current_setting('test.s0')::uuid])), 'member');
+select pg_temp.eq('a member cannot decide', (select can_decide from public.approval_status(array[current_setting('test.s0')::uuid])), false);
+select pg_temp.act_as('admin');
+select pg_temp.eq('an admin can decide', (select can_decide from public.approval_status(array[current_setting('test.s0')::uuid])), true);
+select public.approve_document(current_setting('test.s0')::uuid, 'Fine');
+select pg_temp.eq('approved', (select state from public.approval_status(array[current_setting('test.s0')::uuid])), 'approved');
+select pg_temp.eq('and who approved it', (select decided_by_name from public.approval_status(array[current_setting('test.s0')::uuid])), 'admin');
+select pg_temp.act_as('outsider');
+select pg_temp.eq('an outsider sees nothing', (select count(*)::int from public.approval_status(array[current_setting('test.s0')::uuid])), 0);
+
 -- 5. The ladder: an admin for 5,000, an owner for 12,000.
+select pg_temp.act_as('member');
 select set_config('test.a4', pg_temp.draft('PI', 5000)::text, true);
 select public.request_approval(current_setting('test.a4')::uuid, null);
 select pg_temp.act_as('admin');

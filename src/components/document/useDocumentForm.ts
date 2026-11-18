@@ -13,6 +13,8 @@ import { parseAmount } from "@/lib/products";
 import { formatExchangeRate } from "@/lib/currencies";
 import { breakdownFromLines, formatMoney, lineAmounts, roundCents, toHome, type DocumentLine, type DocumentRow, type InvoiceCode, type OrderSource, type ReadinessItem } from "@/lib/documents";
 import type { ActionState } from "@/lib/types";
+import { approvalBanner, needsApproval, type ApprovalInfo, type PriceCheck } from "@/lib/approvals";
+import { loadPriceChecks } from "@/lib/approval-actions";
 import { addDays, DOCUMENT_FORM, termsText, today, type HeaderTab } from "./shared";
 import { useSplitLayout } from "./useSplitLayout";
 
@@ -22,6 +24,8 @@ export type DocumentFormProps = {
   /** Read by the list after the rows arrive, so it is passed in and not taken from the header. */
   readiness: ReadinessItem[];
   readinessPending: boolean;
+  /** Where the draft stands on approval. Null when it needs none. */
+  approval: ApprovalInfo | null;
   lines: DocumentLine[] | null;
   lineError: string | null;
   choices: DocumentChoices;
@@ -35,7 +39,7 @@ export type DocumentFormProps = {
 export type DocumentFormState = ReturnType<typeof useDocumentForm>;
 
 /** Everything the open document needs: its fields, lines, totals, which buttons show, and the handlers. */
-export function useDocumentForm({ title, header, readiness, readinessPending, lines, lineError, choices, typeCode, direction, canVoid, canDownload, onClose }: DocumentFormProps) {
+export function useDocumentForm({ title, header, readiness, readinessPending, approval, lines, lineError, choices, typeCode, direction, canVoid, canDownload, onClose }: DocumentFormProps) {
   const sales = direction === "Sales";
   const region = useRegion();
   const posted = header?.status === "posted";
@@ -367,7 +371,24 @@ export function useDocumentForm({ title, header, readiness, readinessPending, li
     return partyId === supplierId && invoice.id !== header?.id;
   });
   // A draft invoice or credit note can be posted from the open document, as it can from the list.
-  const canPostHere = !orderDocument && !locked && (!header || header.status === "draft");
+  const approvalNeeded = needsApproval(approval) && header?.status === "draft";
+  const canPostHere = !orderDocument && !locked && (!header || header.status === "draft") && !approvalNeeded;
+  const [approvalOpen, setApprovalOpen] = useState<"reject" | "request" | null>(null);
+  // Each line's price against the order it came from, read when a purchase invoice is open.
+  const [loadedChecks, setLoadedChecks] = useState<{ id: string; checks: PriceCheck[] } | null>(null);
+  const checkId = header && !sales && !orderDocument ? header.id : null;
+  useEffect(() => {
+    if (!checkId) return;
+    let cancelled = false;
+    loadPriceChecks(checkId).then((checks) => {
+      if (!cancelled) setLoadedChecks({ id: checkId, checks });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [checkId, header]);
+  const priceChecks = checkId && loadedChecks?.id === checkId ? loadedChecks.checks : [];
+  const approvalMessage = header?.status === "draft" ? approvalBanner(approval) : null;
   const showCreditNote = sales && selectedType?.documentKind === "invoice" && posted && header;
   const canVoidDocument = posted && canVoid && !sales;
   const linePage = gridPageSlice(invoiceLines, linePageIndex, linePageSize);
@@ -398,6 +419,8 @@ export function useDocumentForm({ title, header, readiness, readinessPending, li
               ? { tone: "notice" as const, text: "Closed. Reopen the order to change it." }
               : opened
                 ? { tone: "notice" as const, text: "Active. It can still be changed. An order closes by itself when posted invoices cover every line." }
+          : approvalMessage
+            ? approvalMessage
           : choices.types.length === 0
             ? { tone: "alert" as const, text: `Add a ${sales ? "Sales" : "Purchases"} transaction type before saving a document.` }
             : parties.length === 0
@@ -410,6 +433,11 @@ export function useDocumentForm({ title, header, readiness, readinessPending, li
     header,
     readiness,
     readinessPending,
+    approval,
+    approvalNeeded,
+    approvalOpen,
+    setApprovalOpen,
+    priceChecks,
     lines,
     choices,
     typeCode,

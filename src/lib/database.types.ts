@@ -3465,6 +3465,23 @@ export type Database = {
         Args: { p_source: Json }
         Returns: number
       }
+      approval_status: {
+        Args: { p_header_ids: string[] }
+        Returns: {
+          can_decide: boolean
+          decided_at: string
+          decided_by_name: string
+          header_id: string
+          note: string
+          price_over: boolean
+          reason: string
+          requested_at: string
+          requested_by_name: string
+          required_role: string
+          self: boolean
+          state: string
+        }[]
+      }
       approve_document: {
         Args: { p_header_id: string; p_note?: string }
         Returns: undefined

@@ -5,6 +5,7 @@ const ADMIN_PAGES = new Set([
   "/vat-rates",
   "/currencies",
   "/bank-accounts",
+  "/approval-rules",
   "/transaction-types",
   "/products",
   "/organisations",

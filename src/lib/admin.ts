@@ -7,6 +7,7 @@ type OrganisationTable =
   | "vat_rates"
   | "currencies"
   | "bank_accounts"
+  | "approval_rules"
   | "transaction_types"
   | "products"
   | "organisation_access"
@@ -20,6 +21,7 @@ export type AdminCounts = {
   vatRates: number | null;
   currencies: number | null;
   bankAccounts: number | null;
+  approvalRules: number | null;
   transactionTypes: number | null;
   products: number | null;
   access: number | null;
@@ -44,7 +46,7 @@ async function countRows(
 
 export async function adminCounts(organisationId: string): Promise<AdminCounts> {
   const supabase = await createClient();
-  const [glCodes, departments, costCentres, vatRates, currencies, bankAccounts, transactionTypes, products, access, forms, history] =
+  const [glCodes, departments, costCentres, vatRates, currencies, bankAccounts, approvalRules, transactionTypes, products, access, forms, history] =
     await Promise.all([
       countRows(supabase, "gl_codes", organisationId),
       countRows(supabase, "departments", organisationId),
@@ -52,6 +54,7 @@ export async function adminCounts(organisationId: string): Promise<AdminCounts> 
       countRows(supabase, "vat_rates", organisationId),
       countRows(supabase, "currencies", organisationId),
       countRows(supabase, "bank_accounts", organisationId),
+      countRows(supabase, "approval_rules", organisationId),
       countRows(supabase, "transaction_types", organisationId),
       countRows(supabase, "products", organisationId),
       countRows(supabase, "organisation_access", organisationId),
@@ -66,6 +69,7 @@ export async function adminCounts(organisationId: string): Promise<AdminCounts> 
     vatRates,
     currencies,
     bankAccounts,
+    approvalRules,
     transactionTypes,
     products,
     access,

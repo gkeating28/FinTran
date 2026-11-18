@@ -195,6 +195,16 @@ function lockDateFrom(value: string) {
   return trimmed;
 }
 
+/** A tolerance percentage from 0 to 100 with up to two decimals. Blank is no check. Undefined is not a number in range. */
+function toleranceFrom(value: string) {
+  const trimmed = value.trim().replace(/,/g, ".");
+  if (!trimmed) return null;
+  if (!/^\d{1,3}(\.\d{1,2})?$/.test(trimmed)) return undefined;
+  const percent = Number(trimmed);
+  if (percent > 100) return undefined;
+  return percent;
+}
+
 function profileFrom(formData: FormData) {
   const address = parsePostalAddress({
     line1: text(formData, "address_line1"),
@@ -221,6 +231,7 @@ function profileFrom(formData: FormData) {
   const bankAccountName = optionalField(text(formData, "bank_account_name"), 100);
   const bankingDetails = optionalField(text(formData, "banking_details"), 1000);
   const lockDate = lockDateFrom(text(formData, "lock_date"));
+  const tolerance = toleranceFrom(text(formData, "price_tolerance_percent"));
   if ("error" in address) return { error: address.error } as const;
   if (contactName === undefined) return { error: "Contact name can be up to 200 characters." } as const;
   if (contactEmail === undefined) return { error: "Use a contact email, or leave it blank." } as const;
@@ -234,6 +245,7 @@ function profileFrom(formData: FormData) {
   if (bankAccountName === undefined) return { error: "Account name can be up to 100 characters." } as const;
   if (bankingDetails === undefined) return { error: "Banking details can be up to 1000 characters." } as const;
   if (lockDate === undefined) return { error: "Use a lock date, or leave it blank." } as const;
+  if (tolerance === undefined) return { error: "Use a price tolerance from 0 to 100 with up to 2 decimal places, or leave it blank." } as const;
   const inboundInvoiceTypeId = optionalUuid(text(formData, "inbound_invoice_type_id"));
   const inboundCreditNoteTypeId = optionalUuid(text(formData, "inbound_credit_note_type_id"));
   if (inboundInvoiceTypeId === undefined) return { error: "Choose a Purchases invoice type." } as const;
@@ -260,6 +272,8 @@ function profileFrom(formData: FormData) {
     bank_account_name: bankAccountName,
     banking_details: bankingDetails,
     lock_date: lockDate,
+    price_tolerance_percent: tolerance,
+    price_tolerance_needs_approval: text(formData, "price_tolerance_needs_approval") !== "no",
     inbound_invoice_type_id: inboundInvoiceTypeId,
     inbound_credit_note_type_id: inboundCreditNoteTypeId,
   } as const;

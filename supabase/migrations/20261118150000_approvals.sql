@@ -591,6 +591,81 @@ $$;
 revoke all on function public.reject_document(uuid, text) from public, anon;
 grant execute on function public.reject_document(uuid, text) to authenticated;
 
+-- Where each of several documents stands, for the lists and the open document. Only documents that need approval are
+-- returned. can_decide says whether the person asking could approve or refuse it now.
+create function public.approval_status(p_header_ids uuid[])
+returns table (
+  header_id uuid,
+  state text,
+  required_role text,
+  reason text,
+  requested_by_name text,
+  requested_at timestamp with time zone,
+  decided_by_name text,
+  decided_at timestamp with time zone,
+  note text,
+  self boolean,
+  can_decide boolean,
+  price_over boolean
+)
+language plpgsql stable security definer
+set search_path to ''
+as $$
+declare
+  v_id uuid;
+  h record;
+  c record;
+  v_state text;
+  v_roles text[];
+  v_decide boolean;
+begin
+  foreach v_id in array coalesce(p_header_ids, array[]::uuid[])
+  loop
+    select header.organisation_id, header.approval_requested_by, header.approval_requested_at, header.approval_decided_by,
+           header.approval_decided_at, header.approval_note, header.approval_self
+      into h
+    from public.transaction_headers as header
+    where header.id = v_id;
+    if not found or not (select private.is_org_member(h.organisation_id)) then
+      continue;
+    end if;
+
+    select * into c from private.approval_check(v_id);
+    if not c.needed then
+      continue;
+    end if;
+    v_state := private.approval_state(v_id);
+    v_roles := case c.role when 'owner' then array['owner'] else array['owner', 'admin'] end;
+    v_decide := v_state = 'requested'
+      and (select private.has_org_role(h.organisation_id, v_roles))
+      and (
+        h.approval_requested_by is distinct from (select auth.uid())
+        or not exists (
+          select 1 from public.organisation_access as access
+          where access.organisation_id = h.organisation_id and access.user_id <> (select auth.uid()) and access.role = any (v_roles)
+        )
+      );
+
+    return query select
+      v_id,
+      v_state,
+      c.role,
+      c.reason,
+      (select profile.display_name from public.profiles as profile where profile.id = h.approval_requested_by),
+      h.approval_requested_at,
+      (select profile.display_name from public.profiles as profile where profile.id = h.approval_decided_by),
+      h.approval_decided_at,
+      h.approval_note,
+      h.approval_self,
+      v_decide,
+      exists (select 1 from private.price_rows(v_id) as row where row.over);
+  end loop;
+end;
+$$;
+
+revoke all on function public.approval_status(uuid[]) from public, anon;
+grant execute on function public.approval_status(uuid[]) to authenticated;
+
 -- The gate: post_document and Activate ---------------------------------------------------------------------------
 
 create or replace function public.post_document(p_header_id uuid, p_logo_path text DEFAULT NULL::text) RETURNS void

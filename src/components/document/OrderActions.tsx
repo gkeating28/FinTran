@@ -9,7 +9,7 @@ import type { DocumentFormState } from "./useDocumentForm";
 
 /** Create from an order, and Activate, Close, Cancel and Reopen. */
 export function OrderActionButtons({ form }: { form: DocumentFormState }) {
-  const { header, typeCode, linksOpen, opened, closed, orderDocument, requisition, dirty, cannotSave, followOnNoun, followOnTypes, openPanel } = form;
+  const { header, typeCode, approvalNeeded, linksOpen, opened, closed, orderDocument, requisition, dirty, cannotSave, followOnNoun, followOnTypes, openPanel } = form;
   return (
     <>
       {header && opened && followOnTypes.length === 1 && dirty ? (
@@ -57,7 +57,7 @@ export function OrderActionButtons({ form }: { form: DocumentFormState }) {
           {dirty ? "Save and create" : "Create"} {followOnNoun}
         </button>
       ) : null}
-      {header && orderDocument && header.status === "draft" ? (
+      {header && orderDocument && header.status === "draft" && !approvalNeeded ? (
         <OrderStatusButton
           id={header.id}
           action="open"

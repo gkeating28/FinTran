@@ -11,7 +11,7 @@ import type { DocumentFormState } from "./useDocumentForm";
 
 /** The line grid, its pager and the Add line button. */
 export function LinesPane({ form }: { form: DocumentFormState }) {
-  const { choices, invoiceLines, linePageSize, setLinePageIndex, setLineDraft, setLineMessage, locked, lineGridLines, totals, showDrawn, showReturns, showSource, linePage, replaceLines, changeLinePageSize } = form;
+  const { choices, priceChecks, invoiceLines, linePageSize, setLinePageIndex, setLineDraft, setLineMessage, locked, lineGridLines, totals, showDrawn, showReturns, showSource, linePage, replaceLines, changeLinePageSize } = form;
   return (
     <div className={styles.linesPane}>
       <div className={styles.gridToolbar}>
@@ -84,7 +84,14 @@ export function LinesPane({ form }: { form: DocumentFormState }) {
                   >
                     <td className={styles.mono}>{line.lineNumber}</td>
                     <td className={styles.mono}>{line.productCode}</td>
-                    <td>{line.description}</td>
+                    <td>
+                      {line.description}
+                      {priceChecks.some((check) => check.lineId === line.id && check.over) ? (
+                        <span className={documentStyles.statusTag} data-status="warning" title="Priced over the order beyond the allowed tolerance">
+                          {" "}Over order price
+                        </span>
+                      ) : null}
+                    </td>
                     <td className={styles.mono}>{line.unitCode || "C62"}</td>
                     <td className={styles.mono}>{choices.glCodes.find((code) => code.id === line.glCodeId)?.code ?? ""}</td>
                     <td className={styles.mono}>{choices.vatRates.find((rate) => rate.id === line.vatRateId)?.code ?? ""}</td>

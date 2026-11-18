@@ -19,6 +19,7 @@ const PAGES = [
   "/e-documents",
   "/currencies",
   "/bank-accounts",
+  "/approval-rules",
   "/gl-codes",
   "/vat-rates",
   "/departments",

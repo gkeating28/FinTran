@@ -301,6 +301,8 @@ Server actions run on the server with the user session and return `{ error }` or
 | `document-actions.ts` | `saveDocument`, `postDocument`, `voidDocument`, `createCreditNote`, `deleteDocument`, `createFromOrder`, `setOrderStatus` | Documents, for both directions |
 | `party-summary-actions.ts` | `loadPartySummary` | Read-only. What a customer or supplier owes or is owed, money on account and recent payments, for the summary beside the party form |
 | `readiness-actions.ts` | `loadTransactionReadiness` | Read-only `en16931_readiness` for a list of headers |
+| `approval-actions.ts` | `loadApprovalStatus`, `loadPriceChecks`, `requestApproval`, `approveDocument`, `rejectDocument` | Read where drafts stand on approval and each invoice line against its order price. Ask for, give or refuse approval through `request_approval`, `approve_document` and `reject_document`, then reopen the document |
+| `approval-rule-actions.ts` | `createApprovalRule`, `updateApprovalRule`, `deleteApprovalRule` | The approval rules screen. The type is set when the rule is created and cannot change |
 
 `saveDocument` sends this JSON to `save_document`:
 
@@ -328,6 +330,7 @@ These are the `public` functions the app is allowed to call. Arguments match `sr
 | `request_approval(p_header_id, p_note default null)` | void | Any member asks for approval of a draft purchase invoice or order that needs it (`private.approval_check`). Records who and when, and a fingerprint of the document |
 | `approve_document(p_header_id, p_note default null)` | void | A role at least the one the rule needs. Refused for the person who asked, unless nobody else could decide (then `approval_self` is true). Only while the approval is waiting and the document is as it was |
 | `reject_document(p_header_id, p_reason)` | void | Same role test. A reason is required |
+| `approval_status(p_header_ids uuid[])` | rows | For drafts that need approval: state (required, requested, approved or rejected), the role asked for, why, who asked and decided, and whether the caller can decide. Documents that need none are left out |
 | `price_checks(p_header_id)` | rows | For a purchase invoice, each line that came from an order line with both unit prices after discount, the percentage difference and whether it is over the tolerance. Nothing when no tolerance is set |
 | `save_payment(p_payment jsonb)` | uuid | Inserts or replaces a draft payment and its planned allocations. Security invoker. |
 | `post_payment(p_payment_id)` | void | Posts a draft payment and makes its allocations effective. Fails with the documents that no longer have enough open. |
