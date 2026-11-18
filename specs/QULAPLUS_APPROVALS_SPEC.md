@@ -1,6 +1,6 @@
 # Qula Plus purchase approvals and price tolerance spec
 
-Version 1, 18 November 2026. A draft for review. Nothing in it is built.
+Version 2, 18 November 2026. The seven review questions are answered (see "Answers to the review questions"). A draft: three readings still need confirming, and nothing in it is built.
 
 Goal: let an organisation say that a purchase order or purchase invoice above a set amount, or an invoice whose prices have gone over what was ordered, must be approved by someone senior before it takes effect. This is step 2 of the agreed order (aged debtors and creditors, approvals with price tolerance, journal export, bank statement import, live connectors and bank feeds). It comes before journal export so that what is exported has already passed the posting rules.
 
@@ -10,17 +10,17 @@ Read `docs/QULA_PLUS_REFERENCE.md`, `CORE.md`, `TECHNICAL.md` and the two earlie
 
 The rules from the earlier specs still apply: new migrations only, rules enforced in Postgres, no service-role key, security definer functions with `search_path = ''`, British spelling, SQL tests for every acceptance criterion, regenerate types, and update the documentation after each phase (`npm run check:docs` must pass). Each phase must leave behaviour that is not mentioned in it unchanged, and with no approval rule set, every organisation must behave exactly as it does today.
 
-## Questions for review
+## Answers to the review questions
 
-The spec chooses a default for each of these (see the decisions table). Each can change before anything is built.
-
-1. **Who approves.** The default is by role, using the roles that exist (member, admin, owner), with no named approver lists. Is that enough, or do you need approvers named per rule or per supplier?
-2. **Entering and approving.** The default is that the person who enters a document cannot approve it, even if they are an owner, unless nobody else could. Is that right?
-3. **Credit notes.** The default is that purchase credit notes are not gated, because they reduce what is owed. Should they be?
-4. **Sales.** The default is purchases only. Is any control wanted on sales documents?
-5. **Payments.** Approving a payment run is a separate control and is left out. Should it be next?
-6. **Notification.** The default is a count on the home page and a filter, with no email. Is email needed for the first version?
-7. **Price tolerance.** The default flags only a price that is higher than ordered, as a percentage of the order price, one setting for the whole organisation. Should a lower price be flagged too, or should the tolerance be per supplier?
+| # | Question | Answer | How the spec reads it |
+| --- | --- | --- | --- |
+| 1 | Who approves | **Role** | By role (member, admin, owner). No named approver lists (A5) |
+| 2 | Entering and approving | **Default: no, unless nobody else could** | The requester cannot approve, unless no one else has a high enough role (A6) |
+| 3 | Purchase credit notes | **No for now** | Not gated (A1) |
+| 4 | Sales documents | **No** | Purchases only (A1) |
+| 5 | Payment approvals | **"Should they be next"** | **Needs confirming.** Read as: payment approvals are the candidate for the spec after this one, and the order in the reference (journal export next) is unchanged until you say. The spec leaves payments out (Out of scope) |
+| 6 | Email in the first version | **Yes** | Email is in. **Needs confirming, because it adds a dependency:** the app has no outbound email today. It is built behind an adapter with a mock, and real sending waits on a mail provider you choose, as the Access Point does (A14, A19, phase 5) |
+| 7 | Price tolerance | **"For any supplier"** | **Needs confirming.** Read as: one organisation-wide tolerance that applies to every supplier, not one per supplier (A13). The question's other half, whether a price **below** the order should be flagged, was not answered, so only an increase counts (A11) |
 
 ## What exists today that this changes
 
@@ -49,11 +49,13 @@ The spec chooses a default for each of these (see the decisions table). Each can
 | A10 | Price tolerance, where | Purchase invoice lines that came from an order line (`source_line_id`). A line typed in with no order line is not compared |
 | A11 | Price tolerance, measure | The unit net price on the invoice line, after any discount, against the same figure on the order line. The tolerance is a percentage of the order price. Only an **increase** over the tolerance counts |
 | A12 | Price tolerance, effect | A line over tolerance is marked on the line and in the posting summary. If the organisation has approvals turned on for the type, a purchase invoice with any such line needs approval from an admin or owner whatever its amount. It is a warning only where no approval rule applies to the type |
-| A13 | Setting | One tolerance percentage for the organisation, on the Organisations screen next to the lock date, with a switch for whether a breach needs approval. Off (no percentage) by default |
-| A14 | Notification | No email in this version. Approvers see a count on the home page, a Worth a look entry and a filter on the lists. The requester sees the state on the document |
+| A13 | Setting | One tolerance percentage for the organisation, applying to every supplier, on the Organisations screen next to the lock date, with a switch for whether a breach needs approval. Off (no percentage) by default |
+| A14 | Notification | Two ways, both in the first version. **In the app:** approvers see a count on the home page, a Worth a look entry and a filter on the lists, and the requester sees the state on the document. **By email:** see A19 and A20 |
 | A15 | Ask Qula | It cannot request or give approval. A proposed post of a document that needs approval shows why and has no Confirm button, as a draft with a readiness error does |
 | A16 | Imported e-invoice drafts | Treated like any other draft. Approval applies when they are posted |
 | A17 | Audit | Every request, approval and rejection is recorded with who, when and the note |
+| A19 | Email sending | The app has no outbound email today (only `mailto` links and Supabase's own sign-in emails). Email goes through an adapter with the same shape as the Access Point's: an interface with a send method, and a **mock** that records what it would have sent. **A real mail provider is not chosen, so until it is, nothing is delivered.** The in-app notification (A14) works regardless |
+| A20 | Which emails | When approval is requested: one to every person in the organisation whose role is high enough to approve it, except the requester. When it is approved or rejected: one to the requester, with the note or reason and a link to the document. An owner or admin can switch approval emails off for the organisation. A failed send is recorded and shown to owners and admins, and never blocks the request, the approval or the posting. People cannot opt out one by one in this version |
 | A18 | Existing data | Drafts and rules at the time of the migration: none. No organisation has a rule, so nothing is held back until an owner or admin sets one |
 
 ## Phase 1: database
@@ -164,7 +166,23 @@ New columns on `organisation_defaults`: `price_tolerance_percent` (null, or from
 - [ ] Ask Qula can list documents waiting for approval.
 - [ ] An imported draft over a rule's amount is refused at posting until approved.
 
-## Phase 5: end-to-end tests
+## Phase 5: email
+
+- Add an `email_outbox` table (standard scoping, no direct writes by people): the organisation, the recipient's address and name, the subject and text, the document, the reason (`approval requested`, `approved` or `rejected`), a status (`queued`, `sent`, `failed`), an error text and the times.
+- Add an email adapter beside the Access Point's (`src/lib/email/`): `send(to, subject, text)` and a `mock` that marks the row `sent` without delivering anything. The organisation's settings choose the adapter. Until a provider is chosen the only choice is the mock, and the settings screen says so.
+- `request_approval`, `approve_document` and `reject_document` write the outbox rows (A20). The server action then calls the adapter for each queued row and records the result. A failure leaves the row `failed` and the approval unaffected.
+- A switch on the Organisations screen (owners and admins) for approval emails. Owners and admins see failed emails on the approval rules screen.
+
+### Acceptance
+
+- [ ] A request writes one outbox row for each person with a high enough role, not the requester, and none when the switch is off.
+- [ ] An approval or a rejection writes one row for the requester, with the note or reason and a link.
+- [ ] With the mock adapter every row ends `sent` and nothing leaves the system.
+- [ ] A failing adapter leaves rows `failed`, shows them to an owner or admin, and the request, approval and posting still work.
+- [ ] A member cannot read or write the outbox directly.
+- [ ] A person with a lower role than needed gets no email for that request.
+
+## Phase 6: end-to-end tests
 
 New flows, numbered from 20, each with amounts no other flow uses:
 
@@ -174,19 +192,20 @@ New flows, numbered from 20, each with amounts no other flow uses:
 23. An invoice raised from an order and edited to a higher price over the tolerance needs approval, and one within it does not.
 24. Ask Qula shows no Confirm button for a document that needs approval.
 25. With no rule, posting is unchanged.
+26. With the mock email adapter, a request records an email to each approver and none to the requester, and the decision records one to the requester.
 
 ### Acceptance
 
-- [ ] All six flows pass in CI, and the existing flows pass without changes beyond any new setup they need.
+- [ ] All seven flows pass in CI, and the existing flows pass without changes beyond any new setup they need.
 
 ## Out of scope
 
 - Sales approvals, and approval of voids, credit notes, requisitions and payments
 - More than one approver in a chain, named approvers, delegation and out-of-office cover
-- Email or other notification
+- A real email provider and real delivery (the adapter and the mock are in; sending waits on a provider choice), per-person opt-out, and any notification other than the app and email
 - Tolerance by supplier, by product or by an absolute amount, and a tolerance on quantity (a quantity is already limited by what is left on the order)
 - Budgets and spend limits by GL code or department
-- Approving a payment run (a separate control, and a candidate for the spec after this)
+- Approving payments or a payment run: a separate control. You asked whether it should be next (question 5, to confirm), and it would reuse this machinery (rules, request, approve, reject, email)
 
 ## Done when
 
@@ -195,3 +214,4 @@ New flows, numbered from 20, each with amounts no other flow uses:
 - [ ] Types are regenerated.
 - [ ] `CORE.md`, `TECHNICAL.md` and `docs/QULA_PLUS_REFERENCE.md` describe approvals and tolerance, and `npm run check:docs` passes.
 - [ ] The migration is applied to the hosted FinTran project, with the date recorded.
+- [ ] A mail provider is chosen and the real adapter is built, or the spec says email is mock-only until it is.
