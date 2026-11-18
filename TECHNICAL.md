@@ -535,10 +535,11 @@ Select on a business table uses `private.is_org_member(organisation_id)`.
 
 ## Testing and CI
 
-Four checks run in `.github/workflows/check.yml` on every pull request and on every push to a `claude/` branch. A newer push to the same branch replaces the run in progress.
+Five checks run in `.github/workflows/check.yml` on every pull request and on every push to a `claude/` branch. A newer push to the same branch replaces the run in progress.
 
 | Check | Command | What it proves |
 | --- | --- | --- |
+| Documents | `npm run check:docs` | `CORE.md`, `TECHNICAL.md` and the reference still match the code. `scripts/check-docs.mjs` fails when a document names a file, migration, server action, database function or table that is gone, when a server action, public function or table is not described, when the form designer's field lists in `CORE.md` differ from the code, or when the flows table differs from the numbered flows in `e2e/`. It checks names, not sentences |
 | Unit tests | `npm test` | Pure code: spreadsheet safety, Ask Qula actions and its scripted mock provider, order progress, follow-on actions, e-invoice parsing and the golden order reference files. A new test file is added to the `test` script in `package.json`. |
 | Types | `npm run db:types` | `database.types.ts` has every table and every column the migrations create, and no others. To fix it, regenerate the types from the project and replace the file. |
 | SQL tests | `scripts/run-sql-tests.sh` | The database rules, on a local Supabase stack built from `supabase/migrations`. Each test raises on a broken rule and rolls back. `concurrency/last_unit.sh` and `concurrency/last_amount.sh` use two sessions and commit a small tenant: the first for the last unit of an order, the second for two payments allocating the last 100.00 of an invoice at once, where one succeeds, one is refused and neither deadlocks. The payment tests are `payments.sql`, `allocations.sql`, `payment_functions.sql` and `migrate_paid_amounts.sql`, which runs the migration file itself. `type_codes.sql` runs the two migrations that rename transaction types to three-character codes against types made under the old codes, including a custom type that must be left alone, a code already taken, a chosen prefix, and a hidden system type. Run them on a clean database, because the end-to-end seed uses a Peppol ID that some tests also use. |

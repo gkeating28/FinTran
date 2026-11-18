@@ -1,12 +1,12 @@
 # Qula Plus: functional reference
 
-Written 18 November 2026. This is the one document that says what Qula Plus does, how far each part has got, and where it could go next. It is meant to be read start to finish once, and then used to find things.
+Written 18 November 2026 and revised the same day after a review against the original requirements. This is the one document that says what Qula Plus does, how far each part has got, and where it could go next. It is meant to be read start to finish once, and then used to find things.
 
 It summarises. The detail lives in `CORE.md` (what the rules are), `TECHNICAL.md` (how the app is built) and `specs/QULAPLUS_PAYMENTS_SPEC.md` (the payments spec). Each section below says where to read more.
 
 ## How much to trust this document
 
-On 18 November 2026 `CORE.md` and `TECHNICAL.md` were checked against the code and the migrations. The checks and what they found are in section 16. In short: every file path, database function and table the two documents name exists, and I fixed the eight places where they had drifted. I did not re-read every sentence of the 1,100 lines against the code, so a rule described in `CORE.md` is reliable but not proven.
+On 18 November 2026 `CORE.md` and `TECHNICAL.md` were checked against the code and the migrations. The checks and what they found are in section 16. In short: every file path, database function and table the two documents name exists, and I fixed the eight places where they had drifted. I did not re-read every sentence of the 1,100 lines against the code, so a rule described in `CORE.md` is reliable but not proven. The name-level checks now run in CI (`npm run check:docs`), so they cannot drift unnoticed again.
 
 Each area below carries one of these marks:
 
@@ -149,6 +149,8 @@ One entry screen serves every document, and the transaction type decides the dir
 
 **On invoices and credit notes.** The tab on a posted document is **Receipts** (sales invoice), **Payments** (purchase invoice) or **Applied** (credit note). It lists what settled the document with a link to open each, shows what is open and names the screen that records one. It records nothing itself. A credit note's tab also has Apply to an invoice and removal of an application. Document lists have Paid and Amount due columns and a filter for unpaid, part paid and paid.
 
+**Applied to the hosted project.** Yes. Every migration file after the baseline, from `20261112110728_revoke_private_function_execute` to `20261117150118_payment_form_layouts`, including all the release B payments migrations (`20261113123253_payment_kinds` to `20261113130201_allocate_lines`), the three-character type codes and the payment form layouts, has a matching record in the hosted FinTran project's migration history. I checked the history with the Supabase tools on 18 November 2026. The baseline file is recorded there under the name `order_quantity_rules`, as expected. The hosted project had no typed paid amounts to migrate.
+
 **Migration of the old paid amount.** The earlier typed paid amount was removed. Existing figures became migrated payments under four hidden system types (`SMR`, `PMP`, `SMF`, `PMF`). The hosted project had none to migrate.
 
 **Printing.** A payment prints as a remittance advice (money out) or a receipt (money in), listing the documents it settled (section 10).
@@ -166,6 +168,8 @@ One entry screen serves every document, and the transaction type decides the dir
 - **Import.** A received UBL file is uploaded on the E-documents screen. It is stored only when the buyer's Peppol ID (or VAT number, if the organisation has no Peppol ID) matches. A valid file can be imported as a purchase draft, creating the supplier on the way if needed. Posting that draft is refused while its totals differ from the file. An identical file is not stored twice, and a different file with the same number is a duplicate an admin can release or reject.
 - **Safety.** A file with a DOCTYPE, an external entity, a CII root or a root other than a UBL 2.1 Invoice or CreditNote is refused.
 - **Supplier says part paid.** If a received invoice states an amount already paid, a notice shows on the import screen and on the posted invoice. Nothing is recorded from it.
+
+**Context: the Irish Revenue mandate.** E-invoicing is moving from a nicety to a requirement in Ireland. Revenue has announced phased mandatory structured e-invoicing with real-time reporting. As summarised on 18 November 2026 by vendor and advisory sites (secondary sources, not Revenue's own pages): from 1 November 2028 large corporates must issue EN 16931 e-invoices for domestic B2B sales and report them to Revenue in real time, and every Irish business must be able to receive them. It extends to further businesses from 1 November 2029, and cross-border EU B2B follows from 1 July 2030. Peppol is expected to be the default exchange network, with Revenue the reporting channel. The sources disagree on how final the technical specifications are, and I found none that states penalties. Check Revenue's VAT Modernisation pages before relying on any date. What it means here: the format Qula Plus produces and checks (EN 16931 UBL, Peppol BIS Billing 3.0) is the right one. Sending, receiving and reporting all need an Access Point, which is the mock below, and real-time reporting to Revenue does not exist in the app at all. Receiving is the nearer pressure, because it applies to every business.
 
 **Not built, a stand-in**
 - **Sending and receiving over Peppol.** The Access Point screen exists (provider, environment, secret storage, test connection, look up and register a participant), but it only talks to a **mock** adapter that always succeeds. No e-invoice is sent to anyone, and received files arrive only by manual upload. The adapter interface has `send` and webhook methods ready for a real provider.
@@ -230,14 +234,28 @@ A credit note is never reported as overdue or due soon.
 
 | Check | What runs | Size on 18 November 2026 |
 | --- | --- | --- |
+| Documents | `npm run check:docs` | `CORE.md`, `TECHNICAL.md` and this file still match the code by name: paths, migrations, server actions, database functions, tables, form designer fields and the flows table |
 | Unit tests | `npm test` | 161 tests in 30 files |
 | SQL tests | `scripts/run-sql-tests.sh` against a local Supabase stack built from every migration | 38 test files and 2 two-session concurrency scripts |
 | Types | `npm run db:types` | Fails if the generated types stop matching the migrations |
 | End to end | Playwright in Chromium on the built app and a seeded stack | 19 flows and a smoke test of every main page for owner, admin and member |
 
-CI runs all four on every pull request and every push to a `claude/` branch. Every pull request merged so far had a passing run on its branch.
+CI runs all five on every pull request and every push to a `claude/` branch. Every pull request merged so far had a passing run on its branch.
 
-**What the checks do not cover.** The end-to-end flows drive the app with a script, not a person. Payments has never been opened by a person. Flows 3, 5 and 6 each failed once because a button was pressed just after a page opened, and flow 12's double click on an invoice row did nothing in two runs and was never explained. I patched those tests. If a person sees a click ignored on a freshly opened page, the app may have a loading race.
+**Ignored clicks: what the review found.** Flows 3, 5, 6 and 12 each had a click that did nothing (failing runs 44065657762 for flow 3, 44084432097 for flow 5, 44063750925 for flow 6, and 44278534407 and 44279765205 for flow 12). I read the app code behind each. I could not run the app here, because this environment has no Supabase stack and the CI traces are not reachable from it.
+
+- **A real bug of this kind, found and fixed earlier:** a dialog drawn outside the document form sent its submit event to the form it sits inside, so Apply did nothing (flow 14).
+- **Ruled out by reading:**
+  - Clicking before the page has loaded. Flows 5, 6 and 12 click inside dialogs that client code opens after loading, and the dialog does not exist until then.
+  - The supplier dialog in flow 5 is not inside the import form's component tree, so no submit can reach the import form.
+  - Flow 12's open documents list: the rows only appear once it has loaded, and it loads again only when the party or a reload counter changes.
+- **Flow 12 in detail:** Playwright's double click ran without error in every retry, and the screen showed no refusal message, yet nothing was allocated. The handler (`allocateWhole`) is a plain state update, and I found nothing that clears the boxes after it runs.
+- **Not ruled out:**
+  1. **A data refresh replacing the open document.** `DocumentManager` and `PaymentManager` open the draft again with the new row whenever the server sends a new set of rows. A redirect after an action that also revalidates the page can send two page payloads in quick succession, and flows 3 and 6 click right after such a redirect.
+  2. **Layout shifting between mouse down and mouse up.** Flows 5 and 12 click straight after typing, when a field losing focus could move something under the pointer.
+- **Verdict:** I found no confirmed loading race in the app, and I have not shown there is none. To settle it I need the `e2e-failures` artifact (trace, page snapshots and console) from one of the runs above, downloaded from the run's page on GitHub. A trace shows what the page did around the lost click.
+
+**What the checks do not cover.** The end-to-end flows drive the app with a script, not a person. Payments has never been opened by a person.
 
 ## 15. Open items and where to go next
 
@@ -256,32 +274,58 @@ Items 1 to 4 can be closed with tests. Items 5 to 7 are best settled by a person
 
 ### 15.2 Do first
 
-1. **Your manual run of `docs/payments-test-script.md`.** Nothing in payments has been used by a person. It also covers the double click that failed once.
+1. **The manual run of `docs/payments-test-script.md`.** Nothing in payments has been used by a person. It includes the double click that failed in flow 12.
 2. **Fix what the run finds**, in small pull requests.
+3. **Settle the ignored clicks.** Download the `e2e-failures` artifact from one of the failing runs listed in section 14 and I will read the trace (section 14 says what I need and why).
 
 ### 15.3 Gaps in what exists
 
-These are my reading of the code and the documents. None has been decided as a roadmap.
+These are my reading of the code and the documents, with the checks said. None has been decided as a roadmap.
 
-| Gap | Why it matters | Size |
+| Gap | What is true now | Size |
 | --- | --- | --- |
-| **No real Peppol transmission** (mock Access Point) | E-invoices are built and validated but not sent. Received ones arrive by upload. This is the biggest gap between "has e-invoicing" and "does e-invoicing" | Large: choose a provider, build the adapter, handle webhooks, status and failures |
+| **No real Peppol transmission** | The Access Point is a mock that always succeeds. E-invoices are built and validated but not sent, and received ones arrive by upload. **Blocked on an Access Point provider choice that has not been made** | Large: choose a provider, build the adapter, handle webhooks, status and failures |
+| **Real-time reporting to Revenue** | Not built, and nothing in the app prepares for it. It depends on Revenue's final specifications (section 9) | Unknown until the specification is final |
+| **Rejecting a received e-document needs an Invoice Response** | Reject only marks the e-document rejected, with a reason, inside Qula Plus. Nothing is sent back to the sender, because there is no Access Point. Telling the sender needs the Peppol Invoice Response, so this waits on the Access Point | Small to medium once the Access Point exists |
+| **Import blocked by document-level allowances and charges (G7)** | Confirmed in the code. A received e-invoice with a document allowance, a document charge or a line charge is listed as "features Qula Plus cannot import yet", and the import is refused on the screen and in `import_e_document`. Such an invoice can be uploaded and validated but has to be keyed by hand. (G7 is your label. I have not seen the requirement it refers to) | Medium: a place for allowances and charges on a document, their VAT effect, totals, export |
+| **Purchase approvals** | Not built. Searching the app and the database finds no approval, approver, threshold or pending state. Any member can activate an order or post an invoice, and Ask Qula's post action follows the same rule. Amount-based approval on orders and invoices would be new | Medium to large: thresholds by type or organisation, who approves, a pending state, notifications, audit, and Ask Qula must respect it |
+| **Price tolerance on order matching** | Not built (confirmed: no tolerance anywhere). Matching an invoice to an order is by **quantity** only: each order line shows Invoiced, Reserved and Left. A price on an invoice line that differs from its order line is neither compared nor flagged | Small to medium: compare price on lines that came from an order, a tolerance setting, a warning on the line or at posting, possibly a Worth a look rule |
+| **Aged debtors and creditors report** | Not built as a report. The only ageing is Ask Qula's lookup: by party, in bands (not yet due, 1 to 30, 31 to 60, 61 to 90, over 90 days), from posted documents with an amount due, with credit note balances coming off, in each document's own currency, showing at most 25 parties, from up to 5,000 documents, with an as-at date only by asking for it. There is no screen, no drill-down to documents, no home-currency total, and no export of it apart from the chat table's CSV | Medium |
+| **No accounting integration or journal export** | There is no ledger, by design. Accounting stays in the customer's own system, so journal export is the route in. Exchange differences are already stored per allocation for it. **A priority, with payments and banking** (section 15.4) | Large, in steps |
+| **Bank feeds and matching** | Receipts are typed. Worth a look suggests a likely match but nothing imports bank lines. **A priority, with payments** | Large |
 | **Cross-currency payments** | A payment must be in its party's currency and its bank account's. The spec names this the first follow-up | Medium to large: it needs write-offs and bank charges to be usable |
-| **No VAT return or reports** | There is nothing for a VAT period apart from Ask Qula's VAT by rate and grid exports. `CORE.md` mentions "later VAT reporting" | Medium |
-| **No statements or dunning** | A reminder can be drafted by Ask Qula for one document. There are no customer statements or reminder runs | Medium |
-| **Bank feeds and matching** | Receipts are typed. Worth a look suggests a likely match but nothing imports bank lines | Large |
-| **No accounting integration or journal export** | There is no ledger, and exchange differences are stored per allocation "for later" | Large |
+| **No VAT return or reports** | Nothing for a VAT period apart from Ask Qula's VAT by rate and grid exports. `CORE.md` mentions "later VAT reporting" | Medium |
+| **No statements or dunning** | Ask Qula can draft a reminder for one document. There are no customer statements or reminder runs | Medium |
+| **Internal FinTran identifiers** | Names kept from the old product name: the cookie `fintran-organisation`, the browser storage keys (`fintran.*`), the Postgres settings `fintran.*` that triggers read, the readiness rule ids `FINTRAN-*`, the repository, package and project names, and the `@fintran.test` fixtures. A sweep needs a cookie migration (read the old name, write the new, drop the old), the storage keys moved, and the database triggers and the settings they read changed together in one migration. The risk is in the database settings | Small to medium |
+| **Possible loading race in the app** | Not confirmed (section 14). Four flows lost a click once | Unknown until a trace is read |
 | **Inviting people** | A person must sign up before they can be granted access | Small to medium |
 | **Help is one page** | `docs/help` covers Ask Qula only, so Ask Qula's help search cannot answer how to record a receipt | Small |
+| **Leftovers of the Purchase Invoice naming** | `DocumentManager` still defaults its title to "Purchase Invoices", and the document form's HTML id is `purchase-document` (also used by the end-to-end selectors) | Small |
 
-### 15.4 Suggested order
+### 15.4 Priorities and suggested order
 
-My suggestion, to be argued with:
+**Agreed priorities** (from you, not mine):
 
-1. The manual run and its fixes, because everything built on payments rests on it.
-2. Close spec items 1 to 4 if a fully ticked spec matters. They are small.
-3. Write payments help text for Ask Qula, which is small and visible.
-4. Then choose one large item. If e-invoicing is the product's point, real Peppol transmission. If getting paid is, cross-currency payments with write-offs, then statements.
+- Qula Plus has **no ledger** and will not have one. Accounting stays in the customer's accounting system.
+- **Accounting integration is a priority alongside payments and banking.** The order is a **journal export first, then connectors** to Xero, Sage and QuickBooks.
+- **Peppol transmission is blocked on an Access Point provider choice that has not been made.** Until it is, nothing in that column can start.
+
+**Suggested order** (mine, to be argued with):
+
+1. **The manual run, its fixes, and the click trace** (section 15.2). Everything else rests on payments being right.
+2. **Journal export.** What it can build on: posted documents with a copy of the parties, GL codes and VAT codes on every line, the VAT breakdown, bank accounts with an optional Current Asset GL code, and payments with allocations that carry an exchange difference in the home currency. What it needs, as I read it: decisions on the control accounts (receivables, payables, VAT, exchange gain and loss, bank), a mapping screen for them, a journal built for each posted document and each posted payment, voids and removed allocations as reversals, a batch record so nothing exports twice, how it respects the lock date, and a first format (CSV).
+3. **Banking: statement import and matching.** It builds on bank accounts and allocations, and the Worth a look likely-match rule is a starting point. Bank feeds themselves can wait for a provider.
+4. **Connectors to Xero, Sage and QuickBooks**, once the journal export has proved the mapping. Each needs sign-in with the provider, account mapping and a way to post or reconcile.
+5. **Peppol transmission, as soon as an Access Point provider is chosen.** The decision is yours and has a long lead: the Irish mandate (section 9) makes receiving a requirement for every business from November 2028. It brings the Invoice Response and receiving webhooks with it.
+6. **To place by your priority:** purchase approvals, price tolerance on order matching, the aged debtors and creditors report, cross-currency payments with write-offs, statements and dunning, allowances and charges on import, the identifier sweep, and the payments help text. The help text and the tolerance warning are the cheapest.
+
+### 15.5 What I could not do from this review, and what I need
+
+1. **The hardening spec.** You asked me to commit `QULAPLUS_HARDENING_SPEC.md` to `specs/`. I do not have it. It is not in the repository or its history, and the payments spec says it was never added. I will not write one from memory. If you add the file (or paste it), I will commit it, mark which phases are done, and fix the line in the payments spec that points at it.
+   - What the repository does show: nine hardening migrations (`hardening_phase1_audit` to `hardening_phase9_form_validation`) are in the hosted project's history, and SQL tests cover phases 2 to 4. Without the spec I cannot map them to its phases.
+2. **Phase 8, the document screen split and the rename of `PurchaseInvoice` to `Document`.** From the code it looks **done, with small leftovers**. The screen is split into `DocumentManager` and a `document/` folder of panels and hooks, none over 600 lines (the largest is `useDocumentForm.ts` at 534). The name `PurchaseInvoice` no longer appears in `src` or `e2e`. The leftovers are the default title and the form id listed in section 15.3. I cannot confirm it against the spec's wording of phase 8.
+3. **What G7 is.** I used your label for the allowances and charges item and described what the code does.
+4. **A Revenue-sourced version of the e-invoicing mandate.** My section 9 summary comes from vendor and advisory sites. Revenue's own pages should be read before dates are used.
 
 ## 16. Documents and how they are kept right
 
@@ -293,7 +337,8 @@ My suggestion, to be argued with:
 | `specs/QULAPLUS_PAYMENTS_SPEC.md` | The payments design, its decisions and its 67 acceptance boxes. There is no spec for the rest of the app, and the hardening spec it refers to was never added to the repository |
 | `HANDOVER_PAYMENTS_RELEASE_B.md` | The history and status of the payments build |
 | `docs/payments-test-script.md` | The manual run for payments |
-| `README.md` | Running it locally |
+| `README.md` | Running it locally, and a pointer to this file |
+| `scripts/check-docs.mjs` | The CI check that keeps `CORE.md`, `TECHNICAL.md` and this file matching the code by name |
 | `AGENTS.md`, `CLAUDE.md` | Rules for anyone changing the code |
 
 **The 18 November 2026 audit.** A script checked every file path, migration name, database function, table, server action, form layout field list and documented column named in `CORE.md` and `TECHNICAL.md` against the repository. Every path, function and table exists. It found, and I fixed:
@@ -307,4 +352,4 @@ My suggestion, to be argued with:
 7. `TECHNICAL.md` said Ask Qula cannot change records at all, which contradicted its own section on confirmed actions.
 8. `README.md` still described a first version with purchase documents only, and listed none of payments, e-documents or Ask Qula.
 
-The audit script is not in the repository. Turning it into a CI check is a small job and would stop this kind of drift.
+The same checks now run in CI as `npm run check:docs` (`scripts/check-docs.mjs`), and they also check this file's paths, that every server action, public database function and table is described, that the form designer's field lists match, and that the flows table has every numbered flow. It checks names, not sentences, so a rule described wrongly in prose is still for a reader to catch.
