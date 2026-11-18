@@ -112,7 +112,7 @@ Every sales and purchase entry screen is the document screen. Do not invent a se
 A new field or button goes in the panel it belongs to. A new value the panels share goes in `useDocumentForm` and is added to its return.
 
 1. One status row, 42px, one message. A problem replaces that message.
-2. Tabs: Document, Notes, Payment.
+2. Tabs: Document, Notes, Payment terms. A posted invoice or credit note has one more, Receipts, Payments or Applied, which only lists what settled it.
 3. Header fields and totals on the left. Line grid on the right.
 4. A line opens in the existing line dialog.
 5. Footer: the destructive action on the left, Cancel and Save on the right.
@@ -235,7 +235,7 @@ Confirm sends the token to `POST /api/ask-qula/action`. The route checks the sig
 
 People can rate an answer with a thumb, and give a comment on a thumbs down. The rating goes to `POST /api/ask-qula/feedback` and `record_ai_feedback`. The question and answer are stored with the rating only when an owner or admin has switched on `ai_settings.log_answers`, which is off by default. Switching `log_answers` on needs a second notice, "Questions and answers will be stored for {n} days and visible to owners and admins." Who accepted it and when is kept in `log_notice_accepted_by` and `log_notice_accepted_at`. The notice is needed again when the number of days changes while keeping is on. The `ai_settings_log_answers_guard` trigger enforces this, so the screen cannot skip it. The stored text is kept for `ai_settings.answer_retention_days`, 30 unless changed and from 1 to 365. `private.purge_ai_feedback_text()` then clears `question`, `answer` and `comment` and keeps the rating. It also marks unconfirmed Ask Qula proposals as expired. pg_cron runs the job `purge-ai-feedback-text` at a quarter past every hour, and `private.purge_ai_feedback_text_nightly()` does the work only in the hour that is 03:00 to 03:59 in Europe/Dublin, because pg_cron keeps time in UTC and Dublin moves with summer time. Only owners and admins can read `ai_feedback`. `supabase/tests/hardening_phase3.sql` checks these rules. The Ask Qula admin page shows the counts and the latest low ratings. A Clear button in the chat forgets the conversation, which is kept only in the browser session.
 
-Ask Qula knows the page. A screen that has a record open calls `useAskContext` (`src/components/askContext.ts`), and the chat sends it with the question so "this invoice" means the open one. The transaction screen does this. An e-document page is read from the address. The server only accepts a known shape for it. Ask Qula cannot create, change, post, or delete records.
+Ask Qula knows the page. A screen that has a record open calls `useAskContext` (`src/components/askContext.ts`), and the chat sends it with the question so "this invoice" means the open one. The transaction screen does this. An e-document page is read from the address. The server only accepts a known shape for it. Ask Qula cannot create, change, post, or delete records itself. The only changes it can make are the two actions a person confirms.
 
 ## Screens
 
@@ -298,7 +298,8 @@ Server actions run on the server with the user session and return `{ error }` or
 | `settings-actions.ts` | `saveAiSettings`, `testAiConnection`, `setSecret`, `clearSecret`, `saveAccessPoint`, `testAccessPoint`, `lookupParticipant`, `registerParticipant` | Ask Qula settings, Access Point settings, and encrypted secrets |
 | `product-actions.ts` | `loadProductChoices`, `createProduct`, `updateProduct`, `deleteProduct` | Products |
 | `form-actions.ts` | `saveTransactionForm` | `transaction_forms.layout` |
-| `document-actions.ts` | `saveDocument`, `postDocument`, `voidDocument`, `updatePaidAmount`, `createCreditNote`, `deleteDocument` | Documents, for both directions |
+| `document-actions.ts` | `saveDocument`, `postDocument`, `voidDocument`, `createCreditNote`, `deleteDocument`, `createFromOrder`, `setOrderStatus` | Documents, for both directions |
+| `party-summary-actions.ts` | `loadPartySummary` | Read-only. What a customer or supplier owes or is owed, money on account and recent payments, for the summary beside the party form |
 | `readiness-actions.ts` | `loadTransactionReadiness` | Read-only `en16931_readiness` for a list of headers |
 
 `saveDocument` sends this JSON to `save_document`:
@@ -509,7 +510,8 @@ Posting an imported draft is refused when its nett, VAT, or total differs from `
 | Customers, suppliers, and drafts | create, edit, delete | yes | yes |
 | Post a document | yes | yes | yes |
 | Enter, save, post and delete a payment, and allocate it | yes | yes | yes |
-| Remove an allocation, void a payment | no | yes | yes |
+| Remove an allocation | yes | yes | yes |
+| Void a payment | no | yes | yes |
 | Apply a posted credit note to an invoice | yes | yes | yes |
 | Create the standard payment types | no | yes | yes |
 | Void a posted purchase | no | yes | yes |
@@ -533,10 +535,11 @@ Select on a business table uses `private.is_org_member(organisation_id)`.
 
 ## Testing and CI
 
-Four checks run in `.github/workflows/check.yml` on every pull request and on every push to a `claude/` branch. A newer push to the same branch replaces the run in progress.
+Five checks run in `.github/workflows/check.yml` on every pull request and on every push to a `claude/` branch. A newer push to the same branch replaces the run in progress.
 
 | Check | Command | What it proves |
 | --- | --- | --- |
+| Documents | `npm run check:docs` | `CORE.md`, `TECHNICAL.md` and the reference still match the code. `scripts/check-docs.mjs` fails when a document names a file, migration, server action, database function or table that is gone, when a server action, public function or table is not described, when the form designer's field lists in `CORE.md` differ from the code, or when the flows table differs from the numbered flows in `e2e/`. It checks names, not sentences |
 | Unit tests | `npm test` | Pure code: spreadsheet safety, Ask Qula actions and its scripted mock provider, order progress, follow-on actions, e-invoice parsing and the golden order reference files. A new test file is added to the `test` script in `package.json`. |
 | Types | `npm run db:types` | `database.types.ts` has every table and every column the migrations create, and no others. To fix it, regenerate the types from the project and replace the file. |
 | SQL tests | `scripts/run-sql-tests.sh` | The database rules, on a local Supabase stack built from `supabase/migrations`. Each test raises on a broken rule and rolls back. `concurrency/last_unit.sh` and `concurrency/last_amount.sh` use two sessions and commit a small tenant: the first for the last unit of an order, the second for two payments allocating the last 100.00 of an invoice at once, where one succeeds, one is refused and neither deadlocks. The payment tests are `payments.sql`, `allocations.sql`, `payment_functions.sql` and `migrate_paid_amounts.sql`, which runs the migration file itself. `type_codes.sql` runs the two migrations that rename transaction types to three-character codes against types made under the old codes, including a custom type that must be left alone, a code already taken, a chosen prefix, and a hidden system type. Run them on a clean database, because the end-to-end seed uses a Peppol ID that some tests also use. |
