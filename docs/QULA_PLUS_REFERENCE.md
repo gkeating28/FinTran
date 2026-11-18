@@ -288,9 +288,9 @@ These are my reading of the code and the documents, with the checks said. None h
 | **Real-time reporting to Revenue** | Not built, and nothing in the app prepares for it. It depends on Revenue's final specifications (section 9) | Unknown until the specification is final |
 | **Rejecting a received e-document needs an Invoice Response** | Reject only marks the e-document rejected, with a reason, inside Qula Plus. Nothing is sent back to the sender, because there is no Access Point. Telling the sender needs the Peppol Invoice Response, so this waits on the Access Point | Small to medium once the Access Point exists |
 | **Import blocked by document-level allowances and charges (G7)** | Confirmed in the code. A received e-invoice with a document allowance, a document charge or a line charge is listed as "features Qula Plus cannot import yet", and the import is refused on the screen and in `import_e_document`. Such an invoice can be uploaded and validated but has to be keyed by hand. (G7 is your label. I have not seen the requirement it refers to) | Medium: a place for allowances and charges on a document, their VAT effect, totals, export |
-| **Purchase approvals** | Not built. Searching the app and the database finds no approval, approver, threshold or pending state. Any member can activate an order or post an invoice, and Ask Qula's post action follows the same rule. Amount-based approval on orders and invoices would be new | Medium to large: thresholds by type or organisation, who approves, a pending state, notifications, audit, and Ask Qula must respect it |
+| **Purchase approvals** | Not built. Searching the app and the database finds no approval, approver, threshold or pending state. Any member can activate an order or post an invoice, and Ask Qula's post action follows the same rule. Amount-based approval on orders and invoices would be new. Listed as out of scope in the hardening spec. Second in the agreed order, with price tolerance, as one spec | Medium to large: thresholds by type or organisation, who approves, a pending state, notifications, audit, and Ask Qula must respect it |
 | **Price tolerance on order matching** | Not built (confirmed: no tolerance anywhere). Matching an invoice to an order is by **quantity** only: each order line shows Invoiced, Reserved and Left. A price on an invoice line that differs from its order line is neither compared nor flagged | Small to medium: compare price on lines that came from an order, a tolerance setting, a warning on the line or at posting, possibly a Worth a look rule |
-| **Aged debtors and creditors report** | Not built as a report. The only ageing is Ask Qula's lookup: by party, in bands (not yet due, 1 to 30, 31 to 60, 61 to 90, over 90 days), from posted documents with an amount due, with credit note balances coming off, in each document's own currency, showing at most 25 parties, from up to 5,000 documents, with an as-at date only by asking for it. There is no screen, no drill-down to documents, no home-currency total, and no export of it apart from the chat table's CSV | Medium |
+| **Aged debtors and creditors report** | First in the agreed order. Not built as a report. The only ageing is Ask Qula's lookup: by party, in bands (not yet due, 1 to 30, 31 to 60, 61 to 90, over 90 days), from posted documents with an amount due, with credit note balances coming off, in each document's own currency, showing at most 25 parties, from up to 5,000 documents, with an as-at date only by asking for it. There is no screen, no drill-down to documents, no home-currency total, and no export of it apart from the chat table's CSV | Medium |
 | **No accounting integration or journal export** | There is no ledger, by design. Accounting stays in the customer's own system, so journal export is the route in. Exchange differences are already stored per allocation for it. **A priority, with payments and banking** (section 15.4) | Large, in steps |
 | **Bank feeds and matching** | Receipts are typed. Worth a look suggests a likely match but nothing imports bank lines. **A priority, with payments** | Large |
 | **Cross-currency payments** | A payment must be in its party's currency and its bank account's. The spec names this the first follow-up | Medium to large: it needs write-offs and bank charges to be usable |
@@ -302,30 +302,43 @@ These are my reading of the code and the documents, with the checks said. None h
 | **Help is one page** | `docs/help` covers Ask Qula only, so Ask Qula's help search cannot answer how to record a receipt | Small |
 | **Leftovers of the Purchase Invoice naming** | `DocumentManager` still defaults its title to "Purchase Invoices", and the document form's HTML id is `purchase-document` (also used by the end-to-end selectors) | Small |
 
-### 15.4 Priorities and suggested order
+### 15.4 Priorities and order
 
-**Agreed priorities** (from you, not mine):
+**Fixed points** (from you):
 
 - Qula Plus has **no ledger** and will not have one. Accounting stays in the customer's accounting system.
-- **Accounting integration is a priority alongside payments and banking.** The order is a **journal export first, then connectors** to Xero, Sage and QuickBooks.
-- **Peppol transmission is blocked on an Access Point provider choice that has not been made.** Until it is, nothing in that column can start.
+- **Accounting integration is a priority alongside payments and banking.** A journal export comes first, then connectors to Xero, Sage and QuickBooks.
+- **No Access Point provider has been chosen.** Everything that waits on a provider (Peppol transmission, live connectors, bank feeds) goes last.
 
-**Suggested order** (mine, to be argued with):
+**Agreed order, after the manual payments run.** Small jobs with no outside dependencies go first.
 
-1. **The manual run, its fixes, and the click trace** (section 15.2). Everything else rests on payments being right.
-2. **Journal export.** What it can build on: posted documents with a copy of the parties, GL codes and VAT codes on every line, the VAT breakdown, bank accounts with an optional Current Asset GL code, and payments with allocations that carry an exchange difference in the home currency. What it needs, as I read it: decisions on the control accounts (receivables, payables, VAT, exchange gain and loss, bank), a mapping screen for them, a journal built for each posted document and each posted payment, voids and removed allocations as reversals, a batch record so nothing exports twice, how it respects the lock date, and a first format (CSV).
-3. **Banking: statement import and matching.** It builds on bank accounts and allocations, and the Worth a look likely-match rule is a starting point. Bank feeds themselves can wait for a provider.
-4. **Connectors to Xero, Sage and QuickBooks**, once the journal export has proved the mapping. Each needs sign-in with the provider, account mapping and a way to post or reconcile.
-5. **Peppol transmission, as soon as an Access Point provider is chosen.** The decision is yours and has a long lead: the Irish mandate (section 9) makes receiving a requirement for every business from November 2028. It brings the Invoice Response and receiving webhooks with it.
-6. **To place by your priority:** purchase approvals, price tolerance on order matching, the aged debtors and creditors report, cross-currency payments with write-offs, statements and dunning, allowances and charges on import, the identifier sweep, and the payments help text. The help text and the tolerance warning are the cheapest.
+| Order | Item | Size | Why here |
+| --- | --- | --- | --- |
+| 1 | Aged debtors and creditors | Small | The data is ready now that allocations set the paid amount. No new rules, quick to show value, and statements and reminder runs build on it later |
+| 2 | Approvals and price tolerance, as one spec | Medium | A price over tolerance is a natural reason to require approval, so they belong together. Both change what happens before posting, which is easier before real users and before anything is exported |
+| 3 | Journal export (file) | Medium | CSV or import files for Xero, Sage and QuickBooks. GL codes, bank account GL codes and exchange differences already exist. No provider needed |
+| 4 | Bank statement import (file) | Medium | Upload CSV or CAMT.053 statements and match lines to open documents. Most of the value of bank feeds without choosing an open banking provider |
+| 5 | Live connectors and bank feeds | Large | Each needs a provider or partner decision, like the Access Point. Do these once the file versions show what customers actually use |
 
-### 15.5 What I could not do from this review, and what I need
+**Peppol transmission** sits with row 5: it is blocked on the provider decision. It brings the Invoice Response and receiving webhooks with it, and the Irish mandate (section 9) makes receiving a requirement for every business from November 2028, so the decision has a long lead even though nothing can start until it is made.
 
-1. **The hardening spec.** You asked me to commit `QULAPLUS_HARDENING_SPEC.md` to `specs/`. I do not have it. It is not in the repository or its history, and the payments spec says it was never added. I will not write one from memory. If you add the file (or paste it), I will commit it, mark which phases are done, and fix the line in the payments spec that points at it.
-   - What the repository does show: nine hardening migrations (`hardening_phase1_audit` to `hardening_phase9_form_validation`) are in the hosted project's history, and SQL tests cover phases 2 to 4. Without the spec I cannot map them to its phases.
-2. **Phase 8, the document screen split and the rename of `PurchaseInvoice` to `Document`.** From the code it looks **done, with small leftovers**. The screen is split into `DocumentManager` and a `document/` folder of panels and hooks, none over 600 lines (the largest is `useDocumentForm.ts` at 534). The name `PurchaseInvoice` no longer appears in `src` or `e2e`. The leftovers are the default title and the form id listed in section 15.3. I cannot confirm it against the spec's wording of phase 8.
-3. **What G7 is.** I used your label for the allowances and charges item and described what the code does.
-4. **A Revenue-sourced version of the e-invoicing mandate.** My section 9 summary comes from vendor and advisory sites. Revenue's own pages should be read before dates are used.
+**Why approvals come before journal export.** Journal export sends out posted documents, and approvals decide what is allowed to post. If export comes first, the first exports will contain documents that skipped approval, and the posting rules will change under the integration later. Approvals also touch three things already built: Ask Qula's "post a draft" action, imported e-invoice drafts and the save-before-acting buttons. All three are cheaper to change now. This agrees with the code: each of them ends in `post_document`, so that is where an approval check would sit. The hardening spec listed approvals as out of scope, so this is new work with its own spec.
+
+**When to swap 2 and 3.** If a pilot customer needs to get data into Xero or Sage before they need approvals, do the export first. Approvals matter most to the large corporates in the first phase of the mandate, and that deadline is further off than a pilot.
+
+**Things the order does not place** (cheap, can be done at any point): closing payments spec items 1 to 4 with tests, payments help text for Ask Qula, the tolerance warning on its own if approvals slip, and the naming leftovers.
+
+**Not placed, and later:** cross-currency payments with write-offs, statements and dunning, VAT reports, allowances and charges on import, real-time reporting to Revenue (waiting on its final specification), inviting people, and the identifier sweep.
+
+**What journal export can build on, and what it needs** (my reading). It has posted documents with a copy of the parties, GL and VAT codes on every line, the VAT breakdown, bank accounts with an optional Current Asset GL code, and payments with allocations that carry an exchange difference in the home currency. It needs decisions on the control accounts (receivables, payables, VAT, exchange gain and loss, bank), a mapping screen for them, a journal built for each posted document and each posted payment, voids and removed allocations as reversals, a batch record so nothing exports twice, how it respects the lock date, and a first format.
+
+### 15.5 Answered and still open
+
+1. **The hardening spec.** Answered: it is now in `specs/QULAPLUS_HARDENING_SPEC.md`, with a status section and its acceptance boxes ticked where a test proves them. All eight phases are built. 30 of its 36 boxes are ticked and six are open: two in phase 6 have no test, the phase 7 box and the "Done when" box that refer to a status document that does not exist, the live-project dry run, and the box that all acceptance tests pass, which waits on the others.
+2. **Phase 8** (document screen split and the `PurchaseInvoice` rename): done. The screen is a shell and panels in `src/components/document/`, the largest file is 534 lines, the name is gone from `src` and `e2e`, and two small leftovers remain (the default title "Purchase Invoices" and the form id `purchase-document`).
+3. **Access Point provider:** none chosen.
+4. **Priorities:** agreed, in section 15.4.
+5. **Still open:** what G7 refers to (I used your label), and a Revenue-sourced version of the e-invoicing mandate. My section 9 summary comes from vendor and advisory sites.
 
 ## 16. Documents and how they are kept right
 
@@ -334,7 +347,8 @@ These are my reading of the code and the documents, with the checks said. None h
 | This file | What the app does and where to go next |
 | `CORE.md` | The rules: tables, columns, constraints and what each screen does |
 | `TECHNICAL.md` | How it is built: runtime, screens, routes, server actions, database functions, tests, environment |
-| `specs/QULAPLUS_PAYMENTS_SPEC.md` | The payments design, its decisions and its 67 acceptance boxes. There is no spec for the rest of the app, and the hardening spec it refers to was never added to the repository |
+| `specs/QULAPLUS_PAYMENTS_SPEC.md` | The payments design, its decisions and its 67 acceptance boxes |
+| `specs/QULAPLUS_HARDENING_SPEC.md` | The November hardening work (export safety, Ask Qula actions, retention, order quantity rules, Peppol order references, save before acting, the end-to-end suite, the document screen split), with its status and 36 acceptance boxes |
 | `HANDOVER_PAYMENTS_RELEASE_B.md` | The history and status of the payments build |
 | `docs/payments-test-script.md` | The manual run for payments |
 | `README.md` | Running it locally, and a pointer to this file |

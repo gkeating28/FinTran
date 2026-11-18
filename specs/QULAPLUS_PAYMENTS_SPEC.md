@@ -6,7 +6,7 @@ Goal: record money paid and received as proper records, allocate it to invoices 
 
 This is the first of three parts. Bank feeds (open banking) and accounting system integration follow in later specs and build on the bank accounts, payments and allocations defined here. Qula Plus records payments. It does not move money.
 
-Read `TECHNICAL.md`, `CORE.md` and `QULAPLUS_HARDENING_SPEC.md` first (the hardening spec is not in the repository at the time of writing: add it, or point this line at its real location). This spec assumes the hardening spec is complete, including the end-to-end suite.
+Read `TECHNICAL.md`, `CORE.md` and `specs/QULAPLUS_HARDENING_SPEC.md` first. This spec assumed the hardening spec was complete, including the end-to-end suite. It is: see the status section at the top of that file.
 
 ## Rules for the agent
 
