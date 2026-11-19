@@ -134,15 +134,15 @@ values
 select pg_temp.expect_error(
   format($sql$insert into public.approval_rules (tenant_id, organisation_id, transaction_type_id, amount, required_role) values (%L, %L, %L, 100, 'admin')$sql$,
     current_setting('test.tenant'), current_setting('test.org'), pg_temp.id_of('transaction_types', 'PC')),
-  'purchase invoices and purchase orders', 'a rule on a credit note type');
+  'purchase invoices', 'a rule on a credit note type');
 select pg_temp.expect_error(
   format($sql$insert into public.approval_rules (tenant_id, organisation_id, transaction_type_id, amount, required_role) values (%L, %L, %L, 100, 'admin')$sql$,
     current_setting('test.tenant'), current_setting('test.org'), pg_temp.id_of('transaction_types', 'PR')),
-  'purchase invoices and purchase orders', 'a rule on a requisition type');
+  'purchase invoices', 'a rule on a requisition type');
 select pg_temp.expect_error(
   format($sql$insert into public.approval_rules (tenant_id, organisation_id, transaction_type_id, amount, required_role) values (%L, %L, %L, 100, 'admin')$sql$,
     current_setting('test.tenant'), current_setting('test.org'), pg_temp.id_of('transaction_types', 'SI')),
-  'purchase invoices and purchase orders', 'a rule on a sales type');
+  'purchase invoices', 'a rule on a sales type');
 select pg_temp.expect_error(
   format($sql$insert into public.approval_rules (tenant_id, organisation_id, transaction_type_id, amount, required_role) values (%L, %L, %L, 0, 'admin')$sql$,
     current_setting('test.tenant'), current_setting('test.org'), pg_temp.id_of('transaction_types', 'PI')),

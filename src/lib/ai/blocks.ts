@@ -55,7 +55,16 @@ export function autoBlock(tool: string, result: unknown): AskBlock | null {
       return table(
         "Payments and receipts",
         ["Number", "Name", "Status", "Date", "Currency", "Amount", "Not applied"],
-        payments.map((row) => [String(row.document ?? "Draft"), String(row.party ?? ""), String(row.status ?? ""), day(row.date), String(row.currency ?? ""), money(row.amount, ""), money(row.unallocated, "")]),
+        payments.map((row) => [String(row.document ?? "Draft"), String(row.party ?? ""), String(row.status ?? "") + (row.approval ? `, ${String(row.approval)}` : ""), day(row.date), String(row.currency ?? ""), money(row.amount, ""), money(row.unallocated, "")]),
+      );
+    }
+    case "search_payment_runs": {
+      const runs = rows(data.runs);
+      if (runs.length < 2) return null;
+      return table(
+        "Payment runs",
+        ["Number", "Status", "Date", "Currency"],
+        runs.map((row) => [String(row.number ?? ""), String(row.status ?? "") + (row.approval ? `, ${String(row.approval)}` : ""), day(row.date), String(row.currency ?? "")]),
       );
     }
     default:

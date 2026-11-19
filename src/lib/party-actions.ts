@@ -73,6 +73,9 @@ function fieldsFrom(formData: FormData) {
     peppolId: text(formData, "peppol_id"),
     paymentTermsDays: text(formData, "payment_terms_days"),
     defaultBuyerReference: text(formData, "default_buyer_reference"),
+    iban: text(formData, "iban"),
+    bic: text(formData, "bic"),
+    bankAccountName: text(formData, "bank_account_name"),
   });
 }
 
@@ -99,7 +102,9 @@ function rowFrom(kind: PartyKind, fields: PartyFields, includeCode = true) {
     peppol_scheme: fields.peppolScheme,
     peppol_id: fields.peppolId,
     payment_terms_days: fields.paymentTermsDays,
-    ...(kind === "customers" ? { default_buyer_reference: fields.defaultBuyerReference } : {}),
+    ...(kind === "customers"
+      ? { default_buyer_reference: fields.defaultBuyerReference }
+      : { iban: fields.iban, bic: fields.bic, bank_account_name: fields.bankAccountName }),
   };
 }
 

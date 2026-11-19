@@ -29,6 +29,10 @@ export type PartyRow = {
   peppolId: string;
   paymentTermsDays: string;
   defaultBuyerReference: string;
+  /** Suppliers only. Empty for a customer. */
+  iban: string;
+  bic: string;
+  bankAccountName: string;
 };
 
 export type PartyCurrency = {
@@ -75,6 +79,9 @@ export type PartyFields = {
   peppolId: string | null;
   paymentTermsDays: number | null;
   defaultBuyerReference: string | null;
+  iban: string | null;
+  bic: string | null;
+  bankAccountName: string | null;
 };
 
 function optionalText(value: string, max: number) {
@@ -100,6 +107,9 @@ export function parseParty(input: {
   peppolId: string;
   paymentTermsDays: string;
   defaultBuyerReference: string;
+  iban?: string;
+  bic?: string;
+  bankAccountName?: string;
 }): PartyFields | { error: string } {
   const code = input.code.trim().toUpperCase();
   const name = input.name.trim();
@@ -161,6 +171,14 @@ export function parseParty(input: {
   const defaultBuyerReference = optionalText(input.defaultBuyerReference, 100);
   if (defaultBuyerReference === undefined) return { error: "Buyer reference can be up to 100 characters." };
 
+  // The database checks an IBAN and a BIC and tidies them. Only the lengths are checked here.
+  const iban = optionalText(input.iban ?? "", 42);
+  if (iban === undefined) return { error: "Enter a valid IBAN." };
+  const bic = optionalText(input.bic ?? "", 20);
+  if (bic === undefined) return { error: "Enter a BIC of 8 or 11 characters." };
+  const bankAccountName = optionalText(input.bankAccountName ?? "", 140);
+  if (bankAccountName === undefined) return { error: "Account name can be up to 140 characters." };
+
   return {
     code,
     name,
@@ -183,5 +201,38 @@ export function parseParty(input: {
     peppolId: peppol.peppolId,
     paymentTermsDays,
     defaultBuyerReference,
+    iban,
+    bic,
+    bankAccountName,
   };
+}
+
+/** A change to a supplier's bank details, for owners and admins. */
+export type SupplierBankChange = {
+  id: string;
+  supplierId: string;
+  changedAt: string;
+  changedByName: string;
+  /** What changed, in words, with the old and new IBAN when that is what changed. */
+  summary: string;
+};
+
+function mask(iban: string | null) {
+  return iban ? `${iban.slice(0, 4)}…${iban.slice(-4)}` : "none";
+}
+
+/** Says what a change did without printing a whole IBAN. */
+export function bankChangeSummary(change: {
+  old_iban: string | null;
+  new_iban: string | null;
+  old_bic: string | null;
+  new_bic: string | null;
+  old_account_name: string | null;
+  new_account_name: string | null;
+}) {
+  const parts: string[] = [];
+  if (change.old_iban !== change.new_iban) parts.push(`IBAN ${mask(change.old_iban)} to ${mask(change.new_iban)}`);
+  if (change.old_bic !== change.new_bic) parts.push("BIC");
+  if (change.old_account_name !== change.new_account_name) parts.push("account name");
+  return parts.join(", ");
 }

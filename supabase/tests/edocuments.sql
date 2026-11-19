@@ -658,11 +658,11 @@ begin
      or v_xml is distinct from 'Quay 4' then
     raise exception 'edoc: created supplier was % % % %', v_name, v_iban, v_signature, v_xml;
   end if;
+  -- A supplier can hold bank details now (payment approvals), but an import must never write the account an invoice names.
   if exists (
-    select 1 from information_schema.columns
-    where table_schema = 'public' and table_name = 'suppliers' and column_name = 'iban'
+    select 1 from public.suppliers where organisation_id = v_org::uuid and code = 'NEW1' and (iban is not null or bic is not null or bank_account_name is not null)
   ) then
-    raise exception 'edoc: suppliers.iban exists; the seller account must not be stored there';
+    raise exception 'edoc: an import stored the seller account on the supplier';
   end if;
   execute 'set local role authenticated';
   begin

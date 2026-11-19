@@ -20,7 +20,7 @@ export function previousPage(pathname: string): string | null {
   if (pathname === "/") return null;
   if (/^\/transactions\/[^/]+$/.test(pathname)) return "/transactions";
   if (/^\/forms\/[^/]+$/.test(pathname)) return "/forms";
-  if (pathname === "/aged-debtors" || pathname === "/aged-creditors") return "/transactions";
+  if (pathname === "/aged-debtors" || pathname === "/aged-creditors" || pathname === "/payment-runs") return "/transactions";
   if (ADMIN_PAGES.has(pathname)) return "/admin";
   if (HOME_PAGES.has(pathname)) return "/";
   const parent = pathname.replace(/\/[^/]+$/, "");

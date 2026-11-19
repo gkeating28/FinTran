@@ -168,6 +168,7 @@ function OrganisationForm({
   const orderedCountries = countryChoices(countries);
   const [lockDate, setLockDate] = useState(organisation.profile.lockDate);
   const [tolerance, setTolerance] = useState(organisation.profile.priceTolerancePercent);
+  const [bankChangeDays, setBankChangeDays] = useState(organisation.profile.bankChangeDays);
   const [approvalEmails, setApprovalEmails] = useState(organisation.profile.approvalEmails ? "yes" : "no");
   const [toleranceNeedsApproval, setToleranceNeedsApproval] = useState(organisation.profile.priceToleranceNeedsApproval ? "yes" : "no");
   const [inboundInvoiceTypeId, setInboundInvoiceTypeId] = useState(organisation.inboundInvoiceTypeId ?? "");
@@ -452,6 +453,21 @@ function OrganisationForm({
                 </select>
               </label>
               <p className={styles.panelMeta}>Nothing is delivered yet. Emails go to the mock adapter until a mail provider is chosen.</p>
+            </div>
+            <div className={`${recordStyles.pair} ${slot("right", 9)}`}>
+              <label className={recordStyles.cell}>
+                Bank change window (days)
+                <QuietInput
+                  name="bank_change_days"
+                  inputMode="numeric"
+                  maxLength={2}
+                  autoComplete="off"
+                  placeholder="14"
+                  value={bankChangeDays}
+                  onChange={(event) => setBankChangeDays(event.target.value)}
+                />
+              </label>
+              <p className={styles.panelMeta}>Blank is off. While a supplier&apos;s bank details are newer than this, a payment to it needs approval.</p>
             </div>
             <div className={`${styles.field} ${slot("left", 9)}`}>
               <label htmlFor={logoInputId}>Logo</label>

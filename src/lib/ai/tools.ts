@@ -185,6 +185,19 @@ async function approvalStates(supabase: Client, ids: string[]) {
   return found;
 }
 
+/** Where each draft payment stands on approval. A payment that needs none has no entry. */
+async function paymentApprovalStates(supabase: Client, ids: string[]) {
+  const found = new Map<string, ApprovalInfo>();
+  if (ids.length === 0) return found;
+  const { data, error } = await supabase.rpc("payment_approval_status", { p_payment_ids: ids.slice(0, 200) });
+  if (error) return found;
+  for (const row of (data ?? []) as (Omit<ApprovalRow, "header_id" | "self" | "price_over"> & { payment_id: string })[]) {
+    const info = approvalFromRow({ ...row, header_id: row.payment_id, self: false, price_over: false });
+    if (info) found.set(row.payment_id, info);
+  }
+  return found;
+}
+
 function shapeHeader(document: Row, approvals: Map<string, ApprovalInfo> = new Map()) {
   const type = embedded(document.transaction_types);
   const approval = approvals.get(String(document.id));
@@ -401,16 +414,63 @@ async function runTool(supabase: Client, organisationId: string, name: string, i
     };
   }
 
+  if (name === "search_payment_runs") {
+    let query = supabase
+      .from("payment_runs")
+      .select("id, document_number, status, payment_date, currencies(code)")
+      .eq("organisation_id", organisationId);
+    const status = word(input.status);
+    if (status === "draft" || status === "posted" || status === "cancelled") query = (query as unknown as Filtered).eq("status", status) as unknown as typeof query;
+    const approvalFilter = word(input.approval);
+    if (approvalFilter) query = (query as unknown as Filtered).eq("status", "draft") as unknown as typeof query;
+    const { data } = await query.order("reference", { ascending: false }).limit(approvalFilter ? 200 : LIST_LIMIT);
+    const found = rowsOf(data, approvalFilter ? 200 : LIST_LIMIT);
+    const ids = found.filter((row) => row.status === "draft").map((row) => String(row.id));
+    const approvals = new Map<string, ApprovalInfo & { total: string }>();
+    if (ids.length > 0) {
+      const states = await supabase.rpc("payment_run_approval_status", { p_run_ids: ids.slice(0, 200) });
+      for (const row of (states.error ? [] : (states.data ?? [])) as (Omit<ApprovalRow, "header_id" | "self" | "price_over"> & { run_id: string; home_total: number | null })[]) {
+        const info = approvalFromRow({ ...row, header_id: row.run_id, self: false, price_over: false });
+        if (info) approvals.set(row.run_id, { ...info, total: money(row.home_total) });
+      }
+    }
+    const listed = approvalFilter
+      ? found.filter((row) => approvalMatches(approvals.get(String(row.id)), approvalFilter === "refused" || approvalFilter === "rejected" ? "refused" : approvalFilter)).slice(0, LIST_LIMIT)
+      : found;
+    const runs = listed.map((row) => {
+      const approval = approvals.get(String(row.id));
+      return {
+        id: row.id,
+        number: text(row.document_number),
+        status: row.status,
+        date: row.payment_date,
+        currency: text(embedded(row.currencies)?.code),
+        ...(approval ? { approval: approvalLabel(approval).toLowerCase(), approval_for: approval.reason, approval_role: approval.role, home_total: approval.total } : {}),
+      };
+    });
+    return { runs, shown: runs.length, limit: LIST_LIMIT, note: "Payment runs, newest first. A run pays several supplier invoices at once and is approved as a whole. You cannot ask for or give approval." };
+  }
+
   if (name === "search_payments") {
     let query = supabase
       .from("payments")
       .select("id, document_number, status, payment_date, party_name, amount, allocated_amount, unallocated_amount, bank_reference, transaction_types!inner(code, type, document_kind), currencies(code)")
       .eq("organisation_id", organisationId);
     query = filterPayments(query, input);
-    const { data } = await query.order("payment_date", { ascending: false }).limit(LIST_LIMIT);
-    const payments = rowsOf(data).map((row) => {
+    const approvalFilter = word(input.approval);
+    // An approval filter looks only at draft payments, and reads more of them because it narrows after reading.
+    if (approvalFilter) query = (query as unknown as Filtered).eq("status", "draft") as unknown as typeof query;
+    const { data } = await query.order("payment_date", { ascending: false }).limit(approvalFilter ? 200 : LIST_LIMIT);
+    const found = rowsOf(data, approvalFilter ? 200 : LIST_LIMIT);
+    const paymentApprovals = await paymentApprovalStates(supabase, found.filter((row) => row.status === "draft").map((row) => String(row.id)));
+    const listed = approvalFilter
+      ? found.filter((row) => approvalMatches(paymentApprovals.get(String(row.id)), approvalFilter === "refused" || approvalFilter === "rejected" ? "refused" : approvalFilter)).slice(0, LIST_LIMIT)
+      : found;
+    const payments = listed.map((row) => {
       const type = embedded(row.transaction_types);
+      const approval = paymentApprovals.get(String(row.id));
       return {
+        ...(approval ? { approval: approvalLabel(approval).toLowerCase(), approval_for: approval.reason, approval_role: approval.role } : {}),
         id: row.id,
         document: text(row.document_number) || "Draft",
         type: text(type?.code),

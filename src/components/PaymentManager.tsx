@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import DataGrid, { type GridColumn } from "@/components/DataGrid";
 import styles from "@/components/OpsPage.module.css";
 import { useRegion } from "@/components/useRegion";
@@ -9,6 +9,8 @@ import { useRegisterPageLabel } from "@/components/FormChrome";
 import PaymentForm from "@/components/payment/PaymentForm";
 import { formatDate } from "@/lib/dates";
 import { documentStatusLabel } from "@/lib/transaction-types";
+import { APPROVAL_FILTERS, approvalLabel, approvalMatches, type ApprovalInfo } from "@/lib/approvals";
+import { loadPaymentApprovalStatus } from "@/lib/payment-approval-actions";
 import type { PaymentChoices, PaymentPrefill, PaymentRow } from "@/lib/payments";
 
 const noSubscription = () => () => {};
@@ -52,6 +54,22 @@ export default function PaymentManager({
   const [statusFilter, setStatusFilter] = useState("");
   const [partyFilter, setPartyFilter] = useState("");
   const [onAccountOnly, setOnAccountOnly] = useState(false);
+  const [approvalFilter, setApprovalFilter] = useState("");
+  // Where each draft stands on approval, for payments that send money out. It belongs to one set of rows.
+  const [loadedApprovals, setLoadedApprovals] = useState<{ rows: PaymentRow[]; value: Record<string, ApprovalInfo> } | null>(null);
+  const approvalById: Record<string, ApprovalInfo> = loadedApprovals?.rows === rows ? loadedApprovals.value : {};
+  const showApproval = Object.keys(approvalById).length > 0;
+  useEffect(() => {
+    const drafts = rows.filter((row) => row.status === "draft").map((row) => row.id);
+    if (choices.type.kind !== "payment" || drafts.length === 0) return;
+    let cancelled = false;
+    void loadPaymentApprovalStatus(drafts).then((value) => {
+      if (!cancelled) setLoadedApprovals({ rows, value });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [rows, choices.type.kind]);
   // The prefill belongs to the link that opened the draft. A draft opened with the Add button has none.
   const [activePrefill, setActivePrefill] = useState<PaymentPrefill | null>(null);
 
@@ -76,6 +94,7 @@ export default function PaymentManager({
     if (statusFilter && row.status !== statusFilter) return false;
     if (partyFilter && row.partyId !== partyFilter) return false;
     if (onAccountOnly && !(row.status === "posted" && Number(row.unallocatedAmount) > 0)) return false;
+    if (approvalFilter && showApproval && !approvalMatches(approvalById[row.id], approvalFilter)) return false;
     return true;
   });
 
@@ -132,6 +151,16 @@ export default function PaymentManager({
               <option value="">Any allocation</option>
               <option value="on-account">Has money on account</option>
             </select>
+            {showApproval ? (
+              <select value={approvalFilter} onChange={(event) => setApprovalFilter(event.target.value)} aria-label="Approval">
+                <option value="">Any approval</option>
+                {APPROVAL_FILTERS.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            ) : null}
             <button
               className={styles.primary}
               type="button"
@@ -202,6 +231,16 @@ export default function PaymentManager({
               sortValue: (row) => row.status,
               render: (row) => documentStatusLabel(row.status),
             },
+            ...(showApproval
+              ? [
+                  {
+                    key: "approval",
+                    label: "Approval",
+                    sortValue: (row: PaymentRow) => approvalLabel(approvalById[row.id]),
+                    render: (row: PaymentRow) => approvalLabel(approvalById[row.id]),
+                  },
+                ]
+              : []),
           ] satisfies GridColumn<PaymentRow>[]
         }
         actions={(row) => (

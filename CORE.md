@@ -447,6 +447,44 @@ An organisation can require approval before a purchase order is activated or a p
 
 **Email.** Asking for approval queues an email to every person with a high enough role except the person asking. Approving or refusing queues one to the person who asked, with the note or reason and a link, unless they decided it themselves. Owners and admins can switch approval emails off on the Organisations screen. No mail provider has been chosen, so the only adapter is a mock that records the email as sent and delivers nothing, and the Organisations screen says so. A failed email never stops an approval, a refusal or posting. Owners and admins see failed emails on the Approval rules screen.
 
+## Payment approvals
+
+A payment that sends money out, a supplier payment or a customer refund, can need approval before it is posted. Receipts and supplier refunds, which bring money in, never do. It is off until an owner or admin sets a rule or a bank change window, and with neither nothing changes for anyone. The design is in `specs/QULAPLUS_PAYMENT_APPROVALS_SPEC.md`.
+
+**Rules.** The Approval rules screen offers payment types of the money-out kind as well as purchase invoice and order types. For a payment type, an amount in the home currency and the role that must approve at or above it, `admin` or `owner`, as a ladder. The amount compared is the payment's home amount.
+
+**Bank details.** A payment to a supplier whose bank details changed inside the bank change window (Organisations screen) needs an admin or owner whatever its amount, with or without amount rules. The reason says so. A customer refund is never held for this.
+
+**Asking and deciding.** A member asks, and an admin or owner (an owner only, for an owner rule) decides, with a reason when refusing. Unlike documents, the person who asked can never decide, even when they are the only person with a high enough role. An organisation with one owner and no admin has to add a second person to approve its own large payments. Once approved, any member can post it.
+
+**What holds back.** `post_payment` is the only way a payment becomes posted, and it refuses a payment that needs approval and has not got it, with a message that says what to do. Saving, editing and deleting a draft stay free.
+
+**A change cancels an approval.** The fingerprint covers the payment (who, the bank account, the date, the amount and rate, the means and reference) and its planned allocations. Any change means it needs approval again. Saving without a change does not.
+
+**Screens.** The payment form shows what is needed in the status row, replaces Post with Request approval (Save and request approval when there are unsaved edits), and shows Approve and Refuse to someone who may decide, never to the person who asked. A payments list shows an Approval column and filter only when a draft needs approval. Worth a look and the home page count include payments waiting for the person, and their own refused ones. Emails use the same adapter, switch and failed-email list as documents.
+
+## Payment runs
+
+A payment run pays several posted purchase invoices at once. It is under Transactions, Payment runs. Anyone in the organisation can see runs and make one. A run has one payment type (a supplier payment type), one bank account, one currency and one payment date, and a number such as RUN-0001.
+
+**Making a run.** Add shows the posted purchase invoices that have something open in the bank account's currency and are not already in a draft run, with a filter for due on or before a date. Tick the invoices and make the run. It creates one draft payment for each supplier, which allocates the full amount open on each chosen invoice. Nothing is taken off an invoice until the run posts. Part payments and mixed currencies are not offered.
+
+**The run screen.** It lists each supplier's payment with its IBAN and the invoices paid, the status row, and the buttons. While the run is a draft a supplier can be taken out (its payment stays as an ordinary draft), the run can be cancelled (its draft payments are deleted and every invoice is free again) and the run exports to Excel with each supplier's IBAN, BIC, account name, amount and invoices. There is no bank file: the money is paid outside Qula Plus.
+
+**Approval.** The run is approved as a whole, not each payment. The rules of the run's payment type apply to the run's total in the home currency. A run also needs an admin or owner whatever its total when any supplier in it had bank details change inside the window, and the screen names them. As for payments, the person who asked can never approve, and any change to the run or to a payment or allocation in it cancels the approval. A payment that belongs to a run needs no approval of its own and cannot be posted on its own: the message says to post the run.
+
+**Posting.** Post run posts every payment, or none. Each payment is checked against what is open on its invoices at that moment, so an invoice paid somewhere else since the run was made stops the whole run, and the message lists what is short. The run is then posted. A posted run cannot be changed, and voiding one of its payments is done on that payment as before.
+
+**Elsewhere.** Worth a look, the home page count and the approval emails treat a run like a payment. Ask Qula can list runs and their approval, and cannot post a payment or a run or ask for approval.
+
+## Supplier bank details
+
+A supplier can hold an IBAN, a BIC and a bank account name, set on the supplier form under Bank details. The IBAN and BIC are checked and tidied the way an organisation's own bank accounts are: an IBAN is stored in capitals without spaces, and a wrong IBAN or BIC is refused. All three are optional, and any member who can edit a supplier can change them.
+
+Every change to one of them, from a value that was already set, is recorded with the old and new values and who made it. Setting the details for the first time is not a change. Owners and admins see the latest changes on the supplier form, with the IBAN shortened to its first and last four characters, and in the audit log. Nobody can write the history directly.
+
+The Organisations screen has a bank change window in days, from 1 to 90, blank for off. While a supplier's details changed inside the window, a payment to that supplier needs approval (see Payment approvals). Blank by default, so nothing changes until an owner or admin sets it.
+
 ## Aged debtors and creditors
 
 Two reports under Transactions, Reports: Aged debtors (Sales, what customers owe) and Aged creditors (Purchases, what is owed to suppliers). Anyone in the organisation can open them. Each lists the parties with a balance, largest first, in the home currency, in five bands by how late the amount is on the ageing date: not yet due, 1 to 30 days, 31 to 60, 61 to 90 and over 90. Lateness is counted from the due date, and a document with no due date counts as due on the day. A band starts the day after the due date, so an invoice due on the ageing date is not yet due.

@@ -13,7 +13,9 @@ import SchemeLookup from "@/components/SchemeLookup";
 import { QuietInput, QuietTextarea } from "@/components/QuietField";
 import { formatPostalAddress } from "@/lib/address";
 import { createParty, deleteParty, updateParty } from "@/lib/party-actions";
-import { PARTY_META, type PartyCurrency, type PartyKind, type PartyRow } from "@/lib/parties";
+import { PARTY_META, type PartyCurrency, type PartyKind, type PartyRow, type SupplierBankChange } from "@/lib/parties";
+import { formatDate } from "@/lib/dates";
+import { useRegion } from "@/components/useRegion";
 import { countryChoices, type CodeName } from "@/lib/code-lists";
 import styles from "@/components/OpsPage.module.css";
 import recordStyles from "@/components/RecordForm.module.css";
@@ -38,6 +40,9 @@ const PARTY_EXPORT_FIELDS: ExportField<PartyRow>[] = [
   { key: "peppolId", label: "Peppol ID", value: (row) => row.peppolId },
   { key: "paymentTermsDays", label: "Payment terms (days)", value: (row) => row.paymentTermsDays, type: "number" },
   { key: "defaultBuyerReference", label: "Default buyer reference", value: (row) => row.defaultBuyerReference },
+  { key: "iban", label: "IBAN", value: (row) => row.iban },
+  { key: "bic", label: "BIC", value: (row) => row.bic },
+  { key: "bankAccountName", label: "Bank account name", value: (row) => row.bankAccountName },
   { key: "notes", label: "Notes", value: (row) => row.notes },
 ];
 
@@ -48,6 +53,7 @@ export default function PartyManager({
   countries,
   schemes,
   homeCurrencyId,
+  bankChanges = [],
   organisationName,
   loadError,
   actionError,
@@ -58,6 +64,7 @@ export default function PartyManager({
   countries: CodeName[];
   schemes: CodeName[];
   homeCurrencyId: string | null;
+  bankChanges?: SupplierBankChange[];
   organisationName: string;
   loadError: string | null;
   actionError?: string;
@@ -169,6 +176,7 @@ export default function PartyManager({
           countries={countries}
           schemes={schemes}
           homeCurrencyId={homeCurrencyId}
+          bankChanges={draft === "new" ? [] : bankChanges.filter((change) => change.supplierId === draft.id)}
           onClose={() => setDraft(null)}
         />
       ) : null}
@@ -183,6 +191,7 @@ export function PartyForm({
   countries,
   schemes,
   homeCurrencyId,
+  bankChanges = [],
   onClose,
   seed = null,
   notice = null,
@@ -195,6 +204,7 @@ export function PartyForm({
   countries: CodeName[];
   schemes: CodeName[];
   homeCurrencyId: string | null;
+  bankChanges?: SupplierBankChange[];
   onClose: () => void;
   seed?: Partial<PartyRow> | null;
   notice?: string | null;
@@ -227,6 +237,11 @@ export function PartyForm({
   const [defaultBuyerReference, setDefaultBuyerReference] = useState(row?.defaultBuyerReference ?? "");
   const [peppolScheme, setPeppolScheme] = useState(row?.peppolScheme ?? seed?.peppolScheme ?? "");
   const [peppolId, setPeppolId] = useState(row?.peppolId ?? seed?.peppolId ?? "");
+  const [iban, setIban] = useState(row?.iban ?? "");
+  const [bic, setBic] = useState(row?.bic ?? "");
+  const [bankAccountName, setBankAccountName] = useState(row?.bankAccountName ?? "");
+  const region = useRegion();
+  const suppliers = kind === "suppliers";
   const orderedCountries = countryChoices(countries);
 
   const saved = useRef(false);
@@ -470,7 +485,33 @@ export function PartyForm({
           </div>
 
           {/* Notes run under both columns, full width */}
-          <label className={`${recordStyles.cell} ${slot("left", 11, recordStyles.wideCell)}`}>
+          {suppliers ? (
+            <>
+              <h3 className={`${recordStyles.sectionHeading} ${slot("left", 11)}`}>Bank details</h3>
+              <div className={`${recordStyles.row} ${slot("left", 12)}`}>
+                <label className={recordStyles.grow}>
+                  IBAN
+                  <QuietInput name="iban" maxLength={42} autoComplete="off" spellCheck={false} value={iban} onChange={(event) => setIban(event.target.value)} className={styles.mono} />
+                </label>
+              </div>
+              <div className={`${recordStyles.pair} ${slot("right", 12)}`}>
+                <label className={recordStyles.cell}>
+                  BIC
+                  <QuietInput name="bic" maxLength={20} autoComplete="off" spellCheck={false} value={bic} onChange={(event) => setBic(event.target.value)} className={styles.mono} />
+                </label>
+                <label className={recordStyles.cell}>
+                  Account name
+                  <QuietInput name="bank_account_name" maxLength={140} autoComplete="off" value={bankAccountName} onChange={(event) => setBankAccountName(event.target.value)} />
+                </label>
+              </div>
+              {bankChanges.length > 0 ? (
+                <p className={`${styles.panelMeta} ${slot("right", 11)}`}>
+                  Bank details changed {bankChanges.slice(0, 3).map((change) => `${formatDate(change.changedAt, region)}${change.changedByName ? ` by ${change.changedByName}` : ""} (${change.summary})`).join("; ")}.
+                </p>
+              ) : null}
+            </>
+          ) : null}
+          <label className={`${recordStyles.cell} ${slot("left", suppliers ? 13 : 11, recordStyles.wideCell)}`}>
             Notes
             <QuietTextarea
               name="notes"

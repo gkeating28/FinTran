@@ -17,7 +17,7 @@ export default async function SuppliersPage({
   if (workspace.status === "signed-out") redirect("/login");
   if (workspace.status !== "ready") redirect("/");
 
-  const [{ rows, currencies, homeCurrencyId, error }, codes, params] = await Promise.all([listed, lists, searchParams]);
+  const [{ rows, currencies, homeCurrencyId, bankChanges, error }, codes, params] = await Promise.all([listed, lists, searchParams]);
 
   return (
     <PartyManager
@@ -27,6 +27,7 @@ export default async function SuppliersPage({
       countries={codes.countries}
       schemes={codes.schemes}
       homeCurrencyId={homeCurrencyId}
+      bankChanges={bankChanges}
       organisationName={workspace.current.organisationName}
       loadError={error ?? codes.error}
       actionError={params.error}

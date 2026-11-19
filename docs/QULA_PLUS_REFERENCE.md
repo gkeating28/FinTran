@@ -238,7 +238,7 @@ A credit note is never reported as overdue or due soon.
 | Unit tests | `npm test` | 161 tests in 30 files |
 | SQL tests | `scripts/run-sql-tests.sh` against a local Supabase stack built from every migration | 38 test files and 2 two-session concurrency scripts |
 | Types | `npm run db:types` | Fails if the generated types stop matching the migrations |
-| End to end | Playwright in Chromium on the built app and a seeded stack | 27 flows and a smoke test of every main page for owner, admin and member |
+| End to end | Playwright in Chromium on the built app and a seeded stack | 34 flows and a smoke test of every main page for owner, admin and member |
 
 CI runs all five on every pull request and every push to a `claude/` branch. Every pull request merged so far had a passing run on its branch.
 
@@ -329,7 +329,7 @@ These are my reading of the code and the documents, with the checks said. None h
 
 **Things the order does not place** (cheap, can be done at any point): closing payments spec items 1 to 4 with tests, payments help text for Ask Qula, the tolerance warning on its own if approvals slip, and the naming leftovers.
 
-**Payment approvals** (approving payments or a payment run) reuse the approvals machinery. Confirmed: they are the spec after approvals and price tolerance, ahead of journal export.
+**Payment approvals** (approving payments or a payment run) reuse the approvals machinery. Confirmed: they are the spec after approvals and price tolerance, ahead of journal export. **Built on branch, awaiting merge and hosted rollout: `specs/QULAPLUS_PAYMENT_APPROVALS_SPEC.md`.** It adds supplier bank details with a change history and a bank change window, rules and approval for money-out payments (the requester can never approve), and payment runs approved and posted as a whole.
 
 **Not placed, and later:** cross-currency payments with write-offs, statements and dunning, VAT reports, allowances and charges on import, real-time reporting to Revenue (waiting on its final specification), inviting people, and the identifier sweep.
 
@@ -386,6 +386,6 @@ A fixed record of where Qula Plus stood when the payments work, the documents au
 | **Specs** | Payments: 59 of 67 acceptance boxes ticked, 8 open. Hardening: 30 of 36 ticked, 6 open. Both with the test beside each tick |
 | **Never done by a person** | The manual payments run (`docs/payments-test-script.md`). Nothing in payments has been opened in a browser by a person |
 | **Open questions** | The ignored clicks in flows 3, 5, 6 and 12 (needs a trace, section 14). What G7 refers to. A Revenue-sourced mandate summary |
-| **Agreed next** | Payment approvals, then journal export, then bank statement import, then live connectors and bank feeds (section 15.4). Aged debtors and creditors, and approvals with price tolerance, are built |
+| **Agreed next** | Journal export, then bank statement import, then live connectors and bank feeds (section 15.4). Aged debtors and creditors, approvals with price tolerance, and payment approvals with payment runs, are built |
 
 To find this exact state again, check out commit `85a8915`. A git tag could not be pushed from the working environment (the git server refused it), so if a tag is wanted it has to be made on GitHub, from that commit, for example `reference-2026-11-18`.
