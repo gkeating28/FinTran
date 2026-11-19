@@ -172,8 +172,9 @@ test("flow 37: running the export again finds nothing, and voiding the exported 
   const [payment] = await api.select<{ id: string }>("payments", `select=id&organisation_id=eq.${id}&amount=eq.4251.84&status=eq.posted`);
   const [invoice] = await api.select<{ id: string }>("transaction_headers", `select=id&organisation_id=eq.${id}&foreign_total_amount=eq.4251.84&status=eq.posted`);
   expect(payment?.id && invoice?.id, "the payment and the invoice of flow 36").toBeTruthy();
-  expect((await owner.rpc("void_payment", { p_payment_id: payment.id, p_reason: "Flow 37" })).status).toBe(200);
-  expect((await owner.rpc("void_document", { p_header_id: invoice.id, p_reason: "Flow 37" })).status).toBe(200);
+  // A function that returns nothing answers 204.
+  expect((await owner.rpc("void_payment", { p_payment_id: payment.id, p_reason: "Flow 37" })).status).toBe(204);
+  expect((await owner.rpc("void_document", { p_header_id: invoice.id, p_reason: "Flow 37" })).status).toBe(204);
 
   await page.goto("/journal-export?new=1");
   const preview = page.locator("table").filter({ has: page.getByRole("columnheader", { name: "Journal", exact: true }) }).last();

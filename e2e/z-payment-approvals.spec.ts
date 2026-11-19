@@ -102,6 +102,23 @@ async function openDraftRun(page: Page) {
   await page.locator("tbody tr").filter({ hasText: "Draft" }).first().getByRole("button", { name: "Open" }).click();
 }
 
+/**
+ * Presses a button in the open payment run dialog until the dialog shows what the press should lead to. The first click can come
+ * before the page is ready, so it is repeated. When it never happens, the failure says what the dialog showed instead.
+ */
+async function pressRunButton(run: Locator, name: string, expected: RegExp, timeout = 30_000, within?: Locator) {
+  try {
+    await expect(async () => {
+      const button = (within ?? run).getByRole("button", { name, exact: true });
+      if (await button.isEnabled()) await button.click({ timeout: 3_000 });
+      await expect(run.getByText(expected)).toBeVisible({ timeout: 8_000 });
+    }).toPass({ timeout });
+  } catch (error) {
+    const shown = await run.innerText({ timeout: 2_000 }).catch(() => "the dialog had closed");
+    throw new Error(`${(error as Error).message}\nPressing ${name}, the run dialog said: ${shown.replace(/\s+/g, " ").slice(0, 700)}`);
+  }
+}
+
 async function organisationOneId() {
   const api = await apiAs("owner");
   const [row] = await api.select<{ organisation_id: string }>("organisation_defaults", `select=organisation_id&peppol_id=eq.${ORG_ONE_PEPPOL}`);
@@ -252,29 +269,20 @@ test("flow 32: a payment run of two suppliers is made, approved by an admin who 
     await expect(run).toBeVisible();
     await expect(run.getByText(/Needs approval from an admin or owner/)).toBeVisible();
     await expect(run.getByRole("button", { name: "Post run" })).toHaveCount(0);
-    await expect(async () => {
-      if (await run.getByRole("button", { name: "Request approval" }).isVisible()) await run.getByRole("button", { name: "Request approval" }).click();
-      await expect(run.getByText(/Waiting for approval from an admin or owner/)).toBeVisible({ timeout: 5_000 });
-    }).toPass({ timeout: 30_000 });
+    await pressRunButton(run, "Request approval", /Waiting for approval from an admin or owner/);
   });
   await as(browser, "admin", async (admin) => {
     await admin.goto("/payment-runs");
     await openDraftRun(admin);
     const run = admin.getByRole("dialog").filter({ hasText: /Payment run RUN-/ });
     await expect(run.getByText(/Mary Member asked for approval/)).toBeVisible();
-    await expect(async () => {
-      if (await run.getByRole("button", { name: "Approve" }).isVisible()) await run.getByRole("button", { name: "Approve" }).click();
-      await expect(run.getByText(/Approved by Adam Admin/)).toBeVisible({ timeout: 5_000 });
-    }).toPass({ timeout: 30_000 });
+    await pressRunButton(run, "Approve", /Approved by Adam Admin/);
   });
   await as(browser, "member", async (member) => {
     await member.goto("/payment-runs");
     await openDraftRun(member);
     const run = member.getByRole("dialog").filter({ hasText: /Payment run RUN-/ });
-    await expect(async () => {
-      if (await run.getByRole("button", { name: "Post run" }).isVisible()) await run.getByRole("button", { name: "Post run" }).click();
-      await expect(run.getByText(/Every payment in the run is posted/)).toBeVisible({ timeout: 5_000 });
-    }).toPass({ timeout: 30_000 });
+    await pressRunButton(run, "Post run", /Every payment in the run is posted/);
     const api = await apiAs("member");
     const posted = await api.select<{ id: string }>("payments", "select=id&status=eq.posted&payment_run_id=not.is.null");
     expect(posted.length).toBeGreaterThanOrEqual(2);
@@ -298,25 +306,13 @@ test("flow 33: a payment in a run cannot be posted alone, and taking a supplier 
     await dialog.getByRole("button", { name: "Make the run" }).click();
     const run = member.getByRole("dialog").filter({ hasText: /Payment run RUN-/ });
     await expect(run).toBeVisible();
-    try {
-      await expect(async () => {
-        if (await run.getByRole("button", { name: "Request approval" }).isVisible()) await run.getByRole("button", { name: "Request approval" }).click();
-        await expect(run.getByText(/Waiting for approval/)).toBeVisible({ timeout: 5_000 });
-      }).toPass({ timeout: 30_000 });
-    } catch (error) {
-      // Say what the run dialog showed, so a request that was refused is easy to see.
-      const shown = await run.innerText().catch(() => "the dialog had closed");
-      throw new Error(`${(error as Error).message}\nThe run dialog said: ${shown.replace(/\s+/g, " ").slice(0, 600)}`);
-    }
+    await pressRunButton(run, "Request approval", /Waiting for approval/);
   });
   await as(browser, "admin", async (admin) => {
     await admin.goto("/payment-runs");
     await openDraftRun(admin);
     const run = admin.getByRole("dialog").filter({ hasText: /Payment run RUN-/ });
-    await expect(async () => {
-      if (await run.getByRole("button", { name: "Approve" }).isVisible()) await run.getByRole("button", { name: "Approve" }).click();
-      await expect(run.getByText(/Approved by Adam Admin/)).toBeVisible({ timeout: 5_000 });
-    }).toPass({ timeout: 30_000 });
+    await pressRunButton(run, "Approve", /Approved by Adam Admin/);
   });
   await as(browser, "member", async (member) => {
     // The Vodafone payment of the run cannot be posted on its own.
@@ -331,11 +327,7 @@ test("flow 33: a payment in a run cannot be posted alone, and taking a supplier 
     await openDraftRun(member);
     const run = member.getByRole("dialog").filter({ hasText: /Payment run RUN-/ });
     await expect(run.getByRole("button", { name: "Post run" })).toBeVisible();
-    await expect(async () => {
-      const row = run.getByRole("row").filter({ hasText: "Harbour" });
-      if (await row.getByRole("button", { name: "Take out" }).isEnabled()) await row.getByRole("button", { name: "Take out" }).click({ timeout: 3_000 });
-      await expect(run.getByText(/Needs approval from an admin or owner/)).toBeVisible({ timeout: 10_000 });
-    }).toPass({ timeout: 60_000 });
+    await pressRunButton(run, "Take out", /Needs approval from an admin or owner/, 60_000, run.getByRole("row").filter({ hasText: "Harbour" }));
     await expect(run.getByRole("button", { name: "Post run" })).toHaveCount(0);
     await expect(run.getByRole("button", { name: "Request approval" })).toBeVisible();
   });
