@@ -4,12 +4,22 @@
 -- stored line now records the source and stage it came from, and a reversal is those lines turned round, with the accounts and
 -- amounts they were exported with. A reversal also can no longer be blocked by a missing account.
 
+-- A batch made before this migration stored lines that do not say which document, payment or allocation they came from, so
+-- its reversals could not be built, and they would be skipped without a word. None exists on the hosted project (checked when
+-- the first migration was applied). If one exists anywhere else, stop here instead of leaving it unreversible.
+do $$
+begin
+  if exists (select 1 from public.journal_batches) then
+    raise exception 'A journal batch was made before journal_reversals. Its lines do not record their source, so its reversals cannot be built. Remove the batch or add the sources by hand first.';
+  end if;
+end $$;
+
 alter table public.journal_batch_lines
-  add column source_ref text,
-  add column source_id uuid,
-  add column stage text,
-  add constraint journal_batch_lines_ref_check check (source_ref is null or source_ref in ('document', 'payment', 'allocation')),
-  add constraint journal_batch_lines_stage_check check (stage is null or stage in ('post', 'reversal'));
+  add column source_ref text not null,
+  add column source_id uuid not null,
+  add column stage text not null,
+  add constraint journal_batch_lines_ref_check check (source_ref in ('document', 'payment', 'allocation')),
+  add constraint journal_batch_lines_stage_check check (stage in ('post', 'reversal'));
 
 create index journal_batch_lines_source_idx on public.journal_batch_lines (organisation_id, source_ref, source_id) where stage = 'post';
 
