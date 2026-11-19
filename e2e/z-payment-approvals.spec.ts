@@ -44,6 +44,7 @@ function withVat(net: number) {
 function amount(total: string) {
   const [whole, cents] = total.split(".");
   const grouped = whole.length > 3 ? `${whole.slice(0, -3)},?${whole.slice(-3)}` : whole;
+  // The text of a row has no gaps between its cells, so an exact match is not possible. Each flow uses amounts of its own.
   return new RegExp(`${grouped}\\.${cents}`);
 }
 
@@ -94,6 +95,11 @@ async function pressAndClose(page: Page, name: string) {
     if (await page.locator("form#payment-document").isVisible()) await button(page, name).click();
     await expect(page.locator("form#payment-document")).toHaveCount(0, { timeout: 5_000 });
   }).toPass({ timeout: 30_000 });
+}
+
+/** Opens the draft run on the Payment runs screen. Earlier flows leave posted runs on it, which sort first. */
+async function openDraftRun(page: Page) {
+  await page.locator("tbody tr").filter({ hasText: "Draft" }).first().getByRole("button", { name: "Open" }).click();
 }
 
 async function organisationOneId() {
@@ -253,7 +259,7 @@ test("flow 32: a payment run of two suppliers is made, approved by an admin who 
   });
   await as(browser, "admin", async (admin) => {
     await admin.goto("/payment-runs");
-    await admin.locator("tbody tr").first().getByRole("button", { name: "Open" }).click();
+    await openDraftRun(admin);
     const run = admin.getByRole("dialog").filter({ hasText: /Payment run RUN-/ });
     await expect(run.getByText(/Mary Member asked for approval/)).toBeVisible();
     await expect(async () => {
@@ -263,7 +269,7 @@ test("flow 32: a payment run of two suppliers is made, approved by an admin who 
   });
   await as(browser, "member", async (member) => {
     await member.goto("/payment-runs");
-    await member.locator("tbody tr").first().getByRole("button", { name: "Open" }).click();
+    await openDraftRun(member);
     const run = member.getByRole("dialog").filter({ hasText: /Payment run RUN-/ });
     await expect(async () => {
       if (await run.getByRole("button", { name: "Post run" }).isVisible()) await run.getByRole("button", { name: "Post run" }).click();
@@ -277,16 +283,16 @@ test("flow 32: a payment run of two suppliers is made, approved by an admin who 
 
 test("flow 33: a payment in a run cannot be posted alone, and taking a supplier out of an approved run cancels the approval", async ({ browser }) => {
   test.setTimeout(360_000);
-  // Vodafone 4,500 and 4,600 plus VAT is 11,193.00, over the rule on its own. Harbour 100 plus VAT is 123.00.
+  // Vodafone 4,500 and 4,600 plus VAT is 11,193.00, over the rule on its own. Harbour 110 plus VAT is 135.30.
   const vod = withVat(4500 + 4600);
   await as(browser, "member", async (member) => {
     await postInvoice(member, "VOD", 4500, "VOD-FLOW33A");
     await postInvoice(member, "VOD", 4600, "VOD-FLOW33B");
-    await postInvoice(member, "HARB", 100, "HARB-FLOW33");
+    await postInvoice(member, "HARB", 110, "HARB-FLOW33");
     await member.goto("/payment-runs");
     await member.getByRole("button", { name: "Add", exact: true }).click();
     const dialog = member.getByRole("dialog").filter({ has: member.getByRole("button", { name: "Make the run" }) });
-    for (const net of [4500, 4600, 100]) {
+    for (const net of [4500, 4600, 110]) {
       await dialog.getByRole("row").filter({ hasText: amount(withVat(net)) }).getByRole("checkbox").check();
     }
     await dialog.getByRole("button", { name: "Make the run" }).click();
@@ -299,7 +305,7 @@ test("flow 33: a payment in a run cannot be posted alone, and taking a supplier 
   });
   await as(browser, "admin", async (admin) => {
     await admin.goto("/payment-runs");
-    await admin.locator("tbody tr").first().getByRole("button", { name: "Open" }).click();
+    await openDraftRun(admin);
     const run = admin.getByRole("dialog").filter({ hasText: /Payment run RUN-/ });
     await expect(async () => {
       if (await run.getByRole("button", { name: "Approve" }).isVisible()) await run.getByRole("button", { name: "Approve" }).click();
@@ -316,7 +322,7 @@ test("flow 33: a payment in a run cannot be posted alone, and taking a supplier 
 
     // Taking Harbour out of the approved run sends it back to needing approval, because Vodafone alone is still over the rule.
     await member.goto("/payment-runs");
-    await member.locator("tbody tr").first().getByRole("button", { name: "Open" }).click();
+    await openDraftRun(member);
     const run = member.getByRole("dialog").filter({ hasText: /Payment run RUN-/ });
     await expect(run.getByRole("button", { name: "Post run" })).toBeVisible();
     await expect(async () => {

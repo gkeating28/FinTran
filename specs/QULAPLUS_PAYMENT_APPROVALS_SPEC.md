@@ -198,4 +198,4 @@ New flows, numbered from 28, each with amounts no other flow uses:
 - [ ] With no rule, no bank change window, no supplier bank details and no run, every existing flow passes unchanged.
 - [ ] Types are regenerated.
 - [ ] `CORE.md`, `TECHNICAL.md` and `docs/QULA_PLUS_REFERENCE.md` describe payment approvals, supplier bank details and payment runs, and `npm run check:docs` passes.
-- [ ] The migrations are applied to the hosted FinTran project, with the date recorded.
+- [x] The migrations are applied to the hosted FinTran project, with the date recorded. Applied 19 November 2026 as versions `20261119123844`, `20261119124618` and `20261119131003`. With no rule, no bank change window and no run, nothing changes for anyone.
