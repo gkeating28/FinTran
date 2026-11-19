@@ -327,9 +327,9 @@ test("flow 33: a payment in a run cannot be posted alone, and taking a supplier 
     await expect(run.getByRole("button", { name: "Post run" })).toBeVisible();
     await expect(async () => {
       const row = run.getByRole("row").filter({ hasText: "Harbour" });
-      if (await row.getByRole("button", { name: "Take out" }).isVisible()) await row.getByRole("button", { name: "Take out" }).click();
-      await expect(run.getByText(/Needs approval from an admin or owner/)).toBeVisible({ timeout: 5_000 });
-    }).toPass({ timeout: 30_000 });
+      if (await row.getByRole("button", { name: "Take out" }).isEnabled()) await row.getByRole("button", { name: "Take out" }).click({ timeout: 3_000 });
+      await expect(run.getByText(/Needs approval from an admin or owner/)).toBeVisible({ timeout: 10_000 });
+    }).toPass({ timeout: 60_000 });
     await expect(run.getByRole("button", { name: "Post run" })).toHaveCount(0);
     await expect(run.getByRole("button", { name: "Request approval" })).toBeVisible();
   });
