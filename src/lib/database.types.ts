@@ -1700,8 +1700,11 @@ export type Database = {
           organisation_id: string
           party: string | null
           amount_in_currency: number | null
+          source_id: string | null
           source_kind: string
           source_number: string | null
+          source_ref: string | null
+          stage: string | null
           tenant_id: string
         }
         Insert: {
@@ -1721,8 +1724,11 @@ export type Database = {
           organisation_id: string
           party?: string | null
           amount_in_currency?: number | null
+          source_id?: string | null
           source_kind: string
           source_number?: string | null
+          source_ref?: string | null
+          stage?: string | null
           tenant_id: string
         }
         Update: {
@@ -1742,8 +1748,11 @@ export type Database = {
           organisation_id?: string
           party?: string | null
           amount_in_currency?: number | null
+          source_id?: string | null
           source_kind?: string
           source_number?: string | null
+          source_ref?: string | null
+          stage?: string | null
           tenant_id?: string
         }
         Relationships: []

@@ -186,7 +186,9 @@ values
   (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '7950', 'Rounding', 'Expense'),
   (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '1200', 'Bank euro', 'Current Asset'),
   (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '1250', 'Bank sterling', 'Current Asset'),
-  (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '1999', 'Suspense', 'Current Asset');
+  (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '1999', 'Suspense', 'Current Asset'),
+  (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '1201', 'Other bank', 'Current Asset'),
+  (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '2101', 'Other creditors', 'Current Liability');
 insert into public.gl_codes (tenant_id, organisation_id, code, description, account_type)
 values (current_setting('test.tenant')::uuid, current_setting('test.org2')::uuid, '9999', 'Other organisation', 'Expense');
 insert into public.vat_rates (tenant_id, organisation_id, code, description, rate, vat_type, vat_category)
@@ -472,6 +474,29 @@ select pg_temp.eq('and is marked so it can be recoded',
 select pg_temp.eq('a document whose lines all have GL codes is not affected',
   (select count(*) from public.journal_preview(current_setting('test.org')::uuid, current_date + 1) where account_code = '1999')::int, 1);
 select public.create_journal_batch(current_setting('test.org')::uuid, current_date + 1);
+
+-- A reversal turns round the lines that were exported, with the accounts they were exported to. Changing an account after an
+-- export, then voiding, must not send the reversal to the new account and leave the old one with a balance.
+select set_config('test.revdoc', pg_temp.vdoc('PI', 'VOD', array[55], '2026-11-15')::text, true);
+select set_config('test.revpay', pg_temp.payment('PAY', 'VOD', 20, true, null, '2026-11-15')::text, true);
+select public.create_journal_batch(current_setting('test.org')::uuid, current_date + 1);
+update public.accounting_settings set payables_gl_code_id = pg_temp.id_of('gl_codes', '2101'), vat_purchases_gl_code_id = pg_temp.id_of('gl_codes', '2101') where organisation_id = current_setting('test.org')::uuid;
+update public.bank_accounts set gl_code_id = pg_temp.id_of('gl_codes', '1201') where organisation_id = current_setting('test.org')::uuid and code = 'EUR1';
+select public.void_payment(current_setting('test.revpay')::uuid, 'Paid twice');
+select public.void_document(current_setting('test.revdoc')::uuid, 'Wrong supplier');
+select pg_temp.eq('the invoice reversal goes to the accounts it was exported to',
+  (select string_agg(account_code || ' ' || debit || '/' || credit, '; ' order by account_code) from pg_temp.lines_of(current_setting('test.revdoc')::uuid, current_date + 1)),
+  '1300 0.00/12.65; 2100 67.65/0.00; 6000 0.00/55.00');
+select pg_temp.eq('the payment reversal goes to the bank account it was exported to',
+  (select string_agg(account_code || ' ' || debit || '/' || credit, '; ' order by account_code) from pg_temp.lines_of(current_setting('test.revpay')::uuid, current_date + 1)),
+  '1200 20.00/0.00; 2100 0.00/20.00');
+select pg_temp.eq('a reversal says it is one',
+  (select count(*) from public.journal_preview(current_setting('test.org')::uuid, current_date + 1) where source_id = current_setting('test.revdoc')::uuid and description like 'Reversal: %')::int, 3);
+select public.create_journal_batch(current_setting('test.org')::uuid, current_date + 1);
+select pg_temp.eq('a stored line knows its source and stage',
+  (select count(*) from public.journal_batch_lines where source_id = current_setting('test.revdoc')::uuid and stage in ('post', 'reversal'))::int, 6);
+update public.accounting_settings set payables_gl_code_id = pg_temp.id_of('gl_codes', '2100'), vat_purchases_gl_code_id = pg_temp.id_of('gl_codes', '1300') where organisation_id = current_setting('test.org')::uuid;
+update public.bank_accounts set gl_code_id = pg_temp.id_of('gl_codes', '1200') where organisation_id = current_setting('test.org')::uuid and code = 'EUR1';
 
 -- The start date keeps older history out. A late-posted document dated before the last batch goes in the next one.
 select set_config('test.late', pg_temp.vdoc('SI', 'ACME', array[11], '2026-11-02')::text, true);
