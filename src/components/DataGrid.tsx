@@ -38,6 +38,7 @@ export default function DataGrid<T extends { id: string }>({
   onOpen,
   rowOpens,
   exportFields,
+  footer,
 }: {
   rows: T[];
   columns: GridColumn<T>[];
@@ -53,6 +54,8 @@ export default function DataGrid<T extends { id: string }>({
   rowOpens?: (row: T) => boolean;
   /** Extra fields offered in the Excel export that the grid does not show. Off until ticked. */
   exportFields?: ExportField<T>[];
+  /** A totals row under the rows. It is given every row that matches the search, not only the page shown. */
+  footer?: (rows: T[]) => ReactNode;
 }) {
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState(columns[0]?.key ?? "");
@@ -203,6 +206,7 @@ export default function DataGrid<T extends { id: string }>({
               })
             )}
           </tbody>
+          {footer && filtered.length > 0 ? <tfoot>{footer(filtered)}</tfoot> : null}
         </table>
       </div>
       <GridPager

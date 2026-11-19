@@ -63,6 +63,17 @@ export function EDocumentIcon(props: IconProps) {
   );
 }
 
+export function ReportIcon(props: IconProps) {
+  return (
+    <Outline {...props}>
+      <path d="M4 20V10" />
+      <path d="M10 20V4" />
+      <path d="M16 20v-7" />
+      <path d="M22 20H2" />
+    </Outline>
+  );
+}
+
 export function CustomerIcon(props: IconProps) {
   return (
     <Outline {...props}>

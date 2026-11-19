@@ -65,7 +65,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
           <TransactionGroup title="Sales transactions" tiles={tiles.filter((tile) => tile.type === "Sales")} />
           <hr className={dashboardStyles.menuDivider} />
           <section className={dashboardStyles.menuSection}>
-            <h2 className={dashboardStyles.menuHeading}>Reports and payment runs</h2>
+            <h2 className={dashboardStyles.menuHeading}>Payment runs</h2>
             <div className={dashboardStyles.adminGrid}>
               <Link prefetch href="/payment-runs" className={dashboardStyles.adminTile}>
                 <span className={dashboardStyles.adminTileIcon}>
@@ -73,20 +73,6 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
                 </span>
                 <span className={dashboardStyles.adminTileLabel}>Payment runs</span>
                 <span className={dashboardStyles.adminTileMeta}>Pay many supplier invoices at once, approved as a whole</span>
-              </Link>
-              <Link prefetch href="/aged-debtors" className={dashboardStyles.adminTile}>
-                <span className={dashboardStyles.adminTileIcon}>
-                  <DocumentIcon size={22} />
-                </span>
-                <span className={dashboardStyles.adminTileLabel}>Aged debtors</span>
-                <span className={dashboardStyles.adminTileMeta}>What customers owe, by how late it is</span>
-              </Link>
-              <Link prefetch href="/aged-creditors" className={dashboardStyles.adminTile}>
-                <span className={dashboardStyles.adminTileIcon}>
-                  <DocumentIcon size={22} />
-                </span>
-                <span className={dashboardStyles.adminTileLabel}>Aged creditors</span>
-                <span className={dashboardStyles.adminTileMeta}>What is owed to suppliers, by how late it is</span>
               </Link>
             </div>
           </section>

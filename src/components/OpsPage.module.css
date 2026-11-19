@@ -147,6 +147,12 @@
   vertical-align: middle;
 }
 
+.table tfoot td {
+  border-top: 2px solid var(--color-border-strong);
+  background: var(--color-surface-muted);
+  font-weight: 700;
+}
+
 .table th {
   position: sticky;
   top: 0;

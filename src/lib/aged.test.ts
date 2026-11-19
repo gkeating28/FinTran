@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { agedDate, bandOf, buildAged, daysLate, type AgedItem } from "./aged";
+import { agedBands, agedBasis, agedDate, bandOf, buildAged, daysLate, type AgedItem } from "./aged";
 
 const asOf = "2026-11-19";
 
@@ -62,4 +62,39 @@ test("the ageing date is a real date or today", () => {
   assert.equal(agedDate("not a date", "2026-11-19"), "2026-11-19");
   assert.equal(agedDate("2026-13-45", "2026-11-19"), "2026-11-19");
   assert.equal(agedDate(undefined, "2026-11-19"), "2026-11-19");
+});
+
+test("by transaction date the bands are the age of the document, 0 to 30 first and 120 last", () => {
+  assert.equal(bandOf(0, "document"), "current");
+  assert.equal(bandOf(30, "document"), "current");
+  assert.equal(bandOf(31, "document"), "d30");
+  assert.equal(bandOf(60, "document"), "d30");
+  assert.equal(bandOf(61, "document"), "d60");
+  assert.equal(bandOf(90, "document"), "d60");
+  assert.equal(bandOf(91, "document"), "d90");
+  assert.equal(bandOf(120, "document"), "d90");
+  assert.equal(bandOf(121, "document"), "over");
+  assert.deepEqual(agedBands("document").map((band) => band.label), ["0 to 30 days", "31 to 60 days", "61 to 90 days", "91 to 120 days", "Over 120 days"]);
+  assert.deepEqual(agedBands("due").map((band) => band.label), ["Not yet due", "1 to 30 days", "31 to 60 days", "61 to 90 days", "Over 90 days"]);
+  assert.equal(agedBasis("document"), "document");
+  assert.equal(agedBasis("whatever"), "due");
+  assert.equal(agedBasis(undefined), "due");
+});
+
+test("the same items fall in different bands depending on what the age counts from", () => {
+  // Dated 2026-09-10 and due 2026-11-10 (9 days late, 70 days old) on 2026-11-19.
+  const items = [item({ id: "a", amount: 100, date: "2026-09-10", dueDate: "2026-11-10" })];
+  const byDue = buildAged(items, asOf, "due");
+  assert.equal(byDue.basis, "due");
+  assert.equal(byDue.parties[0].d30, 100);
+  assert.equal(byDue.parties[0].lines[0].days, 9);
+  const byDate = buildAged(items, asOf, "document");
+  assert.equal(byDate.basis, "document");
+  assert.equal(byDate.parties[0].d60, 100);
+  assert.equal(byDate.parties[0].lines[0].days, 70);
+  assert.equal(byDate.parties[0].total, byDue.parties[0].total);
+  // A document with no due date still ages from its transaction date.
+  assert.equal(buildAged([item({ id: "b", amount: 50, date: "2026-11-01", dueDate: null })], asOf, "document").parties[0].current, 50);
+  // Money on account is not aged either way.
+  assert.equal(buildAged([item({ id: "c", kind: "on_account", amount: -30, dueDate: null })], asOf, "document").parties[0].onAccount, -30);
 });

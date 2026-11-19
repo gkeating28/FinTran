@@ -1,4 +1,4 @@
-import { agedDate, buildAged, type AgedDirection, type AgedItem, type AgedReport } from "@/lib/aged";
+import { agedBasis, agedDate, buildAged, type AgedDirection, type AgedItem, type AgedReport } from "@/lib/aged";
 import { getOrganisationScope } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 
@@ -15,9 +15,10 @@ function embedded(value: unknown) {
  * posted receipts or payments with something not yet applied, all in the home currency. Balances are as they stand now;
  * the ageing date only moves the line between "not yet due" and the late bands.
  */
-export async function getAgedReport(direction: AgedDirection, asOfParam?: string): Promise<{ report: AgedReport; truncated: boolean; error: string | null }> {
+export async function getAgedReport(direction: AgedDirection, asOfParam?: string, basisParam?: string): Promise<{ report: AgedReport; truncated: boolean; error: string | null }> {
   const asOf = agedDate(asOfParam);
-  const empty = buildAged([], asOf);
+  const basis = agedBasis(basisParam);
+  const empty = buildAged([], asOf, basis);
   const organisationId = await getOrganisationScope();
   if (!organisationId) return { report: empty, truncated: false, error: null };
 
@@ -77,5 +78,5 @@ export async function getAgedReport(direction: AgedDirection, asOfParam?: string
     });
   }
   const truncated = (documents.data?.length ?? 0) >= LIMIT || (payments.data?.length ?? 0) >= LIMIT;
-  return { report: buildAged(items, asOf), truncated, error: null };
+  return { report: buildAged(items, asOf, basis), truncated, error: null };
 }

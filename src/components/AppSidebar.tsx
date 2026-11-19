@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { AdminIcon, CustomerIcon, DocumentIcon, EDocumentIcon, HomeIcon, SupplierIcon } from "@/components/icons";
+import { AdminIcon, CustomerIcon, DocumentIcon, EDocumentIcon, HomeIcon, ReportIcon, SupplierIcon } from "@/components/icons";
 import { useNav } from "@/components/NavState";
 import { selectOrganisation, signOut } from "@/lib/actions";
 import type { Membership, Profile } from "@/lib/types";
@@ -23,6 +23,7 @@ const NAV: NavItem[] = [
   { href: "/customers", label: "Customers", icon: <CustomerIcon />, section: "workspace" },
   { href: "/suppliers", label: "Suppliers", icon: <SupplierIcon />, section: "workspace" },
   { href: "/e-documents", label: "E-documents", icon: <EDocumentIcon />, section: "workspace" },
+  { href: "/reports", label: "Reports", icon: <ReportIcon />, section: "workspace" },
   { href: "/admin", label: "Admin", icon: <AdminIcon />, section: "admin" },
 ];
 

@@ -485,11 +485,20 @@ Every change to one of them, from a value that was already set, is recorded with
 
 The Organisations screen has a bank change window in days, from 1 to 90, blank for off. While a supplier's details changed inside the window, a payment to that supplier needs approval (see Payment approvals). Blank by default, so nothing changes until an owner or admin sets it.
 
-## Aged debtors and creditors
+## Reports
 
-Two reports under Transactions, Reports: Aged debtors (Sales, what customers owe) and Aged creditors (Purchases, what is owed to suppliers). Anyone in the organisation can open them. Each lists the parties with a balance, largest first, in the home currency, in five bands by how late the amount is on the ageing date: not yet due, 1 to 30 days, 31 to 60, 61 to 90 and over 90. Lateness is counted from the due date, and a document with no due date counts as due on the day. A band starts the day after the due date, so an invoice due on the ageing date is not yet due.
+Reports is on the main menu, below E-documents. It lists the reports: Aged debtors and Aged creditors. Anyone in the organisation can open them.
 
-The balance is what is still due on posted documents (`home_amount_due`, after every allocation). A posted credit note with a balance is taken off, and a posted receipt or payment with money not yet applied is shown in an On account column and taken off the total, so a party's total is what they really owe. Voided and draft documents are left out. The ageing date is set on the page and defaults to today. Balances are always as they stand now: moving the date moves amounts between the bands and does not rewind payments. A row's Documents button lists what makes up the party's balance, each with a link to open it. The grid searches, sorts and exports to Excel like the other lists. Only the first 5,000 documents are read, and the page says so when that limit is reached. Ask Qula's ageing lookup uses the same bands (`bandOf` in `src/lib/aged.ts`), so its figures agree with the report.
+### Aged debtors and creditors
+
+Aged debtors (Sales, what customers owe) and Aged creditors (Purchases, what is owed to suppliers) list the parties with a balance, largest first, in the home currency, in five bands. A choice at the top, Age from, says what the age counts from.
+
+- **Due date** (the default): not yet due, then 1 to 30, 31 to 60, 61 to 90 and over 90 days past the due date. A band starts the day after the due date, so an invoice due on the ageing date is not yet due. A document with no due date counts as due on the day.
+- **Transaction date**: 0 to 30, 31 to 60, 61 to 90, 91 to 120 and over 120 days since the document's transaction date.
+
+The balance is what is still due on posted documents (`home_amount_due`, after every allocation). A posted credit note with a balance is taken off, and a posted receipt or payment with money not yet applied is shown in an On account column and taken off the total, so a party's total is what they really owe. Money on account is not aged. Voided and draft documents are left out.
+
+The ageing date is set on the page and defaults to today. Balances are always as they stand now: moving the date moves amounts between the bands and does not rewind payments. The top of the page shows the totals for each band and what is owed in all, and the grid ends with a totals row that adds up the parties shown, so a search narrows the total too. A row's Documents button lists what makes up the party's balance, each with a link to open it and its age on the chosen basis. The grid searches, sorts and exports to Excel like the other lists. Only the first 5,000 documents are read, and the page says so when that limit is reached. Ask Qula's ageing lookup uses the due date bands (`bandOf` in `src/lib/aged.ts`), so its figures agree with the report when it is set to due date.
 
 ## Printable forms
 
