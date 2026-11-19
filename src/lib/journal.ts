@@ -64,6 +64,7 @@ export type AccountingSettings = {
   vatPurchases: string;
   exchange: string;
   rounding: string;
+  suspense: string;
   startDate: string;
 };
 
@@ -74,10 +75,11 @@ export const EMPTY_ACCOUNTING_SETTINGS: AccountingSettings = {
   vatPurchases: "",
   exchange: "",
   rounding: "",
+  suspense: "",
   startDate: "",
 };
 
-/** The six accounts, what each is for, and the form field and column that hold it. */
+/** The seven accounts, what each is for, and the form field and column that hold it. */
 export const ACCOUNTING_ACCOUNTS = [
   { key: "receivables", column: "receivables_gl_code_id", label: "Receivables", help: "Control account for what customers owe. Every sales invoice, credit note and customer payment goes to it." },
   { key: "payables", column: "payables_gl_code_id", label: "Payables", help: "Control account for what is owed to suppliers. Every purchase invoice, credit note and supplier payment goes to it." },
@@ -85,6 +87,7 @@ export const ACCOUNTING_ACCOUNTS = [
   { key: "vatPurchases", column: "vat_purchases_gl_code_id", label: "VAT on purchases", help: "The VAT paid on purchase documents, whatever the rate." },
   { key: "exchange", column: "exchange_gl_code_id", label: "Exchange gain or loss", help: "Needed only when a payment settles a foreign currency document at a different rate." },
   { key: "rounding", column: "rounding_gl_code_id", label: "Rounding", help: "Needed only when a document carries a rounding amount." },
+  { key: "suspense", column: "suspense_gl_code_id", label: "Suspense", help: "Used for a posted purchase line that has no GL code, such as one on an imported e-invoice, so it can still be exported. It is marked (no GL code) so it can be recoded in your accounting system. Needed only when such a line exists." },
 ] as const;
 
 export const JOURNAL_COLUMNS = [

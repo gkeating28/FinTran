@@ -185,7 +185,8 @@ values
   (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '7900', 'Exchange gain or loss', 'Expense'),
   (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '7950', 'Rounding', 'Expense'),
   (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '1200', 'Bank euro', 'Current Asset'),
-  (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '1250', 'Bank sterling', 'Current Asset');
+  (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '1250', 'Bank sterling', 'Current Asset'),
+  (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '1999', 'Suspense', 'Current Asset');
 insert into public.gl_codes (tenant_id, organisation_id, code, description, account_type)
 values (current_setting('test.tenant')::uuid, current_setting('test.org2')::uuid, '9999', 'Other organisation', 'Expense');
 insert into public.vat_rates (tenant_id, organisation_id, code, description, rate, vat_type, vat_category)
@@ -198,7 +199,7 @@ insert into public.cost_centres (tenant_id, organisation_id, code, description)
 values (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'HQ', 'Head office');
 
 -- A posted document of several lines with VAT, optionally with a department and cost centre on its lines.
-create function pg_temp.vdoc(p_type text, p_party text, p_prices numeric[], p_date date default '2026-11-10', p_preceding uuid default null, p_dimensions boolean default false, p_rounding numeric default 0)
+create function pg_temp.vdoc(p_type text, p_party text, p_prices numeric[], p_date date default '2026-11-10', p_preceding uuid default null, p_dimensions boolean default false, p_rounding numeric default 0, p_no_gl boolean default false)
 returns uuid language plpgsql as $$
 declare
   v_sales boolean := p_type in ('SI', 'SC');
@@ -211,7 +212,7 @@ begin
     v_lines := v_lines || jsonb_build_array(jsonb_build_object(
       'description', 'Goods', 'quantity', 1, 'price', v_price,
       'vatRateId', pg_temp.id_of('vat_rates', case when v_gbp then 'PZ' when v_sales then 'S23' else 'P23' end),
-      'glCodeId', pg_temp.id_of('gl_codes', case when v_sales then '4000' else '6000' end),
+      'glCodeId', case when p_no_gl then null else pg_temp.id_of('gl_codes', case when v_sales then '4000' else '6000' end) end,
       'departmentId', case when p_dimensions then pg_temp.id_of('departments', 'OPS') end,
       'costCentreId', case when p_dimensions then pg_temp.id_of('cost_centres', 'HQ') end));
   end loop;
@@ -231,7 +232,7 @@ begin
   perform public.post_document(v_id, null);
   return v_id;
 end $$;
-grant execute on function pg_temp.vdoc(text, text, numeric[], date, uuid, boolean, numeric) to authenticated;
+grant execute on function pg_temp.vdoc(text, text, numeric[], date, uuid, boolean, numeric, boolean) to authenticated;
 
 create function pg_temp.lines_of(p_source uuid, p_up_to date default '2026-12-31')
 returns table (account_code text, debit numeric, credit numeric, department_code text, cost_centre_code text, journal_date date)
@@ -454,6 +455,22 @@ select set_config('test.gbpalloc2', (select id::text from public.allocations whe
 select public.create_journal_batch(current_setting('test.org')::uuid, current_date + 1);
 select public.remove_allocation(current_setting('test.gbpalloc2')::uuid, 'Wrong invoice');
 select pg_temp.eq('a removed allocation is reversed', (select count(*) from public.journal_preview(current_setting('test.org')::uuid, current_date + 1) where source_id = current_setting('test.gbpalloc2')::uuid and stage = 'reversal')::int, 2);
+select public.create_journal_batch(current_setting('test.org')::uuid, current_date + 1);
+
+-- A posted purchase line with no GL code (an imported e-invoice can have one) cannot be edited, so it needs a suspense account.
+select set_config('test.nogl', pg_temp.vdoc('PI', 'VOD', array[40], '2026-11-14', null, false, 0, true)::text, true);
+select pg_temp.eq('a line with no GL code is a problem while there is no suspense account',
+  (select count(*) from public.journal_problems(current_setting('test.org')::uuid, current_date + 1) where source_id = current_setting('test.nogl')::uuid and message like 'Line 1 has no GL code and no suspense account%')::int, 1);
+select pg_temp.expect_error(format($sql$select public.create_journal_batch(%L, current_date + 1)$sql$, current_setting('test.org')), 'problems listed in the preview', 'a batch with a line that has no GL code');
+update public.accounting_settings set suspense_gl_code_id = pg_temp.id_of('gl_codes', '1999') where organisation_id = current_setting('test.org')::uuid;
+select pg_temp.eq('with a suspense account the problem goes', (select count(*) from public.journal_problems(current_setting('test.org')::uuid, current_date + 1))::int, 0);
+select pg_temp.eq('the line goes to the suspense account',
+  (select string_agg(account_code || ' ' || debit || '/' || credit, '; ' order by account_code) from pg_temp.lines_of(current_setting('test.nogl')::uuid, current_date + 1)),
+  '1300 9.20/0.00; 1999 40.00/0.00; 2100 0.00/49.20');
+select pg_temp.eq('and is marked so it can be recoded',
+  (select count(*) from public.journal_preview(current_setting('test.org')::uuid, current_date + 1) where source_id = current_setting('test.nogl')::uuid and account_code = '1999' and description like '% (no GL code)')::int, 1);
+select pg_temp.eq('a document whose lines all have GL codes is not affected',
+  (select count(*) from public.journal_preview(current_setting('test.org')::uuid, current_date + 1) where account_code = '1999')::int, 1);
 select public.create_journal_batch(current_setting('test.org')::uuid, current_date + 1);
 
 -- The start date keeps older history out. A late-posted document dated before the last batch goes in the next one.

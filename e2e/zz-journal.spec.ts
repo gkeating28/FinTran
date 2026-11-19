@@ -75,9 +75,9 @@ test("flow 35: an owner sets the accounting accounts, the preview reports a bank
   await chooseByCode(page.locator('select[name="vat_purchases_gl_code_id"]'), "1300");
   await chooseByCode(page.locator('select[name="exchange_gl_code_id"]'), "7900");
   await chooseByCode(page.locator('select[name="rounding_gl_code_id"]'), "7950");
-  // History starts today. An e-invoice imported by an earlier flow was posted with a line that has no GL code, and a posted
-  // line cannot be changed, so the preview would list it for ever. The start date is how an organisation leaves old history out.
-  await page.locator('input[name="start_date"]').fill(new Date().toISOString().slice(0, 10));
+  // An e-invoice imported by an earlier flow was posted with a line that has no GL code, and a posted line cannot be changed.
+  // The suspense account is how it is exported anyway.
+  await chooseByCode(page.locator('select[name="suspense_gl_code_id"]'), "9990");
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Saved.");
   await page.reload();
@@ -151,6 +151,10 @@ test("flow 36: a purchase invoice and a supplier payment are previewed as balanc
   expect(sum(6)).toBe(sum(7));
   expect(lines.every((line) => /^\d+\.\d{2}$/.test(line[6]) && /^\d+\.\d{2}$/.test(line[7]))).toBe(true);
   expect(lines.every((line) => line[0] === "JB-0001" && /^JB-0001-\d{4}$/.test(line[1]))).toBe(true);
+  // The imported e-invoice with a line that has no GL code is exported to the suspense account and marked.
+  const suspense = lines.filter((line) => line[3] === "9990");
+  expect(suspense.length).toBeGreaterThan(0);
+  expect(suspense.every((line) => line[5].endsWith("(no GL code)"))).toBe(true);
   const own = lines.filter((line) => line[5].includes("Flow36 calls"));
   expect(own).toHaveLength(1);
   expect(own[0][5]).toBe("'=Flow36 calls");

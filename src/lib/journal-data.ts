@@ -29,7 +29,7 @@ export async function getAccountingSettings(): Promise<{
   const [row, codes, banks] = await Promise.all([
     supabase
       .from("accounting_settings")
-      .select("receivables_gl_code_id, payables_gl_code_id, vat_sales_gl_code_id, vat_purchases_gl_code_id, exchange_gl_code_id, rounding_gl_code_id, start_date")
+      .select("receivables_gl_code_id, payables_gl_code_id, vat_sales_gl_code_id, vat_purchases_gl_code_id, exchange_gl_code_id, rounding_gl_code_id, suspense_gl_code_id, start_date")
       .eq("organisation_id", organisationId)
       .maybeSingle(),
     supabase.from("gl_codes").select("id, code, description").eq("organisation_id", organisationId).order("code"),
@@ -47,6 +47,7 @@ export async function getAccountingSettings(): Promise<{
       vatPurchases: data?.vat_purchases_gl_code_id ?? "",
       exchange: data?.exchange_gl_code_id ?? "",
       rounding: data?.rounding_gl_code_id ?? "",
+      suspense: data?.suspense_gl_code_id ?? "",
       startDate: data?.start_date ?? "",
     },
     glCodes: codes.data ?? [],

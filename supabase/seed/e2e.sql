@@ -40,7 +40,8 @@ cross join (values
   ('2100', 'Trade creditors', 'Current Liability'),
   ('2200', 'VAT on sales', 'Current Liability'),
   ('7900', 'Exchange gain or loss', 'Expense'),
-  ('7950', 'Rounding', 'Expense')
+  ('7950', 'Rounding', 'Expense'),
+  ('9990', 'Suspense', 'Current Asset')
 ) as v(code, description, account_type)
 where o.tenant_id = current_setting('seed.tenant')::uuid;
 

@@ -48,28 +48,30 @@ The rules from the earlier specs still apply: new migrations only, rules enforce
 | J14 | File | A UTF-8 CSV with a byte order mark, as the other exports. One row for each journal line: batch, journal, date, account code, account name, description, debit, credit, currency, amount in currency, department, cost centre, source kind, source number and party. Text that could be read as a formula is made safe, as the other exports do |
 | J15 | Lock date | The lock date stops posting in a period. It does not stop exporting. A batch can contain anything not yet exported |
 | J16 | Audit | Setting the accounts, making a batch and downloading one are recorded in the audit log with who and when |
+| J18 | Purchase lines with no GL code | A posted purchase line can have no GL code (an imported e-invoice, for one) and cannot be edited. A seventh account in the accounting settings, the suspense account, takes such a line, and its description ends with `(no GL code)` so it can be recoded in the accounting system. With none set the line is a problem, as in J13. Sales lines always have a GL code, so this is for purchases. Added after the first build, at the owner's request |
 | J17 | Existing data | No organisation has settings or batches at the time of the migration, so nothing is exported until an owner or admin sets the accounts and makes a batch |
 
 ## Phase 1: the accounting settings
 
 ### 1.1 Database
 
-- `accounting_settings` (standard scoping, one row for each organisation): the six GL codes as foreign keys to `gl_codes`, an optional start date, and the usual audit columns. Owners and admins read and write it. Members cannot read it.
+- `accounting_settings` (standard scoping, one row for each organisation): the seven GL codes (the six of J4 and the suspense account of J18) as foreign keys to `gl_codes`, an optional start date, and the usual audit columns. Owners and admins read and write it. Members cannot read it.
 - A trigger checks that each GL code belongs to the organisation. The VAT and control accounts are not restricted to a type, because accountants differ on how they classify them.
 - `journal_problems(p_organisation_id)` is added in phase 2. Phase 1 only stores the settings.
 
 ### 1.2 Screen
 
-- Admin gets an Accounting tile and an Accounting screen in the standard record form: the six accounts as GL code lists, the start date, and a short line saying what each is for. Owners and admins edit. A member does not see the tile.
+- Admin gets an Accounting tile and an Accounting screen in the standard record form: the accounts as GL code lists, the start date, and a short line saying what each is for. Owners and admins edit. A member does not see the tile.
 - Bank accounts already have an optional GL code. The screen lists the bank accounts that have none, with a link to each.
 
 ### Acceptance
 
-- [x] An owner saves the six accounts and the start date, and they come back.
+- [x] An owner saves the accounts and the start date, and they come back.
 - [x] A GL code from another organisation is refused.
 - [x] A member cannot read or write the settings, and the database refuses the same calls made directly.
 - [x] Saving is recorded in the audit log.
 - [x] Clearing an account is allowed, and the preview then reports it as missing.
+- [x] A posted purchase line with no GL code is reported while there is no suspense account, and goes to the suspense account, marked `(no GL code)`, once there is one (J18).
 
 ## Phase 2: the journal
 

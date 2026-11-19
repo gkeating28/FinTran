@@ -474,6 +474,7 @@ export type Database = {
           receivables_gl_code_id: string | null
           rounding_gl_code_id: string | null
           start_date: string | null
+          suspense_gl_code_id: string | null
           tenant_id: string
           updated_at: string
           updated_by: string | null
@@ -490,6 +491,7 @@ export type Database = {
           receivables_gl_code_id?: string | null
           rounding_gl_code_id?: string | null
           start_date?: string | null
+          suspense_gl_code_id?: string | null
           tenant_id: string
           updated_at?: string
           updated_by?: string | null
@@ -506,6 +508,7 @@ export type Database = {
           receivables_gl_code_id?: string | null
           rounding_gl_code_id?: string | null
           start_date?: string | null
+          suspense_gl_code_id?: string | null
           tenant_id?: string
           updated_at?: string
           updated_by?: string | null
