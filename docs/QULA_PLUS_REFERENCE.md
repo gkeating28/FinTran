@@ -329,7 +329,7 @@ These are my reading of the code and the documents, with the checks said. None h
 
 **Things the order does not place** (cheap, can be done at any point): closing payments spec items 1 to 4 with tests, payments help text for Ask Qula, the tolerance warning on its own if approvals slip, and the naming leftovers.
 
-**Payment approvals** (approving payments or a payment run) reuse the approvals machinery. Confirmed: they are the spec after approvals and price tolerance, ahead of journal export.
+**Payment approvals** (approving payments or a payment run) reuse the approvals machinery. Confirmed: they are the spec after approvals and price tolerance, ahead of journal export. **A draft spec is written: `specs/QULAPLUS_PAYMENT_APPROVALS_SPEC.md`.** It adds supplier bank details, which the app does not hold today, and a payment run, which does not exist today.
 
 **Not placed, and later:** cross-currency payments with write-offs, statements and dunning, VAT reports, allowances and charges on import, real-time reporting to Revenue (waiting on its final specification), inviting people, and the identifier sweep.
 
