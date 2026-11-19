@@ -238,7 +238,7 @@ A credit note is never reported as overdue or due soon.
 | Unit tests | `npm test` | 161 tests in 30 files |
 | SQL tests | `scripts/run-sql-tests.sh` against a local Supabase stack built from every migration | 38 test files and 2 two-session concurrency scripts |
 | Types | `npm run db:types` | Fails if the generated types stop matching the migrations |
-| End to end | Playwright in Chromium on the built app and a seeded stack | 26 flows and a smoke test of every main page for owner, admin and member |
+| End to end | Playwright in Chromium on the built app and a seeded stack | 27 flows and a smoke test of every main page for owner, admin and member |
 
 CI runs all five on every pull request and every push to a `claude/` branch. Every pull request merged so far had a passing run on its branch.
 
@@ -290,7 +290,7 @@ These are my reading of the code and the documents, with the checks said. None h
 | **Import blocked by document-level allowances and charges (G7)** | Confirmed in the code. A received e-invoice with a document allowance, a document charge or a line charge is listed as "features Qula Plus cannot import yet", and the import is refused on the screen and in `import_e_document`. Such an invoice can be uploaded and validated but has to be keyed by hand. (G7 is your label. I have not seen the requirement it refers to) | Medium: a place for allowances and charges on a document, their VAT effect, totals, export |
 | **Purchase approvals** | **Built, awaiting merge and hosted rollout.** Rules by purchase invoice or order type with an amount in the home currency and a required role (admin or owner, as a ladder). Gate in `post_document` and the order Activate action, so Ask Qula, imports and save-before-acting all pass through it. A change cancels an approval. Price tolerance on order matching is built with it. The screens, Worth a look, Ask Qula, the home count and approval emails (mock adapter) are in. Spec: `specs/QULAPLUS_APPROVALS_SPEC.md` | Done for purchases. Payment approvals reuse it and are the next spec after it |
 | **Price tolerance on order matching** | Not built (confirmed: no tolerance anywhere). Matching an invoice to an order is by **quantity** only: each order line shows Invoiced, Reserved and Left. A price on an invoice line that differs from its order line is neither compared nor flagged | Small to medium: compare price on lines that came from an order, a tolerance setting, a warning on the line or at posting, possibly a Worth a look rule |
-| **Aged debtors and creditors report** | First in the agreed order. Not built as a report. The only ageing is Ask Qula's lookup: by party, in bands (not yet due, 1 to 30, 31 to 60, 61 to 90, over 90 days), from posted documents with an amount due, with credit note balances coming off, in each document's own currency, showing at most 25 parties, from up to 5,000 documents, with an as-at date only by asking for it. There is no screen, no drill-down to documents, no home-currency total, and no export of it apart from the chat table's CSV | Medium |
+| **Aged debtors and creditors report** | **Built.** Two reports under Transactions, Reports: by party, in bands of days late from the due date, in the home currency, with credit notes and unapplied receipts or payments taken off, a documents drill-down with links, search, sort and Excel export. Balances are current, so the ageing date moves amounts between bands and does not rewind payments. Not built: statements and reminder runs, ageing by document date, a true as-at balance at a past date, a printed or PDF version | Small for each of those |
 | **No accounting integration or journal export** | There is no ledger, by design. Accounting stays in the customer's own system, so journal export is the route in. Exchange differences are already stored per allocation for it. **A priority, with payments and banking** (section 15.4) | Large, in steps |
 | **Bank feeds and matching** | Receipts are typed. Worth a look suggests a likely match but nothing imports bank lines. **A priority, with payments** | Large |
 | **Cross-currency payments** | A payment must be in its party's currency and its bank account's. The spec names this the first follow-up | Medium to large: it needs write-offs and bank charges to be usable |
@@ -315,7 +315,7 @@ These are my reading of the code and the documents, with the checks said. None h
 
 | Order | Item | Size | Why here |
 | --- | --- | --- | --- |
-| 1 | Aged debtors and creditors | Small | The data is ready now that allocations set the paid amount. No new rules, quick to show value, and statements and reminder runs build on it later |
+| 1 | Aged debtors and creditors | Small, **built** | The data is ready now that allocations set the paid amount. No new rules, quick to show value, and statements and reminder runs build on it later |
 | 2 | Approvals and price tolerance, as one spec (**built**: `specs/QULAPLUS_APPROVALS_SPEC.md`) | Medium | A price over tolerance is a natural reason to require approval, so they belong together. Both change what happens before posting, which is easier before real users and before anything is exported |
 | 3 | Journal export (file) | Medium | CSV or import files for Xero, Sage and QuickBooks. GL codes, bank account GL codes and exchange differences already exist. No provider needed |
 | 4 | Bank statement import (file) | Medium | Upload CSV or CAMT.053 statements and match lines to open documents. Most of the value of bank feeds without choosing an open banking provider |
@@ -386,6 +386,6 @@ A fixed record of where Qula Plus stood when the payments work, the documents au
 | **Specs** | Payments: 59 of 67 acceptance boxes ticked, 8 open. Hardening: 30 of 36 ticked, 6 open. Both with the test beside each tick |
 | **Never done by a person** | The manual payments run (`docs/payments-test-script.md`). Nothing in payments has been opened in a browser by a person |
 | **Open questions** | The ignored clicks in flows 3, 5, 6 and 12 (needs a trace, section 14). What G7 refers to. A Revenue-sourced mandate summary |
-| **Agreed next** | Aged debtors and creditors, then approvals with price tolerance as one spec, then journal export, then bank statement import, then live connectors and bank feeds (section 15.4) |
+| **Agreed next** | Payment approvals, then journal export, then bank statement import, then live connectors and bank feeds (section 15.4). Aged debtors and creditors, and approvals with price tolerance, are built |
 
 To find this exact state again, check out commit `85a8915`. A git tag could not be pushed from the working environment (the git server refused it), so if a tag is wanted it has to be made on GitHub, from that commit, for example `reference-2026-11-18`.

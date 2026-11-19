@@ -63,6 +63,26 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
           <TransactionGroup title="Purchase transactions" tiles={tiles.filter((tile) => tile.type === "Purchases")} />
           <hr className={dashboardStyles.menuDivider} />
           <TransactionGroup title="Sales transactions" tiles={tiles.filter((tile) => tile.type === "Sales")} />
+          <hr className={dashboardStyles.menuDivider} />
+          <section className={dashboardStyles.menuSection}>
+            <h2 className={dashboardStyles.menuHeading}>Reports</h2>
+            <div className={dashboardStyles.adminGrid}>
+              <Link prefetch href="/aged-debtors" className={dashboardStyles.adminTile}>
+                <span className={dashboardStyles.adminTileIcon}>
+                  <DocumentIcon size={22} />
+                </span>
+                <span className={dashboardStyles.adminTileLabel}>Aged debtors</span>
+                <span className={dashboardStyles.adminTileMeta}>What customers owe, by how late it is</span>
+              </Link>
+              <Link prefetch href="/aged-creditors" className={dashboardStyles.adminTile}>
+                <span className={dashboardStyles.adminTileIcon}>
+                  <DocumentIcon size={22} />
+                </span>
+                <span className={dashboardStyles.adminTileLabel}>Aged creditors</span>
+                <span className={dashboardStyles.adminTileMeta}>What is owed to suppliers, by how late it is</span>
+              </Link>
+            </div>
+          </section>
         </div>
       )}
     </section>

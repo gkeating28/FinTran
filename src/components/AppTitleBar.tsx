@@ -12,6 +12,8 @@ import styles from "./AppTitleBar.module.css";
 const PAGE_LABELS: Record<string, string> = {
   "/": "Home",
   "/transactions": "Transactions",
+  "/aged-debtors": "Aged debtors",
+  "/aged-creditors": "Aged creditors",
   "/customers": "Customers",
   "/suppliers": "Suppliers",
   "/admin": "Admin",
