@@ -107,6 +107,26 @@ async function openDraftRun(page: Page) {
  * before the page is ready, so it is repeated. When it never happens, the failure says what the dialog showed instead.
  */
 async function pressRunButton(run: Locator, name: string, expected: RegExp, timeout = 30_000, within?: Locator) {
+  // What the browser and the server did meanwhile, so a press that does nothing can be explained.
+  const page = run.page();
+  const seen: string[] = [];
+  const onConsole = (message: { type(): string; text(): string }) => {
+    if (["error", "warning"].includes(message.type())) seen.push(`console ${message.type()}: ${message.text().slice(0, 200)}`);
+  };
+  const onPageError = (error: Error) => seen.push(`page error: ${error.message.slice(0, 200)}`);
+  const onFailed = (request: { method(): string; url(): string; failure(): { errorText: string } | null }) =>
+    seen.push(`request failed: ${request.method()} ${request.url().slice(-80)} ${request.failure()?.errorText ?? ""}`);
+  const onResponse = (response: { status(): number; url(): string; request(): { method(): string } }) => {
+    if (response.status() >= 400) seen.push(`response ${response.status()}: ${response.request().method()} ${response.url().slice(-80)}`);
+  };
+  const onRequest = (request: { method(): string; url(): string; headers(): Record<string, string> }) => {
+    if (request.method() === "POST" && request.headers()["next-action"]) seen.push(`server action sent to ${request.url().slice(-60)}`);
+  };
+  page.on("console", onConsole);
+  page.on("pageerror", onPageError);
+  page.on("requestfailed", onFailed);
+  page.on("response", onResponse);
+  page.on("request", onRequest);
   try {
     await expect(async () => {
       const button = (within ?? run).getByRole("button", { name, exact: true });
@@ -115,7 +135,19 @@ async function pressRunButton(run: Locator, name: string, expected: RegExp, time
     }).toPass({ timeout });
   } catch (error) {
     const shown = await run.innerText({ timeout: 2_000 }).catch(() => "the dialog had closed");
-    throw new Error(`${(error as Error).message}\nPressing ${name}, the run dialog said: ${shown.replace(/\s+/g, " ").slice(0, 700)}`);
+    const runs = await apiAs("member")
+      .then((api) => api.select("payment_runs", "select=document_number,status,approval_status,approval_requested_at&order=created_at.desc&limit=3"))
+      .then((rows) => JSON.stringify(rows))
+      .catch(() => "the runs could not be read");
+    throw new Error(
+      `${(error as Error).message}\nPressing ${name}, the run dialog said: ${shown.replace(/\s+/g, " ").slice(0, 700)}\nThe newest runs in the database: ${runs}\nThe browser saw: ${seen.slice(0, 12).join(" | ") || "nothing unusual"}`,
+    );
+  } finally {
+    page.off("console", onConsole);
+    page.off("pageerror", onPageError);
+    page.off("requestfailed", onFailed);
+    page.off("response", onResponse);
+    page.off("request", onRequest);
   }
 }
 
