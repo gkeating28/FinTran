@@ -96,7 +96,9 @@ test("flow 35: an owner sets the accounting accounts, the preview reports a bank
 
   await page.reload();
   await expect(page.getByRole("heading", { name: "Journal export" })).toBeVisible();
-  await expect(problems).toHaveCount(0);
+  // Say what is left in the failure message, so a problem no earlier flow could fix is easy to see.
+  const left = (await problems.count()) > 0 ? await problems.innerText() : "";
+  expect(left, "problems still listed after the bank accounts were given a GL code").toBe("");
 });
 
 test("flow 36: a purchase invoice and a supplier payment are previewed as balanced journals, exported as a batch and downloaded", async ({ browser, page }) => {
