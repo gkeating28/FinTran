@@ -25,7 +25,9 @@ test("flow 27: a posted purchase invoice is on aged creditors under the supplier
   await row.getByRole("button", { name: "Documents" }).click();
   const documents = page.getByRole("dialog");
   await expect(documents.locator("tr").filter({ hasText: "4.10" }).first()).toBeVisible();
-  await documents.getByRole("button", { name: "Close" }).click();
+  // The dialog has a close button in its title bar as well as the one at the foot.
+  await documents.getByRole("button", { name: "Close" }).last().click();
+  await expect(documents).toHaveCount(0);
 
   // A purchase invoice is not a debt of a customer.
   await page.goto("/aged-debtors");
