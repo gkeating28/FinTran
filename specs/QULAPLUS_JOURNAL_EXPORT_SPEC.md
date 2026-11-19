@@ -1,6 +1,6 @@
 # Qula Plus journal export spec
 
-Version 2, 20 November 2026. Built on branch, awaiting merge and hosted rollout. The four scoping answers are recorded below. The four review questions were answered with their defaults.
+Version 2, 20 November 2026. Built, and applied to the hosted project on 19 November 2026. The branch is awaiting merge. The four scoping answers are recorded below. The four review questions were answered with their defaults.
 
 Goal: let an owner or admin send what has been posted in Qula Plus to the organisation's own accounting system as a journal file. Qula Plus has no ledger by design, so accounting stays in the customer's system and this is the route in. This is step 3 of the agreed order (aged debtors and creditors, approvals with price tolerance and payment approvals, journal export, bank statement import, live connectors and bank feeds). It comes after approvals so that what is exported has already passed them.
 
@@ -166,4 +166,4 @@ All four took their defaults: (1) journals are dated on the document date, payme
 - [ ] With no settings and no batch, every existing flow passes unchanged.
 - [ ] Types are regenerated.
 - [ ] `CORE.md`, `TECHNICAL.md` and `docs/QULA_PLUS_REFERENCE.md` describe the journal export, and `npm run check:docs` passes.
-- [ ] The migrations are applied to the hosted FinTran project, with the date recorded.
+- [x] The migration is applied to the hosted FinTran project: `journal_export`, version `20261119180342`, on 19 November 2026. Checked afterwards: four new tables with no rows, the five functions, seven policies, and no insert, update or delete grant on the batch tables.
