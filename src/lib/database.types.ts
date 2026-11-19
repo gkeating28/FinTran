@@ -1453,10 +1453,11 @@ export type Database = {
           created_at: string
           created_by: string | null
           error: string | null
-          header_id: string
+          header_id: string | null
           id: string
           link_path: string
           organisation_id: string
+          payment_id: string | null
           reason: string
           recipient_email: string
           recipient_id: string | null
@@ -1471,10 +1472,11 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           error?: string | null
-          header_id: string
+          header_id?: string | null
           id?: string
           link_path: string
           organisation_id: string
+          payment_id?: string | null
           reason: string
           recipient_email: string
           recipient_id?: string | null
@@ -1489,10 +1491,11 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           error?: string | null
-          header_id?: string
+          header_id?: string | null
           id?: string
           link_path?: string
           organisation_id?: string
+          payment_id?: string | null
           reason?: string
           recipient_email?: string
           recipient_id?: string | null
@@ -1522,6 +1525,13 @@ export type Database = {
             columns: ["organisation_id"]
             isOneToOne: false
             referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_outbox_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
             referencedColumns: ["id"]
           },
           {
@@ -1980,6 +1990,16 @@ export type Database = {
       }
       payments: {
         Row: {
+          approval_decided_at: string | null
+          approval_decided_by: string | null
+          approval_hash: string | null
+          approval_note: string | null
+          approval_reason: string | null
+          approval_requested_at: string | null
+          approval_requested_by: string | null
+          approval_required_role: string | null
+          approval_self: boolean
+          approval_status: string | null
           allocated_amount: number
           amount: number
           bank_account_id: string | null
@@ -2014,6 +2034,16 @@ export type Database = {
           voided_by: string | null
         }
         Insert: {
+          approval_decided_at?: string | null
+          approval_decided_by?: string | null
+          approval_hash?: string | null
+          approval_note?: string | null
+          approval_reason?: string | null
+          approval_requested_at?: string | null
+          approval_requested_by?: string | null
+          approval_required_role?: string | null
+          approval_self?: boolean
+          approval_status?: string | null
           allocated_amount?: number
           amount: number
           bank_account_id?: string | null
@@ -2048,6 +2078,16 @@ export type Database = {
           voided_by?: string | null
         }
         Update: {
+          approval_decided_at?: string | null
+          approval_decided_by?: string | null
+          approval_hash?: string | null
+          approval_note?: string | null
+          approval_reason?: string | null
+          approval_requested_at?: string | null
+          approval_requested_by?: string | null
+          approval_required_role?: string | null
+          approval_self?: boolean
+          approval_status?: string | null
           allocated_amount?: number
           amount?: number
           bank_account_id?: string | null
@@ -2082,6 +2122,20 @@ export type Database = {
           voided_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "payments_approval_decided_by_fkey"
+            columns: ["approval_decided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_approval_requested_by_fkey"
+            columns: ["approval_requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payments_bank_account_fkey"
             columns: ["organisation_id", "bank_account_id"]
@@ -3655,6 +3709,7 @@ export type Database = {
           decided_by_name: string
           document_number: string
           header_id: string
+          item_kind: string
           note: string
           party: string
           requested_at: string
@@ -3796,6 +3851,44 @@ export type Database = {
           p_token_hash: string
         }
         Returns: string
+      }
+      approve_payment: {
+        Args: { p_note?: string; p_payment_id: string }
+        Returns: undefined
+      }
+      payment_approval_status: {
+        Args: { p_payment_ids: string[] }
+        Returns: {
+          can_decide: boolean
+          decided_at: string
+          decided_by_name: string
+          note: string
+          payment_id: string
+          reason: string
+          requested_at: string
+          requested_by_name: string
+          required_role: string
+          state: string
+        }[]
+      }
+      queued_payment_emails: {
+        Args: { p_payment_id: string }
+        Returns: {
+          body: string
+          id: string
+          link_path: string
+          recipient_email: string
+          recipient_name: string
+          subject: string
+        }[]
+      }
+      reject_payment: {
+        Args: { p_payment_id: string; p_reason: string }
+        Returns: undefined
+      }
+      request_payment_approval: {
+        Args: { p_note?: string; p_payment_id: string }
+        Returns: undefined
       }
       queued_emails: {
         Args: { p_header_id: string }

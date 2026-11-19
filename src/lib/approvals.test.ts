@@ -35,3 +35,8 @@ test("labels and filters agree", () => {
   assert.equal(approvalMatches(undefined, "approved"), false);
   assert.equal(approvalMatches(undefined, ""), true);
 });
+
+test("a payment held back for new bank details says so", () => {
+  assert.match(approvalBanner({ ...base, reason: "bank details" })?.text ?? "", /bank details changing recently/);
+  assert.match(approvalBanner({ ...base, reason: "amount and bank details" })?.text ?? "", /its amount and the supplier's bank details/);
+});

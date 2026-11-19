@@ -16,8 +16,8 @@ export type ApprovalRuleRow = {
   typeId: string;
   typeCode: string;
   typeDescription: string;
-  /** Purchase invoice or purchase order. */
-  kind: "invoice" | "order";
+  /** Purchase invoice, purchase order, or a payment that sends money out. */
+  kind: "invoice" | "order" | "payment";
   /** Plain number with two decimals, in the home currency. */
   amount: string;
   role: ApproverRole;
@@ -28,7 +28,7 @@ export type ApprovalTypeChoice = {
   id: string;
   code: string;
   description: string;
-  kind: "invoice" | "order";
+  kind: "invoice" | "order" | "payment";
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

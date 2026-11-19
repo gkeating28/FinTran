@@ -1,5 +1,7 @@
 "use client";
 
+import { approvalBanner, needsApproval, type ApprovalInfo } from "@/lib/approvals";
+import { approvePayment, loadPaymentApprovalStatus, requestPaymentApproval } from "@/lib/payment-approval-actions";
 import Link from "next/link";
 import { useCallback, useEffect, useState, useTransition, type FormEvent, type MouseEvent } from "react";
 import ConfirmSubmitButton from "@/components/ConfirmDialog";
@@ -36,7 +38,7 @@ import {
   type PaymentPrefill,
   type PaymentRow,
 } from "@/lib/payments";
-import { RemoveAllocationDialog, VoidPaymentDialog } from "./PaymentDialogs";
+import { RemoveAllocationDialog, VoidPaymentDialog, RefusePaymentDialog } from "./PaymentDialogs";
 import paymentStyles from "./Payment.module.css";
 
 /** The id of the form that holds the open payment. Buttons outside it submit it by this id. */
@@ -106,6 +108,8 @@ export default function PaymentForm({
   const [reload, setReload] = useState(0);
   const [removing, setRemoving] = useState<AllocationLine | null>(null);
   const [voidOpen, setVoidOpen] = useState(false);
+  const [refuseOpen, setRefuseOpen] = useState(false);
+  const [approval, setApproval] = useState<ApprovalInfo | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -132,6 +136,20 @@ export default function PaymentForm({
       live = false;
     };
   }, [partyId, type.id, voided, itemsKey]);
+  // Where a draft payment that sends money out stands on approval. Read again whenever it has been saved or decided.
+  const approvalId = current && status === "draft" && type.kind === "payment" ? current.id : null;
+  useEffect(() => {
+    if (!approvalId) return;
+    let live = true;
+    void loadPaymentApprovalStatus([approvalId]).then((found) => {
+      if (live) setApproval(found[approvalId] ?? null);
+    });
+    return () => {
+      live = false;
+    };
+  }, [approvalId, savedId]);
+  const shownApproval = approvalId ? approval : null;
+  const approvalNeeded = needsApproval(shownApproval);
   const items = partyId && !voided && loaded?.key === itemsKey ? loaded.items : [];
   const itemsError = partyId && !voided && loaded?.key === itemsKey ? loaded.error : null;
   const loadingItems = Boolean(partyId) && !voided && loaded?.key !== itemsKey;
@@ -227,9 +245,10 @@ export default function PaymentForm({
         ? { tone: "notice" as const, text: notice }
         : posted
           ? { tone: "notice" as const, text: onAccount > 0 ? `Posted. ${formatMoney(onAccount)} is on account and can still be allocated.` : "Posted." }
-          : !partyId
-            ? { tone: "notice" as const, text: sales ? "Choose a customer to see what they owe." : "Choose a supplier to see what you owe." }
-            : null);
+          : approvalBanner(shownApproval) ??
+            (!partyId
+              ? { tone: "notice" as const, text: sales ? "Choose a customer to see what they owe." : "Choose a supplier to see what you owe." }
+              : null));
 
   const title = voided || posted ? `View ${noun}` : current ? `Edit ${noun}` : `Add ${noun}`;
   const saveBlocked = pending || !partyId || !bankAccountId || !(amountValue > 0) || boxesInvalid || overOpen || totals.over;
@@ -557,6 +576,9 @@ export default function PaymentForm({
               }}
             />
           ) : null}
+          {refuseOpen && current && status === "draft" ? (
+            <RefusePaymentDialog payment={current} noun={noun} onClose={() => setRefuseOpen(false)} onRefused={onClose} />
+          ) : null}
           {voidOpen && current && posted ? (
             <VoidPaymentDialog payment={current} noun={noun} onClose={() => setVoidOpen(false)} onVoided={onClose} />
           ) : null}
@@ -609,7 +631,46 @@ export default function PaymentForm({
               ) : null}
               {locked ? null : (
                 <>
-                  {dirty ? (
+                  {approvalNeeded && shownApproval ? (
+                    <>
+                      {(shownApproval.state === "required" || shownApproval.state === "rejected") && dirty ? (
+                        <button className={styles.quiet} type="submit" form={PAYMENT_FORM} name="then_action" value="request_approval" disabled={saveBlocked}>
+                          Save and request approval
+                        </button>
+                      ) : null}
+                      {(shownApproval.state === "required" || shownApproval.state === "rejected") && !dirty && current ? (
+                        <form
+                          onSubmit={(event: FormEvent<HTMLFormElement>) => {
+                            event.preventDefault();
+                            run(requestPaymentApproval, new FormData(event.currentTarget), () => onClose());
+                          }}
+                        >
+                          <input type="hidden" name="id" value={current.id} />
+                          <button className={styles.quiet} type="submit" disabled={pending}>
+                            Request approval
+                          </button>
+                        </form>
+                      ) : null}
+                      {shownApproval.state === "requested" && shownApproval.canDecide && !dirty && current ? (
+                        <>
+                          <button className={styles.quiet} type="button" onClick={() => setRefuseOpen(true)}>
+                            Refuse
+                          </button>
+                          <form
+                            onSubmit={(event: FormEvent<HTMLFormElement>) => {
+                              event.preventDefault();
+                              run(approvePayment, new FormData(event.currentTarget), () => onClose());
+                            }}
+                          >
+                            <input type="hidden" name="id" value={current.id} />
+                            <button className={styles.quiet} type="submit" disabled={pending}>
+                              Approve
+                            </button>
+                          </form>
+                        </>
+                      ) : null}
+                    </>
+                  ) : dirty ? (
                     <button className={styles.quiet} type="submit" form={PAYMENT_FORM} name="then_action" value="post" disabled={saveBlocked}>
                       Save and post
                     </button>

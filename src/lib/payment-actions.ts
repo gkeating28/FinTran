@@ -11,6 +11,8 @@ import { createClient } from "@/lib/supabase/server";
 import { parseCurrencyRate } from "@/lib/currencies";
 import type { ActionState } from "@/lib/types";
 import { isPaymentKind, parseTransactionTypeKind } from "@/lib/transaction-types";
+import { headers } from "next/headers";
+import { deliverQueuedEmails } from "@/lib/email/send";
 
 /** A result that also says which payment it was about, so a form that has just saved a new draft keeps hold of it. */
 export type PaymentActionState = ActionState & { id?: string };
@@ -117,6 +119,21 @@ export async function savePayment(_state: PaymentActionState, formData: FormData
         return { error: `The payment was saved as a draft, but it could not be posted. ${friendly(posted.error, "")}`.trim(), id: savedId };
       }
       return { message: "Posted.", id: savedId };
+    }
+    if (text(formData, "then_action") === "request_approval") {
+      const asked = await supabase.rpc("request_payment_approval", { p_payment_id: savedId, p_note: null });
+      if (!asked.error) {
+        try {
+          await deliverQueuedEmails(supabase, savedId, (await headers()).get("origin") ?? "", undefined, "payment");
+        } catch {
+          // The emails stay queued or failed. The request has already been recorded.
+        }
+      }
+      refresh();
+      if (asked.error) {
+        return { error: `The payment was saved, but approval could not be asked for. ${friendly(asked.error, "")}`.trim(), id: savedId };
+      }
+      return { message: "Saved, and approval asked for.", id: savedId };
     }
     refresh();
     return { message: "Saved.", id: savedId };

@@ -4,6 +4,7 @@ import { useActionState, useEffect } from "react";
 import FormModal from "@/components/FormModal";
 import { QuietInput } from "@/components/QuietField";
 import { removeAllocation, voidPayment, type PaymentActionState } from "@/lib/payment-actions";
+import { rejectPayment } from "@/lib/payment-approval-actions";
 import type { AllocationLine, PaymentRow } from "@/lib/payments";
 import styles from "@/components/OpsPage.module.css";
 
@@ -70,6 +71,39 @@ export function RemoveAllocationDialog({ allocation, onClose, onRemoved }: { all
           </button>
           <button className={styles.danger} type="submit" disabled={pending}>
             {pending ? "Removing…" : "Remove allocation"}
+          </button>
+        </div>
+      </form>
+    </FormModal>
+  );
+}
+
+/** Asks for the reason before approval of a draft payment is refused. */
+export function RefusePaymentDialog({ payment, noun, onClose, onRefused }: { payment: PaymentRow; noun: string; onClose: () => void; onRefused: () => void }) {
+  const [state, action, pending] = useActionState(rejectPayment, {} as PaymentActionState);
+  useEffect(() => {
+    if (state.message) onRefused();
+  }, [state.message, onRefused]);
+  return (
+    <FormModal title="Refuse approval" onClose={onClose} className={styles.lineDialog}>
+      <form className={styles.modalForm} action={action} autoComplete="off">
+        <input type="hidden" name="id" value={payment.id} />
+        {state.error ? (
+          <p className={styles.alert} role="alert">
+            {state.error}
+          </p>
+        ) : null}
+        <p className={styles.panelMeta}>The person who asked sees the reason and can change this {noun} and ask again.</p>
+        <label className={styles.field}>
+          Reason
+          <QuietInput name="reason" required maxLength={500} placeholder="Why this is refused" />
+        </label>
+        <div className={styles.modalActions}>
+          <button className={styles.quiet} type="button" onClick={onClose}>
+            Cancel
+          </button>
+          <button className={styles.danger} type="submit" disabled={pending}>
+            {pending ? "Refusing…" : "Refuse"}
           </button>
         </div>
       </form>

@@ -23,9 +23,9 @@ export async function listApprovalRules(): Promise<{
       .from("transaction_types")
       .select("id, code, description, document_kind")
       .eq("organisation_id", organisationId)
-      .eq("type", "Purchases")
       .eq("is_system", false)
-      .in("document_kind", ["invoice", "order"])
+      // Purchase invoices and orders, and payments that send money out (supplier payments and customer refunds).
+      .or("and(type.eq.Purchases,document_kind.in.(invoice,order)),document_kind.eq.payment")
       .order("code"),
     // Only owners and admins can read the outbox, so a member gets nothing here.
     supabase
@@ -42,7 +42,7 @@ export async function listApprovalRules(): Promise<{
     id: row.id,
     code: row.code,
     description: row.description,
-    kind: row.document_kind === "order" ? "order" : "invoice",
+    kind: row.document_kind === "order" ? "order" : row.document_kind === "payment" ? "payment" : "invoice",
   }));
   const byId = new Map(choices.map((choice) => [choice.id, choice]));
   const rows: ApprovalRuleRow[] = (rules.data ?? []).flatMap((row) => {

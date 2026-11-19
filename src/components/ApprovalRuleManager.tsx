@@ -38,7 +38,7 @@ export default function ApprovalRuleManager({
       <div>
         <h1 className={styles.heading}>Approval rules</h1>
         <p className={styles.lede}>
-          Approval rules for {organisationName}. From each amount, a purchase invoice or purchase order of that type needs approval from the
+          Approval rules for {organisationName}. From each amount, a purchase invoice, purchase order or payment that sends money out (a supplier payment or a customer refund) of that type needs approval from the
           role shown before it can be posted or activated. With no rule, nothing needs approval. The price tolerance is on the{" "}
           <Link href="/organisations">Organisations</Link> screen.
         </p>

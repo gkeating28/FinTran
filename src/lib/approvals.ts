@@ -74,6 +74,8 @@ export function needsApproval(info: ApprovalInfo | null | undefined) {
 function reasonText(reason: string) {
   if (reason === "price") return "a price over the order";
   if (reason === "amount and price") return "its amount and a price over the order";
+  if (reason === "bank details") return "the supplier's bank details changing recently";
+  if (reason === "amount and bank details") return "its amount and the supplier's bank details changing recently";
   return "its amount";
 }
 

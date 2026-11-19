@@ -79,8 +79,13 @@ const migrationText = migrations.map((file) => read(`supabase/migrations/${file}
 // 4. Database functions: every public function that still exists is described somewhere, and the ones the Database
 // functions section names still exist.
 {
-  const created = new Set([...migrationText.matchAll(/create (?:or replace )?function public\.([a-z_0-9]+)/gi)].map((m) => m[1]));
-  const dropped = new Set([...migrationText.matchAll(/drop function (?:if exists )?public\.([a-z_0-9]+)/gi)].map((m) => m[1]));
+  // Read in order, so a function dropped and made again in a later migration still counts as there.
+  const state = new Map();
+  for (const match of migrationText.matchAll(/(create (?:or replace )?function|drop function (?:if exists )?) *public\.([a-z_0-9]+)/gi)) {
+    state.set(match[2], !/^drop/i.test(match[1]));
+  }
+  const created = new Set(state.keys());
+  const dropped = new Set([...state].filter(([, alive]) => !alive).map(([name]) => name));
   const privateFunctions = new Set([...migrationText.matchAll(/create (?:or replace )?function private\.([a-z_0-9]+)/gi)].map((m) => m[1]));
   const alive = [...created].filter((fn) => !dropped.has(fn));
   for (const fn of alive) if (!new RegExp(`\\b${fn}\\b`).test(allDocs)) fail("database functions", `public.${fn} is not mentioned in any document`);

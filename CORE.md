@@ -447,6 +447,22 @@ An organisation can require approval before a purchase order is activated or a p
 
 **Email.** Asking for approval queues an email to every person with a high enough role except the person asking. Approving or refusing queues one to the person who asked, with the note or reason and a link, unless they decided it themselves. Owners and admins can switch approval emails off on the Organisations screen. No mail provider has been chosen, so the only adapter is a mock that records the email as sent and delivers nothing, and the Organisations screen says so. A failed email never stops an approval, a refusal or posting. Owners and admins see failed emails on the Approval rules screen.
 
+## Payment approvals
+
+A payment that sends money out, a supplier payment or a customer refund, can need approval before it is posted. Receipts and supplier refunds, which bring money in, never do. It is off until an owner or admin sets a rule or a bank change window, and with neither nothing changes for anyone. The design is in `specs/QULAPLUS_PAYMENT_APPROVALS_SPEC.md`.
+
+**Rules.** The Approval rules screen offers payment types of the money-out kind as well as purchase invoice and order types. For a payment type, an amount in the home currency and the role that must approve at or above it, `admin` or `owner`, as a ladder. The amount compared is the payment's home amount.
+
+**Bank details.** A payment to a supplier whose bank details changed inside the bank change window (Organisations screen) needs an admin or owner whatever its amount, with or without amount rules. The reason says so. A customer refund is never held for this.
+
+**Asking and deciding.** A member asks, and an admin or owner (an owner only, for an owner rule) decides, with a reason when refusing. Unlike documents, the person who asked can never decide, even when they are the only person with a high enough role. An organisation with one owner and no admin has to add a second person to approve its own large payments. Once approved, any member can post it.
+
+**What holds back.** `post_payment` is the only way a payment becomes posted, and it refuses a payment that needs approval and has not got it, with a message that says what to do. Saving, editing and deleting a draft stay free.
+
+**A change cancels an approval.** The fingerprint covers the payment (who, the bank account, the date, the amount and rate, the means and reference) and its planned allocations. Any change means it needs approval again. Saving without a change does not.
+
+**Screens.** The payment form shows what is needed in the status row, replaces Post with Request approval (Save and request approval when there are unsaved edits), and shows Approve and Refuse to someone who may decide, never to the person who asked. A payments list shows an Approval column and filter only when a draft needs approval. Worth a look and the home page count include payments waiting for the person, and their own refused ones. Emails use the same adapter, switch and failed-email list as documents.
+
 ## Supplier bank details
 
 A supplier can hold an IBAN, a BIC and a bank account name, set on the supplier form under Bank details. The IBAN and BIC are checked and tidied the way an organisation's own bank accounts are: an IBAN is stored in capitals without spaces, and a wrong IBAN or BIC is refused. All three are optional, and any member who can edit a supplier can change them.

@@ -6,14 +6,16 @@ import type { EmailAdapter } from "./adapter";
 
 function fakeClient(rows: object[]) {
   const results: { id: string; error?: string }[] = [];
+  const asked: string[] = [];
   const client = {
     async rpc(name: string, args: { p_id?: string; p_error?: string }) {
-      if (name === "queued_emails") return { data: rows, error: null };
+      asked.push(name);
+      if (name === "queued_emails" || name === "queued_payment_emails") return { data: rows, error: null };
       results.push({ id: args.p_id ?? "", error: args.p_error });
       return { data: null, error: null };
     },
   } as unknown as SupabaseClient;
-  return { client, results };
+  return { client, results, asked };
 }
 
 const rows = [
@@ -46,4 +48,14 @@ test("nothing queued sends nothing", async () => {
   const { client, results } = fakeClient([]);
   assert.deepEqual(await deliverQueuedEmails(client, "9", ""), { sent: 0, failed: 0 });
   assert.equal(results.length, 0);
+});
+
+test("emails about a payment are read from the payment's own queue", async () => {
+  const { client, asked } = fakeClient(rows);
+  const adapter: EmailAdapter = { id: "t", async send() {} };
+  assert.deepEqual(await deliverQueuedEmails(client, "p1", "", adapter, "payment"), { sent: 2, failed: 0 });
+  assert.equal(asked[0], "queued_payment_emails");
+  const document = fakeClient(rows);
+  await deliverQueuedEmails(document.client, "d1", "", adapter);
+  assert.equal(document.asked[0], "queued_emails");
 });
