@@ -68,6 +68,7 @@ export type OrganisationProfile = {
   priceTolerancePercent: string;
   priceToleranceNeedsApproval: boolean;
   approvalEmails: boolean;
+  bankChangeDays: string;
 };
 
 export type InboundTypeChoice = {
@@ -102,6 +103,7 @@ export const emptyOrganisationProfile: OrganisationProfile = {
   priceTolerancePercent: "",
   priceToleranceNeedsApproval: true,
   approvalEmails: true,
+  bankChangeDays: "",
 };
 
 export type OrganisationDefaultSet = {
@@ -153,7 +155,7 @@ export async function listDefaultsByOrganisation(organisationIds: string[]): Pro
     supabase
       .from("organisation_defaults")
       .select(
-        "organisation_id, home_currency_id, address_line1, address_line2, address_line3, city, post_code, county, country_code, address_needs_review, contact_name, contact_email, website, phone, vat_number, company_number, peppol_scheme, peppol_id, iban, bic, bank_account_name, banking_details, lock_date, price_tolerance_percent, price_tolerance_needs_approval, approval_emails, logo_path, updated_at, inbound_invoice_type_id, inbound_credit_note_type_id",
+        "organisation_id, home_currency_id, address_line1, address_line2, address_line3, city, post_code, county, country_code, address_needs_review, contact_name, contact_email, website, phone, vat_number, company_number, peppol_scheme, peppol_id, iban, bic, bank_account_name, banking_details, lock_date, price_tolerance_percent, price_tolerance_needs_approval, approval_emails, bank_change_days, logo_path, updated_at, inbound_invoice_type_id, inbound_credit_note_type_id",
       )
       .in("organisation_id", organisationIds),
     Promise.all(
@@ -214,6 +216,7 @@ export async function listDefaultsByOrganisation(organisationIds: string[]): Pro
       priceTolerancePercent: row.price_tolerance_percent == null ? "" : String(Number(row.price_tolerance_percent)),
       priceToleranceNeedsApproval: row.price_tolerance_needs_approval,
       approvalEmails: row.approval_emails,
+      bankChangeDays: row.bank_change_days == null ? "" : String(row.bank_change_days),
     };
     set.logoUrl = row.logo_path ? organisationLogoUrl(row.organisation_id, row.updated_at) : null;
     set.inboundInvoiceTypeId = row.inbound_invoice_type_id;

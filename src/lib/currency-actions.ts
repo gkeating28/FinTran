@@ -205,6 +205,15 @@ function toleranceFrom(value: string) {
   return percent;
 }
 
+/** A whole number of days from 1 to 90. Blank means no check. Undefined is anything else. */
+function bankDaysFrom(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (!/^\d{1,2}$/.test(trimmed)) return undefined;
+  const days = Number(trimmed);
+  return days >= 1 && days <= 90 ? days : undefined;
+}
+
 function profileFrom(formData: FormData) {
   const address = parsePostalAddress({
     line1: text(formData, "address_line1"),
@@ -232,6 +241,7 @@ function profileFrom(formData: FormData) {
   const bankingDetails = optionalField(text(formData, "banking_details"), 1000);
   const lockDate = lockDateFrom(text(formData, "lock_date"));
   const tolerance = toleranceFrom(text(formData, "price_tolerance_percent"));
+  const bankChangeDays = bankDaysFrom(text(formData, "bank_change_days"));
   if ("error" in address) return { error: address.error } as const;
   if (contactName === undefined) return { error: "Contact name can be up to 200 characters." } as const;
   if (contactEmail === undefined) return { error: "Use a contact email, or leave it blank." } as const;
@@ -246,6 +256,7 @@ function profileFrom(formData: FormData) {
   if (bankingDetails === undefined) return { error: "Banking details can be up to 1000 characters." } as const;
   if (lockDate === undefined) return { error: "Use a lock date, or leave it blank." } as const;
   if (tolerance === undefined) return { error: "Use a price tolerance from 0 to 100 with up to 2 decimal places, or leave it blank." } as const;
+  if (bankChangeDays === undefined) return { error: "Use a number of days from 1 to 90 for bank detail changes, or leave it blank." } as const;
   const inboundInvoiceTypeId = optionalUuid(text(formData, "inbound_invoice_type_id"));
   const inboundCreditNoteTypeId = optionalUuid(text(formData, "inbound_credit_note_type_id"));
   if (inboundInvoiceTypeId === undefined) return { error: "Choose a Purchases invoice type." } as const;
@@ -275,6 +286,7 @@ function profileFrom(formData: FormData) {
     price_tolerance_percent: tolerance,
     price_tolerance_needs_approval: text(formData, "price_tolerance_needs_approval") !== "no",
     approval_emails: text(formData, "approval_emails") !== "no",
+    bank_change_days: bankChangeDays,
     inbound_invoice_type_id: inboundInvoiceTypeId,
     inbound_credit_note_type_id: inboundCreditNoteTypeId,
   } as const;

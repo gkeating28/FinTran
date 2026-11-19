@@ -1682,6 +1682,7 @@ export type Database = {
       }
       organisation_defaults: {
         Row: {
+          bank_change_days: number | null
           approval_emails: boolean
           address_line1: string | null
           address_line2: string | null
@@ -1718,6 +1719,7 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          bank_change_days?: number | null
           approval_emails?: boolean
           address_line1?: string | null
           address_line2?: string | null
@@ -1754,6 +1756,7 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          bank_change_days?: number | null
           approval_emails?: boolean
           address_line1?: string | null
           address_line2?: string | null
@@ -2454,8 +2457,84 @@ export type Database = {
         }
         Relationships: []
       }
+      supplier_bank_changes: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          id: string
+          new_account_name: string | null
+          new_bic: string | null
+          new_iban: string | null
+          old_account_name: string | null
+          old_bic: string | null
+          old_iban: string | null
+          organisation_id: string
+          supplier_id: string
+          tenant_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_account_name?: string | null
+          new_bic?: string | null
+          new_iban?: string | null
+          old_account_name?: string | null
+          old_bic?: string | null
+          old_iban?: string | null
+          organisation_id: string
+          supplier_id: string
+          tenant_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_account_name?: string | null
+          new_bic?: string | null
+          new_iban?: string | null
+          old_account_name?: string | null
+          old_bic?: string | null
+          old_iban?: string | null
+          organisation_id?: string
+          supplier_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_bank_changes_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_bank_changes_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_bank_changes_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_bank_changes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
+          bank_account_name: string | null
+          bic: string | null
           address_line1: string | null
           address_line2: string | null
           address_line3: string | null
@@ -2470,6 +2549,7 @@ export type Database = {
           created_by: string | null
           currency_id: string
           email: string | null
+          iban: string | null
           id: string
           name: string
           notes: string | null
@@ -2486,6 +2566,8 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          bank_account_name?: string | null
+          bic?: string | null
           address_line1?: string | null
           address_line2?: string | null
           address_line3?: string | null
@@ -2500,6 +2582,7 @@ export type Database = {
           created_by?: string | null
           currency_id: string
           email?: string | null
+          iban?: string | null
           id?: string
           name: string
           notes?: string | null
@@ -2516,6 +2599,8 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          bank_account_name?: string | null
+          bic?: string | null
           address_line1?: string | null
           address_line2?: string | null
           address_line3?: string | null
@@ -2530,6 +2615,7 @@ export type Database = {
           created_by?: string | null
           currency_id?: string
           email?: string | null
+          iban?: string | null
           id?: string
           name?: string
           notes?: string | null

@@ -447,6 +447,14 @@ An organisation can require approval before a purchase order is activated or a p
 
 **Email.** Asking for approval queues an email to every person with a high enough role except the person asking. Approving or refusing queues one to the person who asked, with the note or reason and a link, unless they decided it themselves. Owners and admins can switch approval emails off on the Organisations screen. No mail provider has been chosen, so the only adapter is a mock that records the email as sent and delivers nothing, and the Organisations screen says so. A failed email never stops an approval, a refusal or posting. Owners and admins see failed emails on the Approval rules screen.
 
+## Supplier bank details
+
+A supplier can hold an IBAN, a BIC and a bank account name, set on the supplier form under Bank details. The IBAN and BIC are checked and tidied the way an organisation's own bank accounts are: an IBAN is stored in capitals without spaces, and a wrong IBAN or BIC is refused. All three are optional, and any member who can edit a supplier can change them.
+
+Every change to one of them, from a value that was already set, is recorded with the old and new values and who made it. Setting the details for the first time is not a change. Owners and admins see the latest changes on the supplier form, with the IBAN shortened to its first and last four characters, and in the audit log. Nobody can write the history directly.
+
+The Organisations screen has a bank change window in days, from 1 to 90, blank for off. While a supplier's details changed inside the window, a payment to that supplier needs approval (see Payment approvals). Blank by default, so nothing changes until an owner or admin sets it.
+
 ## Aged debtors and creditors
 
 Two reports under Transactions, Reports: Aged debtors (Sales, what customers owe) and Aged creditors (Purchases, what is owed to suppliers). Anyone in the organisation can open them. Each lists the parties with a balance, largest first, in the home currency, in five bands by how late the amount is on the ageing date: not yet due, 1 to 30 days, 31 to 60, 61 to 90 and over 90. Lateness is counted from the due date, and a document with no due date counts as due on the day. A band starts the day after the due date, so an invoice due on the ageing date is not yet due.
