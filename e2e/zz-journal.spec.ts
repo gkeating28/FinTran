@@ -75,6 +75,9 @@ test("flow 35: an owner sets the accounting accounts, the preview reports a bank
   await chooseByCode(page.locator('select[name="vat_purchases_gl_code_id"]'), "1300");
   await chooseByCode(page.locator('select[name="exchange_gl_code_id"]'), "7900");
   await chooseByCode(page.locator('select[name="rounding_gl_code_id"]'), "7950");
+  // History starts today. An e-invoice imported by an earlier flow was posted with a line that has no GL code, and a posted
+  // line cannot be changed, so the preview would list it for ever. The start date is how an organisation leaves old history out.
+  await page.locator('input[name="start_date"]').fill(new Date().toISOString().slice(0, 10));
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Saved.");
   await page.reload();

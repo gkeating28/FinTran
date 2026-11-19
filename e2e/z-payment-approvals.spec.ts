@@ -298,10 +298,16 @@ test("flow 33: a payment in a run cannot be posted alone, and taking a supplier 
     await dialog.getByRole("button", { name: "Make the run" }).click();
     const run = member.getByRole("dialog").filter({ hasText: /Payment run RUN-/ });
     await expect(run).toBeVisible();
-    await expect(async () => {
-      if (await run.getByRole("button", { name: "Request approval" }).isVisible()) await run.getByRole("button", { name: "Request approval" }).click();
-      await expect(run.getByText(/Waiting for approval/)).toBeVisible({ timeout: 5_000 });
-    }).toPass({ timeout: 30_000 });
+    try {
+      await expect(async () => {
+        if (await run.getByRole("button", { name: "Request approval" }).isVisible()) await run.getByRole("button", { name: "Request approval" }).click();
+        await expect(run.getByText(/Waiting for approval/)).toBeVisible({ timeout: 5_000 });
+      }).toPass({ timeout: 30_000 });
+    } catch (error) {
+      // Say what the run dialog showed, so a request that was refused is easy to see.
+      const shown = await run.innerText().catch(() => "the dialog had closed");
+      throw new Error(`${(error as Error).message}\nThe run dialog said: ${shown.replace(/\s+/g, " ").slice(0, 600)}`);
+    }
   });
   await as(browser, "admin", async (admin) => {
     await admin.goto("/payment-runs");
