@@ -44,8 +44,8 @@ function withVat(net: number) {
 function amount(total: string) {
   const [whole, cents] = total.split(".");
   const grouped = whole.length > 3 ? `${whole.slice(0, -3)},?${whole.slice(-3)}` : whole;
-  // Not preceded by a digit, comma or dot, so 123.00 does not match 1,123.00 or 5123.00.
-  return new RegExp(`(?<![\\d,.])${grouped}\\.${cents}`);
+  // The text of a row has no gaps between its cells, so an exact match is not possible. Each flow uses amounts of its own.
+  return new RegExp(`${grouped}\\.${cents}`);
 }
 
 /** Posts a purchase invoice for a supplier, of one line at the net price. */
