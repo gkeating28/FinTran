@@ -463,6 +463,20 @@ A payment that sends money out, a supplier payment or a customer refund, can nee
 
 **Screens.** The payment form shows what is needed in the status row, replaces Post with Request approval (Save and request approval when there are unsaved edits), and shows Approve and Refuse to someone who may decide, never to the person who asked. A payments list shows an Approval column and filter only when a draft needs approval. Worth a look and the home page count include payments waiting for the person, and their own refused ones. Emails use the same adapter, switch and failed-email list as documents.
 
+## Payment runs
+
+A payment run pays several posted purchase invoices at once. It is under Transactions, Payment runs. Anyone in the organisation can see runs and make one. A run has one payment type (a supplier payment type), one bank account, one currency and one payment date, and a number such as RUN-0001.
+
+**Making a run.** Add shows the posted purchase invoices that have something open in the bank account's currency and are not already in a draft run, with a filter for due on or before a date. Tick the invoices and make the run. It creates one draft payment for each supplier, which allocates the full amount open on each chosen invoice. Nothing is taken off an invoice until the run posts. Part payments and mixed currencies are not offered.
+
+**The run screen.** It lists each supplier's payment with its IBAN and the invoices paid, the status row, and the buttons. While the run is a draft a supplier can be taken out (its payment stays as an ordinary draft), the run can be cancelled (its draft payments are deleted and every invoice is free again) and the run exports to Excel with each supplier's IBAN, BIC, account name, amount and invoices. There is no bank file: the money is paid outside Qula Plus.
+
+**Approval.** The run is approved as a whole, not each payment. The rules of the run's payment type apply to the run's total in the home currency. A run also needs an admin or owner whatever its total when any supplier in it had bank details change inside the window, and the screen names them. As for payments, the person who asked can never approve, and any change to the run or to a payment or allocation in it cancels the approval. A payment that belongs to a run needs no approval of its own and cannot be posted on its own: the message says to post the run.
+
+**Posting.** Post run posts every payment, or none. Each payment is checked against what is open on its invoices at that moment, so an invoice paid somewhere else since the run was made stops the whole run, and the message lists what is short. The run is then posted. A posted run cannot be changed, and voiding one of its payments is done on that payment as before.
+
+**Elsewhere.** Worth a look, the home page count and the approval emails treat a run like a payment. Ask Qula can list runs and their approval, and cannot post a payment or a run or ask for approval.
+
 ## Supplier bank details
 
 A supplier can hold an IBAN, a BIC and a bank account name, set on the supplier form under Bank details. The IBAN and BIC are checked and tidied the way an organisation's own bank accounts are: an IBAN is stored in capitals without spaces, and a wrong IBAN or BIC is refused. All three are optional, and any member who can edit a supplier can change them.

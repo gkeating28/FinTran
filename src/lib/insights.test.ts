@@ -187,3 +187,13 @@ test("documents waiting for approval are listed with the oldest, and a refusal s
   assert.match(insights[1].detail, /refused by Ann: Too dear/);
   assert.deepEqual(buildApprovalInsights([]), []);
 });
+
+test("a payment run waiting for approval opens the run, and a payment is called an item", () => {
+  const item = { id: "r1", state: "waiting" as const, typeCode: "PAY", number: "RUN-0001", party: "Payment run", amount: 3500, requestedAt: "2026-11-02T10:00:00Z", note: "", decidedBy: "", kind: "run" as const };
+  const insights = buildApprovalInsights([item]);
+  assert.equal(insights[0].href, "/payment-runs?open=r1");
+  assert.match(insights[0].title, /^1 item waiting for your approval/);
+  assert.match(insights[0].detail, /payment run RUN-0001/);
+  const payment = buildApprovalInsights([{ ...item, id: "p1", kind: "payment" as const, number: "7", party: "Vodafone" }]);
+  assert.equal(payment[0].href, "/transactions/PAY?open=p1");
+});

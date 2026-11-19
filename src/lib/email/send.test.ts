@@ -10,7 +10,7 @@ function fakeClient(rows: object[]) {
   const client = {
     async rpc(name: string, args: { p_id?: string; p_error?: string }) {
       asked.push(name);
-      if (name === "queued_emails" || name === "queued_payment_emails") return { data: rows, error: null };
+      if (name === "queued_emails" || name === "queued_payment_emails" || name === "queued_run_emails") return { data: rows, error: null };
       results.push({ id: args.p_id ?? "", error: args.p_error });
       return { data: null, error: null };
     },
@@ -58,4 +58,7 @@ test("emails about a payment are read from the payment's own queue", async () =>
   const document = fakeClient(rows);
   await deliverQueuedEmails(document.client, "d1", "", adapter);
   assert.equal(document.asked[0], "queued_emails");
+  const run = fakeClient(rows);
+  await deliverQueuedEmails(run.client, "r1", "", adapter, "run");
+  assert.equal(run.asked[0], "queued_run_emails");
 });

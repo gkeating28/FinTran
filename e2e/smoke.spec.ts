@@ -20,6 +20,7 @@ const PAGES = [
   "/currencies",
   "/bank-accounts",
   "/approval-rules",
+  "/payment-runs",
   "/aged-debtors",
   "/aged-creditors",
   "/gl-codes",

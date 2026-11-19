@@ -204,7 +204,13 @@ export type ApprovalQueueItem = {
   requestedAt: string;
   note: string;
   decidedBy: string;
+  /** A document, a payment or a payment run. Missing means a document. */
+  kind?: "document" | "payment" | "run";
 };
+
+function approvalHref(item: ApprovalQueueItem) {
+  return item.kind === "run" ? `/payment-runs?open=${item.id}` : `/transactions/${item.typeCode}?open=${item.id}`;
+}
 
 /** Worth a look for approvals: what waits on this person, oldest first, and what was refused to them. */
 export function buildApprovalInsights(items: ApprovalQueueItem[]): Insight[] {
@@ -215,9 +221,9 @@ export function buildApprovalInsights(items: ApprovalQueueItem[]): Insight[] {
     insights.push({
       id: "approvals-waiting",
       tone: "attention",
-      title: `${plural(waiting.length, "document")} waiting for your approval`,
-      detail: `The oldest is ${oldest.typeCode} ${oldest.number} for ${oldest.party || "no supplier"}, ${euro(oldest.amount)}, asked for ${shortDate(oldest.requestedAt)}. Open it to approve or refuse it.`,
-      href: `/transactions/${oldest.typeCode}?open=${oldest.id}`,
+      title: `${plural(waiting.length, waiting.every((item) => (item.kind ?? "document") === "document") ? "document" : "item")} waiting for your approval`,
+      detail: `The oldest is ${oldest.kind === "run" ? "payment run" : oldest.typeCode} ${oldest.number} for ${oldest.party || "no supplier"}, ${euro(oldest.amount)}, asked for ${shortDate(oldest.requestedAt)}. Open it to approve or refuse it.`,
+      href: approvalHref(oldest),
     });
   }
   const refused = items.filter((item) => item.state === "refused");
@@ -226,9 +232,9 @@ export function buildApprovalInsights(items: ApprovalQueueItem[]): Insight[] {
     insights.push({
       id: "approvals-refused",
       tone: "attention",
-      title: `${plural(refused.length, "document")} refused approval`,
-      detail: `${first.typeCode} ${first.number} for ${first.party || "no supplier"} was refused${first.decidedBy ? ` by ${first.decidedBy}` : ""}: ${first.note || "no reason was given"}. Change it and ask again, or delete it.`,
-      href: `/transactions/${first.typeCode}?open=${first.id}`,
+      title: `${plural(refused.length, refused.every((item) => (item.kind ?? "document") === "document") ? "document" : "item")} refused approval`,
+      detail: `${first.kind === "run" ? "Payment run" : first.typeCode} ${first.number} for ${first.party || "no supplier"} was refused${first.decidedBy ? ` by ${first.decidedBy}` : ""}: ${first.note || "no reason was given"}. Change it and ask again, or delete it.`,
+      href: approvalHref(first),
     });
   }
   return insights;
@@ -477,6 +483,7 @@ export async function getInsights(supabase: SupabaseClient, organisationId: stri
     requestedAt: String(row.requested_at ?? ""),
     note: String(row.note ?? ""),
     decidedBy: String(row.decided_by_name ?? ""),
+    kind: row.item_kind === "payment" || row.item_kind === "run" ? row.item_kind : "document",
   }));
   return buildInsights(docs, checked.filter((item): item is NotReady => item !== null), today, (await openOrders).orders, { closedWithLeft, holdingDrafts }, payments, approvals);
 }

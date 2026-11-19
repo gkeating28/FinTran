@@ -12,13 +12,15 @@ export async function deliverQueuedEmails(
   id: string,
   origin: string,
   adapter: EmailAdapter = emailAdapter(),
-  /** Whether the emails are about a document or about a payment. */
-  about: "document" | "payment" = "document",
+  /** Whether the emails are about a document, a payment or a payment run. */
+  about: "document" | "payment" | "run" = "document",
 ) {
   const { data, error } =
     about === "payment"
       ? await supabase.rpc("queued_payment_emails", { p_payment_id: id })
-      : await supabase.rpc("queued_emails", { p_header_id: id });
+      : about === "run"
+        ? await supabase.rpc("queued_run_emails", { p_run_id: id })
+        : await supabase.rpc("queued_emails", { p_header_id: id });
   if (error) return { sent: 0, failed: 0 };
   let sent = 0;
   let failed = 0;

@@ -1462,6 +1462,7 @@ export type Database = {
           recipient_email: string
           recipient_id: string | null
           recipient_name: string
+          run_id: string | null
           sent_at: string | null
           status: string
           subject: string
@@ -1481,6 +1482,7 @@ export type Database = {
           recipient_email: string
           recipient_id?: string | null
           recipient_name?: string
+          run_id?: string | null
           sent_at?: string | null
           status?: string
           subject: string
@@ -1500,6 +1502,7 @@ export type Database = {
           recipient_email?: string
           recipient_id?: string | null
           recipient_name?: string
+          run_id?: string | null
           sent_at?: string | null
           status?: string
           subject?: string
@@ -1539,6 +1542,13 @@ export type Database = {
             columns: ["recipient_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_outbox_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "payment_runs"
             referencedColumns: ["id"]
           },
           {
@@ -1988,6 +1998,167 @@ export type Database = {
           },
         ]
       }
+      payment_runs: {
+        Row: {
+          approval_decided_at: string | null
+          approval_decided_by: string | null
+          approval_hash: string | null
+          approval_note: string | null
+          approval_reason: string | null
+          approval_requested_at: string | null
+          approval_requested_by: string | null
+          approval_required_role: string | null
+          approval_self: boolean
+          approval_status: string | null
+          bank_account_id: string
+          created_at: string
+          created_by: string | null
+          currency_id: string
+          document_number: string
+          id: string
+          notes: string | null
+          organisation_id: string
+          payment_date: string
+          posted_at: string | null
+          posted_by: string | null
+          reference: number
+          status: string
+          tenant_id: string
+          transaction_type_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          approval_decided_at?: string | null
+          approval_decided_by?: string | null
+          approval_hash?: string | null
+          approval_note?: string | null
+          approval_reason?: string | null
+          approval_requested_at?: string | null
+          approval_requested_by?: string | null
+          approval_required_role?: string | null
+          approval_self?: boolean
+          approval_status?: string | null
+          bank_account_id: string
+          created_at?: string
+          created_by?: string | null
+          currency_id: string
+          document_number: string
+          id?: string
+          notes?: string | null
+          organisation_id: string
+          payment_date: string
+          posted_at?: string | null
+          posted_by?: string | null
+          reference: number
+          status?: string
+          tenant_id: string
+          transaction_type_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          approval_decided_at?: string | null
+          approval_decided_by?: string | null
+          approval_hash?: string | null
+          approval_note?: string | null
+          approval_reason?: string | null
+          approval_requested_at?: string | null
+          approval_requested_by?: string | null
+          approval_required_role?: string | null
+          approval_self?: boolean
+          approval_status?: string | null
+          bank_account_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency_id?: string
+          document_number?: string
+          id?: string
+          notes?: string | null
+          organisation_id?: string
+          payment_date?: string
+          posted_at?: string | null
+          posted_by?: string | null
+          reference?: number
+          status?: string
+          tenant_id?: string
+          transaction_type_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_runs_approval_decided_by_fkey"
+            columns: ["approval_decided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_runs_approval_requested_by_fkey"
+            columns: ["approval_requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_runs_bank_account_fkey"
+            columns: ["organisation_id", "bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["organisation_id", "id"]
+          },
+          {
+            foreignKeyName: "payment_runs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_runs_currency_fkey"
+            columns: ["organisation_id", "currency_id"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["organisation_id", "id"]
+          },
+          {
+            foreignKeyName: "payment_runs_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_runs_posted_by_fkey"
+            columns: ["posted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_runs_type_fkey"
+            columns: ["organisation_id", "transaction_type_id"]
+            isOneToOne: false
+            referencedRelation: "transaction_types"
+            referencedColumns: ["organisation_id", "id"]
+          },
+          {
+            foreignKeyName: "payment_runs_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           approval_decided_at: string | null
@@ -2018,6 +2189,7 @@ export type Database = {
           party_name: string
           payment_date: string
           payment_means_code: string
+          payment_run_id: string | null
           posted_at: string | null
           posted_by: string | null
           reference: number | null
@@ -2062,6 +2234,7 @@ export type Database = {
           party_name: string
           payment_date: string
           payment_means_code?: string
+          payment_run_id?: string | null
           posted_at?: string | null
           posted_by?: string | null
           reference?: number | null
@@ -2106,6 +2279,7 @@ export type Database = {
           party_name?: string
           payment_date?: string
           payment_means_code?: string
+          payment_run_id?: string | null
           posted_at?: string | null
           posted_by?: string | null
           reference?: number | null
@@ -2122,6 +2296,13 @@ export type Database = {
           voided_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "payments_payment_run_fkey"
+            columns: ["organisation_id", "payment_run_id"]
+            isOneToOne: false
+            referencedRelation: "payment_runs"
+            referencedColumns: ["organisation_id", "id"]
+          },
           {
             foreignKeyName: "payments_approval_decided_by_fkey"
             columns: ["approval_decided_by"]
@@ -3888,6 +4069,62 @@ export type Database = {
       }
       request_payment_approval: {
         Args: { p_note?: string; p_payment_id: string }
+        Returns: undefined
+      }
+      approve_run: {
+        Args: { p_note?: string; p_run_id: string }
+        Returns: undefined
+      }
+      cancel_payment_run: {
+        Args: { p_run_id: string }
+        Returns: undefined
+      }
+      create_payment_run: {
+        Args: { p_run: Json }
+        Returns: string
+      }
+      payment_run_approval_status: {
+        Args: { p_run_ids: string[] }
+        Returns: {
+          bank_suppliers: string
+          can_decide: boolean
+          decided_at: string
+          decided_by_name: string
+          home_total: number
+          note: string
+          reason: string
+          requested_at: string
+          requested_by_name: string
+          required_role: string
+          run_id: string
+          state: string
+        }[]
+      }
+      post_payment_run: {
+        Args: { p_run_id: string }
+        Returns: undefined
+      }
+      queued_run_emails: {
+        Args: { p_run_id: string }
+        Returns: {
+          body: string
+          id: string
+          link_path: string
+          recipient_email: string
+          recipient_name: string
+          subject: string
+        }[]
+      }
+      reject_run: {
+        Args: { p_reason: string; p_run_id: string }
+        Returns: undefined
+      }
+      remove_run_payment: {
+        Args: { p_payment_id: string }
+        Returns: undefined
+      }
+      request_run_approval: {
+        Args: { p_note?: string; p_run_id: string }
         Returns: undefined
       }
       queued_emails: {
