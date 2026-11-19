@@ -12,6 +12,8 @@ const ADMIN_PAGES = new Set([
   "/access",
   "/forms",
   "/history",
+  "/accounting",
+  "/journal-export",
 ]);
 
 const HOME_PAGES = new Set(["/transactions", "/customers", "/suppliers", "/admin", "/e-documents", "/reports"]);

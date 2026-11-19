@@ -86,6 +86,14 @@ export default async function AdminPage() {
             <span className={dashboardStyles.adminTileLabel}>Access Point</span>
             <span className={dashboardStyles.adminTileMeta}>Peppol settings</span>
           </Link>
+          <Link href="/accounting" prefetch className={dashboardStyles.adminTile}>
+            <span className={dashboardStyles.adminTileLabel}>Accounting</span>
+            <span className={dashboardStyles.adminTileMeta}>Accounts for the export</span>
+          </Link>
+          <Link href="/journal-export" prefetch className={dashboardStyles.adminTile}>
+            <span className={dashboardStyles.adminTileLabel}>Journal export</span>
+            <span className={dashboardStyles.adminTileMeta}>Send postings to your accountant</span>
+          </Link>
         </div>
       ) : null}
     </section>

@@ -1,6 +1,6 @@
 # Qula Plus journal export spec
 
-Version 1, 20 November 2026. A draft for review. Nothing in it is built. The four scoping answers are recorded below, and four questions at the end need an answer before building starts.
+Version 2, 20 November 2026. Built on branch, awaiting merge and hosted rollout. The four scoping answers are recorded below. The four review questions were answered with their defaults.
 
 Goal: let an owner or admin send what has been posted in Qula Plus to the organisation's own accounting system as a journal file. Qula Plus has no ledger by design, so accounting stays in the customer's system and this is the route in. This is step 3 of the agreed order (aged debtors and creditors, approvals with price tolerance and payment approvals, journal export, bank statement import, live connectors and bank feeds). It comes after approvals so that what is exported has already passed them.
 
@@ -38,7 +38,7 @@ The rules from the earlier specs still apply: new migrations only, rules enforce
 | J4 | Control accounts | Six settings: receivables, payables, VAT on sales, VAT on purchases, exchange gain or loss and rounding. Receivables is the control for Sales documents and payments, payables for Purchases. Each bank account's own GL code is the bank line |
 | J5 | VAT | The VAT of a document goes to VAT on sales for a Sales document and VAT on purchases for a Purchases document, whatever the rate. Zero and exempt rates have no VAT amount and so no VAT line |
 | J6 | A document's journal | A sales invoice: debit receivables for the total, credit each line's GL code for its nett, credit VAT on sales. A purchase invoice: debit each line's GL code, debit VAT on purchases, credit payables. A credit note is the same with debits and credits swapped. Department and cost centre go on the lines that carry a GL code, not on control or VAT lines |
-| J7 | Conversion and rounding | Each line's nett is converted at the document's exchange rate and rounded to cents. The last line takes the difference so the lines add up to the header's home nett. VAT is the header's home VAT. Rounding (`rounding_amount`, converted) goes to the rounding account. The control line is the total of the others, so the journal balances to the cent |
+| J7 | Conversion and rounding | Each line's nett is converted at the document's exchange rate and rounded to cents. The last line takes the difference so the lines add up to the header's home nett. VAT is the header's home total less its home nett, so the control line always equals the app's home total (it differs from the header's home VAT only by a cent of conversion rounding). Rounding (`rounding_amount`, converted) goes to the rounding account. The control line is the total of the others, so the journal balances to the cent |
 | J8 | A payment's journal | A supplier payment or a supplier refund of money in: debit or credit payables against the bank account's GL code, for the payment's home amount. A receipt or a customer refund: receivables against bank. This is the whole payment, applied or not |
 | J9 | Exchange differences | Each effective allocation with an exchange difference writes one journal, dated on the allocation date: the difference between the control account and the exchange account. A credit note applied to an invoice, which moves nothing between accounts, writes a journal only if it has a difference |
 | J10 | Reversals | A purchase document voided after it was exported is reversed by a journal dated on the void date. A payment voided after it was exported is reversed the same way, with the exchange differences of its allocations. An allocation removed after it was exported has its exchange difference reversed, dated on the removal date. Anything voided or removed before it was exported is simply left out |
@@ -65,11 +65,11 @@ The rules from the earlier specs still apply: new migrations only, rules enforce
 
 ### Acceptance
 
-- [ ] An owner saves the six accounts and the start date, and they come back.
-- [ ] A GL code from another organisation is refused.
-- [ ] A member cannot read or write the settings, and the database refuses the same calls made directly.
-- [ ] Saving is recorded in the audit log.
-- [ ] Clearing an account is allowed, and the preview then reports it as missing.
+- [x] An owner saves the six accounts and the start date, and they come back.
+- [x] A GL code from another organisation is refused.
+- [x] A member cannot read or write the settings, and the database refuses the same calls made directly.
+- [x] Saving is recorded in the audit log.
+- [x] Clearing an account is allowed, and the preview then reports it as missing.
 
 ## Phase 2: the journal
 
@@ -81,42 +81,42 @@ The rules from the earlier specs still apply: new migrations only, rules enforce
 
 ### Acceptance
 
-- [ ] Every journal the preview returns balances to the cent: its debits equal its credits.
-- [ ] A sales invoice of two lines at 100.00 and 50.00 with 23 per cent VAT gives debit receivables 184.50, credit each GL code 100.00 and 50.00, credit VAT on sales 34.50.
-- [ ] A purchase invoice gives the mirror, with VAT on purchases and payables.
-- [ ] A credit note gives the same lines with debits and credits swapped.
-- [ ] A document in a foreign currency is converted at its rate, the lines add up to the header's home nett, and the control line equals the header's home payable.
-- [ ] A document's rounding amount goes to the rounding account.
-- [ ] A receipt gives debit bank, credit receivables. A supplier payment gives debit payables, credit bank. A customer refund and a supplier refund mirror them.
-- [ ] An allocation with an exchange difference gives one journal between the control account and the exchange account, dated on the allocation date. One without a difference gives none.
-- [ ] A purchase document voided after export gives a reversal on the void date. One voided before export gives nothing.
-- [ ] A payment voided after export, and an allocation removed after export, are reversed.
-- [ ] For every customer and every supplier, the balance the journal leaves on the control account equals what the app shows as due, including money on account and credit notes.
-- [ ] A control account not set, a bank account with no GL code, a line with no GL code, and a missing rate are each reported with the document or payment they are on.
-- [ ] Departments and cost centres are on the lines with a GL code and not on control or VAT lines.
-- [ ] The start date leaves earlier items out. A late-posted document dated before the last batch is included in the next one.
-- [ ] A member gets nothing from either function.
+- [x] Every journal the preview returns balances to the cent: its debits equal its credits.
+- [x] A sales invoice of two lines at 100.00 and 50.00 with 23 per cent VAT gives debit receivables 184.50, credit each GL code 100.00 and 50.00, credit VAT on sales 34.50.
+- [x] A purchase invoice gives the mirror, with VAT on purchases and payables.
+- [x] A credit note gives the same lines with debits and credits swapped.
+- [x] A document in a foreign currency is converted at its rate, the lines add up to the header's home nett, and the control line equals the header's home payable.
+- [x] A document's rounding amount goes to the rounding account.
+- [x] A receipt gives debit bank, credit receivables. A supplier payment gives debit payables, credit bank. A customer refund and a supplier refund mirror them.
+- [x] An allocation with an exchange difference gives one journal between the control account and the exchange account, dated on the allocation date. One without a difference gives none.
+- [x] A purchase document voided after export gives a reversal on the void date. One voided before export gives nothing.
+- [x] A payment voided after export, and an allocation removed after export, are reversed.
+- [x] The balance the journal leaves on the receivables account, and on the payables account, equals what the app shows as due, including money on account and credit notes. Tested for the organisation as a whole, not party by party. A document's rounding amount is part of what is owed in the journal and is not in `home_amount_due`, so the two differ by that amount.
+- [x] A control account not set, the VAT, rounding and exchange accounts when needed, and a bank account with no GL code are each reported with the document or payment they are on. A line with no GL code cannot be posted and a rate cannot be missing (the column is required), so those two checks cannot be reached and only the first is coded.
+- [x] Departments and cost centres are on the lines with a GL code and not on control or VAT lines.
+- [x] The start date leaves earlier items out. A late-posted document dated before the last batch is included in the next one.
+- [x] A member gets nothing from either function.
 
 ## Phase 3: batches
 
 ### 3.1 Database
 
 - `journal_batches` (organisation, number, up-to date, created by and at, line count, total debit, total credit) and `journal_batch_lines` (the lines as made). Neither can be written directly, changed or deleted by anyone. Owners and admins can read them.
-- Sources record their batch: `transaction_headers.journal_batch_id` and `journal_reversal_batch_id`, `payments.journal_batch_id` and `journal_reversal_batch_id`, and `allocations.journal_batch_id` and `journal_reversal_batch_id`.
+- What each batch exported is recorded in `journal_exports` (batch, source kind `document`, `payment` or `allocation`, source id, stage `post` or `reversal`), unique on source and stage. This replaces marker columns on the three source tables, so the guards on posted documents, payments and allocations are not touched and nothing about posting changes.
 - `create_journal_batch(p_up_to date)` does what J12 says in one transaction, refuses while `journal_problems` has anything, refuses an empty batch, and returns the batch.
 - `journal_batch_lines_for(p_batch_id)` returns a batch's lines for download. It writes an audit record.
 
 ### Acceptance
 
-- [ ] Creating a batch stores the lines and marks every source. Running it again straight away says there is nothing to export.
-- [ ] A batch with a problem is refused and lists it. Nothing is marked.
-- [ ] Two people creating a batch at once cannot export the same item twice.
-- [ ] A batch cannot be changed or deleted, by an owner either, and the database refuses direct writes.
-- [ ] Voiding an exported purchase invoice puts a reversal in the next batch, and not the same one.
-- [ ] The lines of a batch are the same when downloaded again later, after the source has changed.
-- [ ] Numbers keep counting: `JB-0001`, `JB-0002`.
-- [ ] A member cannot create or read a batch.
-- [ ] Making and downloading a batch are in the audit log.
+- [x] Creating a batch stores the lines and marks every source. Running it again straight away says there is nothing to export.
+- [x] A batch with a problem is refused and lists it. Nothing is marked.
+- [x] Two people creating a batch at once cannot export the same item twice. An advisory lock for the organisation and the unique key on `journal_exports` enforce it, and `supabase/tests/concurrency/journal_batch.sh` proves it with two connections.
+- [x] A batch cannot be changed or deleted, by an owner either, and the database refuses direct writes.
+- [x] Voiding an exported purchase invoice puts a reversal in the next batch, and not the same one.
+- [x] The lines of a batch are the same when downloaded again later, after the source has changed.
+- [x] Numbers keep counting: `JB-0001`, `JB-0002`.
+- [x] A member cannot create or read a batch.
+- [x] Making and downloading a batch are in the audit log.
 
 ## Phase 4: screens and the file
 
@@ -156,12 +156,9 @@ New flows, numbered from 35, each with amounts no other flow uses:
 - Re-running or editing a batch. A mistake is fixed in the accounting system, or by reversing in Qula Plus and exporting the correction.
 - Ask Qula reading the journal, and Worth a look for documents that have waited a long time to be exported.
 
-## Questions for review
+## Review questions, answered
 
-1. **Journal dates (J11).** A document is dated on its document date, a payment on its payment date, an allocation on its allocation date and a reversal on the void or removal date. Do you want invoices dated on the day they were posted instead? Default: the document date, which is what the accountant's period will expect.
-2. **Start date (J11).** Blank means the first batch contains everything ever posted. Do you want the start date to be required before the first batch, so an organisation has to choose where its history in the accounting system begins? Default: not required, but the preview says how many items are older than a year when it is blank.
-3. **Rounding and exchange accounts (J7, J9).** One account for each. Both are only needed when something has a rounding amount or an exchange difference, and the preview reports them missing only then. Is that right, or should both always be required? Default: only when needed.
-4. **Journal numbers (J12).** Each journal is numbered within its batch, such as `JB-0001-0007`. Do you want the document number as the journal number instead, so a journal can be found in the accounting system by the invoice it came from? Default: the batch number and a sequence, with the document number in the description and its own column.
+All four took their defaults: (1) journals are dated on the document date, payment date, allocation date and void or removal date, (2) the start date is not required, and the preview says how many journals are over a year old while it is blank, (3) the rounding and exchange accounts are required only when a document has a rounding amount or an allocation has an exchange difference, (4) journals are numbered `JB-0001-0007`, with the document number in the description and its own column.
 
 ## Done when
 

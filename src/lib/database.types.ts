@@ -463,6 +463,57 @@ export type Database = {
           },
         ]
       }
+      accounting_settings: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          exchange_gl_code_id: string | null
+          id: string
+          organisation_id: string
+          payables_gl_code_id: string | null
+          receivables_gl_code_id: string | null
+          rounding_gl_code_id: string | null
+          start_date: string | null
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+          vat_purchases_gl_code_id: string | null
+          vat_sales_gl_code_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          exchange_gl_code_id?: string | null
+          id?: string
+          organisation_id: string
+          payables_gl_code_id?: string | null
+          receivables_gl_code_id?: string | null
+          rounding_gl_code_id?: string | null
+          start_date?: string | null
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+          vat_purchases_gl_code_id?: string | null
+          vat_sales_gl_code_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          exchange_gl_code_id?: string | null
+          id?: string
+          organisation_id?: string
+          payables_gl_code_id?: string | null
+          receivables_gl_code_id?: string | null
+          rounding_gl_code_id?: string | null
+          start_date?: string | null
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          vat_purchases_gl_code_id?: string | null
+          vat_sales_gl_code_id?: string | null
+        }
+        Relationships: []
+      }
       allocations: {
         Row: {
           amount: number
@@ -1627,6 +1678,144 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      journal_batch_lines: {
+        Row: {
+          account_code: string
+          account_name: string
+          batch_id: string
+          cost_centre_code: string | null
+          credit: number
+          currency_code: string | null
+          debit: number
+          department_code: string | null
+          description: string
+          id: number
+          journal_date: string
+          journal_number: string
+          line_number: number
+          organisation_id: string
+          party: string | null
+          amount_in_currency: number | null
+          source_kind: string
+          source_number: string | null
+          tenant_id: string
+        }
+        Insert: {
+          account_code: string
+          account_name: string
+          batch_id: string
+          cost_centre_code?: string | null
+          credit: number
+          currency_code?: string | null
+          debit: number
+          department_code?: string | null
+          description: string
+          id?: number
+          journal_date: string
+          journal_number: string
+          line_number: number
+          organisation_id: string
+          party?: string | null
+          amount_in_currency?: number | null
+          source_kind: string
+          source_number?: string | null
+          tenant_id: string
+        }
+        Update: {
+          account_code?: string
+          account_name?: string
+          batch_id?: string
+          cost_centre_code?: string | null
+          credit?: number
+          currency_code?: string | null
+          debit?: number
+          department_code?: string | null
+          description?: string
+          id?: number
+          journal_date?: string
+          journal_number?: string
+          line_number?: number
+          organisation_id?: string
+          party?: string | null
+          amount_in_currency?: number | null
+          source_kind?: string
+          source_number?: string | null
+          tenant_id?: string
+        }
+        Relationships: []
+      }
+      journal_batches: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          journal_count: number
+          line_count: number
+          number: number
+          organisation_id: string
+          tenant_id: string
+          total_credit: number
+          total_debit: number
+          up_to: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          journal_count: number
+          line_count: number
+          number: number
+          organisation_id: string
+          tenant_id: string
+          total_credit: number
+          total_debit: number
+          up_to: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          journal_count?: number
+          line_count?: number
+          number?: number
+          organisation_id?: string
+          tenant_id?: string
+          total_credit?: number
+          total_debit?: number
+          up_to?: string
+        }
+        Relationships: []
+      }
+      journal_exports: {
+        Row: {
+          batch_id: string
+          id: number
+          organisation_id: string
+          source_id: string
+          source_ref: string
+          stage: string
+          tenant_id: string
+        }
+        Insert: {
+          batch_id: string
+          id?: number
+          organisation_id: string
+          source_id: string
+          source_ref: string
+          stage: string
+          tenant_id: string
+        }
+        Update: {
+          batch_id?: string
+          id?: number
+          organisation_id?: string
+          source_id?: string
+          source_ref?: string
+          stage?: string
+          tenant_id?: string
+        }
+        Relationships: []
       }
       organisation_access: {
         Row: {
@@ -3939,6 +4128,65 @@ export type Database = {
           p_tenant_id: string
         }
         Returns: string
+      }
+      create_journal_batch: {
+        Args: { p_organisation_id: string; p_up_to: string }
+        Returns: string
+      }
+      journal_batch_lines_for: {
+        Args: { p_batch_id: string }
+        Returns: {
+          account_code: string
+          account_name: string
+          amount_in_currency: number
+          batch_number: string
+          cost_centre_code: string
+          credit: number
+          currency_code: string
+          debit: number
+          department_code: string
+          description: string
+          journal_date: string
+          journal_number: string
+          party: string
+          source_kind: string
+          source_number: string
+        }[]
+      }
+      journal_preview: {
+        Args: { p_organisation_id: string; p_up_to: string }
+        Returns: {
+          account_code: string
+          account_name: string
+          account_role: string
+          amount_in_currency: number
+          cost_centre_code: string
+          credit: number
+          currency_code: string
+          debit: number
+          department_code: string
+          description: string
+          journal_date: string
+          journal_number: number
+          line_number: number
+          party: string
+          source_id: string
+          source_kind: string
+          source_number: string
+          source_ref: string
+          stage: string
+        }[]
+      }
+      journal_problems: {
+        Args: { p_organisation_id: string; p_up_to: string }
+        Returns: {
+          message: string
+          party: string
+          source_id: string
+          source_kind: string
+          source_number: string
+          source_ref: string
+        }[]
       }
       create_tenant: {
         Args: {

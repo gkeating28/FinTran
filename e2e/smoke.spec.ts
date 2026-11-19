@@ -37,6 +37,8 @@ const PAGES = [
   "/organisations",
   "/ask-qula",
   "/access-point",
+  "/accounting",
+  "/journal-export",
 ];
 
 for (const role of Object.keys(PEOPLE) as Role[]) {
