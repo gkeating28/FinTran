@@ -44,7 +44,8 @@ function withVat(net: number) {
 function amount(total: string) {
   const [whole, cents] = total.split(".");
   const grouped = whole.length > 3 ? `${whole.slice(0, -3)},?${whole.slice(-3)}` : whole;
-  return new RegExp(`${grouped}\\.${cents}`);
+  // Not preceded by a digit, comma or dot, so 123.00 does not match 1,123.00 or 5123.00.
+  return new RegExp(`(?<![\\d,.])${grouped}\\.${cents}`);
 }
 
 /** Posts a purchase invoice for a supplier, of one line at the net price. */
@@ -277,16 +278,16 @@ test("flow 32: a payment run of two suppliers is made, approved by an admin who 
 
 test("flow 33: a payment in a run cannot be posted alone, and taking a supplier out of an approved run cancels the approval", async ({ browser }) => {
   test.setTimeout(360_000);
-  // Vodafone 4,500 and 4,600 plus VAT is 11,193.00, over the rule on its own. Harbour 100 plus VAT is 123.00.
+  // Vodafone 4,500 and 4,600 plus VAT is 11,193.00, over the rule on its own. Harbour 110 plus VAT is 135.30.
   const vod = withVat(4500 + 4600);
   await as(browser, "member", async (member) => {
     await postInvoice(member, "VOD", 4500, "VOD-FLOW33A");
     await postInvoice(member, "VOD", 4600, "VOD-FLOW33B");
-    await postInvoice(member, "HARB", 100, "HARB-FLOW33");
+    await postInvoice(member, "HARB", 110, "HARB-FLOW33");
     await member.goto("/payment-runs");
     await member.getByRole("button", { name: "Add", exact: true }).click();
     const dialog = member.getByRole("dialog").filter({ has: member.getByRole("button", { name: "Make the run" }) });
-    for (const net of [4500, 4600, 100]) {
+    for (const net of [4500, 4600, 110]) {
       await dialog.getByRole("row").filter({ hasText: amount(withVat(net)) }).getByRole("checkbox").check();
     }
     await dialog.getByRole("button", { name: "Make the run" }).click();
