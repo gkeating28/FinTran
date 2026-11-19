@@ -1,6 +1,6 @@
 # Qula Plus purchase approvals and price tolerance spec
 
-Version 3, 18 November 2026. The seven review questions are answered and the three readings are confirmed (see "Answers to the review questions"). Built and passing CI on PR 99 (SQL, unit and end-to-end, flows 20 to 26). Boxes still open are behaviours no test proves yet. Not applied to the hosted project yet.
+Version 3, 18 November 2026. The seven review questions are answered and the three readings are confirmed (see "Answers to the review questions"). Built and passing CI on PR 99 (SQL, unit and end-to-end, flows 20 to 26). Boxes still open are behaviours no test proves yet. Applied to the hosted project on 19 November 2026.
 
 Goal: let an organisation say that a purchase order or purchase invoice above a set amount, or an invoice whose prices have gone over what was ordered, must be approved by someone senior before it takes effect. This is step 2 of the agreed order (aged debtors and creditors, approvals with price tolerance, journal export, bank statement import, live connectors and bank feeds). It comes before journal export so that what is exported has already passed the posting rules.
 
@@ -213,5 +213,5 @@ New flows, numbered from 20, each with amounts no other flow uses:
 - [x] With no approval rule and no tolerance set, every existing flow passes unchanged.
 - [x] Types are regenerated.
 - [x] `CORE.md`, `TECHNICAL.md` and `docs/QULA_PLUS_REFERENCE.md` describe approvals and tolerance, and `npm run check:docs` passes.
-- [ ] The migration is applied to the hosted FinTran project, with the date recorded.
+- [x] The migration is applied to the hosted FinTran project, with the date recorded. Applied 19 November 2026 as version `20261119072337`. With no rules set, nothing changes for anyone until an owner or admin adds one.
 - [ ] A mail provider is chosen and the real adapter is built, or the spec says email is mock-only until it is.

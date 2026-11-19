@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { listAuditLog } from "@/lib/audit-data";
 import { explainIssue } from "@/lib/einvoice/rule-help";
 import { getInsights } from "@/lib/insights";
+import { bandOf } from "@/lib/aged";
 import { approvalFromRow, approvalLabel, approvalMatches, type ApprovalInfo, type ApprovalRow } from "@/lib/approvals";
 import { listOpenOrders } from "@/lib/order-data";
 
@@ -105,10 +106,11 @@ export function agingBands(documents: Row[], asOf = new Date().toISOString().sli
     if (!Number.isFinite(amount)) continue;
     const days = Number.isNaN(due) ? 0 : Math.floor((today - due) / 86_400_000);
     const band = parties.get(name) ?? { current: 0, d30: 0, d60: 0, d90: 0, over: 0 };
-    if (days <= 0) band.current += amount;
-    else if (days <= 30) band.d30 += amount;
-    else if (days <= 60) band.d60 += amount;
-    else if (days <= 90) band.d90 += amount;
+    const key = bandOf(days);
+    if (key === "current") band.current += amount;
+    else if (key === "d30") band.d30 += amount;
+    else if (key === "d60") band.d60 += amount;
+    else if (key === "d90") band.d90 += amount;
     else band.over += amount;
     parties.set(name, band);
   }

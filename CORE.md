@@ -447,6 +447,12 @@ An organisation can require approval before a purchase order is activated or a p
 
 **Email.** Asking for approval queues an email to every person with a high enough role except the person asking. Approving or refusing queues one to the person who asked, with the note or reason and a link, unless they decided it themselves. Owners and admins can switch approval emails off on the Organisations screen. No mail provider has been chosen, so the only adapter is a mock that records the email as sent and delivers nothing, and the Organisations screen says so. A failed email never stops an approval, a refusal or posting. Owners and admins see failed emails on the Approval rules screen.
 
+## Aged debtors and creditors
+
+Two reports under Transactions, Reports: Aged debtors (Sales, what customers owe) and Aged creditors (Purchases, what is owed to suppliers). Anyone in the organisation can open them. Each lists the parties with a balance, largest first, in the home currency, in five bands by how late the amount is on the ageing date: not yet due, 1 to 30 days, 31 to 60, 61 to 90 and over 90. Lateness is counted from the due date, and a document with no due date counts as due on the day. A band starts the day after the due date, so an invoice due on the ageing date is not yet due.
+
+The balance is what is still due on posted documents (`home_amount_due`, after every allocation). A posted credit note with a balance is taken off, and a posted receipt or payment with money not yet applied is shown in an On account column and taken off the total, so a party's total is what they really owe. Voided and draft documents are left out. The ageing date is set on the page and defaults to today. Balances are always as they stand now: moving the date moves amounts between the bands and does not rewind payments. A row's Documents button lists what makes up the party's balance, each with a link to open it. The grid searches, sorts and exports to Excel like the other lists. Only the first 5,000 documents are read, and the page says so when that limit is reached. Ask Qula's ageing lookup uses the same bands (`bandOf` in `src/lib/aged.ts`), so its figures agree with the report.
+
 ## Printable forms
 
 `transaction_forms` has one row per organisation and transaction type. The `layout` column is JSON, at most 8000 characters. The page shape is fixed. The JSON chooses the title, page size, and which fields appear, in order, inside each band.

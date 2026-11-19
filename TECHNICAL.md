@@ -593,6 +593,7 @@ The flows run one at a time, in file order, on one database, and each signs in t
 | 24 | Ask Qula gives a card with the reason and no Confirm button for a draft that needs approval. |
 | 25 | With no rule, a member posts a large purchase invoice as before. It runs first in its file, before a rule exists. |
 | 26 | A request emails each approver and not the requester, a decision emails the requester, and the mock adapter marks each sent. |
+| 27 | A posted purchase invoice is on aged creditors under its supplier with its document listed, is not on aged debtors, a bad date is ignored, and a member can open the report. It is in `e2e/z-aged.spec.ts`. |
 
 Flows 20 to 26 are in `e2e/z-approvals.spec.ts`, named to run after every other file because they leave a rule and many Vodafone documents behind (the last flow removes the rule and the tolerance). The helpers are `e2e/documents.ts` (open a list, fill a document, press a button, read a row), `e2e/api.ts` (call the API as a test person, to check what the screens hide) and `e2e/upload.ts` (upload an e-invoice and fail with the server's own message). The test files are in `e2e/files`.
 
