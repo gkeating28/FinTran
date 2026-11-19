@@ -97,6 +97,11 @@ async function pressAndClose(page: Page, name: string) {
   }).toPass({ timeout: 30_000 });
 }
 
+/** Opens the draft run on the Payment runs screen. Earlier flows leave posted runs on it, which sort first. */
+async function openDraftRun(page: Page) {
+  await page.locator("tbody tr").filter({ hasText: "Draft" }).first().getByRole("button", { name: "Open" }).click();
+}
+
 async function organisationOneId() {
   const api = await apiAs("owner");
   const [row] = await api.select<{ organisation_id: string }>("organisation_defaults", `select=organisation_id&peppol_id=eq.${ORG_ONE_PEPPOL}`);
@@ -254,7 +259,7 @@ test("flow 32: a payment run of two suppliers is made, approved by an admin who 
   });
   await as(browser, "admin", async (admin) => {
     await admin.goto("/payment-runs");
-    await admin.locator("tbody tr").first().getByRole("button", { name: "Open" }).click();
+    await openDraftRun(admin);
     const run = admin.getByRole("dialog").filter({ hasText: /Payment run RUN-/ });
     await expect(run.getByText(/Mary Member asked for approval/)).toBeVisible();
     await expect(async () => {
@@ -264,7 +269,7 @@ test("flow 32: a payment run of two suppliers is made, approved by an admin who 
   });
   await as(browser, "member", async (member) => {
     await member.goto("/payment-runs");
-    await member.locator("tbody tr").first().getByRole("button", { name: "Open" }).click();
+    await openDraftRun(member);
     const run = member.getByRole("dialog").filter({ hasText: /Payment run RUN-/ });
     await expect(async () => {
       if (await run.getByRole("button", { name: "Post run" }).isVisible()) await run.getByRole("button", { name: "Post run" }).click();
@@ -300,7 +305,7 @@ test("flow 33: a payment in a run cannot be posted alone, and taking a supplier 
   });
   await as(browser, "admin", async (admin) => {
     await admin.goto("/payment-runs");
-    await admin.locator("tbody tr").first().getByRole("button", { name: "Open" }).click();
+    await openDraftRun(admin);
     const run = admin.getByRole("dialog").filter({ hasText: /Payment run RUN-/ });
     await expect(async () => {
       if (await run.getByRole("button", { name: "Approve" }).isVisible()) await run.getByRole("button", { name: "Approve" }).click();
@@ -317,7 +322,7 @@ test("flow 33: a payment in a run cannot be posted alone, and taking a supplier 
 
     // Taking Harbour out of the approved run sends it back to needing approval, because Vodafone alone is still over the rule.
     await member.goto("/payment-runs");
-    await member.locator("tbody tr").first().getByRole("button", { name: "Open" }).click();
+    await openDraftRun(member);
     const run = member.getByRole("dialog").filter({ hasText: /Payment run RUN-/ });
     await expect(run.getByRole("button", { name: "Post run" })).toBeVisible();
     await expect(async () => {
