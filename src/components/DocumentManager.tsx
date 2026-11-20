@@ -198,8 +198,7 @@ export default function DocumentManager({
       <div>
         <h1 className={styles.heading}>{title}</h1>
         <p className={styles.lede}>
-          {summary ?? `${title} for ${organisationName ?? "this organisation"}.`}{" "}
-          {typeCode ? <Link href={`/forms/${typeCode}`}>Design the printed form.</Link> : null}
+          {summary ?? `${title} for ${organisationName ?? "this organisation"}.`}
         </p>
       </div>
       {loadError ? (

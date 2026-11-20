@@ -4,13 +4,29 @@ export type AgedDirection = "Sales" | "Purchases";
 
 export type AgedBand = "current" | "d30" | "d60" | "d90" | "over";
 
-export const AGED_BANDS: { key: AgedBand; label: string }[] = [
-  { key: "current", label: "Not yet due" },
-  { key: "d30", label: "1 to 30 days" },
-  { key: "d60", label: "31 to 60 days" },
-  { key: "d90", label: "61 to 90 days" },
-  { key: "over", label: "Over 90 days" },
-];
+/** What the age counts from: how late it is past the due date, or how old it is since the transaction date. */
+export type AgedBasis = "due" | "document";
+
+export function agedBasis(value: string | undefined): AgedBasis {
+  return value === "document" ? "document" : "due";
+}
+
+export const AGED_BASIS_LABELS: Record<AgedBasis, string> = { due: "Due date", document: "Transaction date" };
+
+const BAND_LABELS: Record<AgedBasis, string[]> = {
+  due: ["Not yet due", "1 to 30 days", "31 to 60 days", "61 to 90 days", "Over 90 days"],
+  document: ["0 to 30 days", "31 to 60 days", "61 to 90 days", "91 to 120 days", "Over 120 days"],
+};
+
+const BAND_KEYS: AgedBand[] = ["current", "d30", "d60", "d90", "over"];
+
+/** The five bands and their names for a basis. */
+export function agedBands(basis: AgedBasis = "due"): { key: AgedBand; label: string }[] {
+  return BAND_KEYS.map((key, index) => ({ key, label: BAND_LABELS[basis][index] }));
+}
+
+/** The bands by due date, which Ask Qula's ageing uses. */
+export const AGED_BANDS = agedBands("due");
 
 const DAY = 86_400_000;
 
@@ -22,8 +38,19 @@ export function daysLate(dueDate: string | null, asOf: string) {
   return Math.floor((today - due) / DAY);
 }
 
-/** The band a number of days late falls in. Ask Qula's ageing uses this too, so the two always agree. */
-export function bandOf(days: number): AgedBand {
+/**
+ * The band an age in days falls in. By due date an amount is not yet due up to the due date and late in bands of 30 days
+ * after it. By transaction date the first band is 0 to 30 days old and the bands run to 120. Ask Qula's ageing uses the
+ * due date version, so the two always agree.
+ */
+export function bandOf(days: number, basis: AgedBasis = "due"): AgedBand {
+  if (basis === "document") {
+    if (days <= 30) return "current";
+    if (days <= 60) return "d30";
+    if (days <= 90) return "d60";
+    if (days <= 120) return "d90";
+    return "over";
+  }
   if (days <= 0) return "current";
   if (days <= 30) return "d30";
   if (days <= 60) return "d60";
@@ -62,6 +89,7 @@ export type AgedParty = {
 
 export type AgedReport = {
   asOf: string;
+  basis: AgedBasis;
   parties: AgedParty[];
   totals: Omit<AgedParty, "id" | "party" | "lines">;
 };
@@ -70,8 +98,8 @@ function cents(value: number) {
   return Math.round(value * 100) / 100;
 }
 
-/** Groups the items by party and sorts each into a band by how late it is on the ageing date. Largest balance first. */
-export function buildAged(items: AgedItem[], asOf: string): AgedReport {
+/** Groups the items by party and sorts each into a band by its age on the ageing date. Largest balance first. */
+export function buildAged(items: AgedItem[], asOf: string, basis: AgedBasis = "due"): AgedReport {
   const byParty = new Map<string, AgedParty>();
   for (const item of items) {
     if (!Number.isFinite(item.amount) || item.amount === 0) continue;
@@ -84,8 +112,8 @@ export function buildAged(items: AgedItem[], asOf: string): AgedReport {
       entry.onAccount += item.amount;
       line = { ...item, days: 0, band: "on_account" };
     } else {
-      const days = daysLate(item.dueDate, asOf);
-      const band = bandOf(days);
+      const days = basis === "document" ? daysLate(item.date, asOf) : daysLate(item.dueDate, asOf);
+      const band = bandOf(days, basis);
       entry[band] += item.amount;
       line = { ...item, days, band };
     }
@@ -120,6 +148,7 @@ export function buildAged(items: AgedItem[], asOf: string): AgedReport {
   );
   return {
     asOf,
+    basis,
     parties,
     totals: {
       current: cents(totals.current),

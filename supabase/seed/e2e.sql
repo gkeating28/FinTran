@@ -30,7 +30,19 @@ on conflict (organisation_id, code) do nothing;
 insert into public.gl_codes (tenant_id, organisation_id, code, description, account_type)
 select o.tenant_id, o.id, v.code, v.description, v.account_type
 from public.organisations as o
-cross join (values ('4000', 'Sales', 'Income'), ('6000', 'Purchases', 'Expense')) as v(code, description, account_type)
+cross join (values
+  ('4000', 'Sales', 'Income'),
+  ('6000', 'Purchases', 'Expense'),
+  -- The accounts the journal export uses (flows 35 to 38).
+  ('1100', 'Trade debtors', 'Current Asset'),
+  ('1200', 'Bank', 'Current Asset'),
+  ('1300', 'VAT on purchases', 'Current Asset'),
+  ('2100', 'Trade creditors', 'Current Liability'),
+  ('2200', 'VAT on sales', 'Current Liability'),
+  ('7900', 'Exchange gain or loss', 'Expense'),
+  ('7950', 'Rounding', 'Expense'),
+  ('9990', 'Suspense', 'Current Asset')
+) as v(code, description, account_type)
 where o.tenant_id = current_setting('seed.tenant')::uuid;
 
 insert into public.vat_rates (tenant_id, organisation_id, code, description, rate, vat_type, vat_category)

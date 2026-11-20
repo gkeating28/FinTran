@@ -5,8 +5,9 @@ import { useState } from "react";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
 import styles from "@/components/OpsPage.module.css";
+import agedStyles from "@/components/AgedReport.module.css";
 import recordStyles from "@/components/RecordForm.module.css";
-import { AGED_BANDS, type AgedParty, type AgedReport as Report } from "@/lib/aged";
+import { AGED_BASIS_LABELS, agedBands, type AgedBasis, type AgedParty, type AgedReport as Report } from "@/lib/aged";
 import { formatDate } from "@/lib/dates";
 import { formatMoney } from "@/lib/documents";
 import { useRegion } from "@/components/useRegion";
@@ -30,24 +31,36 @@ export default function AgedReport({
   const [open, setOpen] = useState<AgedParty | null>(null);
   const money = (value: number) => formatMoney(value.toFixed(2));
   const heading = debtors ? "Aged debtors" : "Aged creditors";
+  const bands = agedBands(report.basis);
+  const byDue = report.basis === "due";
 
   return (
     <section className={styles.stack}>
       <div>
         <h1 className={styles.heading}>{heading}</h1>
         <p className={styles.lede}>
-          {debtors ? "What customers owe" : "What is owed to suppliers"} {organisationName}, in euro, by how late it is on the ageing date. Credit notes and money not yet applied
-          are taken off. Balances are as they stand now: changing the date moves amounts between the bands and does not rewind payments.
+          {debtors ? "What customers owe" : "What is owed to suppliers"} {organisationName}, in euro, by {byDue ? "how late it is" : "how old it is"} on the ageing date. Credit notes and money not yet applied are taken off.
         </p>
       </div>
-      <form method="get" className={styles.panel}>
-        <label className={styles.field}>
+      <form method="get" className={`${styles.panel} ${agedStyles.filters}`} style={{ padding: "12px 14px" }}>
+        <label>
+          Age from
+          <select name="basis" defaultValue={report.basis}>
+            {(Object.keys(AGED_BASIS_LABELS) as AgedBasis[]).map((basis) => (
+              <option key={basis} value={basis}>
+                {AGED_BASIS_LABELS[basis]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
           Ageing date
           <input type="date" name="asOf" defaultValue={report.asOf} />
         </label>
         <button className={styles.primary} type="submit">
           Show
         </button>
+        <p className={agedStyles.hint}>{byDue ? "Bands count the days past each due date." : "Bands count the days since each transaction date."} Balances are as they stand now. A different date moves amounts between the bands and does not rewind payments.</p>
       </form>
       {loadError ? (
         <p className={styles.alert} role="alert">
@@ -59,9 +72,22 @@ export default function AgedReport({
           Only the first 5,000 documents are included, so these figures may be short.
         </p>
       ) : null}
-      <p className={styles.panelMeta} aria-label="Totals">
-        Total {money(report.totals.total)}. {AGED_BANDS.map((band) => `${band.label} ${money(report.totals[band.key])}`).join(". ")}. On account {money(report.totals.onAccount)}.
-      </p>
+      <dl className={agedStyles.summary} aria-label="Totals">
+        <div className={agedStyles.total}>
+          <dt>Total owed</dt>
+          <dd>{money(report.totals.total)}</dd>
+        </div>
+        {bands.map((band) => (
+          <div key={band.key} className={band.key === "current" ? undefined : agedStyles.late}>
+            <dt>{band.label}</dt>
+            <dd>{money(report.totals[band.key])}</dd>
+          </div>
+        ))}
+        <div className={agedStyles.credit}>
+          <dt>On account</dt>
+          <dd>{money(report.totals.onAccount)}</dd>
+        </div>
+      </dl>
       <DataGrid
         form={debtors ? "aged-debtors" : "aged-creditors"}
         onOpen={(row) => setOpen(row)}
@@ -71,7 +97,7 @@ export default function AgedReport({
         emptyLabel={debtors ? "No customer owes anything on this date." : "Nothing is owed to suppliers on this date."}
         columns={[
           { key: "party", label: debtors ? "Customer" : "Supplier", sortValue: (row) => row.party, render: (row) => row.party },
-          ...AGED_BANDS.map((band) => ({
+          ...bands.map((band) => ({
             key: band.key,
             label: band.label,
             mono: true,
@@ -104,6 +130,22 @@ export default function AgedReport({
             Documents
           </button>
         )}
+        footer={(shown) => {
+          const sum = (pick: (party: AgedParty) => number) => shown.reduce((total, party) => total + Math.round(pick(party) * 100), 0) / 100;
+          return (
+            <tr>
+              <td>{shown.length === report.parties.length ? "Total" : `Total of ${shown.length} shown`}</td>
+              {bands.map((band) => (
+                <td key={band.key} className={`${styles.mono} ${styles.numeric}`}>
+                  {money(sum((party) => party[band.key]))}
+                </td>
+              ))}
+              <td className={`${styles.mono} ${styles.numeric}`}>{money(sum((party) => party.onAccount))}</td>
+              <td className={`${styles.mono} ${styles.numeric}`}>{money(sum((party) => party.total))}</td>
+              <td />
+            </tr>
+          );
+        }}
       />
       {open ? (
         <FormModal title={`${open.party}: ${heading.toLowerCase()}`} onClose={() => setOpen(null)} className={recordStyles.dialogMedium}>
@@ -114,7 +156,7 @@ export default function AgedReport({
                   <th>Document</th>
                   <th>Date</th>
                   <th>Due</th>
-                  <th className={styles.numeric}>Days late</th>
+                  <th className={styles.numeric}>{byDue ? "Days late" : "Days old"}</th>
                   <th>Band</th>
                   <th className={styles.numeric}>Amount</th>
                 </tr>
@@ -134,8 +176,8 @@ export default function AgedReport({
                     </td>
                     <td>{formatDate(line.date, region)}</td>
                     <td>{line.dueDate ? formatDate(line.dueDate, region) : ""}</td>
-                    <td className={styles.numeric}>{line.band === "on_account" ? "" : Math.max(line.days, 0)}</td>
-                    <td>{line.band === "on_account" ? "On account" : (AGED_BANDS.find((band) => band.key === line.band)?.label ?? "")}</td>
+                    <td className={styles.numeric}>{line.band === "on_account" ? "" : byDue ? Math.max(line.days, 0) : line.days}</td>
+                    <td>{line.band === "on_account" ? "On account" : (bands.find((band) => band.key === line.band)?.label ?? "")}</td>
                     <td className={styles.numeric}>{money(line.amount)}</td>
                   </tr>
                 ))}

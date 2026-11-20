@@ -55,4 +55,12 @@ else
   sed 's/^/         /' /tmp/last_amount.log
   failed=1
 fi
+# Two people making a journal batch at once. It needs two sessions and commits a small tenant.
+if PSQL="psql $DATABASE_URL" bash supabase/tests/concurrency/journal_batch.sh >/tmp/journal_batch.log 2>&1; then
+  echo "ok     concurrency/journal_batch.sh"
+else
+  echo "FAIL   concurrency/journal_batch.sh"
+  sed 's/^/         /' /tmp/journal_batch.log
+  failed=1
+fi
 exit $failed

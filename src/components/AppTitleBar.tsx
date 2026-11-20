@@ -13,8 +13,9 @@ const PAGE_LABELS: Record<string, string> = {
   "/": "Home",
   "/transactions": "Transactions",
   "/payment-runs": "Payment runs",
-  "/aged-debtors": "Aged debtors",
-  "/aged-creditors": "Aged creditors",
+  "/reports": "Reports",
+  "/reports/aged-debtors": "Aged debtors",
+  "/reports/aged-creditors": "Aged creditors",
   "/customers": "Customers",
   "/suppliers": "Suppliers",
   "/admin": "Admin",
@@ -34,6 +35,8 @@ const PAGE_LABELS: Record<string, string> = {
   "/e-documents": "E-documents",
   "/ask-qula": "Ask Qula",
   "/access-point": "Access Point",
+  "/accounting": "Accounting",
+  "/journal-export": "Journal export",
 };
 
 export default function AppTitleBar({

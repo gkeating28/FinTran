@@ -5,13 +5,13 @@ import { getWorkspace } from "@/lib/data";
 
 export const metadata = { title: "Aged creditors" };
 
-export default async function AgedCreditorsPage({ searchParams }: { searchParams: Promise<{ asOf?: string }> }) {
+export default async function AgedCreditorsPage({ searchParams }: { searchParams: Promise<{ asOf?: string; basis?: string }> }) {
   const workspace = await getWorkspace();
   if (workspace.status === "signed-out") redirect("/login");
   if (workspace.status !== "ready") redirect("/");
 
   const params = await searchParams;
-  const { report, truncated, error } = await getAgedReport("Purchases", params.asOf);
+  const { report, truncated, error } = await getAgedReport("Purchases", params.asOf, params.basis);
 
   return <AgedReport direction="Purchases" report={report} truncated={truncated} loadError={error} organisationName={workspace.current.organisationName} />;
 }

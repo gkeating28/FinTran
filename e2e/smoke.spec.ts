@@ -21,8 +21,9 @@ const PAGES = [
   "/bank-accounts",
   "/approval-rules",
   "/payment-runs",
-  "/aged-debtors",
-  "/aged-creditors",
+  "/reports",
+  "/reports/aged-debtors",
+  "/reports/aged-creditors",
   "/gl-codes",
   "/vat-rates",
   "/departments",
@@ -36,6 +37,8 @@ const PAGES = [
   "/organisations",
   "/ask-qula",
   "/access-point",
+  "/accounting",
+  "/journal-export",
 ];
 
 for (const role of Object.keys(PEOPLE) as Role[]) {

@@ -103,7 +103,7 @@ export default function PaymentManager({
       <div>
         <h1 className={styles.heading}>{title}</h1>
         <p className={styles.lede}>
-          {summary} <Link href={`/forms/${choices.type.code}`}>Design the printed form.</Link>
+          {summary}
         </p>
       </div>
       {loadError ? (

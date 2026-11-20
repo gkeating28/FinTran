@@ -18,7 +18,7 @@ test("flow 27: a posted purchase invoice is on aged creditors under the supplier
   expect(await rowText(page, "4.10")).toContain("Posted");
 
   // It is on the report under Vodafone, and the documents behind the row list it.
-  await page.goto("/aged-creditors");
+  await page.goto("/reports/aged-creditors");
   await expect(page.getByRole("heading", { name: "Aged creditors" })).toBeVisible();
   const row = page.locator("tbody tr").filter({ hasText: "Vodafone" }).first();
   await expect(row).toBeVisible();
@@ -29,13 +29,26 @@ test("flow 27: a posted purchase invoice is on aged creditors under the supplier
   await documents.getByRole("button", { name: "Close" }).last().click();
   await expect(documents).toHaveCount(0);
 
+  // The grid is totalled, and ageing from the transaction date uses its own bands.
+  await expect(page.locator("tfoot")).toContainText("Total");
+  await page.goto("/reports/aged-creditors?basis=document");
+  await expect(page.getByRole("columnheader", { name: /0 to 30 days/ })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: /Over 120 days/ })).toBeVisible();
+  await expect(page.locator("tfoot")).toContainText("Total");
+
+  // Reports is on the main menu, below E-documents, and lists both reports.
+  await page.getByRole("link", { name: "Reports", exact: true }).first().click();
+  await page.waitForURL((url) => url.pathname === "/reports");
+  await expect(page.getByRole("link", { name: /Aged debtors/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Aged creditors/ })).toBeVisible();
+
   // A purchase invoice is not a debt of a customer.
-  await page.goto("/aged-debtors");
+  await page.goto("/reports/aged-debtors");
   await expect(page.getByRole("heading", { name: "Aged debtors" })).toBeVisible();
   await expect(page.locator("tbody tr").filter({ hasText: "Vodafone" })).toHaveCount(0);
 
   // A date that is not a date is ignored, and the report still opens.
-  await page.goto("/aged-creditors?asOf=not-a-date");
+  await page.goto("/reports/aged-creditors?asOf=not-a-date");
   await expect(page.getByRole("heading", { name: "Aged creditors" })).toBeVisible();
 
   // A member can read the report.
@@ -43,7 +56,7 @@ test("flow 27: a posted purchase invoice is on aged creditors under the supplier
   try {
     const member = await context.newPage();
     await signIn(member, "member");
-    await member.goto("/aged-creditors");
+    await member.goto("/reports/aged-creditors");
     await expect(member.getByRole("heading", { name: "Aged creditors" })).toBeVisible();
     await expect(member.locator("tbody tr").filter({ hasText: "Vodafone" }).first()).toBeVisible();
   } finally {

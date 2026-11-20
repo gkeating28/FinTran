@@ -125,7 +125,11 @@ test("flow 20: an owner sets a rule, and a member's invoice over it needs a requ
   await as(browser, "member", async (member) => {
     await openInvoice(member, /7,?503\.00/);
     await expect(button(member, "Post")).toBeVisible();
-    await press(member, /^Post$/);
+    // A click made before the page is ready can be lost, so press again until the document has closed.
+    await expect(async () => {
+      if (await button(member, "Post").isVisible()) await press(member, /^Post$/);
+      await expect(member.locator("form#purchase-document")).toHaveCount(0, { timeout: 5_000 });
+    }).toPass({ timeout: 30_000 });
     await backOnList(member, "PIN");
     await expectNoError(member);
     expect(await rowText(member, /7,?503\.00/)).toContain("Posted");
