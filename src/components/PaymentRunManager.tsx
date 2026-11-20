@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, useTransition } from "react";
 import ConfirmSubmitButton from "@/components/ConfirmDialog";
 import DataGrid from "@/components/DataGrid";
@@ -75,6 +76,14 @@ export default function PaymentRunManager({
     return () => {
       cancelled = true;
     };
+  }, [rows]);
+
+  // After an action on the open run, read approval again. The page refresh the action asks for can arrive without the rows
+  // changing, which left the dialog showing the run as still waiting for approval after it had been approved.
+  const reloadApprovals = useCallback(() => {
+    const drafts = rows.filter((row) => row.status === "draft").map((row) => row.id);
+    if (drafts.length === 0) return;
+    void loadPaymentRunApproval(drafts).then((value) => setLoaded({ rows, value }));
   }, [rows]);
 
   // A run named in the address opens once the page is in the browser, and again when the rows change.
@@ -154,7 +163,7 @@ export default function PaymentRunManager({
         )}
       />
       {creating ? <CreateRunDialog choices={choices} onClose={() => setCreating(false)} onCreated={(id) => { setCreating(false); setOpenRun(id); }} /> : null}
-      {current ? <RunDialog key={current.id} run={current} approval={approvals[current.id] ?? null} approvalReady={approvalsReady} onClose={() => setOpenRun(null)} /> : null}
+      {current ? <RunDialog key={current.id} run={current} approval={approvals[current.id] ?? null} approvalReady={approvalsReady} onChanged={reloadApprovals} onClose={() => setOpenRun(null)} /> : null}
     </section>
   );
 }
@@ -308,8 +317,9 @@ function CreateRunDialog({ choices, onClose, onCreated }: { choices: RunChoices;
 }
 
 /** One run: its payments, its approval, and posting it. */
-function RunDialog({ run, approval, approvalReady, onClose }: { run: PaymentRunRow; approval: RunApproval | null; approvalReady: boolean; onClose: () => void }) {
+function RunDialog({ run, approval, approvalReady, onChanged, onClose }: { run: PaymentRunRow; approval: RunApproval | null; approvalReady: boolean; onChanged: () => void; onClose: () => void }) {
   const region = useRegion();
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [refuse, setRefuse] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -322,10 +332,15 @@ function RunDialog({ run, approval, approvalReady, onClose }: { run: PaymentRunR
       const result = await action({}, data);
       startTransition(() => {
         if (result.error) setError(result.error);
-        else done?.(result);
+        else {
+          // Ask for the page again and read approval again, so the dialog never shows what the action has already changed.
+          router.refresh();
+          onChanged();
+          done?.(result);
+        }
       });
     });
-  }, []);
+  }, [onChanged, router]);
 
   const post = (event: React.FormEvent<HTMLFormElement>, action: Parameters<Run>[0], closeAfter = false) => {
     event.preventDefault();
