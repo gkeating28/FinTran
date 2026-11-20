@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import NavigationHistory from "@/components/NavigationHistory";
 import { ibmPlexMono } from "./fonts/ibm-plex-mono";
 import { jakarta } from "./fonts/jakarta";
 import { publicSans } from "./fonts/public-sans";
@@ -22,7 +24,12 @@ export default function RootLayout({
       lang="en"
       className={`${jakarta.variable} ${publicSans.variable} ${ibmPlexMono.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        <Suspense fallback={null}>
+          <NavigationHistory />
+        </Suspense>
+        {children}
+      </body>
     </html>
   );
 }

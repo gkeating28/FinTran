@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import BackLink from "@/components/BackLink";
 import { ArrowLeftIcon } from "@/components/icons";
 import PrintedForm from "@/components/PrintedForm";
 import PrintedPayment from "@/components/PrintedPayment";
@@ -46,10 +46,10 @@ export default async function PrintDocumentPage({ params }: { params: Promise<{ 
     return (
       <main className={styles.stage}>
         <div className={styles.toolbar} style={{ ["--page-width" as string]: PAGE_SIZE_OPTIONS[payment.view.pageSize].width }}>
-          <Link className={styles.back} href={`/transactions/${payment.typeCode}`}>
+          <BackLink className={styles.back} fallback={`/transactions/${payment.typeCode}`}>
             <ArrowLeftIcon />
             Back
-          </Link>
+          </BackLink>
           <span className={styles.spacer} />
           <PdfButton pageSize={payment.view.pageSize} fileName={pdfFileName(payment.view.downloadName)} />
           <PrintButton />
@@ -76,10 +76,10 @@ export default async function PrintDocumentPage({ params }: { params: Promise<{ 
   return (
     <main className={styles.stage}>
       <div className={styles.toolbar} style={{ ["--page-width" as string]: PAGE_SIZE_OPTIONS[loaded.view.pageSize].width }}>
-        <Link className={styles.back} href={`/transactions/${loaded.type.code}`}>
+        <BackLink className={styles.back} fallback={`/transactions/${loaded.type.code}`}>
           <ArrowLeftIcon />
           Back
-        </Link>
+        </BackLink>
         <span className={styles.spacer} />
         <PdfButton
           pageSize={loaded.view.pageSize}

@@ -1,11 +1,12 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useFormChrome, usePageLabel } from "@/components/FormChrome";
 import { MenuIcon } from "@/components/icons";
 import { useNav } from "@/components/NavState";
+import { useNavHistory } from "@/components/useNavHistory";
 import { previousPage } from "@/lib/previous-page";
 import styles from "./AppTitleBar.module.css";
 
@@ -49,8 +50,8 @@ export default function AppTitleBar({
   toolbar?: ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   const nav = useNav();
+  const history = useNavHistory();
   const formTitle = useFormChrome();
   const registeredLabel = usePageLabel();
   const transactionCode = pathname.match(/^\/transactions\/([A-Za-z0-9]+)$/)?.[1];
@@ -64,12 +65,22 @@ export default function AppTitleBar({
         : (PAGE_LABELS[pathname] ?? "Home");
   const back = previousPage(pathname);
 
+  // A document that came with the address (a link from a report, say) is not something the person opened here, so Back goes
+  // straight to where the link was. Once it has been closed, or when the person opened a form themselves, Back closes the form.
+  const open = Boolean(formTitle);
+  const wasOpen = useRef(false);
+  const { closedDocument } = history;
+  useEffect(() => {
+    if (wasOpen.current && !open) closedDocument();
+    wasOpen.current = open;
+  }, [open, closedDocument]);
+
   function exit() {
-    if (formTitle) {
+    if (formTitle && !history.arrivedOpen) {
       formTitle.close();
       return;
     }
-    if (back) router.push(back);
+    history.goBack(back);
   }
 
   return (
@@ -115,7 +126,7 @@ export default function AppTitleBar({
         </div>
       </div>
       <div className={styles.actions}>
-        {formTitle || back ? (
+        {formTitle || back || history.target ? (
           <button className={styles.exitBtn} type="button" onClick={exit}>
             Back
           </button>

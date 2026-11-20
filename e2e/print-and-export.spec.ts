@@ -61,6 +61,10 @@ test("flow 10: print and PDF of a posted invoice keep the customer's address as 
   await page.goto(printHref ?? "");
   await expect(page.locator("body")).toContainText("9 Main Street");
 
+  // Back on the printed page returns to the list the person came from.
+  await page.getByRole("link", { name: "Back" }).click();
+  await page.waitForURL((url) => url.pathname === "/transactions/SIN");
+
   // Beta moves. The customer record changes.
   const owner = await apiAs("owner");
   const moved = await owner.update("customers", "code=eq.BETA", { address_line1: "77 Harbour Road" });
