@@ -592,6 +592,20 @@ Posted sales invoices and credit notes can be stored as UBL e-documents. Orders 
 
 `en16931_readiness(header id)` lists gaps as `error` or `warning`. Sales errors stop posting. Purchase gaps stay warnings, apart from the credit-note rule that already requires the preceding invoice. The document page and the document list show a Readiness button. It is red when there is an error, orange when there are only warnings, and green when the document is ready. The button opens the gaps. A party gap links to Suppliers or Organisations. A document field stays on the form. Owners and admins can download the JSON.
 
+## Back and moving around
+
+The Back button in the title bar, and the Back link on a printed document or an e-document, return to where the person came from, not to a fixed screen. If someone goes from Customers to Suppliers through the menu, Back goes to Customers. If they open a report from Reports and then a document from the report, Back goes to the report, and Back again goes to Reports.
+
+- **A screen is one step however many times it changes.** Changing a filter, saving something that reloads the same screen, or seeing a message does not add a step. Back from a report whose filter was changed twice goes to the screen before the report.
+- **Coming back brings back the filters** the screen had, but never reopens a document that was closed or repeats a message.
+- **A link that opens a document** (from a report, a customer's history or a payment) sends Back straight to where the link was while that document is open. Once the document is closed, or when someone opens a form themselves, Back closes the form first.
+- **Opened by its address, or in a new tab,** there is nowhere to go back to, so Back goes to the screen that leads to it: a transaction list to Transactions, an Admin screen (including Access Point, Ask Qula, Accounting and Journal export) to Admin, a report to Reports, an e-document to the e-document list, and the main menu screens to Home.
+- The browser's own back and forward buttons work as the browser does, and Back follows them.
+- Signing in or out starts the record again.
+- **The main menu shows where you are.** Every Admin screen (GL codes, Accounting, Journal export, Access Point, forms and the rest) highlights Admin, and Payment runs highlights Transactions.
+
+Not built: Back does not return to a document dialog that was open when someone left a list through a link, only to the list, and it does not restore the scroll position or the page of a grid.
+
 ## What the screens do
 
 | Screen | Tables |

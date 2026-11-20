@@ -1,3 +1,4 @@
+import BackLink from "@/components/BackLink";
 import { AskExplainButton } from "@/components/AskExplain";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -185,9 +186,9 @@ export default async function EDocumentPage({ params }: { params: Promise<{ id: 
         <a className={styles.quiet} href={`/api/einvoice/${row.id}/xml`}>
           Download XML
         </a>
-        <Link className={styles.quiet} href={`/e-documents?direction=${row.direction}`}>
+        <BackLink className={styles.quiet} fallback={`/e-documents?direction=${row.direction}`}>
           Back
-        </Link>
+        </BackLink>
         {row.direction === "outbound" && row.header_id && (outboundValid?.count ?? 0) === 0 ? (
           <RegenerateEInvoice headerId={row.header_id} />
         ) : null}

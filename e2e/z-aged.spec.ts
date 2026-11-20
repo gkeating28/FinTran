@@ -29,6 +29,15 @@ test("flow 27: a posted purchase invoice is on aged creditors under the supplier
   await documents.getByRole("button", { name: "Close" }).last().click();
   await expect(documents).toHaveCount(0);
 
+  // A document opened from the report goes back to the report: Back returns to where the link was, not to the Transactions menu.
+  await row.getByRole("button", { name: "Documents" }).click();
+  await documents.locator("tr").filter({ hasText: "4.10" }).first().getByRole("link").first().click();
+  await page.waitForURL((url) => url.pathname === "/transactions/PIN");
+  await expect(documentDialog(page)).toBeVisible();
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await page.waitForURL((url) => url.pathname === "/reports/aged-creditors");
+  await expect(page.getByRole("heading", { name: "Aged creditors" })).toBeVisible();
+
   // The grid is totalled, and ageing from the transaction date uses its own bands.
   await expect(page.locator("tfoot")).toContainText("Total");
   await page.goto("/reports/aged-creditors?basis=document");

@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { AdminIcon, CustomerIcon, DocumentIcon, EDocumentIcon, HomeIcon, ReportIcon, SupplierIcon } from "@/components/icons";
 import { useNav } from "@/components/NavState";
 import { selectOrganisation, signOut } from "@/lib/actions";
+import { menuItemFor } from "@/lib/previous-page";
 import type { Membership, Profile } from "@/lib/types";
 import styles from "./AppSidebar.module.css";
 
@@ -116,12 +117,7 @@ export default function AppSidebar({
 }
 
 function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
-  const active =
-    item.href === "/"
-      ? pathname === "/"
-      : item.href === "/admin"
-        ? pathname === "/admin" || pathname.startsWith("/forms") || pathname.startsWith("/history")
-        : pathname.startsWith(item.href);
+  const active = menuItemFor(pathname) === item.href;
   return (
     <Link
       href={item.href}
