@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import ConfirmSubmitButton from "@/components/ConfirmDialog";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
@@ -80,10 +80,18 @@ export default function PaymentRunManager({
 
   // After an action on the open run, read approval again. The page refresh the action asks for can arrive without the rows
   // changing, which left the dialog showing the run as still waiting for approval after it had been approved.
+  // A reload that finishes after the rows have been replaced is dropped: the effect above reads approval for the new rows, and
+  // storing an answer for the old ones would blank the dialog.
+  const latestRows = useRef(rows);
+  useEffect(() => {
+    latestRows.current = rows;
+  }, [rows]);
   const reloadApprovals = useCallback(() => {
     const drafts = rows.filter((row) => row.status === "draft").map((row) => row.id);
     if (drafts.length === 0) return;
-    void loadPaymentRunApproval(drafts).then((value) => setLoaded({ rows, value }));
+    void loadPaymentRunApproval(drafts).then((value) => {
+      if (latestRows.current === rows) setLoaded({ rows, value });
+    });
   }, [rows]);
 
   // A run named in the address opens once the page is in the browser, and again when the rows change.
