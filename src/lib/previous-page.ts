@@ -12,10 +12,7 @@ const ADMIN_PAGES = new Set([
   "/access",
   "/forms",
   "/history",
-  "/accounting",
   "/journal-export",
-  "/access-point",
-  "/ask-qula",
 ]);
 
 const HOME_PAGES = new Set(["/transactions", "/customers", "/suppliers", "/admin", "/e-documents", "/reports"]);

@@ -35,7 +35,7 @@ test("flow 8: a member does not see void, reject or the settings, and is refused
     await expect(member.getByText("invalid", { exact: true })).toBeVisible();
     await expect(member.getByRole("button", { name: /^Reject/ })).toHaveCount(0);
 
-    // The settings are not offered, and the Ask Qula settings page sends a member back to Admin.
+    // The settings are not offered, and the old Ask Qula settings address sends a member back to Admin.
     await member.goto("/admin");
     await expect(member.getByRole("link", { name: /GL codes/ })).toBeVisible();
     await expect(member.getByRole("link", { name: /AI settings/ })).toHaveCount(0);

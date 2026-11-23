@@ -34,8 +34,14 @@ test("changing a filter or reloading the same screen adds no step", () => {
 test("one-off signals are not kept, so coming back never reopens a document or repeats a message", () => {
   assert.equal(cleanUrl("/transactions/PIN?open=abc&error=Nope&direction=inbound"), "/transactions/PIN?direction=inbound");
   assert.equal(cleanUrl("/accounting?message=Saved."), "/accounting");
+  assert.equal(cleanUrl("/organisations?edit=abc&tab=accounting&message=Saved."), "/organisations");
   const stack = walk("/transactions/PIN?open=abc", "/reports");
   assert.equal(backTarget(stack), "/transactions/PIN");
+});
+
+test("leaving Organisations with an organisation open does not bring the edit back", () => {
+  const stack = walk("/organisations?edit=abc&tab=access-point", "/customers");
+  assert.equal(backTarget(stack), "/organisations");
 });
 
 test("coming back to a screen brings back the address it had, with its filters", () => {
