@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ACCOUNTING_ACCOUNTS, JOURNAL_COLUMNS, journalCsvRows, type BatchDownloadLine } from "@/lib/journal";
 import { requireCurrentOrganisation } from "@/lib/organisation-guard";
+import { settingsOrganisation, settingsUrl } from "@/lib/org-settings";
 import { createClient } from "@/lib/supabase/server";
 import type { CsvCell } from "@/lib/export/safe-cell";
 
@@ -13,9 +14,9 @@ function text(formData: FormData, name: string) {
 
 /** Saves the accounts the journal uses and the date its history starts. Owners and admins only. */
 export async function saveAccountingSettings(formData: FormData): Promise<void> {
-  const current = await requireCurrentOrganisation(["owner", "admin"]);
+  const current = await settingsOrganisation(formData);
   const startDate = text(formData, "start_date");
-  if (startDate && !/^\d{4}-\d{2}-\d{2}$/.test(startDate)) redirect("/accounting?error=Enter%20the%20start%20date%20as%20a%20date.");
+  if (startDate && !/^\d{4}-\d{2}-\d{2}$/.test(startDate)) redirect(settingsUrl(current.organisationId, "accounting", "error", "Enter the start date as a date."));
 
   const values: Record<string, string | null> = { start_date: startDate || null };
   for (const account of ACCOUNTING_ACCOUNTS) values[account.column] = text(formData, account.column) || null;
@@ -24,11 +25,11 @@ export async function saveAccountingSettings(formData: FormData): Promise<void> 
   const { error } = await supabase
     .from("accounting_settings")
     .upsert({ tenant_id: current.tenantId, organisation_id: current.organisationId, ...values }, { onConflict: "organisation_id" });
-  if (error) redirect(`/accounting?error=${encodeURIComponent(error.message || "The accounting settings could not be saved.")}`);
+  if (error) redirect(settingsUrl(current.organisationId, "accounting", "error", error.message || "The accounting settings could not be saved."));
 
-  revalidatePath("/accounting");
+  revalidatePath("/organisations");
   revalidatePath("/journal-export");
-  redirect("/accounting?message=Saved.");
+  redirect(settingsUrl(current.organisationId, "accounting", "message", "Saved."));
 }
 
 /** Makes a batch of everything not yet exported up to the date. The database refuses while anything cannot be journalled. */

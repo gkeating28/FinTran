@@ -63,7 +63,7 @@ The shell is a navy sidebar, a navy title bar and a light work area. Ask Qula is
 | Access | Who can open the organisation, and as what |
 | Change history | The audit log. Owners and admins |
 
-Two more pages sit outside the tiles and are for owners and admins: **Ask Qula settings** (`/ask-qula`) and **Access Point** (`/access-point`). Members can see the Access Point status. A transaction's printed page is at `/print/{code}/{id}` and is outside the app shell.
+Ask Qula, the Access Point and the Accounting accounts are tabs of the organisation edit (Admin, Organisations, Edit), for owners and admins. Members do not see them. The old addresses (`/ask-qula`, `/access-point` and `/accounting`) redirect to the tab. A transaction's printed page is at `/print/{code}/{id}` and is outside the app shell.
 
 ## 4. Organisation setup
 

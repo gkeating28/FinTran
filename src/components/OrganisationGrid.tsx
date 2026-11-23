@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useId, useState, type ChangeEvent } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useId, useState, type ChangeEvent, type ReactNode } from "react";
 import { keepEntries } from "@/components/keepEntries";
 import DataGrid from "@/components/DataGrid";
 import { CreateOrganisationForm } from "@/components/Forms";
@@ -20,8 +21,19 @@ import {
 import { canManage, roleLabel, type ActionState, type Role } from "@/lib/types";
 import styles from "@/components/OpsPage.module.css";
 import logoStyles from "@/components/Logo.module.css";
+import documentStyles from "@/components/Document.module.css";
 import recordStyles from "@/components/RecordForm.module.css";
 import { slot, tall } from "@/components/recordForm";
+
+/** The tabs of the organisation edit. Details is the organisation itself and the others are its settings. */
+export type SettingsTabId = "details" | "ask-qula" | "access-point" | "accounting";
+
+const SETTINGS_TABS: { id: SettingsTabId; label: string }[] = [
+  { id: "details", label: "Details" },
+  { id: "ask-qula", label: "Ask Qula" },
+  { id: "access-point", label: "Access Point" },
+  { id: "accounting", label: "Accounting" },
+];
 
 export type OrganisationGridRow = {
   id: string;
@@ -45,6 +57,9 @@ export default function OrganisationGrid({
   countries,
   schemes,
   currencies,
+  openId = null,
+  tab = null,
+  panel = null,
 }: {
   rows: OrganisationGridRow[];
   tenantId: string;
@@ -52,14 +67,27 @@ export default function OrganisationGrid({
   countries: CodeName[];
   schemes: CodeName[];
   currencies: { code: string; name: string }[];
+  /** The organisation named by the address. Settings come back to it after a save, and links from other screens open it. */
+  openId?: string | null;
+  /** The settings tab named by the address, and what the server made for it. */
+  tab?: SettingsTabId | null;
+  panel?: ReactNode;
 }) {
-  const [editing, setEditing] = useState<OrganisationGridRow | null>(null);
+  const router = useRouter();
+  const [chosen, setChosen] = useState<OrganisationGridRow | null>(null);
+  const named = openId ? (rows.find((row) => row.id === openId) ?? null) : null;
+  const editing = named ?? chosen;
+
+  function close() {
+    setChosen(null);
+    if (openId) router.replace("/organisations");
+  }
 
   return (
     <>
       <DataGrid
         form="organisations"
-        onOpen={setEditing}
+        onOpen={setChosen}
         rows={rows}
         searchPlaceholder="Search organisations"
         searchText={(row) => `${row.name} ${row.slug} ${roleLabel(row.role)} ${homeLabel(row)}`}
@@ -105,7 +133,7 @@ export default function OrganisationGrid({
           },
         ]}
         actions={(row) => (
-          <button className={styles.quiet} type="button" onClick={() => setEditing(row)}>
+          <button className={styles.quiet} type="button" onClick={() => setChosen(row)}>
             {canManage(row.role) ? "Edit" : "View"}
           </button>
         )}
@@ -117,7 +145,9 @@ export default function OrganisationGrid({
           countries={countries}
           schemes={schemes}
           readOnly={!canManage(editing.role)}
-          onClose={() => setEditing(null)}
+          tab={named && tab ? tab : "details"}
+          panel={named && tab ? panel : null}
+          onClose={close}
         />
       ) : null}
     </>
@@ -134,14 +164,19 @@ function OrganisationForm({
   countries,
   schemes,
   readOnly = false,
+  tab,
+  panel,
   onClose,
 }: {
   organisation: OrganisationGridRow;
   countries: CodeName[];
   schemes: CodeName[];
   readOnly?: boolean;
+  tab: SettingsTabId;
+  panel: ReactNode;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const [state, action, pending] = useActionState(updateOrganisationDefaults, {} as ActionState);
   const [organisationName, setOrganisationName] = useState(organisation.name);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -215,7 +250,40 @@ function OrganisationForm({
 
   return (
     <FormModal title={readOnly ? `View ${organisation.name}` : `Edit ${organisation.name}`} onClose={onClose} fillPage>
-      <div className={`${styles.modalForm} ${styles.partyForm}${readOnly ? ` ${styles.formReadOnly}` : ""}`}>
+      {readOnly ? null : (
+        <div className={documentStyles.headerTabs} role="tablist" aria-label="Organisation">
+          {SETTINGS_TABS.map((item) => (
+            <button
+              key={item.id}
+              className={documentStyles.headerTab}
+              type="button"
+              role="tab"
+              id={`organisation-tab-${item.id}`}
+              aria-selected={tab === item.id}
+              aria-controls={`organisation-panel-${item.id}`}
+              tabIndex={tab === item.id ? 0 : -1}
+              onClick={() => {
+                if (item.id === tab) return;
+                router.replace(item.id === "details" ? `/organisations?edit=${organisation.id}` : `/organisations?edit=${organisation.id}&tab=${item.id}`);
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
+      {tab !== "details" ? (
+        <div id={`organisation-panel-${tab}`} role="tabpanel" aria-labelledby={`organisation-tab-${tab}`} className={styles.modalForm}>
+          {panel}
+        </div>
+      ) : null}
+      <div
+        id="organisation-panel-details"
+        role="tabpanel"
+        aria-labelledby="organisation-tab-details"
+        hidden={tab !== "details"}
+        className={`${styles.modalForm} ${styles.partyForm}${readOnly ? ` ${styles.formReadOnly}` : ""}`}
+      >
         {state.error ? (
           <p className={styles.alert} role="alert">
             {state.error}

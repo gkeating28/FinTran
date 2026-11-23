@@ -1,0 +1,101 @@
+import { mockAccessPoint } from "@/lib/access-point/adapter";
+import { lookupParticipant, registerParticipant, saveAccessPoint, testAccessPoint } from "@/lib/settings-actions";
+import { createClient } from "@/lib/supabase/server";
+import styles from "@/components/OpsPage.module.css";
+
+/** The Peppol connection of an organisation. It is the Access Point tab of the organisation edit. */
+export default async function AccessPointSettings({
+  organisationId,
+  organisationName,
+  status,
+  failed,
+}: {
+  organisationId: string;
+  organisationName: string;
+  status: string | null;
+  failed: boolean;
+}) {
+  const supabase = await createClient();
+  const settings = await supabase.from("access_point_settings").select("provider_code, environment, status, participant_registered, config").eq("organisation_id", organisationId).maybeSingle();
+  const row = (settings.data ?? {}) as { provider_code?: string; environment?: string; status?: string; participant_registered?: boolean; config?: { accountId?: string; baseUrl?: string } };
+  const accountField = mockAccessPoint().fields().find((field) => field.name === "accountId");
+  const statusText = status
+    ?? `${row.status === "verified" ? "Verified" : row.status === "suspended" ? "Suspended" : row.status === "configured" ? "Configured" : "Not configured"}${row.participant_registered ? " · Peppol ID registered" : ""}`;
+
+  return (
+    <div className={styles.stack}>
+      <p className={styles.lede}>Peppol connection for {organisationName}.</p>
+      <div className={styles.statusRow}>
+        <p className={failed ? styles.alert : styles.notice} role={failed ? "alert" : "status"}>
+          {statusText}
+        </p>
+      </div>
+      <div className={styles.panel}>
+        <div className={styles.panelHead}>Connection</div>
+        <form className={styles.partyFields} action={saveAccessPoint} autoComplete="off">
+          <input type="hidden" name="organisation_id" value={organisationId} />
+          <label className={styles.field}>
+            Provider
+            <select name="provider" defaultValue={row.provider_code ?? "mock"}>
+              <option value="mock">Mock</option>
+            </select>
+          </label>
+          <label className={styles.field}>
+            Environment
+            <select name="environment" defaultValue={row.environment ?? "sandbox"}>
+              <option value="sandbox">Sandbox</option>
+              <option value="production">Production</option>
+            </select>
+          </label>
+          <label className={styles.field}>
+            {accountField?.label ?? "Account ID"}
+            <input name="accountId" defaultValue={row.config?.accountId ?? ""} />
+          </label>
+          <label className={styles.field}>
+            Base URL
+            <input name="baseUrl" defaultValue={row.config?.baseUrl ?? ""} placeholder="https://" />
+          </label>
+          <label className={styles.field}>
+            API key
+            <input name="apiKey" type="password" autoComplete="off" placeholder="Write-only" />
+          </label>
+          <label className={styles.field}>
+            Webhook secret
+            <input name="webhookSecret" type="password" autoComplete="off" placeholder="Write-only" />
+          </label>
+          <label className={`${styles.checkLine} ${styles.wide}`}>
+            <input type="checkbox" name="forceFailure" />
+            Force a failed test
+          </label>
+          <div className={`${styles.modalActions} ${styles.wide}`}>
+            <span className={styles.actionStart} />
+            <button className={styles.quiet} type="submit" formAction={testAccessPoint}>Test connection</button>
+            <button className={styles.primary} type="submit">Save</button>
+          </div>
+        </form>
+      </div>
+      <div className={styles.panel}>
+        <div className={styles.panelHead}>
+          Participant
+          <span className={styles.panelMeta}>{row.participant_registered ? "Registered" : "Not registered"}</span>
+        </div>
+        <form className={styles.partyFields} action={lookupParticipant} autoComplete="off">
+          <input type="hidden" name="organisation_id" value={organisationId} />
+          <label className={styles.field}>
+            Scheme
+            <input name="scheme" defaultValue="9935" />
+          </label>
+          <label className={styles.field}>
+            Participant
+            <input name="participant" />
+          </label>
+          <div className={`${styles.modalActions} ${styles.wide}`}>
+            <span className={styles.actionStart} />
+            <button className={styles.quiet} type="submit">Look up participant</button>
+            <button className={styles.primary} type="submit" formAction={registerParticipant} disabled={row.status !== "verified"}>Register Peppol ID</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

@@ -34,9 +34,6 @@ const PAGE_LABELS: Record<string, string> = {
   "/forms": "Forms",
   "/history": "Change history",
   "/e-documents": "E-documents",
-  "/ask-qula": "Ask Qula",
-  "/access-point": "Access Point",
-  "/accounting": "Accounting",
   "/journal-export": "Journal export",
 };
 

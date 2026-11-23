@@ -251,13 +251,13 @@ Ask Qula knows the page. A screen that has a record open calls `useAskContext` (
 | `/e-documents/{id}` | The import form when the file is an inbound valid invoice. Otherwise a read-only view (`EDocumentView`, styles in `EDocument.module.css`): the invoice facts, seller and buyer, lines and totals, then validation and history, with a link to the purchase or sales document it belongs to. The view reads the stored XML again, so a file stored by an earlier reader shows what the current reader finds. The import form is `ImportEInvoice` in `src/components/ImportEInvoice.tsx`, a shell over `src/components/import-einvoice/`: `useImportForm` (the lists it loads, the choices made, what blocks Save and the submit handler), `useImportSplit` (the draggable split between header and lines), and the panels `HeaderPane`, `TotalsSummary`, `LinesPane`, `LineCoding` and `CreateSupplierDialog`. |
 | `/admin` | Links to setup lists |
 | `/gl-codes`, `/departments`, `/cost-centres`, `/vat-rates`, `/currencies`, `/bank-accounts`, `/products`, `/transaction-types` | Setup grids |
-| `/organisations` | Organisations in the tenant, defaults, and logo |
+| `/organisations` | Organisations in the tenant, defaults, and logo. The edit has tabs for the organisation's settings: `?edit={id}&tab=ask-qula`, `access-point` or `accounting`, for owners and admins |
 | `/access` | Grants for the open organisation |
 | `/forms`, `/forms/{code}` | Print layout for a transaction type |
 | `/history` | Audit log, owners and admins |
-| `/ask-qula` | Ask Qula provider, model, key, limits, and usage. Owners and admins |
-| `/access-point` | Access Point provider, environment, and status. Owners and admins edit it. Members see the status |
-| `/accounting` | The accounts the journal export uses and its start date. Owners and admins. A member is sent back to Admin |
+| `/ask-qula` | Redirects to the Ask Qula tab of the organisation edit for the open organisation. A member goes to Admin |
+| `/access-point` | Redirects to the Access Point tab. A member goes to Admin |
+| `/accounting` | Redirects to the Accounting tab. A member goes to Admin |
 | `/journal-export` | The export batches and the preview that makes a new one. Owners and admins. A member is sent back to Admin |
 | `/print/{code}/{id}` | Printable document, or a printed payment, receipt or refund when the code is a payment type. Print and PDF. This page is outside the app shell |
 | `/defaults` | Organisation defaults |
@@ -307,7 +307,7 @@ Server actions run on the server with the user session and return `{ error }` or
 | `payment-run-actions.ts` | `loadRunnableInvoices`, `loadPaymentRunApproval`, `createPaymentRun`, `requestRunApproval`, `approveRun`, `rejectRun`, `postPaymentRun`, `removeRunPayment`, `cancelPaymentRun` | The Payment runs screen: the invoices a run can pay, where each run stands on approval, making a run through `create_payment_run`, asking for, giving and refusing approval of a run, posting it, taking a supplier out and cancelling it. Each approval call sends the emails it queued |
 | `payment-approval-actions.ts` | `loadPaymentApprovalStatus`, `requestPaymentApproval`, `approvePayment`, `rejectPayment` | Read where draft payments stand on approval, and ask for, give or refuse approval through `request_payment_approval`, `approve_payment` and `reject_payment`. Each sends the emails the call queued. `savePayment` with `then_action=request_approval` saves and then asks |
 | `approval-rule-actions.ts` | `createApprovalRule`, `updateApprovalRule`, `deleteApprovalRule` | The approval rules screen. The type is set when the rule is created and cannot change |
-| `journal-actions.ts` | `saveAccountingSettings`, `createJournalBatch`, `journalBatchCsv` | The Accounting screen saves the seven accounts and the start date. The Journal export screen makes a batch through `create_journal_batch` and downloads one: `journalBatchCsv` reads `journal_batch_lines_for` (which writes the audit record) and the browser builds the CSV with `buildCsv` |
+| `journal-actions.ts` | `saveAccountingSettings`, `createJournalBatch`, `journalBatchCsv` | The Accounting tab of the organisation edit saves the seven accounts and the start date for the organisation named by the form (`settingsOrganisation` in `org-settings.ts` checks the owner or admin role for it). The Journal export screen makes a batch through `create_journal_batch` and downloads one: `journalBatchCsv` reads `journal_batch_lines_for` (which writes the audit record) and the browser builds the CSV with `buildCsv` |
 
 `saveDocument` sends this JSON to `save_document`:
 
@@ -633,6 +633,7 @@ The flows run one at a time, in file order, on one database, and each signs in t
 | 37 | Running the export again finds nothing. Voiding the exported payment and invoice puts their reversals in the next batch, and the first batch is unchanged. |
 | 38 | A member sees neither the Accounting nor the Journal export tile, is sent back to Admin, and is refused when calling the database directly. |
 | 39 | Back returns to where the person came from (Suppliers back to Customers, a report back to Reports in one step however the filter was changed), and goes to the screen's parent when it was opened by its address. |
+| 40 | Ask Qula, Access Point and Accounting are tabs of the organisation edit. A save is for the organisation being edited, not only the one the person works in, and a member gets no tabs. |
 
 Flow 39 is in `e2e/navigation.spec.ts` and needs no data. Flows 35 to 38 are in `e2e/zz-journal.spec.ts`, which runs last: the first batch holds everything posted before it. Flows 28 to 34 are in `e2e/z-payment-approvals.spec.ts`, which runs after the payment flows (it pays from their bank account and payment types) and removes its rule at the end. Flows 20 to 26 are in `e2e/z-approvals.spec.ts`, named to run after every other file because they leave a rule and many Vodafone documents behind (the last flow removes the rule and the tolerance). The helpers are `e2e/documents.ts` (open a list, fill a document, press a button, read a row), `e2e/api.ts` (call the API as a test person, to check what the screens hide) and `e2e/upload.ts` (upload an e-invoice and fail with the server's own message). The test files are in `e2e/files`.
 

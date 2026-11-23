@@ -16,13 +16,12 @@ export type GlChoice = { id: string; code: string; description: string };
 export type BankWithoutGl = { id: string; code: string; name: string };
 
 /** The accounting settings, the GL codes to choose from and the bank accounts that have no GL code yet. */
-export async function getAccountingSettings(): Promise<{
+export async function getAccountingSettings(organisationId: string): Promise<{
   settings: AccountingSettings;
   glCodes: GlChoice[];
   banksWithoutGl: BankWithoutGl[];
   error: string | null;
 }> {
-  const organisationId = await getOrganisationScope();
   if (!organisationId) return { settings: EMPTY_ACCOUNTING_SETTINGS, glCodes: [], banksWithoutGl: [], error: null };
 
   const supabase = await createClient();

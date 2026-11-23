@@ -1,19 +1,30 @@
 import { redirect } from "next/navigation";
-import OrganisationGrid from "@/components/OrganisationGrid";
+import OrganisationGrid, { type SettingsTabId } from "@/components/OrganisationGrid";
+import AccessPointSettings from "@/components/org-settings/AccessPointSettings";
+import AccountingSettings from "@/components/org-settings/AccountingSettings";
+import AskQulaSettings from "@/components/org-settings/AskQulaSettings";
 import styles from "@/components/OpsPage.module.css";
 import { emptyOrganisationProfile, listDefaultsByOrganisation, listIsoCurrencies } from "@/lib/currency-data";
 import { getWorkspace } from "@/lib/data";
 import { listCodeLists } from "@/lib/reference-data";
+import { canManage } from "@/lib/types";
+
+const SETTINGS_TABS: SettingsTabId[] = ["ask-qula", "access-point", "accounting"];
 
 export const metadata = { title: "Organisations" };
 
-export default async function OrganisationsPage() {
+export default async function OrganisationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ edit?: string; tab?: string; error?: string; message?: string }>;
+}) {
   const codeLists = listCodeLists();
   const isoCurrencies = listIsoCurrencies();
   const workspace = await getWorkspace();
   if (workspace.status === "signed-out") redirect("/login");
   if (workspace.status !== "ready") redirect("/");
 
+  const params = await searchParams;
   const { current, memberships } = workspace;
   const organisations = memberships.filter((membership) => membership.tenantId === current.tenantId);
   const [{ byOrganisation, error }, codes, currencies] = await Promise.all([
@@ -21,6 +32,21 @@ export default async function OrganisationsPage() {
     codeLists,
     isoCurrencies,
   ]);
+
+  // The settings of an organisation are tabs of its edit screen. They are shown only to its owners and admins, and only for
+  // the one organisation the address names.
+  const target = params.edit ? organisations.find((organisation) => organisation.organisationId === params.edit) : undefined;
+  const tab = target && canManage(target.role) ? SETTINGS_TABS.find((id) => id === params.tab) ?? null : null;
+  const failed = Boolean(params.error);
+  const status = params.error ?? params.message ?? null;
+  const panel =
+    target && tab === "ask-qula" ? (
+      <AskQulaSettings organisationId={target.organisationId} status={status} failed={failed} />
+    ) : target && tab === "access-point" ? (
+      <AccessPointSettings organisationId={target.organisationId} organisationName={target.organisationName} status={status} failed={failed} />
+    ) : target && tab === "accounting" ? (
+      <AccountingSettings organisationId={target.organisationId} organisationName={target.organisationName} status={status} failed={failed} />
+    ) : null;
 
   return (
     <section className={styles.stack}>
@@ -41,6 +67,9 @@ export default async function OrganisationsPage() {
         countries={codes.countries}
         schemes={codes.schemes}
         currencies={currencies}
+        openId={target?.organisationId ?? null}
+        tab={tab}
+        panel={panel}
         rows={organisations.map((organisation) => {
           const defaults = byOrganisation[organisation.organisationId];
           return {
