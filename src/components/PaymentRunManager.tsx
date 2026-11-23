@@ -114,9 +114,7 @@ export default function PaymentRunManager({
     <section className={styles.stack}>
       <div>
         <h1 className={styles.heading}>Payment runs</h1>
-        <p className={styles.lede}>
-          Payment runs for {organisationName}. A run pays several posted purchase invoices at once with one draft payment for each supplier. It is approved as a whole and posted as one.
-        </p>
+        <p className={styles.lede}>Payment runs for {organisationName}: several supplier invoices, approved and posted as one.</p>
       </div>
       {loadError ? (
         <p className={styles.alert} role="alert">

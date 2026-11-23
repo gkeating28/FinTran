@@ -22,9 +22,7 @@ export default async function AccountingSettings({
 
   return (
     <div className={styles.stack}>
-      <p className={styles.lede}>
-        The accounts {organisationName} uses when it sends its postings to an accounting system. The <Link href="/journal-export">Journal export</Link> screen makes the file for the organisation you are working in.
-      </p>
+      <p className={styles.lede}>Accounts {organisationName} uses for its journal export.</p>
       {message ? (
         <p className={bad ? styles.alert : styles.notice} role={bad ? "alert" : "status"}>
           {message}

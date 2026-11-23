@@ -637,3 +637,7 @@ Ask Qula, the Access Point and the Accounting accounts are settings of one organ
 - **A save is for the organisation being edited,** which may not be the one the person is working in. Each settings form names its organisation, and the role is checked for that organisation: only an owner or admin of it can save.
 - **Only owners and admins see the tabs.** A member who opens an organisation sees Details, read only.
 - **The old addresses still work.** `/ask-qula`, `/access-point` and `/accounting` open the matching tab for the organisation the person is working in, and a member is sent to Admin. Back from one goes to where the link was.
+
+## Page headers
+
+A page title has at most one line of description under it, and no shortcut links. A link to another screen belongs in the menu or in the content of the page, not in the header. Anything longer than a line is help text next to the field it explains.

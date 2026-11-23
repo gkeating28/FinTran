@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
 import ConfirmSubmitButton from "@/components/ConfirmDialog";
 import DataGrid from "@/components/DataGrid";
@@ -37,11 +36,7 @@ export default function ApprovalRuleManager({
     <section className={styles.stack}>
       <div>
         <h1 className={styles.heading}>Approval rules</h1>
-        <p className={styles.lede}>
-          Approval rules for {organisationName}. From each amount, a purchase invoice, purchase order or payment that sends money out (a supplier payment or a customer refund) of that type needs approval from the
-          role shown before it can be posted or activated. With no rule, nothing needs approval. The price tolerance is on the{" "}
-          <Link href="/organisations">Organisations</Link> screen.
-        </p>
+        <p className={styles.lede}>Approval rules for {organisationName}. With no rule, nothing needs approval.</p>
       </div>
       {loadError ? (
         <p className={styles.alert} role="alert">
