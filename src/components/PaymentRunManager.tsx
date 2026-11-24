@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import ConfirmSubmitButton from "@/components/ConfirmDialog";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
@@ -29,6 +29,38 @@ import {
 import { runStatusLabel, summariseChoice, type PaymentRunRow, type RunApproval, type RunChoices, type RunnableInvoice } from "@/lib/payment-runs";
 
 const noSubscription = () => () => {};
+
+/** How long an action may run before the screen stops showing it as busy. */
+const SLOW_ACTION_MS = 15_000;
+
+/**
+ * Runs an action and keeps a busy flag for it. The flag clears as soon as the action's own work has finished, and it never waits for
+ * a page refresh, so a refresh that stalls cannot leave a button disabled. When the work has not finished after SLOW_ACTION_MS the flag
+ * clears and a notice says to check where things stand. The work returns an error message, or null when it succeeded. A late result
+ * replaces that notice.
+ */
+function useGuardedAction(setError: (message: string | null) => void) {
+  const [busy, setBusy] = useState(false);
+  const start = useCallback(
+    (work: () => Promise<string | null>) => {
+      setError(null);
+      setBusy(true);
+      const timer = setTimeout(() => {
+        setBusy(false);
+        setError("This is taking longer than expected. Reload the page to see where it stands before trying again.");
+      }, SLOW_ACTION_MS);
+      work()
+        .then((message) => setError(message))
+        .catch(() => setError("That did not complete. Reload the page to see where it stands before trying again."))
+        .finally(() => {
+          clearTimeout(timer);
+          setBusy(false);
+        });
+    },
+    [setError],
+  );
+  return [busy, start] as const;
+}
 
 function useHydrated() {
   return useSyncExternalStore(noSubscription, () => true, () => false);
@@ -185,7 +217,7 @@ function CreateRunDialog({ choices, onClose, onCreated }: { choices: RunChoices;
   const [chosen, setChosen] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState<{ bank: string; invoices: RunnableInvoice[]; error: string | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [pending, start] = useGuardedAction(setError);
   const region = useRegion();
 
   useEffect(() => {
@@ -219,13 +251,11 @@ function CreateRunDialog({ choices, onClose, onCreated }: { choices: RunChoices;
     data.set("payment_date", date);
     data.set("notes", notes);
     data.set("invoice_ids", JSON.stringify([...chosen]));
-    setError(null);
-    startTransition(async () => {
+    start(async () => {
       const result = await createPaymentRun({}, data);
-      startTransition(() => {
-        if (result.error) setError(result.error);
-        else if (result.id) onCreated(result.id);
-      });
+      if (result.error) return result.error;
+      if (result.id) onCreated(result.id);
+      return null;
     });
   }
 
@@ -328,25 +358,22 @@ function RunDialog({ run, approval, approvalReady, onChanged, onClose }: { run: 
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [refuse, setRefuse] = useState(false);
-  const [pending, startTransition] = useTransition();
+  const [pending, start] = useGuardedAction(setError);
   const draft = run.status === "draft";
   const approvalNeeded = needsApproval(approval) && draft;
 
   const execute: Run = useCallback((action, data, done) => {
-    setError(null);
-    startTransition(async () => {
+    start(async () => {
       const result = await action({}, data);
-      startTransition(() => {
-        if (result.error) setError(result.error);
-        else {
-          // Ask for the page again and read approval again, so the dialog never shows what the action has already changed.
-          router.refresh();
-          onChanged();
-          done?.(result);
-        }
-      });
+      if (result.error) return result.error;
+      // Ask for the page again and read approval again, so the dialog never shows what the action has already changed.
+      // The refresh is not waited for: the button is free again once the action is done.
+      router.refresh();
+      onChanged();
+      done?.(result);
+      return null;
     });
-  }, [onChanged, router]);
+  }, [onChanged, router, start]);
 
   const post = (event: React.FormEvent<HTMLFormElement>, action: Parameters<Run>[0], closeAfter = false) => {
     event.preventDefault();
@@ -500,7 +527,7 @@ function RunDialog({ run, approval, approvalReady, onChanged, onClose }: { run: 
 
 function RefuseRunDialog({ runId, onClose }: { runId: string; onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [pending, start] = useGuardedAction(setError);
   return (
     <FormModal title="Refuse approval" onClose={onClose} className={styles.lineDialog}>
       <form
@@ -509,13 +536,11 @@ function RefuseRunDialog({ runId, onClose }: { runId: string; onClose: () => voi
         onSubmit={(event) => {
           event.preventDefault();
           const data = new FormData(event.currentTarget);
-          setError(null);
-          startTransition(async () => {
+          start(async () => {
             const result = await rejectRun({}, data);
-            startTransition(() => {
-              if (result.error) setError(result.error);
-              else onClose();
-            });
+            if (result.error) return result.error;
+            onClose();
+            return null;
           });
         }}
       >
