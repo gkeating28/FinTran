@@ -1,6 +1,6 @@
 # Qula Plus payment approvals, supplier bank details and payment run spec
 
-Version 1, 19 November 2026. A draft for review. Nothing in it is built. The four scoping answers are recorded below, and five questions at the end need an answer before building starts.
+Version 1, 19 November 2026. Built and applied to the hosted project: migrations `20261119123844_supplier_bank_details`, `20261119124618_payment_approvals` and `20261119131003_payment_runs`, with end-to-end flows 28 to 34. The acceptance boxes below have not been ticked one by one against their tests, so unticked does not mean unbuilt. The four scoping answers are recorded below.
 
 Goal: let an organisation say that a payment of money out above a set amount, or to a supplier whose bank details have just changed, must be approved by someone senior before it is posted, and let a person pay many suppliers in one controlled batch, a payment run, that is approved as a whole. This is the spec after approvals and price tolerance and before journal export in the agreed order.
 

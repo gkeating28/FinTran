@@ -100,6 +100,8 @@ All five fixes are present. Evidence from the baseline: the unique index `organi
 
 ### A2.6 Documents that disagree with the code
 
+**Status, 24 November 2026:** all rows below are corrected in the repository, except that the two attached specs that name the missing files are not in the repository. The one repository spec with that fault (`specs/QULAPLUS_HARDENING_SPEC.md`) now points at `docs/QULA_PLUS_REFERENCE.md`. The payment approvals spec has a corrected status line, but its 40 boxes are not ticked.
+
 | Document | Statement | What the code shows |
 | --- | --- | --- |
 | `CORE.md` | `organisation_defaults` "can be selected, inserted, and updated by a member" | Only select and update policies exist, update limited to owner and admin. `CORE.md` contradicts itself two paragraphs earlier |

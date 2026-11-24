@@ -2,7 +2,7 @@
 
 Goal: close the risks found in the review of 11 November 2026 before real users arrive. Most phases are small. Phase 7 adds the end-to-end test suite that the later phases and all future work rely on.
 
-Read `Qula Plus functionality, schema and APIs.md`, `CORE.md`, `TECHNICAL.md` and the earlier specs first.
+Read `docs/QULA_PLUS_REFERENCE.md`, `CORE.md`, `TECHNICAL.md` and the earlier specs first.
 
 ## Rules for the agent
 
