@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import ConfirmSubmitButton from "@/components/ConfirmDialog";
 import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
@@ -27,7 +27,6 @@ import {
   requestRunApproval,
 } from "@/lib/payment-run-actions";
 import { runStatusLabel, summariseChoice, type PaymentRunRow, type RunApproval, type RunChoices, type RunnableInvoice } from "@/lib/payment-runs";
-import { useGuardedAction } from "@/components/useGuardedAction";
 
 const noSubscription = () => () => {};
 
@@ -186,7 +185,7 @@ function CreateRunDialog({ choices, onClose, onCreated }: { choices: RunChoices;
   const [chosen, setChosen] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState<{ bank: string; invoices: RunnableInvoice[]; error: string | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [pending, start] = useGuardedAction(setError);
+  const [pending, startTransition] = useTransition();
   const region = useRegion();
 
   useEffect(() => {
@@ -220,11 +219,13 @@ function CreateRunDialog({ choices, onClose, onCreated }: { choices: RunChoices;
     data.set("payment_date", date);
     data.set("notes", notes);
     data.set("invoice_ids", JSON.stringify([...chosen]));
-    start(async () => {
+    setError(null);
+    startTransition(async () => {
       const result = await createPaymentRun({}, data);
-      if (result.error) return result.error;
-      if (result.id) onCreated(result.id);
-      return null;
+      startTransition(() => {
+        if (result.error) setError(result.error);
+        else if (result.id) onCreated(result.id);
+      });
     });
   }
 
@@ -327,22 +328,25 @@ function RunDialog({ run, approval, approvalReady, onChanged, onClose }: { run: 
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [refuse, setRefuse] = useState(false);
-  const [pending, start] = useGuardedAction(setError);
+  const [pending, startTransition] = useTransition();
   const draft = run.status === "draft";
   const approvalNeeded = needsApproval(approval) && draft;
 
   const execute: Run = useCallback((action, data, done) => {
-    start(async () => {
+    setError(null);
+    startTransition(async () => {
       const result = await action({}, data);
-      if (result.error) return result.error;
-      // Ask for the page again and read approval again, so the dialog never shows what the action has already changed.
-      // The refresh is not waited for: the button is free again once the action is done.
-      router.refresh();
-      onChanged();
-      done?.(result);
-      return null;
+      startTransition(() => {
+        if (result.error) setError(result.error);
+        else {
+          // Ask for the page again and read approval again, so the dialog never shows what the action has already changed.
+          router.refresh();
+          onChanged();
+          done?.(result);
+        }
+      });
     });
-  }, [onChanged, router, start]);
+  }, [onChanged, router]);
 
   const post = (event: React.FormEvent<HTMLFormElement>, action: Parameters<Run>[0], closeAfter = false) => {
     event.preventDefault();
@@ -496,7 +500,7 @@ function RunDialog({ run, approval, approvalReady, onChanged, onClose }: { run: 
 
 function RefuseRunDialog({ runId, onClose }: { runId: string; onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
-  const [pending, start] = useGuardedAction(setError);
+  const [pending, startTransition] = useTransition();
   return (
     <FormModal title="Refuse approval" onClose={onClose} className={styles.lineDialog}>
       <form
@@ -505,11 +509,13 @@ function RefuseRunDialog({ runId, onClose }: { runId: string; onClose: () => voi
         onSubmit={(event) => {
           event.preventDefault();
           const data = new FormData(event.currentTarget);
-          start(async () => {
+          setError(null);
+          startTransition(async () => {
             const result = await rejectRun({}, data);
-            if (result.error) return result.error;
-            onClose();
-            return null;
+            startTransition(() => {
+              if (result.error) setError(result.error);
+              else onClose();
+            });
           });
         }}
       >

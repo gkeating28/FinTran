@@ -3,7 +3,7 @@
 import { approvalBanner, needsApproval, type ApprovalInfo } from "@/lib/approvals";
 import { approvePayment, loadPaymentApprovalStatus, requestPaymentApproval } from "@/lib/payment-approval-actions";
 import Link from "next/link";
-import { useCallback, useEffect, useState, type FormEvent, type MouseEvent } from "react";
+import { useCallback, useEffect, useState, useTransition, type FormEvent, type MouseEvent } from "react";
 import ConfirmSubmitButton from "@/components/ConfirmDialog";
 import documentStyles from "@/components/Document.module.css";
 import FormModal from "@/components/FormModal";
@@ -40,7 +40,6 @@ import {
 } from "@/lib/payments";
 import { RemoveAllocationDialog, VoidPaymentDialog, RefusePaymentDialog } from "./PaymentDialogs";
 import paymentStyles from "./Payment.module.css";
-import { useGuardedAction } from "@/components/useGuardedAction";
 
 /** The id of the form that holds the open payment. Buttons outside it submit it by this id. */
 export const PAYMENT_FORM = "payment-document";
@@ -113,7 +112,7 @@ export default function PaymentForm({
   const [approval, setApproval] = useState<ApprovalInfo | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [pending, start] = useGuardedAction(setError);
+  const [pending, startTransition] = useTransition();
   // What the form held when it opened, to tell whether there is anything to save before posting.
   const [baseline] = useState(() => signatureOf([current?.paymentDate ?? today(), current?.partyId ?? prefill?.partyId ?? "", current?.bankAccountId ?? "", current ? plainDecimal(current.amount) : (prefill?.amount ?? ""), current?.paymentMeansCode ?? "58", current?.bankReference ?? "", current?.notes ?? ""], boxesFrom(row, prefill)));
 
@@ -158,16 +157,18 @@ export default function PaymentForm({
   /** Runs one of the payment actions with the data given. A refusal is shown. A success is handled by the caller. */
   const run = useCallback(
     (action: (state: PaymentActionState, data: FormData) => Promise<PaymentActionState>, data: FormData, done: (result: PaymentActionState) => void) => {
+      setError(null);
       setNotice(null);
-      start(async () => {
+      startTransition(async () => {
         const result = await action({}, data);
-        if (result.id) setSavedId(result.id);
-        if (result.error) return result.error;
-        done(result);
-        return null;
+        startTransition(() => {
+          if (result.id) setSavedId(result.id);
+          if (result.error) setError(result.error);
+          else done(result);
+        });
       });
     },
-    [start],
+    [],
   );
 
   /** After a change to a posted payment: fetch it again, and the open documents with it. */
