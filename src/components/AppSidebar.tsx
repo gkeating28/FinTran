@@ -121,7 +121,9 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
   return (
     <Link
       href={item.href}
-      prefetch
+      // EXPERIMENT: prefetch is off while CI is used to test whether the sidebar's prefetch bursts make a page miss the result of
+      // a server action (payment run, organisation settings). Put `prefetch` back if the failures do not stop.
+      prefetch={false}
       className={active ? `${styles.navLink} ${styles.navLinkActive}` : styles.navLink}
       aria-current={active ? "page" : undefined}
     >
