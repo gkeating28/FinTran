@@ -30,13 +30,13 @@ select set_config('test.order', public.save_document(jsonb_build_object(
   'supplierId', (select id from public.suppliers where organisation_id = current_setting('test.org')::uuid),
   'transactionDate', '2026-11-12', 'exchangeRate', 1,
   'lines', jsonb_build_array(jsonb_build_object('description', 'Last unit', 'quantity', 1, 'price', 10,
-    'glCodeId', (select id from public.gl_codes where organisation_id = current_setting('test.org')::uuid)))
+    'glCodeId', (select id from public.gl_codes where organisation_id = current_setting('test.org')::uuid and code = '6000')))
 ))::text, false);
 select public.set_order_status(current_setting('test.order')::uuid, 'open');
 select 'IDS ' || (select id from public.transaction_types where organisation_id = current_setting('test.org')::uuid and code = 'PI')
   || ' ' || (select id from public.suppliers where organisation_id = current_setting('test.org')::uuid)
   || ' ' || (select id from public.transaction_lines where header_id = current_setting('test.order')::uuid)
-  || ' ' || (select id from public.gl_codes where organisation_id = current_setting('test.org')::uuid);
+  || ' ' || (select id from public.gl_codes where organisation_id = current_setting('test.org')::uuid and code = '6000');
 SQL
 )
 read -r _ TYPE SUPPLIER LINE GL <<<"$(grep '^IDS ' <<<"$IDS")"

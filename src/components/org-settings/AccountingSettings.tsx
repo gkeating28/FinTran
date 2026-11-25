@@ -1,10 +1,9 @@
-import Link from "next/link";
 import styles from "@/components/OpsPage.module.css";
 import { saveAccountingSettings } from "@/lib/journal-actions";
 import { getAccountingSettings } from "@/lib/journal-data";
 import { ACCOUNTING_ACCOUNTS } from "@/lib/journal";
 
-/** The accounts an organisation's journal export uses. It is the Accounting tab of the organisation edit. */
+/** The accounts the ledger and the journal export use, each a system role on a GL code. It is the Accounting tab of the organisation edit. */
 export default async function AccountingSettings({
   organisationId,
   organisationName,
@@ -16,13 +15,13 @@ export default async function AccountingSettings({
   status: string | null;
   failed: boolean;
 }) {
-  const { settings, glCodes, banksWithoutGl, error } = await getAccountingSettings(organisationId);
+  const { settings, glCodes, error } = await getAccountingSettings(organisationId);
   const message = failed ? status : (error ?? status);
   const bad = failed || Boolean(error);
 
   return (
     <div className={styles.stack}>
-      <p className={styles.lede}>Accounts {organisationName} uses for its journal export.</p>
+      <p className={styles.lede}>The accounts {organisationName} posts to and exports to.</p>
       {message ? (
         <p className={bad ? styles.alert : styles.notice} role={bad ? "alert" : "status"}>
           {message}
@@ -36,12 +35,13 @@ export default async function AccountingSettings({
             <label key={account.key} className={styles.field}>
               {account.label}
               <select name={account.column} defaultValue={settings[account.key]}>
-                <option value="">Not set</option>
-                {glCodes.map((code) => (
-                  <option key={code.id} value={code.id}>
-                    {code.code} {code.description}
-                  </option>
-                ))}
+                {glCodes
+                  .filter((code) => code.accountType === account.accountType && (code.systemRole === null || code.systemRole === account.role))
+                  .map((code) => (
+                    <option key={code.id} value={code.id}>
+                      {code.code} {code.description}
+                    </option>
+                  ))}
               </select>
               <small>{account.help}</small>
             </label>
@@ -58,24 +58,6 @@ export default async function AccountingSettings({
             </button>
           </div>
         </form>
-      </div>
-      <div className={styles.panel}>
-        <div className={styles.panelHead}>Bank accounts without a GL code</div>
-        {banksWithoutGl.length === 0 ? (
-          <p className={styles.notice} role="status">
-            Every active bank account has a GL code.
-          </p>
-        ) : (
-          <ul>
-            {banksWithoutGl.map((bank) => (
-              <li key={bank.id}>
-                <Link href="/bank-accounts">
-                  {bank.code} {bank.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
       </div>
     </div>
   );

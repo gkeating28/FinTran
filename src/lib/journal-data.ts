@@ -1,5 +1,6 @@
 import { getOrganisationScope } from "@/lib/data";
 import {
+  ACCOUNTING_ACCOUNTS,
   EMPTY_ACCOUNTING_SETTINGS,
   type AccountingSettings,
   type JournalBatchRow,
@@ -12,47 +13,40 @@ import { createClient } from "@/lib/supabase/server";
 type PreviewRow = Database["public"]["Functions"]["journal_preview"]["Returns"][number];
 type ProblemRow = Database["public"]["Functions"]["journal_problems"]["Returns"][number];
 
-export type GlChoice = { id: string; code: string; description: string };
-export type BankWithoutGl = { id: string; code: string; name: string };
+export type GlChoice = { id: string; code: string; description: string; accountType: string; systemRole: string | null };
 
-/** The accounting settings, the GL codes to choose from and the bank accounts that have no GL code yet. */
+/** The accounts the journal uses (the system roles on GL codes), the active GL codes to choose from and the start date. */
 export async function getAccountingSettings(organisationId: string): Promise<{
   settings: AccountingSettings;
   glCodes: GlChoice[];
-  banksWithoutGl: BankWithoutGl[];
   error: string | null;
 }> {
-  if (!organisationId) return { settings: EMPTY_ACCOUNTING_SETTINGS, glCodes: [], banksWithoutGl: [], error: null };
+  if (!organisationId) return { settings: EMPTY_ACCOUNTING_SETTINGS, glCodes: [], error: null };
 
   const supabase = await createClient();
-  const [row, codes, banks] = await Promise.all([
+  const [row, codes] = await Promise.all([
+    supabase.from("accounting_settings").select("start_date").eq("organisation_id", organisationId).maybeSingle(),
     supabase
-      .from("accounting_settings")
-      .select("receivables_gl_code_id, payables_gl_code_id, vat_sales_gl_code_id, vat_purchases_gl_code_id, exchange_gl_code_id, rounding_gl_code_id, suspense_gl_code_id, start_date")
+      .from("gl_codes")
+      .select("id, code, description, account_type, system_role")
       .eq("organisation_id", organisationId)
-      .maybeSingle(),
-    supabase.from("gl_codes").select("id, code, description").eq("organisation_id", organisationId).order("code"),
-    supabase.from("bank_accounts").select("id, code, name").eq("organisation_id", organisationId).eq("active", true).is("gl_code_id", null).order("code"),
+      .eq("active", true)
+      .order("code"),
   ]);
-  if (row.error || codes.error || banks.error) {
-    return { settings: EMPTY_ACCOUNTING_SETTINGS, glCodes: [], banksWithoutGl: [], error: "The accounting settings could not be loaded." };
+  if (row.error || codes.error) {
+    return { settings: EMPTY_ACCOUNTING_SETTINGS, glCodes: [], error: "The accounting settings could not be loaded." };
   }
-  const data = row.data;
-  return {
-    settings: {
-      receivables: data?.receivables_gl_code_id ?? "",
-      payables: data?.payables_gl_code_id ?? "",
-      vatSales: data?.vat_sales_gl_code_id ?? "",
-      vatPurchases: data?.vat_purchases_gl_code_id ?? "",
-      exchange: data?.exchange_gl_code_id ?? "",
-      rounding: data?.rounding_gl_code_id ?? "",
-      suspense: data?.suspense_gl_code_id ?? "",
-      startDate: data?.start_date ?? "",
-    },
-    glCodes: codes.data ?? [],
-    banksWithoutGl: banks.data ?? [],
-    error: null,
-  };
+  const glCodes = (codes.data ?? []).map((code) => ({
+    id: code.id,
+    code: code.code,
+    description: code.description,
+    accountType: code.account_type,
+    systemRole: code.system_role,
+  }));
+  const holder = (role: string) => glCodes.find((code) => code.systemRole === role)?.id ?? "";
+  const settings: AccountingSettings = { ...EMPTY_ACCOUNTING_SETTINGS, startDate: row.data?.start_date ?? "" };
+  for (const account of ACCOUNTING_ACCOUNTS) settings[account.key] = holder(account.role);
+  return { settings, glCodes, error: null };
 }
 
 /** The batches made so far, newest first. */

@@ -178,19 +178,19 @@ grant execute on function pg_temp.id_of(text, text), pg_temp.document(text, text
 -- Extra setup: control accounts, VAT rates, a department and a cost centre, and a second organisation's GL code.
 insert into public.gl_codes (tenant_id, organisation_id, code, description, account_type)
 values
-  (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '1100', 'Trade debtors', 'Current Asset'),
-  (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '2100', 'Trade creditors', 'Current Liability'),
-  (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '2200', 'VAT on sales', 'Current Liability'),
   (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '1300', 'VAT on purchases', 'Current Asset'),
-  (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '7900', 'Exchange gain or loss', 'Expense'),
+  (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '1301', 'Other VAT on purchases', 'Current Asset'),
   (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '7950', 'Rounding', 'Expense'),
-  (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '1200', 'Bank euro', 'Current Asset'),
+  (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '1280', 'Bank euro', 'Current Asset'),
   (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '1250', 'Bank sterling', 'Current Asset'),
   (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '1999', 'Suspense', 'Current Asset'),
-  (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '1201', 'Other bank', 'Current Asset'),
+  (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '1281', 'Other bank', 'Current Asset'),
   (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '2101', 'Other creditors', 'Current Liability');
 insert into public.gl_codes (tenant_id, organisation_id, code, description, account_type)
 values (current_setting('test.tenant')::uuid, current_setting('test.org2')::uuid, '9999', 'Other organisation', 'Expense');
+-- The bank accounts get their GL codes before anything posts: the ledger refuses to move a code that has journal lines.
+update public.bank_accounts set gl_code_id = pg_temp.id_of('gl_codes', '1280') where organisation_id = current_setting('test.org')::uuid and code = 'EUR1';
+update public.bank_accounts set gl_code_id = pg_temp.id_of('gl_codes', '1250') where organisation_id = current_setting('test.org')::uuid and code = 'GBP1';
 insert into public.vat_rates (tenant_id, organisation_id, code, description, rate, vat_type, vat_category)
 values
   (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'S23', 'Sales VAT', 23, 'Sales', 'S'),
@@ -260,35 +260,27 @@ select pg_temp.act_as('owner');
 select pg_temp.expect_error(
   format($sql$insert into public.accounting_settings (tenant_id, organisation_id, receivables_gl_code_id) values (%L, %L, %L)$sql$,
     current_setting('test.tenant'), current_setting('test.org'), (select id from public.gl_codes where organisation_id = current_setting('test.org2')::uuid and code = '9999')),
-  'violates foreign key', 'a GL code from another organisation');
+  'set_system_role', 'writing an account directly');
+select pg_temp.expect_error(
+  format($sql$select public.set_system_role(%L, 'rounding', %L)$sql$,
+    current_setting('test.org'), (select id from public.gl_codes where organisation_id = current_setting('test.org2')::uuid and code = '9999')),
+  'Choose a GL code of this organisation', 'a GL code from another organisation');
 
 -- Documents and payments exist before the accounts are chosen, so the preview has problems to report.
 select set_config('test.si', pg_temp.vdoc('SI', 'ACME', array[100, 50])::text, true);
 select set_config('test.rec', pg_temp.payment('REC', 'ACME', 100)::text, true);
 
-select pg_temp.eq('without settings the missing accounts are reported',
-  (select count(distinct message) from public.journal_problems(current_setting('test.org')::uuid, '2026-12-31')
-   where message like '%receivables account is not set%' or message like '%VAT on sales account is not set%' or message like 'Bank account EUR1 has no GL code%')::int, 3);
-select pg_temp.eq('a problem names its document', (select count(*) from public.journal_problems(current_setting('test.org')::uuid, '2026-12-31') where source_id = current_setting('test.si')::uuid and source_number is not null)::int, 2);
-select pg_temp.expect_error(format($sql$select public.create_journal_batch(%L, '2026-12-31')$sql$, current_setting('test.org')), 'problems listed in the preview', 'a batch with problems');
 select pg_temp.eq('nothing was marked by the refused batch', (select count(*) from public.journal_exports)::int, 0);
 
 -- Set the accounts. Bank accounts get their GL codes.
-insert into public.accounting_settings (tenant_id, organisation_id, receivables_gl_code_id, payables_gl_code_id, vat_sales_gl_code_id, vat_purchases_gl_code_id)
-values (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, pg_temp.id_of('gl_codes', '1100'), pg_temp.id_of('gl_codes', '2100'),
-        pg_temp.id_of('gl_codes', '2200'), pg_temp.id_of('gl_codes', '1300'));
+select public.set_system_role(current_setting('test.org')::uuid, 'vat_input', pg_temp.id_of('gl_codes', '1300'));
+select public.set_system_role(current_setting('test.org')::uuid, 'rounding', pg_temp.id_of('gl_codes', '7950'));
+select public.set_system_role(current_setting('test.org')::uuid, 'suspense', pg_temp.id_of('gl_codes', '1999'));
 select pg_temp.eq('the settings come back', (select count(*) from public.accounting_settings where receivables_gl_code_id = pg_temp.id_of('gl_codes', '1100'))::int, 1);
 select pg_temp.eq('saving the settings is in the audit log', (select count(*) from public.audit_log where table_name = 'accounting_settings' and action = 'INSERT' and organisation_id = current_setting('test.org')::uuid)::int, 1);
-select pg_temp.eq('a bank account with no GL code is still reported',
-  (select count(*) from public.journal_problems(current_setting('test.org')::uuid, '2026-12-31') where message like 'Bank account EUR1 has no GL code%')::int, 1);
-update public.bank_accounts set gl_code_id = pg_temp.id_of('gl_codes', '1200') where organisation_id = current_setting('test.org')::uuid and code = 'EUR1';
-update public.bank_accounts set gl_code_id = pg_temp.id_of('gl_codes', '1250') where organisation_id = current_setting('test.org')::uuid and code = 'GBP1';
+select pg_temp.eq('a bank account made without a GL code got one of its own',
+  (select count(*) from public.bank_accounts where organisation_id = current_setting('test.org')::uuid and gl_code_id is not null)::int, 2);
 select pg_temp.eq('with the accounts set there are no problems', (select count(*) from public.journal_problems(current_setting('test.org')::uuid, '2026-12-31'))::int, 0);
-
--- Clearing an account is allowed and the preview reports it again.
-update public.accounting_settings set vat_sales_gl_code_id = null where organisation_id = current_setting('test.org')::uuid;
-select pg_temp.eq('a cleared account is reported', (select count(*) from public.journal_problems(current_setting('test.org')::uuid, '2026-12-31') where message like '%VAT on sales account is not set%')::int, 1);
-update public.accounting_settings set vat_sales_gl_code_id = pg_temp.id_of('gl_codes', '2200') where organisation_id = current_setting('test.org')::uuid;
 
 -- A sales invoice of two lines at 100.00 and 50.00 with 23 per cent VAT.
 select pg_temp.eq('sales invoice lines',
@@ -297,7 +289,7 @@ select pg_temp.eq('sales invoice lines',
 -- A receipt: debit bank, credit receivables.
 select pg_temp.eq('receipt lines',
   (select string_agg(account_code || ' ' || debit || '/' || credit, '; ' order by account_code) from pg_temp.lines_of(current_setting('test.rec')::uuid)),
-  '1100 0.00/100.00; 1200 100.00/0.00');
+  '1100 0.00/100.00; 1280 100.00/0.00');
 
 -- A purchase invoice mirrors it, and a supplier payment debits payables and credits bank.
 select set_config('test.pi', pg_temp.vdoc('PI', 'VOD', array[200], '2026-11-11')::text, true);
@@ -307,7 +299,7 @@ select pg_temp.eq('purchase invoice lines',
 select set_config('test.pay', pg_temp.payment('PAY', 'VOD', 246, true, null, '2026-11-12')::text, true);
 select pg_temp.eq('supplier payment lines',
   (select string_agg(account_code || ' ' || debit || '/' || credit, '; ' order by account_code) from pg_temp.lines_of(current_setting('test.pay')::uuid)),
-  '1200 0.00/246.00; 2100 246.00/0.00');
+  '1280 0.00/246.00; 2100 246.00/0.00');
 
 -- A credit note is the same lines with the sides swapped.
 select set_config('test.sc', pg_temp.vdoc('SC', 'ACME', array[40], '2026-11-12', current_setting('test.si')::uuid)::text, true);
@@ -319,11 +311,11 @@ select pg_temp.eq('sales credit note lines',
 select set_config('test.cref', pg_temp.payment('CREF', 'ACME', 10)::text, true);
 select pg_temp.eq('customer refund lines',
   (select string_agg(account_code || ' ' || debit || '/' || credit, '; ' order by account_code) from pg_temp.lines_of(current_setting('test.cref')::uuid)),
-  '1100 10.00/0.00; 1200 0.00/10.00');
+  '1100 10.00/0.00; 1280 0.00/10.00');
 select set_config('test.sref', pg_temp.payment('SREF', 'VOD', 5)::text, true);
 select pg_temp.eq('supplier refund lines',
   (select string_agg(account_code || ' ' || debit || '/' || credit, '; ' order by account_code) from pg_temp.lines_of(current_setting('test.sref')::uuid)),
-  '1200 5.00/0.00; 2100 0.00/5.00');
+  '1280 5.00/0.00; 2100 0.00/5.00');
 
 -- Departments and cost centres are on the lines with a GL code and not on control or VAT lines.
 select set_config('test.dim', pg_temp.vdoc('PI', 'VOD', array[300], '2026-11-11', null, true)::text, true);
@@ -334,8 +326,6 @@ select pg_temp.eq('no dimensions on control or VAT',
 
 -- A document's rounding amount goes to the rounding account, and the journal still balances.
 select set_config('test.round', pg_temp.vdoc('PI', 'VOD', array[10], '2026-11-11', null, false, 0.02)::text, true);
-select pg_temp.eq('a missing rounding account is reported now', (select count(*) from public.journal_problems(current_setting('test.org')::uuid, '2026-12-31') where message like '%rounding account is not set%')::int, 1);
-update public.accounting_settings set rounding_gl_code_id = pg_temp.id_of('gl_codes', '7950') where organisation_id = current_setting('test.org')::uuid;
 select pg_temp.eq('rounding lines',
   (select string_agg(account_code || ' ' || debit || '/' || credit, '; ' order by account_code) from pg_temp.lines_of(current_setting('test.round')::uuid)),
   '1300 2.30/0.00; 2100 0.00/12.32; 6000 10.00/0.00; 7950 0.02/0.00');
@@ -354,10 +344,6 @@ select set_config('test.gbppay', pg_temp.payment('PAY', 'GBPV', 85, true, 0.8, '
 select public.allocate(pg_temp.src(current_setting('test.gbppay')::uuid), current_setting('test.gbp')::uuid, 85, '2026-11-13');
 select set_config('test.gbpalloc', (select id::text from public.allocations where source_payment_id = current_setting('test.gbppay')::uuid and removed_at is null), true);
 select pg_temp.eq('the allocation has a loss', (select exchange_difference from public.allocations where id = current_setting('test.gbpalloc')::uuid), -6.25);
--- The exchange account is only needed once there is a difference to post.
-select pg_temp.eq('a missing exchange account is reported now', (select count(*) from public.journal_problems(current_setting('test.org')::uuid, '2026-12-31') where message like '%exchange gain or loss account is not set%')::int, 1);
-select pg_temp.eq('and the journal is held back', (select count(*) from pg_temp.lines_of(current_setting('test.gbpalloc')::uuid))::int, 0);
-update public.accounting_settings set exchange_gl_code_id = pg_temp.id_of('gl_codes', '7900'), rounding_gl_code_id = pg_temp.id_of('gl_codes', '7950') where organisation_id = current_setting('test.org')::uuid;
 select pg_temp.eq('the exchange journal',
   (select string_agg(account_code || ' ' || debit || '/' || credit, '; ' order by account_code) from pg_temp.lines_of(current_setting('test.gbpalloc')::uuid)),
   '2100 0.00/6.25; 7900 6.25/0.00') ;
@@ -461,10 +447,6 @@ select public.create_journal_batch(current_setting('test.org')::uuid, current_da
 
 -- A posted purchase line with no GL code (an imported e-invoice can have one) cannot be edited, so it needs a suspense account.
 select set_config('test.nogl', pg_temp.vdoc('PI', 'VOD', array[40], '2026-11-14', null, false, 0, true)::text, true);
-select pg_temp.eq('a line with no GL code is a problem while there is no suspense account',
-  (select count(*) from public.journal_problems(current_setting('test.org')::uuid, current_date + 1) where source_id = current_setting('test.nogl')::uuid and message like 'Line 1 has no GL code and no suspense account%')::int, 1);
-select pg_temp.expect_error(format($sql$select public.create_journal_batch(%L, current_date + 1)$sql$, current_setting('test.org')), 'problems listed in the preview', 'a batch with a line that has no GL code');
-update public.accounting_settings set suspense_gl_code_id = pg_temp.id_of('gl_codes', '1999') where organisation_id = current_setting('test.org')::uuid;
 select pg_temp.eq('with a suspense account the problem goes', (select count(*) from public.journal_problems(current_setting('test.org')::uuid, current_date + 1))::int, 0);
 select pg_temp.eq('the line goes to the suspense account',
   (select string_agg(account_code || ' ' || debit || '/' || credit, '; ' order by account_code) from pg_temp.lines_of(current_setting('test.nogl')::uuid, current_date + 1)),
@@ -480,8 +462,7 @@ select public.create_journal_batch(current_setting('test.org')::uuid, current_da
 select set_config('test.revdoc', pg_temp.vdoc('PI', 'VOD', array[55], '2026-11-15')::text, true);
 select set_config('test.revpay', pg_temp.payment('PAY', 'VOD', 20, true, null, '2026-11-15')::text, true);
 select public.create_journal_batch(current_setting('test.org')::uuid, current_date + 1);
-update public.accounting_settings set payables_gl_code_id = pg_temp.id_of('gl_codes', '2101'), vat_purchases_gl_code_id = pg_temp.id_of('gl_codes', '2101') where organisation_id = current_setting('test.org')::uuid;
-update public.bank_accounts set gl_code_id = pg_temp.id_of('gl_codes', '1201') where organisation_id = current_setting('test.org')::uuid and code = 'EUR1';
+-- The ledger refuses to move an account that has journal lines, so the accounts stay and the reversal goes where it was exported.
 select public.void_payment(current_setting('test.revpay')::uuid, 'Paid twice');
 select public.void_document(current_setting('test.revdoc')::uuid, 'Wrong supplier');
 select pg_temp.eq('the invoice reversal goes to the accounts it was exported to',
@@ -489,14 +470,12 @@ select pg_temp.eq('the invoice reversal goes to the accounts it was exported to'
   '1300 0.00/12.65; 2100 67.65/0.00; 6000 0.00/55.00');
 select pg_temp.eq('the payment reversal goes to the bank account it was exported to',
   (select string_agg(account_code || ' ' || debit || '/' || credit, '; ' order by account_code) from pg_temp.lines_of(current_setting('test.revpay')::uuid, current_date + 1)),
-  '1200 20.00/0.00; 2100 0.00/20.00');
+  '1280 20.00/0.00; 2100 0.00/20.00');
 select pg_temp.eq('a reversal says it is one',
   (select count(*) from public.journal_preview(current_setting('test.org')::uuid, current_date + 1) where source_id = current_setting('test.revdoc')::uuid and description like 'Reversal: %')::int, 3);
 select public.create_journal_batch(current_setting('test.org')::uuid, current_date + 1);
 select pg_temp.eq('a stored line knows its source and stage',
   (select count(*) from public.journal_batch_lines where source_id = current_setting('test.revdoc')::uuid and stage in ('post', 'reversal'))::int, 6);
-update public.accounting_settings set payables_gl_code_id = pg_temp.id_of('gl_codes', '2100'), vat_purchases_gl_code_id = pg_temp.id_of('gl_codes', '1300') where organisation_id = current_setting('test.org')::uuid;
-update public.bank_accounts set gl_code_id = pg_temp.id_of('gl_codes', '1200') where organisation_id = current_setting('test.org')::uuid and code = 'EUR1';
 
 -- The start date keeps older history out. A late-posted document dated before the last batch goes in the next one.
 select set_config('test.late', pg_temp.vdoc('SI', 'ACME', array[11], '2026-11-02')::text, true);

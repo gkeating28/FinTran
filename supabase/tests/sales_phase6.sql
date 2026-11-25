@@ -56,7 +56,7 @@ select set_config('test.supplier', (select id::text from public.suppliers where 
 select set_config('test.si', (select id::text from public.transaction_types where code = 'SI' and organisation_id = current_setting('test.org')::uuid), true);
 select set_config('test.sc', (select id::text from public.transaction_types where code = 'SC' and organisation_id = current_setting('test.org')::uuid), true);
 select set_config('test.pi', (select id::text from public.transaction_types where code = 'PI' and organisation_id = current_setting('test.org')::uuid), true);
-select set_config('test.income', (select id::text from public.gl_codes where organisation_id = current_setting('test.org')::uuid), true);
+select set_config('test.income', (select id::text from public.gl_codes where organisation_id = current_setting('test.org')::uuid and system_role is null and code = '4000'), true);
 select set_config('test.s23', (select id::text from public.vat_rates where code = 'S23' and organisation_id = current_setting('test.org')::uuid), true);
 select set_config('test.s13', (select id::text from public.vat_rates where code = 'S13' and organisation_id = current_setting('test.org')::uuid), true);
 select set_config('test.ae', (select id::text from public.vat_rates where code = 'AE0' and organisation_id = current_setting('test.org')::uuid), true);

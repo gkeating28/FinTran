@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildApprovalInsights, buildInsights, findDuplicates, findDueSoon, findLargeInvoices, findLikelyMatches, findMoneyOnAccount, findOverdue, findPartPaidOverdue, findStaleDrafts, type InsightDoc, type InsightPayment } from "./insights";
+import { buildApprovalInsights, buildInsights, buildLedgerInsights, findDuplicates, findDueSoon, findLargeInvoices, findLikelyMatches, findMoneyOnAccount, findOverdue, findPartPaidOverdue, findStaleDrafts, type InsightDoc, type InsightPayment } from "./insights";
 
 const today = "2026-11-09";
 
@@ -196,4 +196,16 @@ test("a payment run waiting for approval opens the run, and a payment is called 
   assert.match(insights[0].detail, /payment run RUN-0001/);
   const payment = buildApprovalInsights([{ ...item, id: "p1", kind: "payment" as const, number: "7", party: "Vodafone" }]);
   assert.equal(payment[0].href, "/transactions/PAY?open=p1");
+});
+
+test("the ledger is only worth a look when a check of the reconciliation is out", () => {
+  assert.deepEqual(buildLedgerInsights([{ check: "Debtors", difference: 0 }, { check: "Balance", difference: 0 }]), []);
+  assert.deepEqual(buildLedgerInsights([]), []);
+  const [debtors] = buildLedgerInsights([{ check: "Debtors", difference: -1.37 }, { check: "Creditors", difference: 0 }]);
+  assert.equal(debtors.id, "ledger-differences");
+  assert.equal(debtors.title, "The ledger does not agree with customer balances");
+  assert.match(debtors.detail, /Debtors is out by/);
+  const [bank] = buildLedgerInsights([{ check: "Bank EUR1", difference: 5 }]);
+  assert.equal(bank.title, "The ledger does not agree with the EUR1 bank account");
+  assert.equal(buildInsights([], [], today, [], undefined, [], [], [{ check: "Debtors", difference: 2 }]).some((item) => item.id === "ledger-differences"), true);
 });

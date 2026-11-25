@@ -4,13 +4,29 @@ export const REFERENCE_KINDS = ["gl_codes", "departments", "cost_centres", "vat_
 
 export type ReferenceKind = (typeof REFERENCE_KINDS)[number];
 
+/** The eight account types, in the order of the report sections they belong to (QULAPLUS_LEDGER_SPEC.md). */
 export const ACCOUNT_TYPES = [
   "Fixed Asset",
-  "Current Liability",
   "Current Asset",
+  "Current Liability",
+  "Non-current Liability",
+  "Equity",
   "Income",
+  "Cost of Sales",
   "Expense",
 ] as const;
+
+/** The job a GL code does for the ledger, as the person reads it. */
+export const SYSTEM_ROLE_LABELS: Record<string, string> = {
+  debtors_control: "Debtors control",
+  creditors_control: "Creditors control",
+  vat_output: "VAT on sales",
+  vat_input: "VAT on purchases",
+  retained_earnings: "Retained earnings",
+  fx_difference: "Exchange differences",
+  rounding: "Rounding",
+  suspense: "Suspense",
+};
 
 export type AccountType = (typeof ACCOUNT_TYPES)[number];
 
@@ -23,6 +39,7 @@ export type ReferenceRow = {
   code: string;
   description: string;
   accountType: AccountType | null;
+  systemRole: string | null;
   rate: string | null;
   vatType: VatType | null;
   vatCategory: string | null;
