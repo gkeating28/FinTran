@@ -61,13 +61,13 @@ values (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid,
 on conflict (organisation_id, code) do nothing;
 insert into public.gl_codes (tenant_id, organisation_id, code, description, account_type)
 values
-  (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '1200', 'Bank', 'Current Asset'),
+  (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '1290', 'Bank', 'Current Asset'),
   (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '6000', 'Stationery', 'Expense');
 
 select set_config('test.eur', (select id::text from public.currencies where organisation_id = current_setting('test.org')::uuid and code = 'EUR'), true);
 select set_config('test.gbp', (select id::text from public.currencies where organisation_id = current_setting('test.org')::uuid and code = 'GBP'), true);
 select set_config('test.eur2', (select id::text from public.currencies where organisation_id = current_setting('test.org2')::uuid and code = 'EUR'), true);
-select set_config('test.gl_asset', (select id::text from public.gl_codes where organisation_id = current_setting('test.org')::uuid and code = '1200'), true);
+select set_config('test.gl_asset', (select id::text from public.gl_codes where organisation_id = current_setting('test.org')::uuid and code = '1290'), true);
 select set_config('test.gl_expense', (select id::text from public.gl_codes where organisation_id = current_setting('test.org')::uuid and code = '6000'), true);
 
 -- IBAN: normalised on save, validated, and unique once normalised.

@@ -36,16 +36,11 @@ select set_config('test.invoice', public.save_document(jsonb_build_object(
   'supplierId', (select id from public.suppliers where organisation_id = current_setting('test.org')::uuid),
   'supplierReference', 'SUP-JOURNAL', 'transactionDate', '2026-11-12', 'exchangeRate', 1,
   'lines', jsonb_build_array(jsonb_build_object('description', 'Last 100', 'quantity', 1, 'price', 100,
-    'glCodeId', (select id from public.gl_codes where organisation_id = current_setting('test.org')::uuid),
+    'glCodeId', (select id from public.gl_codes where organisation_id = current_setting('test.org')::uuid and code = '6000'),
     'vatRateId', (select id from public.vat_rates where organisation_id = current_setting('test.org')::uuid)))
 ))::text, false);
 select public.post_document(current_setting('test.invoice')::uuid, null);
--- The accounts the journal needs, and a GL code on the bank account.
-insert into public.gl_codes (tenant_id, organisation_id, code, description, account_type)
-values (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '2100', 'Trade creditors', 'Current Liability');
-insert into public.accounting_settings (tenant_id, organisation_id, payables_gl_code_id)
-select current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, id from public.gl_codes
-where organisation_id = current_setting('test.org')::uuid and code = '2100';
+-- The accounts the journal needs are the organisation's default accounts.
 reset role;
 select 'IDS ' || current_setting('test.org') || ' ' || current_setting('test.invoice');
 SQL

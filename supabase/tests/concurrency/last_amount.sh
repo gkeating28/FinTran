@@ -36,7 +36,7 @@ select set_config('test.invoice', public.save_document(jsonb_build_object(
   'supplierId', (select id from public.suppliers where organisation_id = current_setting('test.org')::uuid),
   'supplierReference', 'SUP-LAST', 'transactionDate', '2026-11-12', 'exchangeRate', 1,
   'lines', jsonb_build_array(jsonb_build_object('description', 'Last 100', 'quantity', 1, 'price', 100,
-    'glCodeId', (select id from public.gl_codes where organisation_id = current_setting('test.org')::uuid),
+    'glCodeId', (select id from public.gl_codes where organisation_id = current_setting('test.org')::uuid and code = '6000'),
     'vatRateId', (select id from public.vat_rates where organisation_id = current_setting('test.org')::uuid)))
 ))::text, false);
 select public.post_document(current_setting('test.invoice')::uuid, null);

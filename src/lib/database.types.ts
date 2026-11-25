@@ -765,7 +765,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           currency_id: string
-          gl_code_id: string | null
+          gl_code_id: string
           iban: string
           id: string
           is_default: boolean
@@ -782,7 +782,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           currency_id: string
-          gl_code_id?: string | null
+          gl_code_id?: string
           iban: string
           id?: string
           is_default?: boolean
@@ -799,7 +799,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           currency_id?: string
-          gl_code_id?: string | null
+          gl_code_id?: string
           iban?: string
           id?: string
           is_default?: boolean
@@ -1626,6 +1626,11 @@ export type Database = {
           tenant_id: string
           updated_at: string
           updated_by: string | null
+          system_role: string | null
+          active: boolean
+          external_code: string | null
+          external_name: string | null
+          report_group: string | null
         }
         Insert: {
           account_type: string
@@ -1638,6 +1643,11 @@ export type Database = {
           tenant_id: string
           updated_at?: string
           updated_by?: string | null
+          system_role?: string | null
+          active?: boolean
+          external_code?: string | null
+          external_name?: string | null
+          report_group?: string | null
         }
         Update: {
           account_type?: string
@@ -1650,6 +1660,11 @@ export type Database = {
           tenant_id?: string
           updated_at?: string
           updated_by?: string | null
+          system_role?: string | null
+          active?: boolean
+          external_code?: string | null
+          external_name?: string | null
+          report_group?: string | null
         }
         Relationships: [
           {
@@ -1799,6 +1814,78 @@ export type Database = {
         }
         Relationships: []
       }
+      journal_entries: {
+        Row: {
+          id: string
+          tenant_id: string
+          organisation_id: string
+          entry_number: number | null
+          entry_date: string
+          status: string
+          source_type: string
+          source_header_id: string | null
+          source_payment_id: string | null
+          source_allocation_id: string | null
+          reverses_entry_id: string | null
+          source_ref: string | null
+          is_opening: boolean
+          description: string
+          backfilled: boolean
+          posted_at: string | null
+          posted_by: string | null
+          created_at: string
+          created_by: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          organisation_id: string
+          entry_number?: number | null
+          entry_date: string
+          status?: string
+          source_type: string
+          source_header_id?: string | null
+          source_payment_id?: string | null
+          source_allocation_id?: string | null
+          reverses_entry_id?: string | null
+          source_ref?: string | null
+          is_opening?: boolean
+          description: string
+          backfilled?: boolean
+          posted_at?: string | null
+          posted_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          organisation_id?: string
+          entry_number?: number | null
+          entry_date?: string
+          status?: string
+          source_type?: string
+          source_header_id?: string | null
+          source_payment_id?: string | null
+          source_allocation_id?: string | null
+          reverses_entry_id?: string | null
+          source_ref?: string | null
+          is_opening?: boolean
+          description?: string
+          backfilled?: boolean
+          posted_at?: string | null
+          posted_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       journal_exports: {
         Row: {
           batch_id: string
@@ -1826,6 +1913,102 @@ export type Database = {
           source_ref?: string
           stage?: string
           tenant_id?: string
+        }
+        Relationships: []
+      }
+      journal_lines: {
+        Row: {
+          id: string
+          tenant_id: string
+          organisation_id: string
+          entry_id: string
+          line_number: number
+          gl_code_id: string
+          department_id: string | null
+          cost_centre_id: string | null
+          debit: number
+          credit: number
+          currency_id: string
+          exchange_rate: number
+          foreign_amount: number
+          customer_id: string | null
+          supplier_id: string | null
+          vat_category: string | null
+          vat_percentage: number | null
+          vat_taxable_home: number | null
+          description: string | null
+          created_at: string
+          created_by: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          organisation_id: string
+          entry_id: string
+          line_number: number
+          gl_code_id: string
+          department_id?: string | null
+          cost_centre_id?: string | null
+          debit?: number
+          credit?: number
+          currency_id: string
+          exchange_rate: number
+          foreign_amount: number
+          customer_id?: string | null
+          supplier_id?: string | null
+          vat_category?: string | null
+          vat_percentage?: number | null
+          vat_taxable_home?: number | null
+          description?: string | null
+          created_at?: string
+          created_by?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          organisation_id?: string
+          entry_id?: string
+          line_number?: number
+          gl_code_id?: string
+          department_id?: string | null
+          cost_centre_id?: string | null
+          debit?: number
+          credit?: number
+          currency_id?: string
+          exchange_rate?: number
+          foreign_amount?: number
+          customer_id?: string | null
+          supplier_id?: string | null
+          vat_category?: string | null
+          vat_percentage?: number | null
+          vat_taxable_home?: number | null
+          description?: string | null
+          created_at?: string
+          created_by?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ledger_counters: {
+        Row: {
+          organisation_id: string
+          tenant_id: string
+          last_number: number
+        }
+        Insert: {
+          organisation_id: string
+          tenant_id: string
+          last_number?: number
+        }
+        Update: {
+          organisation_id?: string
+          tenant_id?: string
+          last_number?: number
         }
         Relationships: []
       }
@@ -1938,6 +2121,10 @@ export type Database = {
           updated_by: string | null
           vat_number: string | null
           website: string | null
+          ledger_mode: string
+          ledger_start_date: string | null
+          lock_exported: boolean
+          exported_through: string | null
         }
         Insert: {
           bank_change_days?: number | null
@@ -1975,6 +2162,10 @@ export type Database = {
           updated_by?: string | null
           vat_number?: string | null
           website?: string | null
+          ledger_mode?: string
+          ledger_start_date?: string | null
+          lock_exported?: boolean
+          exported_through?: string | null
         }
         Update: {
           bank_change_days?: number | null
@@ -2012,6 +2203,10 @@ export type Database = {
           updated_by?: string | null
           vat_number?: string | null
           website?: string | null
+          ledger_mode?: string
+          ledger_start_date?: string | null
+          lock_exported?: boolean
+          exported_through?: string | null
         }
         Relationships: [
           {
@@ -4463,6 +4658,10 @@ export type Database = {
       }
       set_order_status: {
         Args: { p_action: string; p_header_id: string }
+        Returns: undefined
+      }
+      set_system_role: {
+        Args: { p_gl_code_id: string; p_organisation_id: string; p_role: string }
         Returns: undefined
       }
       set_organisation_secret: {
