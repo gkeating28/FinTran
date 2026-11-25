@@ -599,6 +599,7 @@ Release B (phases 3 to 5) is built in migrations `20261125110000_ledger_posting`
 - **Worth a look** links to Admin for now. Release C points it at the trial balance.
 - **The reconciliation's bank rows** leave out manual journals, which arrive in release C, and compare each bank account's system entries only.
 - **Test changes.** `journal_export.sql` set bank account GL codes and moved role accounts after posting, which the ledger now refuses once journal lines exist. It sets the bank codes before anything posts, and its reversal scenario keeps the accounts where they were.
+- **Flow 35 no longer moves accounts.** It moved the VAT on purchases and rounding roles to other codes, which worked in release A. By the time it runs, earlier flows have posted invoices, so journal lines use those accounts and the ledger refuses to move them. It now checks the accounts are there and saves.
 - **The existing test suite is the regression test for shadow mode.** Every SQL test that posts a document or payment now also posts to the ledger, and all of them still pass.
 
 ## Out of scope
