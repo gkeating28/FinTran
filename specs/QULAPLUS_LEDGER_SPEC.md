@@ -262,7 +262,7 @@ Checks:
 
 - **Balance.** A constraint trigger deferred to the end of the transaction refuses any posted entry whose debits differ from its credits. Each posting function also checks the balance itself before it returns, so the message is readable (rule 2 of the agent rules).
 - **Immutability.** Posted entries and their lines cannot be updated or deleted by anyone. Draft manual journals can be edited and deleted by owners and admins.
-- **Lock date.** No entry may be posted with an `entry_date` on or before the lock date, except the backfill, which uses a migration-only setting. A reversal is dated by L6 and so always passes.
+- **Lock date.** No entry may be posted with an `entry_date` on or before the lock date, except the backfill, which uses a migration-only setting. A reversal is dated by L6 and so always passes. The opening balance journal and documents dated before `ledger_start_date` are also exempt, because go-live normally follows a closed period and the opening figures belong to it. `set_ledger_mode` to `book` refuses a lock date later than the day before go-live, so the exemption cannot hide a locked period that go-live falls inside.
 - **Writes.** No direct insert, update or delete for `authenticated` on either table. All writes go through security definer functions and triggers, which set `fintran.ledger_post`.
 - **Numbers.** `entry_number` comes from a per-organisation counter row, locked with `SELECT ... FOR UPDATE` last in the lock order, inside the posting transaction.
 
@@ -481,7 +481,7 @@ A manual journal may post to bank account codes, VAT accounts, suspense and any 
 
 ### 7.2 Opening balance journal
 
-`post_opening_journal(p_journal jsonb)` posts a manual journal flagged `is_opening`, dated the day before `ledger_start_date`. It may not touch control accounts, because opening debtors and creditors are entered as ordinary documents dated before go-live. It can be posted once. Spec 10 may add a dedicated route for opening debtors and creditors.
+`post_opening_journal(p_journal jsonb)` posts a manual journal flagged `is_opening`, dated the day before `ledger_start_date`, which the lock date does not refuse (see 2.4). It may not touch control accounts, because opening debtors and creditors are entered as ordinary documents dated before go-live. It can be posted once. Spec 10 may add a dedicated route for opening debtors and creditors.
 
 ### Acceptance
 
@@ -491,6 +491,7 @@ A manual journal may post to bank account codes, VAT accounts, suspense and any 
 - [ ] Reversing an accrual on the first day of the next month posts the mirror entry on that date.
 - [ ] A posted manual journal cannot be edited or deleted. A draft can.
 - [ ] The opening balance journal posts once, dated the day before go-live, and is refused if it touches a control account.
+- [ ] The opening balance journal and a document dated before go-live post even when the lock date is later than them. Switching to `book` with a lock date after the day before go-live is refused.
 
 ---
 
@@ -548,9 +549,9 @@ Orders, requisitions, drafts and manual journals are not in it. Manual journals 
 ### 9.2 Tables and functions
 
 - `feed_batches`: number `FD-0001`, up-to date, counts, who and when. Immutable.
-- `feed_items`: batch, `item_type` (`document`, `payment`, `allocation`, `cancellation`), the source ids, `payload` jsonb (the item as made, so a download is the same later), `idempotency_key` (source id and stage, unique per organisation), `status` (`pending`, `exported`, `acknowledged`, `rejected`), `external_reference` and `error`.
+- `feed_items`: batch, `item_type` (`document`, `payment`, `allocation`, `cancellation`), the source ids, `payload` jsonb (the item as made, so a download is the same later), `idempotency_key` (source id and stage; unique per organisation among items that are not `rejected`, by a partial unique index), `status` (`pending`, `exported`, `acknowledged`, `rejected`), `external_reference` and `error`.
 - `public.feed_preview(p_organisation_id, p_up_to)` and `public.create_feed_batch(p_organisation_id, p_up_to)`, owners and admins. A batch sets `exported_through` (L7).
-- Status moves `pending` to `exported` when the batch is made, and to `acknowledged` or `rejected` by an owner or admin until a connector does it. A rejected item can be put in a new batch and keeps its history.
+- Status moves `pending` to `exported` when the batch is made, and to `acknowledged` or `rejected` by an owner or admin until a connector does it. A rejected item stays as it was, as history. Putting it in a new batch makes a new `feed_items` row with the same key, which the partial unique index allows because the old row is `rejected`.
 - The same payload builders are the interface a connector will use.
 
 ### 9.3 Journal export refit

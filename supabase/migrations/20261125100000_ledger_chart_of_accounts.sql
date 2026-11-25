@@ -158,6 +158,18 @@ begin
     if exists (select 1 from public.bank_accounts where gl_code_id = new.id) then
       raise exception 'That GL code is a bank account code, so it cannot have a system role';
     end if;
+    if new.system_role in ('debtors_control', 'creditors_control')
+       and (tg_op = 'INSERT' or old.system_role is distinct from new.system_role)
+       and (exists (select 1 from public.transaction_lines where organisation_id = new.organisation_id and gl_code_id = new.id)
+         or exists (select 1 from public.products where organisation_id = new.organisation_id and (purchase_gl_code_id = new.id or sales_gl_code_id = new.id))) then
+      raise exception 'That GL code is used on document lines or products, so it cannot be a control account. Move them to another code first.';
+    end if;
+  end if;
+  -- A role is moved to another code with set_system_role. Clearing it by hand would leave the organisation without one.
+  if tg_op = 'UPDATE' and old.system_role is not null and new.system_role is null
+     and current_setting('fintran.role_move', true) is distinct from 'on'
+     and current_setting('fintran.deleting_organisation', true) is distinct from 'on' then
+    raise exception 'A system role cannot be cleared. Give the role to another GL code instead.';
   end if;
   return new;
 end;
@@ -248,13 +260,34 @@ begin
     raise exception 'That GL code is used on document lines or products, so it cannot be a control account. Move them to another code first.';
   end if;
 
+  perform set_config('fintran.role_move', 'on', true);
   update public.gl_codes set system_role = null
   where organisation_id = p_organisation_id and system_role = p_role and id <> p_gl_code_id;
   update public.gl_codes set system_role = p_role where id = p_gl_code_id;
+  perform set_config('fintran.role_move', 'off', true);
 end;
 $$;
 revoke all on function public.set_system_role(uuid, text, uuid) from public, anon;
 grant execute on function public.set_system_role(uuid, text, uuid) to authenticated;
+
+-- Several roles at once, all or none. p_roles is an object of role to GL code id. One call is one transaction, so a refusal
+-- on a later role leaves the earlier ones as they were.
+create function public.set_system_roles(p_organisation_id uuid, p_roles jsonb) returns void
+  language plpgsql security definer set search_path to ''
+as $$
+declare
+  r record;
+begin
+  if jsonb_typeof(p_roles) is distinct from 'object' then
+    raise exception 'Send the roles as an object of role to GL code';
+  end if;
+  for r in select key, value from jsonb_each_text(p_roles) loop
+    perform public.set_system_role(p_organisation_id, r.key, r.value::uuid);
+  end loop;
+end;
+$$;
+revoke all on function public.set_system_roles(uuid, jsonb) from public, anon;
+grant execute on function public.set_system_roles(uuid, jsonb) to authenticated;
 
 -- The mirror in accounting_settings -----------------------------------------------------------------------------------------
 create function private.role_settings_column(p_role text) returns text
@@ -489,6 +522,22 @@ begin
     where private.role_account_type(c.role) is distinct from g.account_type
   loop
     v_problems := v_problems || format(E'\n  %s: %s is %s, and the role %s needs %s', r.organisation, r.code, r.account_type, r.role, private.role_account_type(r.role));
+  end loop;
+
+  -- A choice that is also the GL code of a bank account. A bank code cannot hold a role.
+  for r in
+    select o.name as organisation, c.role, g.code
+    from public.accounting_settings s
+    join public.organisations o on o.id = s.organisation_id
+    cross join lateral (values
+      ('debtors_control', s.receivables_gl_code_id), ('creditors_control', s.payables_gl_code_id),
+      ('vat_output', s.vat_sales_gl_code_id), ('vat_input', s.vat_purchases_gl_code_id),
+      ('fx_difference', s.exchange_gl_code_id), ('rounding', s.rounding_gl_code_id), ('suspense', s.suspense_gl_code_id)
+    ) as c(role, gl_id)
+    join public.gl_codes g on g.id = c.gl_id
+    where exists (select 1 from public.bank_accounts b where b.gl_code_id = g.id)
+  loop
+    v_problems := v_problems || format(E'\n  %s: %s is a bank account GL code, so it cannot be chosen for %s', r.organisation, r.code, r.role);
   end loop;
 
   -- One code chosen for two roles.

@@ -22,13 +22,17 @@ export async function saveAccountingSettings(formData: FormData): Promise<void> 
   const holders = await supabase.from("gl_codes").select("id, system_role").eq("organisation_id", current.organisationId).not("system_role", "is", null);
   if (holders.error) redirect(settingsUrl(current.organisationId, "accounting", "error", "The accounting settings could not be saved."));
 
+  // Every changed role goes in one call, so a refusal on one leaves all of them as they were.
+  const roles: Record<string, string> = {};
   for (const account of ACCOUNTING_ACCOUNTS) {
     const chosen = text(formData, account.column);
     if (!chosen) continue;
     const holder = holders.data?.find((row) => row.system_role === account.role)?.id;
-    if (holder === chosen) continue;
-    const { error } = await supabase.rpc("set_system_role", { p_organisation_id: current.organisationId, p_role: account.role, p_gl_code_id: chosen });
-    if (error) redirect(settingsUrl(current.organisationId, "accounting", "error", `${account.label}: ${error.message || "that account could not be set."}`));
+    if (holder !== chosen) roles[account.role] = chosen;
+  }
+  if (Object.keys(roles).length > 0) {
+    const { error: roleError } = await supabase.rpc("set_system_roles", { p_organisation_id: current.organisationId, p_roles: roles });
+    if (roleError) redirect(settingsUrl(current.organisationId, "accounting", "error", roleError.message || "The accounts could not be saved."));
   }
 
   const { error } = await supabase
