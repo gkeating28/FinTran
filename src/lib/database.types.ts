@@ -4693,6 +4693,10 @@ export type Database = {
         Args: { p_gl_code_id: string; p_organisation_id: string; p_role: string }
         Returns: undefined
       }
+      set_system_roles: {
+        Args: { p_organisation_id: string; p_roles: Json }
+        Returns: undefined
+      }
       set_organisation_secret: {
         Args: {
           p_ciphertext: string

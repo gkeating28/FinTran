@@ -182,8 +182,11 @@ function onlyChoice(rows: ReferenceRow[]) {
   return rows.length === 1 ? rows[0].id : "";
 }
 
-function glChoices(rows: ReferenceRow[], type: AccountType, currentId?: string) {
-  const matched = rows.filter((row) => row.accountType === type);
+/** A product's purchase account is an expense or a cost of sales. */
+const PURCHASE_GL_TYPES: readonly AccountType[] = ["Expense", "Cost of Sales"];
+
+function glChoices(rows: ReferenceRow[], types: readonly AccountType[], currentId?: string) {
+  const matched = rows.filter((row) => types.includes(row.accountType as AccountType));
   if (!currentId || matched.some((row) => row.id === currentId)) return matched;
   const current = rows.find((row) => row.id === currentId);
   return current ? [current, ...matched] : matched;
@@ -260,8 +263,8 @@ function ProductForm({
   const [availableGlCodes, setAvailableGlCodes] = useState(glCodes);
   const [availableVatRates, setAvailableVatRates] = useState(vatRates);
   const [choicesReady, setChoicesReady] = useState(false);
-  const purchaseGlCodes = glChoices(availableGlCodes, "Expense", row?.purchaseGlCodeId);
-  const salesGlCodes = glChoices(availableGlCodes, "Income", row?.salesGlCodeId);
+  const purchaseGlCodes = glChoices(availableGlCodes, PURCHASE_GL_TYPES, row?.purchaseGlCodeId);
+  const salesGlCodes = glChoices(availableGlCodes, ["Income"], row?.salesGlCodeId);
   const purchaseVatRates = vatChoices(availableVatRates, "Expense", row?.purchaseVatCodeId);
   const salesVatRates = vatChoices(availableVatRates, "Sales", row?.salesVatCodeId);
   const save = row ? updateProduct : createProduct;
@@ -293,7 +296,7 @@ function ProductForm({
         setAvailableGlCodes(result.glCodes);
         setAvailableVatRates(result.vatRates);
         if (!row) {
-          const expenseGl = result.glCodes.filter((gl) => gl.accountType === "Expense");
+          const expenseGl = result.glCodes.filter((gl) => (PURCHASE_GL_TYPES as readonly string[]).includes(gl.accountType ?? ""));
           const incomeGl = result.glCodes.filter((gl) => gl.accountType === "Income");
           const expenseVat = result.vatRates.filter((rate) => rate.vatType === "Expense");
           const salesVat = result.vatRates.filter((rate) => rate.vatType === "Sales");
@@ -318,7 +321,7 @@ function ProductForm({
   }, [state.message, onClose]);
 
   const missing: string[] = [];
-  if (choicesReady && purchaseGlCodes.length === 0) missing.push("Add an Expense GL code for purchases.");
+  if (choicesReady && purchaseGlCodes.length === 0) missing.push("Add an Expense or Cost of Sales GL code for purchases.");
   if (choicesReady && salesGlCodes.length === 0) {
     const summary = accountSummary(availableGlCodes);
     missing.push(

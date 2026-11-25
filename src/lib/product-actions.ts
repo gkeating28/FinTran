@@ -29,8 +29,8 @@ function friendlyError(error: { code?: string; message: string } | null, fallbac
   if (error.code === "23514") {
     return "Start the code with a letter or number. Then use letters, numbers, dots, or hyphens, up to 30 characters, and a description up to 200 characters.";
   }
-  if (error.code === "P0001" && error.message.includes("Expense account")) {
-    return "Choose an Expense GL code for purchases.";
+  if (error.code === "P0001" && error.message.includes("Purchase GL code must be")) {
+    return "Choose an Expense or Cost of Sales GL code for purchases.";
   }
   if (error.code === "P0001" && error.message.includes("Income account")) {
     return "Choose an Income GL code for sales.";

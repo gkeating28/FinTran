@@ -24,7 +24,7 @@ export async function getAccountingSettings(organisationId: string): Promise<{
   if (!organisationId) return { settings: EMPTY_ACCOUNTING_SETTINGS, glCodes: [], error: null };
 
   const supabase = await createClient();
-  const [row, codes] = await Promise.all([
+  const [row, codes, banks] = await Promise.all([
     supabase.from("accounting_settings").select("start_date").eq("organisation_id", organisationId).maybeSingle(),
     supabase
       .from("gl_codes")
@@ -32,11 +32,14 @@ export async function getAccountingSettings(organisationId: string): Promise<{
       .eq("organisation_id", organisationId)
       .eq("active", true)
       .order("code"),
+    supabase.from("bank_accounts").select("gl_code_id").eq("organisation_id", organisationId),
   ]);
-  if (row.error || codes.error) {
+  if (row.error || codes.error || banks.error) {
     return { settings: EMPTY_ACCOUNTING_SETTINGS, glCodes: [], error: "The accounting settings could not be loaded." };
   }
-  const glCodes = (codes.data ?? []).map((code) => ({
+  // A bank account's own GL code cannot hold a role, so it is not offered.
+  const bankCodes = new Set((banks.data ?? []).map((bank) => bank.gl_code_id));
+  const glCodes = (codes.data ?? []).filter((code) => !bankCodes.has(code.id)).map((code) => ({
     id: code.id,
     code: code.code,
     description: code.description,

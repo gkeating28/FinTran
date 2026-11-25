@@ -94,6 +94,11 @@ select pg_temp.expect_error(format($sql$delete from public.gl_codes where id = %
 select pg_temp.expect_error(format($sql$update public.gl_codes set active = false where id = %L$sql$, pg_temp.gl('test.org', '1100')), 'cannot be made inactive', 'deactivating a role account');
 update public.gl_codes set active = false where id = pg_temp.gl('test.org', 'EQ');
 select pg_temp.expect_error(format($sql$select public.set_system_role(%L, 'retained_earnings', %L)$sql$, current_setting('test.org'), pg_temp.gl('test.org', 'EQ')), 'inactive', 'an inactive code as a role');
+-- Direct updates keep the rules of set_system_role.
+select pg_temp.expect_error(format($sql$update public.gl_codes set system_role = null where id = %L$sql$, pg_temp.gl('test.org', '1100')), 'cannot be cleared', 'clearing a role by hand');
+select pg_temp.expect_error(format($sql$select public.set_system_roles(%L, jsonb_build_object('suspense', %L::text, 'retained_earnings', %L::text))$sql$,
+  current_setting('test.org'), pg_temp.gl('test.org', '9990'), pg_temp.gl('test.org', 'EQ')), 'inactive', 'several roles with one refused');
+select pg_temp.eq('a refusal leaves the earlier role as it was', pg_temp.role_code('test.org', 'suspense'), 'ASSET2');
 update public.gl_codes set external_code = '  A-100 ', external_name = '', report_group = null where id = pg_temp.gl('test.org', 'INC');
 select pg_temp.eq('external code is trimmed', (select external_code from public.gl_codes where id = pg_temp.gl('test.org', 'INC')), 'A-100');
 select pg_temp.eq('blank external name is null', (select external_name from public.gl_codes where id = pg_temp.gl('test.org', 'INC')), null::text);
@@ -173,7 +178,9 @@ select pg_temp.expect_error(format($sql$select public.set_system_role(%L, 'suspe
 
 -- 5. The migration: an existing choice keeps its account, a taken code gets a suffix, and bad choices stop it.
 reset role;
+select set_config('fintran.role_move', 'on', true);
 update public.gl_codes set system_role = null where organisation_id = current_setting('test.org2')::uuid;
+select set_config('fintran.role_move', 'off', true);
 select pg_temp.eq('the roles were cleared to look like the old data', (select count(*) from public.accounting_settings where organisation_id = current_setting('test.org2')::uuid and receivables_gl_code_id is not null)::int, 0);
 insert into public.gl_codes (tenant_id, organisation_id, code, description, account_type)
 values (current_setting('test.tenant')::uuid, current_setting('test.org2')::uuid, 'TRADE', 'Trade debtors', 'Current Asset'),
@@ -198,5 +205,14 @@ update public.accounting_settings set payables_gl_code_id = receivables_gl_code_
 select set_config('fintran.role_mirror', 'off', true);
 select pg_temp.eq('one code for two roles is listed', position('TRADE is chosen for debtors_control, creditors_control' in private.ledger_role_problems()) > 0
   or position('TRADE is chosen for creditors_control, debtors_control' in private.ledger_role_problems()) > 0, true);
+
+insert into public.bank_accounts (tenant_id, organisation_id, code, name, iban, currency_id)
+select current_setting('test.tenant')::uuid, current_setting('test.org2')::uuid, 'BKX', 'Bank X', 'IE29AIBK93115212345678', id
+from public.currencies where organisation_id = current_setting('test.org2')::uuid limit 1;
+select set_config('fintran.role_mirror', 'on', true);
+update public.accounting_settings set suspense_gl_code_id = (select gl_code_id from public.bank_accounts where code = 'BKX' and organisation_id = current_setting('test.org2')::uuid)
+where organisation_id = current_setting('test.org2')::uuid;
+select set_config('fintran.role_mirror', 'off', true);
+select pg_temp.eq('a bank GL code chosen for a role is listed', position('is a bank account GL code, so it cannot be chosen for suspense' in private.ledger_role_problems()) > 0, true);
 
 rollback;

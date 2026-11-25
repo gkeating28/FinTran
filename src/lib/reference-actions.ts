@@ -34,7 +34,7 @@ function friendlyError(error: { code?: string; message: string } | null, fallbac
     return "That code is used by a product. Choose another code on the product before removing it.";
   }
   if (error.code === "P0001" && error.message.includes("purchase GL")) {
-    return "That GL code is a purchase GL code on a product and must stay Expense.";
+    return "That GL code is a purchase GL code on a product and must stay Expense or Cost of Sales.";
   }
   if (error.code === "P0001" && error.message.includes("sales GL")) {
     return "That GL code is a sales GL code on a product and must stay Income.";
