@@ -180,7 +180,7 @@ begin
   with rows as (
     select 'Debtors'::text as check_name,
       (select coalesce(sum(l.debit - l.credit), 0) from public.journal_lines as l where l.organisation_id = p_organisation_id and l.gl_code_id = v_debtors) as ledger_amount,
-      (select coalesce(sum(case tt.document_kind when 'invoice' then h.home_amount_due else -h.home_amount_due end), 0)
+      (select coalesce(sum(case tt.document_kind when 'invoice' then h.home_amount_due + round(h.rounding_amount / h.exchange_rate, 2) else -(h.home_amount_due + round(h.rounding_amount / h.exchange_rate, 2)) end), 0)
          from public.transaction_headers as h join public.transaction_types as tt on tt.id = h.transaction_type_id
          where h.organisation_id = p_organisation_id and h.status = 'posted' and tt.type = 'Sales' and tt.document_kind in ('invoice', 'credit_note'))
       - (select coalesce(sum(case tt.document_kind when 'receipt' then p.home_unallocated_amount else -p.home_unallocated_amount end), 0)
@@ -189,7 +189,7 @@ begin
     union all
     select 'Creditors',
       (select coalesce(sum(l.credit - l.debit), 0) from public.journal_lines as l where l.organisation_id = p_organisation_id and l.gl_code_id = v_creditors),
-      (select coalesce(sum(case tt.document_kind when 'invoice' then h.home_amount_due else -h.home_amount_due end), 0)
+      (select coalesce(sum(case tt.document_kind when 'invoice' then h.home_amount_due + round(h.rounding_amount / h.exchange_rate, 2) else -(h.home_amount_due + round(h.rounding_amount / h.exchange_rate, 2)) end), 0)
          from public.transaction_headers as h join public.transaction_types as tt on tt.id = h.transaction_type_id
          where h.organisation_id = p_organisation_id and h.status = 'posted' and tt.type = 'Purchases' and tt.document_kind in ('invoice', 'credit_note'))
       - (select coalesce(sum(case tt.document_kind when 'payment' then p.home_unallocated_amount else -p.home_unallocated_amount end), 0)

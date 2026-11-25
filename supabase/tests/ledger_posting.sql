@@ -112,7 +112,7 @@ create function pg_temp.line(p_price numeric, p_vat text, p_gl text default null
     'costCentreId', case when p_cc is not null then pg_temp.id_of('cost_centres', p_cc) end)
 $$;
 -- A document of the given lines for a party. Sales types are for customers, Purchases types for suppliers.
-create function pg_temp.doc(p_type text, p_party text, p_lines jsonb, p_date date default '2026-11-12', p_post boolean default true, p_preceding uuid default null) returns uuid language plpgsql as $$
+create function pg_temp.doc(p_type text, p_party text, p_lines jsonb, p_date date default '2026-11-12', p_post boolean default true, p_preceding uuid default null, p_rounding numeric default 0) returns uuid language plpgsql as $$
 declare
   v_sales boolean := p_type in ('SI', 'SC', 'SO');
   v_currency text := case when p_party in ('GBPCO', 'GBPV') then 'GBP' else 'EUR' end;
@@ -126,6 +126,7 @@ begin
     'transactionDate', p_date, 'dueDate', p_date,
     'currencyId', pg_temp.id_of('currencies', v_currency), 'exchangeRate', case when v_currency = 'GBP' then 0.85 else 1 end,
     'precedingHeaderId', p_preceding, 'precedingReference', case when p_preceding is not null then 'INV' end, 'precedingDate', case when p_preceding is not null then p_date end,
+    'roundingAmount', p_rounding,
     'lines', p_lines));
   if p_post then
     perform public.post_document(v_id, null);
@@ -291,6 +292,11 @@ select pg_temp.eq('the payment is reversed', (select count(*) from public.journa
 select pg_temp.eq('and so is the exchange entry', (select count(*) from public.journal_entries where source_allocation_id = current_setting('test.fxpalloc')::uuid and source_type = 'reversal')::int, 1);
 select pg_temp.eq('the supplier balance is back', (select coalesce(sum(l.credit - l.debit), 0) from public.journal_lines l join public.gl_codes g on g.id = l.gl_code_id where g.code = '2100' and l.supplier_id = pg_temp.id_of('suppliers', 'GBPV')), 117.65);
 select pg_temp.eq('the books are clean after reversals', pg_temp.reconciled(), 'ok');
+
+-- 15b. A document with a BT-114 rounding amount: the control line carries it and the books still reconcile.
+select set_config('test.rnd', pg_temp.doc('SI', 'ACME', jsonb_build_array(pg_temp.line(100, 'S23', '4000')), '2026-11-12', true, null, 0.02)::text, true);
+select pg_temp.eq('the debtors line includes the rounding', (select l.debit from public.journal_lines l join public.gl_codes g on g.id = l.gl_code_id where l.entry_id = pg_temp.entry_of('document', current_setting('test.rnd')::uuid) and g.code = '1100'), 123.02);
+select pg_temp.eq('the books reconcile with rounding', pg_temp.reconciled(), 'ok');
 
 -- 15. Entry numbers follow posting order with no repeat, and a member sees no ledger.
 select pg_temp.eq('numbers are consecutive', (select count(*) = max(entry_number) and count(distinct entry_number) = count(*) from public.journal_entries where organisation_id = current_setting('test.org')::uuid), true);
