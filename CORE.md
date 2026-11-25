@@ -91,7 +91,7 @@ Every business table records `created_at`, `created_by`, `updated_at`, and `upda
 Exceptions:
 
 - `tenants`, `organisations`, `profiles`, and `organisation_access` can be read by a member. They are changed through the functions above, not by open insert and update policies.
-- `organisation_defaults` can be selected, inserted, and updated by a member. Delete is not granted. The row is created with the organisation and removed when the organisation is deleted.
+- `organisation_defaults` can be selected by a member and updated by an owner or admin. Insert and delete are not granted to anyone through the API. The row is created with the organisation and removed when the organisation is deleted.
 - `save_document` is security invoker. It runs as the caller, so the header and line policies still apply. It does not call into the `private` schema.
 
 `private` is not on the API. Authenticated users can execute a few helpers such as `is_org_member` only because policies and triggers need them. They cannot list or change that schema.
@@ -145,7 +145,7 @@ The logo file is not in the table. It is an object in the private Storage bucket
 
 ## Account structure
 
-These tables are the lists under Admin. Each has `tenant_id`, `organisation_id`, `code`, and `description` (description 1–200). `code` matches `^[A-Z0-9]{1,20}$`, except products, which allow 30 characters. `(organisation_id, code)` is unique. The code cannot be changed after the row is saved.
+These tables are the lists under Admin. Each has `tenant_id`, `organisation_id`, `code`, and `description` (description 1–200). `code` matches `^[A-Z0-9][A-Z0-9.-]{0,19}$`, so it starts with a letter or number and may then contain `.` and `-`, except products, which allow 30 characters. `(organisation_id, code)` is unique. The code cannot be changed after the row is saved.
 
 ### `bank_accounts`
 
@@ -266,7 +266,7 @@ The app writes both tables through `save_document(jsonb)`. Direction comes from 
 
 | Column | Meaning |
 | --- | --- |
-| `transaction_type_id` | A Purchases type. Cannot be changed after insert |
+| `transaction_type_id` | A Sales or Purchases type, which sets the direction. Cannot be changed after insert |
 | `reference` | Issued from `last_reference`. Unique per organisation and type. Cannot be renumbered |
 | `transaction_date` | Required |
 | `due_date` | Optional |
@@ -298,6 +298,7 @@ The app writes both tables through `save_document(jsonb)`. Direction comes from 
 | `posted_at`, `posted_by` | Set when the document is posted |
 | `voided_at`, `voided_by`, `void_reason` | Set when an owner or admin voids a posted document. The reason is required |
 | `closed_by_system` | On an order, true while it is closed because posted invoices cover every line. Closing by hand, or reopening, sets it false. Only a closure made by the system is undone by the system, when a posted invoice is voided or a credit note returns quantity to the order |
+| `flex1` … `flex5` | Optional text, up to 200. Shown only when that type has a label |
 
 A draft can be edited and deleted. Posting needs at least one line and is allowed for any member. Purchases are numbered when the draft is saved. A type set to number on posting, which every Sales type must use, leaves the draft without a number and issues the next number when it is posted. The type row is locked first. Sales readiness is checked before that number is taken, so a failed post does not use a number. Deleting a sales draft does not use a number. A posted purchase can be voided by an owner or admin. A posted sales document cannot be voided; the correction is a credit note. A void document cannot be changed or deleted. Status changes only through `post_document` and `void_document`.
 
@@ -320,7 +321,6 @@ An owner can delete an organisation that has no documents, unless it is the last
 A saved form layout is checked in the database. A sales form must show the organisation name, address, and VAT number, the customer name and address, the document number and date, the line description, quantity, price, tax, and amount, and the VAT summary. A sales credit note must also show the preceding invoice. A purchase credit note may leave that field off the form; posting still requires the reference. The standard layout meets the sales invoice rules.
 
 `organisation_defaults.lock_date` blocks creating, editing, posting, voiding, or deleting a document whose date is on or before that day. Owners and admins set the lock date.
-| `flex1` … `flex5` | Optional text, up to 200. Shown only when that type has a label |
 
 On every header insert or update the trigger replaces the six amount columns from the lines. A new header therefore starts at zero until its lines exist. Saving a line updates the header, which runs the trigger again.
 
@@ -637,3 +637,7 @@ Ask Qula, the Access Point and the Accounting accounts are settings of one organ
 - **A save is for the organisation being edited,** which may not be the one the person is working in. Each settings form names its organisation, and the role is checked for that organisation: only an owner or admin of it can save.
 - **Only owners and admins see the tabs.** A member who opens an organisation sees Details, read only.
 - **The old addresses still work.** `/ask-qula`, `/access-point` and `/accounting` open the matching tab for the organisation the person is working in, and a member is sent to Admin. Back from one goes to where the link was.
+
+## Page headers
+
+A page title has at most one line of description under it, and no shortcut links. A link to another screen belongs in the menu or in the content of the page, not in the header. Anything longer than a line is help text next to the field it explains.

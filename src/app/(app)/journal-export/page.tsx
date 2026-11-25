@@ -39,10 +39,7 @@ export default async function JournalExportPage({
     <section className={styles.stack}>
       <div>
         <h1 className={styles.heading}>Journal export</h1>
-        <p className={styles.lede}>
-          Send what has been posted in {workspace.current.organisationName} to your accounting system as a journal file. A batch holds everything not yet exported up to a date, and cannot be changed
-          afterwards. The accounts it uses are on the <Link href="/accounting">Accounting</Link> screen.
-        </p>
+        <p className={styles.lede}>Send what has been posted in {workspace.current.organisationName} to your accounting system.</p>
       </div>
       {status ? (
         <p className={params.error || batches.error || preview?.error ? styles.alert : styles.notice} role={params.error || batches.error || preview?.error ? "alert" : "status"}>

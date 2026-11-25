@@ -39,7 +39,7 @@ export default function AgedReport({
       <div>
         <h1 className={styles.heading}>{heading}</h1>
         <p className={styles.lede}>
-          {debtors ? "What customers owe" : "What is owed to suppliers"} {organisationName}, in euro, by {byDue ? "how late it is" : "how old it is"} on the ageing date. Credit notes and money not yet applied are taken off.
+          {debtors ? "What customers owe" : "What is owed to suppliers"} {organisationName}, in euro, by {byDue ? "how late it is" : "how old it is"} on the ageing date.
         </p>
       </div>
       <form method="get" className={`${styles.panel} ${agedStyles.filters}`} style={{ padding: "12px 14px" }}>

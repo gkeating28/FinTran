@@ -366,7 +366,7 @@ These are the `public` functions the app is allowed to call. Arguments match `sr
 | `en16931_source(p_header_id)` | JSON | Source payload used to build the business terms |
 | `en16931_amount(p_value)` | text | Two decimal places |
 | `en16931_price(p_value)` | text | Four decimal places |
-| `store_e_document(p_xml, p_envelope, p_signature)` | uuid | Stores a signed e-document envelope |
+| `store_e_document(p_envelope, p_signature, p_xml)` | uuid | Stores a signed e-document envelope |
 | `e_document_xml(p_id)` | text | Stored XML for a document the caller can see |
 | `import_e_document(p_id, p_choices jsonb)` | uuid | Turns a valid inbound file into a Purchases draft. Amounts come from the stored semantic JSON. `p_choices` carries `supplierId` and `lines[]` of `lineNumber`, `vatRateId`, `glCodeId`, `departmentId`, and `costCentreId`. `createSupplier` is refused. The VAT rate must be Expense and must match the line's category and percentage. |
 | `reject_e_document(p_id, p_reason)` | void | Marks a received document rejected. Owners and admins only. The reason is required. |
@@ -441,7 +441,7 @@ Each list is scoped by `(organisation_id, code)`. `code` matches `^[A-Z0-9][A-Z0
 | `vat_rates` | `rate` 0–100 with two decimals, `vat_type` Sales or Expense, `vat_category`, and `exemption_code` / `exemption_reason` when the category requires them. A category on a posted or void line cannot change. |
 | `products` | `purchase_price`, `sales_price` (4 decimals), purchase and sales GL and VAT, `unit_code` default `C62` |
 | `customers`, `suppliers` | Same party shape: `name`, required `currency_id`, phone, email, website, structured address, VAT, company number, Peppol ID unique per organisation, `contact_details` (500), `notes` (4000), `payment_terms_days` 0–365. Customers also have `default_buyer_reference` (100). |
-| `transaction_types` | `type` Sales or Purchases, `document_kind` invoice, credit_note, or order, `last_reference`, `numbering_rule` `on_insert` or `on_post`, `reference_prefix` (10), `reference_padding` 0–10, `flex1_label`–`flex5_label` (80). The kind cannot change after a document exists. Sales types number on post. |
+| `transaction_types` | `type` Sales or Purchases, `document_kind` invoice, credit_note, or order, `last_reference`, `numbering` (type `numbering_rule`) `on_insert` or `on_post`, `reference_prefix` (10), `reference_padding` 0–10, `flex1_label`–`flex5_label` (80). The kind cannot change after a document exists. Sales types number on post. |
 
 `last_reference` only moves forward, by one, and only when a number is issued. Deleting a draft does not return the number. The printed number is the prefix plus the reference padded with zeros, stored on the document, and kept if the prefix later changes.
 
@@ -582,7 +582,7 @@ Five checks run in `.github/workflows/check.yml` on every pull request and on ev
 | Unit tests | `npm test` | Pure code: spreadsheet safety, Ask Qula actions and its scripted mock provider, order progress, follow-on actions, e-invoice parsing and the golden order reference files. A new test file is added to the `test` script in `package.json`. |
 | Types | `npm run db:types` | `database.types.ts` has every table and every column the migrations create, and no others. To fix it, regenerate the types from the project and replace the file. |
 | SQL tests | `scripts/run-sql-tests.sh` | The database rules, on a local Supabase stack built from `supabase/migrations`. Each test raises on a broken rule and rolls back. `concurrency/last_unit.sh` and `concurrency/last_amount.sh` use two sessions and commit a small tenant: the first for the last unit of an order, the second for two payments allocating the last 100.00 of an invoice at once, where one succeeds, one is refused and neither deadlocks. The payment tests are `payments.sql`, `allocations.sql`, `payment_functions.sql` and `migrate_paid_amounts.sql`, which runs the migration file itself. `type_codes.sql` runs the two migrations that rename transaction types to three-character codes against types made under the old codes, including a custom type that must be left alone, a code already taken, a chosen prefix, and a hidden system type. Run them on a clean database, because the end-to-end seed uses a Peppol ID that some tests also use. |
-| End to end | `npm run e2e` | Nineteen flows in Chromium against the built app and a seeded local stack, and a smoke check that every main page loads for the owner, admin and member without console errors. |
+| End to end | `npm run e2e` | Forty flows in Chromium against the built app and a seeded local stack, and a smoke check that every main page loads for the owner, admin and member without console errors. |
 
 The Supabase CLI is pinned in the workflow, because "latest" asks the GitHub API which release that is and a run that hits its rate limit fails before any of our code runs. Move the pin up on purpose, in a pull request of its own.
 

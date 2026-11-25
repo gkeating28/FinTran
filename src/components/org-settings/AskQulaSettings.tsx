@@ -75,9 +75,6 @@ export default async function AskQulaSettings({
 
   return (
     <div className={styles.stack}>
-      <p className={styles.lede}>
-        Questions, and the organisation&apos;s data needed to answer them, will be sent to {providerName}. Check this meets your data protection obligations.
-      </p>
       <div className={styles.statusRow}>
         <p className={failed ? styles.alert : styles.notice} role={failed ? "alert" : "status"}>
           {statusText}

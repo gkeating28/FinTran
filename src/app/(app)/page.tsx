@@ -26,10 +26,7 @@ export default async function HomePage() {
       <section className={styles.stack}>
         <div>
           <h1 className={styles.heading}>Create a tenant</h1>
-          <p className={styles.lede}>
-            A tenant is the account that owns one or more organisations. You become the owner of
-            the first organisation, and you can grant other people access to it afterwards.
-          </p>
+          <p className={styles.lede}>A tenant owns your organisations. You become the owner of the first one.</p>
         </div>
         <div className={styles.panel}>
           <div className={styles.panelHead}>

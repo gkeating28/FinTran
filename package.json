@@ -23,7 +23,7 @@
     "fflate": "^0.8.3",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
-    "next": "16.2.12",
+    "next": "16.4.6",
     "nspell": "^2.1.5",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -32,14 +32,14 @@
     "xmllint-wasm": "^5.3.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.12",
+    "eslint-config-next": "16.4.6",
     "tsx": "^4.23.15",
     "typescript": "^5",
-    "xslt3": "^2.7.0",
-    "@playwright/test": "1.63.0"
+    "xslt3": "^2.7.0"
   }
 }
