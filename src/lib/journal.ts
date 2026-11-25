@@ -79,15 +79,15 @@ export const EMPTY_ACCOUNTING_SETTINGS: AccountingSettings = {
   startDate: "",
 };
 
-/** The seven accounts, what each is for, and the form field and column that hold it. */
+/** The seven accounts, the system role and account type each needs, what each is for, and the form field that holds it. */
 export const ACCOUNTING_ACCOUNTS = [
-  { key: "receivables", column: "receivables_gl_code_id", label: "Receivables", help: "Control account for what customers owe. Every sales invoice, credit note and customer payment goes to it." },
-  { key: "payables", column: "payables_gl_code_id", label: "Payables", help: "Control account for what is owed to suppliers. Every purchase invoice, credit note and supplier payment goes to it." },
-  { key: "vatSales", column: "vat_sales_gl_code_id", label: "VAT on sales", help: "The VAT charged on sales documents, whatever the rate." },
-  { key: "vatPurchases", column: "vat_purchases_gl_code_id", label: "VAT on purchases", help: "The VAT paid on purchase documents, whatever the rate." },
-  { key: "exchange", column: "exchange_gl_code_id", label: "Exchange gain or loss", help: "Needed only when a payment settles a foreign currency document at a different rate." },
-  { key: "rounding", column: "rounding_gl_code_id", label: "Rounding", help: "Needed only when a document carries a rounding amount." },
-  { key: "suspense", column: "suspense_gl_code_id", label: "Suspense", help: "Used for a posted purchase line that has no GL code, such as one on an imported e-invoice, so it can still be exported. It is marked (no GL code) so it can be recoded in your accounting system. Needed only when such a line exists." },
+  { key: "receivables", role: "debtors_control", accountType: "Current Asset", column: "receivables_gl_code_id", label: "Receivables", help: "Control account for what customers owe. Every sales invoice, credit note and customer payment goes to it." },
+  { key: "payables", role: "creditors_control", accountType: "Current Liability", column: "payables_gl_code_id", label: "Payables", help: "Control account for what is owed to suppliers. Every purchase invoice, credit note and supplier payment goes to it." },
+  { key: "vatSales", role: "vat_output", accountType: "Current Liability", column: "vat_sales_gl_code_id", label: "VAT on sales", help: "The VAT charged on sales documents, whatever the rate." },
+  { key: "vatPurchases", role: "vat_input", accountType: "Current Asset", column: "vat_purchases_gl_code_id", label: "VAT on purchases", help: "The VAT paid on purchase documents, whatever the rate." },
+  { key: "exchange", role: "fx_difference", accountType: "Expense", column: "exchange_gl_code_id", label: "Exchange gain or loss", help: "Needed only when a payment settles a foreign currency document at a different rate." },
+  { key: "rounding", role: "rounding", accountType: "Expense", column: "rounding_gl_code_id", label: "Rounding", help: "Needed only when a document carries a rounding amount." },
+  { key: "suspense", role: "suspense", accountType: "Current Asset", column: "suspense_gl_code_id", label: "Suspense", help: "Used for a posted purchase line that has no GL code, such as one on an imported e-invoice, so it can still be exported. It is marked (no GL code) so it can be recoded in your accounting system. Needed only when such a line exists." },
 ] as const;
 
 export const JOURNAL_COLUMNS = [

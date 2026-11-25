@@ -12,23 +12,33 @@ function text(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
 }
 
-/** Saves the accounts the journal uses and the date its history starts. Owners and admins only. */
+/** Saves the accounts the journal uses (each is a system role on a GL code) and the date its history starts. Owners and admins only. */
 export async function saveAccountingSettings(formData: FormData): Promise<void> {
   const current = await settingsOrganisation(formData);
   const startDate = text(formData, "start_date");
   if (startDate && !/^\d{4}-\d{2}-\d{2}$/.test(startDate)) redirect(settingsUrl(current.organisationId, "accounting", "error", "Enter the start date as a date."));
 
-  const values: Record<string, string | null> = { start_date: startDate || null };
-  for (const account of ACCOUNTING_ACCOUNTS) values[account.column] = text(formData, account.column) || null;
-
   const supabase = await createClient();
+  const holders = await supabase.from("gl_codes").select("id, system_role").eq("organisation_id", current.organisationId).not("system_role", "is", null);
+  if (holders.error) redirect(settingsUrl(current.organisationId, "accounting", "error", "The accounting settings could not be saved."));
+
+  for (const account of ACCOUNTING_ACCOUNTS) {
+    const chosen = text(formData, account.column);
+    if (!chosen) continue;
+    const holder = holders.data?.find((row) => row.system_role === account.role)?.id;
+    if (holder === chosen) continue;
+    const { error } = await supabase.rpc("set_system_role", { p_organisation_id: current.organisationId, p_role: account.role, p_gl_code_id: chosen });
+    if (error) redirect(settingsUrl(current.organisationId, "accounting", "error", `${account.label}: ${error.message || "that account could not be set."}`));
+  }
+
   const { error } = await supabase
     .from("accounting_settings")
-    .upsert({ tenant_id: current.tenantId, organisation_id: current.organisationId, ...values }, { onConflict: "organisation_id" });
+    .upsert({ tenant_id: current.tenantId, organisation_id: current.organisationId, start_date: startDate || null }, { onConflict: "organisation_id" });
   if (error) redirect(settingsUrl(current.organisationId, "accounting", "error", error.message || "The accounting settings could not be saved."));
 
   revalidatePath("/organisations");
   revalidatePath("/journal-export");
+  revalidatePath("/gl-codes");
   redirect(settingsUrl(current.organisationId, "accounting", "message", "Saved."));
 }
 

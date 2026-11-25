@@ -10,6 +10,7 @@ import { QuietInput } from "@/components/QuietField";
 import { createReference, deleteReference, updateReference } from "@/lib/reference-actions";
 import {
   ACCOUNT_TYPES,
+  SYSTEM_ROLE_LABELS,
   formatRate,
   parseRate,
   REFERENCE_META,
@@ -100,6 +101,12 @@ export default function ReferenceManager({
                   label: "Account type",
                   sortValue: (row: ReferenceRow) => row.accountType ?? "",
                   render: (row: ReferenceRow) => row.accountType ?? "",
+                },
+                {
+                  key: "systemRole",
+                  label: "System role",
+                  sortValue: (row: ReferenceRow) => row.systemRole ?? "",
+                  render: (row: ReferenceRow) => (row.systemRole ? (SYSTEM_ROLE_LABELS[row.systemRole] ?? row.systemRole) : ""),
                 },
               ]
             : []),

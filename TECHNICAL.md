@@ -354,6 +354,7 @@ These are the `public` functions the app is allowed to call. Arguments match `sr
 | `queued_emails(p_header_id)` | rows | The approval emails the caller queued for a document that still wait to be handed to the mail adapter |
 | `record_email_result(p_id, p_error default null)` | void | Marks a queued email `sent`, or `failed` with the reason. Only the person who queued it, or an owner or admin |
 | `price_checks(p_header_id)` | rows | For a purchase invoice, each line that came from an order line with both unit prices after discount, the percentage difference and whether it is over the tolerance. Nothing when no tolerance is set |
+| `set_system_role(p_organisation_id, p_role, p_gl_code_id)` | void | Gives a GL code a system role (`debtors_control`, `creditors_control`, `vat_output`, `vat_input`, `retained_earnings`, `fx_difference`, `rounding` or `suspense`) and takes it from the code that held it. Owners and admins. Refuses a code of the wrong account type, one with another role, an inactive one and, for a control role, one used on lines or products |
 | `save_payment(p_payment jsonb)` | uuid | Inserts or replaces a draft payment and its planned allocations. Security invoker. |
 | `post_payment(p_payment_id)` | void | Posts a draft payment and makes its allocations effective. Fails with the documents that no longer have enough open. |
 | `void_payment(p_payment_id, p_reason)` | void | Owners and admins. Removes every effective allocation, then voids. |
@@ -537,6 +538,10 @@ Posting an imported draft is refused when its nett, VAT, or total differs from `
 
 `organisation_secrets` stores AES-256-GCM ciphertext for `ai_api_key`, `ap_api_key`, and `ap_webhook_secret`. The API cannot select the table. `organisation_secret_status` returns the kind, hint, and who changed it. `ai_providers` and `access_point_providers` are read-only reference rows. `ai_settings` and `access_point_settings` are one row per organisation. Members can read them. Owners and admins can change them. `ai_usage` records who asked, when, the provider, the model, token counts, tool-call count, and the outcome. It does not store the question or the answer. `ai_feedback` holds thumbs up and down, with the question and answer only when `ai_settings.log_answers` is on. `ai_actions` records each action a person confirmed. Owners and admins can read both, and nobody can write them except through `record_ai_feedback` and `record_ai_action`.
 
+### General ledger tables
+
+`journal_entries` and `journal_lines` hold the ledger: one balanced posting and its debits and credits. `ledger_counters` holds the last entry number of each organisation and is written only by `private.next_entry_number`. None of them can be written through the API, and posted rows are immutable. Nothing posts to them yet. Owners and admins read them. `gl_codes` also has `system_role`, `active`, `external_code`, `external_name` and `report_group`. `organisation_defaults` also has `ledger_mode`, `ledger_start_date`, `lock_exported` and `exported_through`. The rules are in CORE.md, "General ledger foundation".
+
 ### Audit
 
 `audit_log`: `table_name`, `row_id`, `action`, `old_values`, `new_values`, `changed_at`, `changed_by`, `tenant_id`, `organisation_id`. It covers organisation defaults, access, suppliers, customers, VAT rates, GL codes, currencies, transaction types, document headers, Ask Qula settings, Access Point settings, and secret changes. A secret change records the kind and hint, never the value.
@@ -628,7 +633,7 @@ The flows run one at a time, in file order, on one database, and each signs in t
 | 32 | A payment run of two suppliers is made, approved by an admin who did not ask, posted, and every payment is posted. |
 | 33 | A payment in a run cannot be posted alone, and taking a supplier out of an approved run cancels the approval. |
 | 34 | A payment request emails each approver and not the requester, a decision emails the requester, and a run request emails its approvers. |
-| 35 | An owner sets the accounting accounts, including the suspense account. The preview reports bank accounts with no GL code, and giving them one clears the problem. |
+| 35 | An owner sets the accounting accounts as system roles on GL codes. Every bank account already has a GL code, so the preview has no problems. |
 | 36 | A purchase invoice and a supplier payment are previewed as balanced journals, exported as a batch and downloaded as a CSV. A description that starts with `=` is made safe, and the imported e-invoice line with no GL code is on the suspense account. |
 | 37 | Running the export again finds nothing. Voiding the exported payment and invoice puts their reversals in the next batch, and the first batch is unchanged. |
 | 38 | A member sees neither the Accounting nor the Journal export tile, is sent back to Admin, and is refused when calling the database directly. |

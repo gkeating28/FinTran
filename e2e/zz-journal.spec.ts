@@ -64,11 +64,13 @@ async function downloadBatch(page: Page, batch: string) {
   return parseCsv(readFileSync((await download.path()) as string, "utf8"));
 }
 
-test("flow 35: an owner sets the accounting accounts, the preview reports a bank account with no GL code, and adding one clears the problem", async ({ page }) => {
+test("flow 35: an owner sets the accounting accounts, every bank account already has a GL code, and the preview has no problems", async ({ page }) => {
   test.setTimeout(180_000);
   await signIn(page, "owner");
 
   await page.goto("/accounting");
+  // Each account is a system role on a GL code. The control, exchange and suspense accounts exist already, and the list offers
+  // only codes of the right type. These two move a role to another code.
   await chooseByCode(page.locator('select[name="receivables_gl_code_id"]'), "1100");
   await chooseByCode(page.locator('select[name="payables_gl_code_id"]'), "2100");
   await chooseByCode(page.locator('select[name="vat_sales_gl_code_id"]'), "2200");
@@ -82,26 +84,19 @@ test("flow 35: an owner sets the accounting accounts, the preview reports a bank
   await expect(page.getByRole("status")).toContainText("Saved.");
   await page.reload();
   await expect(page.locator('select[name="receivables_gl_code_id"] option:checked')).toContainText("1100");
+  await expect(page.locator('select[name="vat_purchases_gl_code_id"] option:checked')).toContainText("1300");
+  await expect(page.locator('select[name="rounding_gl_code_id"] option:checked')).toContainText("7950");
 
-  // Earlier flows posted payments from bank accounts that have no GL code, so the preview says so and offers a way to fix it.
-  await page.goto("/journal-export?new=1");
-  const problems = page.getByRole("alert").filter({ hasText: "Fix these before a batch can be made" });
-  await expect(problems).toContainText("has no GL code");
-  await expect(problems.getByRole("link", { name: "Bank accounts" }).first()).toBeVisible();
-  await expect(page.getByRole("button", { name: /^Create batch/ })).toHaveCount(0);
-
-  // The owner gives every bank account the bank GL code, as the bank accounts screen would.
+  // Earlier flows made bank accounts without choosing a GL code, so each was given one of its own.
   const { api, id } = await organisationOneId();
-  const [bankGl] = await api.select<{ id: string }>("gl_codes", `select=id&organisation_id=eq.${id}&code=eq.1200`);
-  expect(bankGl?.id, "the bank GL code").toBeTruthy();
-  const changed = await api.update("bank_accounts", `organisation_id=eq.${id}&gl_code_id=is.null`, { gl_code_id: bankGl.id });
-  expect(changed.status).toBe(200);
+  expect(await api.select("bank_accounts", `select=id&organisation_id=eq.${id}&gl_code_id=is.null`)).toEqual([]);
 
-  await page.reload();
+  await page.goto("/journal-export?new=1");
   await expect(page.getByRole("heading", { name: "Journal export" })).toBeVisible();
-  // Say what is left in the failure message, so a problem no earlier flow could fix is easy to see.
+  // Say what is listed in the failure message, so a problem no earlier flow could fix is easy to see.
+  const problems = page.getByRole("alert").filter({ hasText: "Fix these before a batch can be made" });
   const left = (await problems.count()) > 0 ? await problems.innerText() : "";
-  expect(left, "problems still listed after the bank accounts were given a GL code").toBe("");
+  expect(left, "problems listed in the preview").toBe("");
 });
 
 test("flow 36: a purchase invoice and a supplier payment are previewed as balanced journals, exported as a batch and downloaded", async ({ browser, page }) => {

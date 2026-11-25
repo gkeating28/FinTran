@@ -157,7 +157,7 @@ The organisation's own bank accounts. Every payment and receipt is recorded agai
 | `iban` | Spaces removed and uppercased on save, then checked with `private.iban_is_valid`. Unique per organisation on the stored value |
 | `bic` | Optional, 8 or 11 characters, checked by `private.prepare_bic` |
 | `currency_id` | One of the organisation's currencies, by a composite key on `(organisation_id, currency_id)` |
-| `gl_code_id` | Optional, a GL code whose type is Current Asset |
+| `gl_code_id` | Required, a Current Asset GL code of its own with no system role, unique per organisation. A bank account saved without one is given a new code (`1210` and up, named "Bank: {name}") |
 | `active` | Default true. An inactive account cannot be the default |
 | `is_default` | At most one default per currency, by a partial unique index. Setting a default clears the previous one for that currency in the same statement. Making a default account inactive clears its flag |
 
@@ -165,15 +165,11 @@ Members read the table. Owners and admins write it. `private.enforce_bank_accoun
 
 ### `gl_codes`
 
-`account_type` is required and is one of:
+`account_type` is required and is one of Fixed Asset, Current Asset, Current Liability, Non-current Liability, Equity, Income, Cost of Sales and Expense. The ledger spec groups them into report sections and gives each a normal balance (`private.account_normal_balance`).
 
-- Fixed Asset
-- Current Liability
-- Current Asset
-- Income
-- Expense
+A product's purchase GL code must be Expense or Cost of Sales. Its sales GL code must be Income. A trigger stops an account type from being changed while a product still uses that code in the matching role. A purchase invoice line may use any type, so assets and prepayments can be bought.
 
-A product's purchase GL code must be Expense. Its sales GL code must be Income. A trigger stops an account type from being changed while a product still uses that code in the matching role.
+A GL code also has `active` (an inactive code cannot be used on a new line), `external_code` and `external_name` (the account in another accounting system, used by the feed), `report_group` (reserved for the reports spec) and `system_role`. See "General ledger foundation".
 
 ### `departments` and `cost_centres`
 
@@ -500,11 +496,27 @@ The balance is what is still due on posted documents (`home_amount_due`, after e
 
 The ageing date is set on the page and defaults to today. Balances are always as they stand now: moving the date moves amounts between the bands and does not rewind payments. The top of the page shows the totals for each band and what is owed in all, and the grid ends with a totals row that adds up the parties shown, so a search narrows the total too. A row's Documents button lists what makes up the party's balance, each with a link to open it and its age on the chosen basis. The grid searches, sorts and exports to Excel like the other lists. Only the first 5,000 documents are read, and the page says so when that limit is reached. Ask Qula's ageing lookup uses the due date bands (`bandOf` in `src/lib/aged.ts`), so its figures agree with the report when it is set to due date.
 
+## General ledger foundation
+
+Qula Plus is gaining a double-entry general ledger that works as the book of record or as a feed to another accounting system (`specs/QULAPLUS_LEDGER_SPEC.md`). This describes release A, which is built: the chart of accounts, the mode setting and the journal tables. **Nothing posts to the ledger yet.** Posting, the backfill and the reconciliation are release B.
+
+**System roles.** `gl_codes.system_role` is the one place the ledger's accounts are stored. Each organisation has exactly one code for each of eight roles, and the code's account type must match: `debtors_control` (Current Asset), `creditors_control` (Current Liability), `vat_output` (Current Liability), `vat_input` (Current Asset), `retained_earnings` (Equity), `fx_difference` (Expense), `rounding` (Expense) and `suspense` (Current Asset). A new organisation gets default codes (`1100`, `2100`, `2200`, `1200`, `3200`, `7900`, `7910` and `9990`, with `-1`, `-2` added when a code is taken). `set_system_role(organisation, role, gl code)` moves a role. It is for owners and admins and refuses a code of the wrong type, one that already has another role, an inactive one and, for the two control roles, one used on a document line or a product. A code that holds a role cannot be deleted or made inactive, and its account type cannot change. Once any journal line uses a code, its role cannot change.
+
+**Control accounts.** The debtors and creditors control accounts may only be used by the system. A document line, a product or a manual journal cannot use one, and neither can an inactive code on a new line.
+
+**The Accounting tab columns are a mirror.** `accounting_settings` still holds the old role columns because the journal export reads them until it is refitted on the ledger. They are written only by a trigger that follows `system_role`, and a direct write is refused with "Use set_system_role". The start date is still written there. The Accounting tab reads and writes the roles through `set_system_role`.
+
+**The migration.** `private.ledger_role_problems()` lists, and the migration stops on, a choice whose account type does not match its role, one code chosen for two roles, a control account already used on a document line or a product, and bank accounts that share a GL code. `private.ledger_adopt_roles()` then gives each existing choice its role, creates the default account for every role that has none, and gives each bank account without a GL code one of its own.
+
+**Mode and period columns.** `organisation_defaults` has `ledger_mode` (`feed` or `book`, default `feed`), `ledger_start_date`, `lock_exported` and `exported_through`. The mode and the exported-through date are changed only by the system (a trigger refuses a hand edit), and the date only moves forward. Owners and admins set the go-live date and the lock switch.
+
+**Journal tables.** `journal_entries` is one balanced posting: a date, a source (`document`, `payment`, `allocation`, `manual` or `reversal`), a number from a per-organisation counter (`ledger_counters`, written only by `private.next_entry_number`) and a status. `journal_lines` are its debits and credits to GL codes, in the home currency, with the document currency amount and rate, optional department, cost centre, customer or supplier, and the VAT category, percentage and taxable amount on VAT lines. A constraint trigger deferred to the end of the transaction refuses a posted entry with fewer than two lines or whose debits differ from its credits. A posted entry and its lines cannot be updated or deleted by anyone, even the table owner, and an entry is reversed at most once. An entry dated on or before the lock date is refused, except by the backfill (a migration-only setting). Nobody writes the tables through the API: they have no insert, update or delete privilege, and the functions and triggers that will post set `fintran.ledger_post`. Owners and admins read them, and members read none. They are not copied into the audit log. An organisation with journal entries cannot be deleted.
+
 ## Journal export
 
 Qula Plus has no ledger. The journal export sends what has been posted to the organisation's own accounting system as a CSV. It is under Admin, for owners and admins only: the Journal export tile is not shown to a member, and the address sends a member back to Admin. The accounts it uses are the Accounting tab of the organisation edit (see Organisation settings).
 
-**Accounting.** One screen holds the seven accounts the journal uses: receivables and payables (the control accounts), VAT on sales, VAT on purchases, exchange gain or loss, rounding and suspense, and an optional start date. The suspense account is for a posted purchase line that has no GL code, such as one on an imported e-invoice. A posted line cannot be edited, so without it that line would stop every batch for ever. With it set, the line is journalled to the suspense account and its description ends with (no GL code), so the accountant can recode it. With it blank, such a line is a problem the preview reports. It is needed only when such a line exists. Nothing dated before the start date is exported, which keeps old history out when an organisation goes live. The screen also lists the active bank accounts that have no GL code. Each bank account's own GL code is the bank line of a payment's journal.
+**Accounting.** One screen holds the seven accounts the journal uses, each a system role on a GL code (see "General ledger foundation"). It offers only active codes of the right account type, and it has no "not set" choice, because every organisation has all of them: receivables and payables (the control accounts), VAT on sales, VAT on purchases, exchange gain or loss, rounding and suspense, and an optional start date. The suspense account is for a posted purchase line that has no GL code, such as one on an imported e-invoice. A posted line cannot be edited, so without it that line would stop every batch for ever. With it set, the line is journalled to the suspense account and its description ends with (no GL code), so the accountant can recode it. With it blank, such a line is a problem the preview reports. It is needed only when such a line exists. Nothing dated before the start date is exported, which keeps old history out when an organisation goes live. The screen also lists the active bank accounts that have no GL code. Each bank account's own GL code is the bank line of a payment's journal.
 
 **What a journal is.** Every journal is in the home currency and balances to the cent. A line also carries the amount in the document's currency. A sales invoice debits receivables for the total, credits each line's GL code for its nett and credits VAT on sales. A purchase invoice debits each line's GL code and VAT on purchases and credits payables. A credit note is the same with debits and credits swapped. Department and cost centre go on the lines that carry a GL code, not on control or VAT lines. A payment, receipt or refund debits or credits the bank account's GL code against receivables (sales) or payables (purchases) for the whole home amount, applied or not. A payment that settles a foreign currency document at a different rate has an exchange difference on its allocation, and each one writes its own journal between the control account and the exchange account, dated on the allocation date. A document's rounding amount goes to the rounding account. Journals are dated on the document date, the payment date and the allocation date.
 

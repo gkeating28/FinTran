@@ -572,6 +572,20 @@ Orders, requisitions, drafts and manual journals are not in it. Manual journals 
 
 ---
 
+## Build notes, release A
+
+Release A (phases 1 and 2) is built in migrations `20261125100000_ledger_chart_of_accounts` and `20261125101000_ledger_journal_tables`, with tests `supabase/tests/ledger_chart.sql` and `ledger_journal.sql`. What differs from the text above:
+
+- **The Accounting tab columns stay as a mirror.** Section 1.4 says the old role columns are dropped in the same release. The journal export still reads them, so they stay until phase 9 refits the export, and a trigger writes them from `system_role`. A direct write to them is refused. The start date is not renamed until phase 9 either.
+- **A role account is never made inactive,** not only once journal lines use it, and it cannot be deleted by hand. An account the ledger has used cannot change role. Any other account, bank account codes included, can still be made inactive.
+- **A bank account's GL code is created by a trigger** when a new bank account names none, so the bank account form, the seed and the tests needed no change. The form's option to choose an existing unused code comes with the screens in release C.
+- **A bank account code cannot hold a system role,** and a role account cannot be a bank account's code.
+- **`ledger_counters`** is a small table of its own for the entry numbers. It is locked last in the lock order.
+- **`set_ledger_mode` and the new-organisation mode choice** are release C (phase 6.3). Until then every organisation is `feed`.
+- **Tests changed.** `journal_export.sql`, `bank_accounts.sql`, `sales_phase6.sql`, the concurrency scripts, the end-to-end seed and flow 35 assumed an organisation has no default accounts, and were updated. The journal export scenarios about an unset account no longer exist, because every organisation now has all eight.
+- **The end-to-end flows were not run** for this release, because they need the full local stack. Flow 35 and the seed were changed by reading the code.
+- **Screens.** Only the Accounting tab and the GL code grid (eight account types, a System role column) changed. The Active switch, the external code fields and the control account markers are phase 8.
+
 ## Out of scope
 
 - Periods and year-end close (spec 10), including a dedicated route for opening debtors and creditors
