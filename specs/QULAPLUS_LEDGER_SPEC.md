@@ -586,6 +586,21 @@ Release A (phases 1 and 2) is built in migrations `20261125100000_ledger_chart_o
 - **The end-to-end flows were not run** for this release, because they need the full local stack. Flow 35 and the seed were changed by reading the code.
 - **Screens.** Only the Accounting tab and the GL code grid (eight account types, a System role column) changed. The Active switch, the external code fields and the control account markers are phase 8.
 
+## Build notes, release B
+
+Release B (phases 3 to 5) is built in migrations `20261125110000_ledger_posting` and `20261125111000_ledger_backfill`, with the SQL test `ledger_posting.sql` and the two-session script `concurrency/ledger_numbers.sh`. What differs from the text above, or was decided while building:
+
+- **Shadow mode is `private.ledger_strict()`,** a function that returns false. A line with no usable GL code, or one that was made inactive after the line was entered, posts to suspense. Release C changes the function and adds the refusals.
+- **One rounding line.** The BT-114 rounding amount and any cent of home rounding difference go on a single rounding line that takes whatever balances the entry, instead of two lines.
+- **A document worth nothing makes no entry,** because an entry needs two lines. Its reversal, if it is ever voided, makes none either.
+- **The check on home figures** stops the backfill when a posted document's home total differs from its home nett plus home VAT by more than 0.05.
+- **The reversal date rule (L6) is already in use,** in `private.reversal_date`, because the posting triggers need it. Release C adds the refusal of a posting into an exported period.
+- **A reversal that finds no original entry** is skipped in shadow mode and refused once strict.
+- **Worth a look** links to Admin for now. Release C points it at the trial balance.
+- **The reconciliation's bank rows** leave out manual journals, which arrive in release C, and compare each bank account's system entries only.
+- **Test changes.** `journal_export.sql` set bank account GL codes and moved role accounts after posting, which the ledger now refuses once journal lines exist. It sets the bank codes before anything posts, and its reversal scenario keeps the accounts where they were.
+- **The existing test suite is the regression test for shadow mode.** Every SQL test that posts a document or payment now also posts to the ledger, and all of them still pass.
+
 ## Out of scope
 
 - Periods and year-end close (spec 10), including a dedicated route for opening debtors and creditors

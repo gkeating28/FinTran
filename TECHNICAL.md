@@ -355,6 +355,9 @@ These are the `public` functions the app is allowed to call. Arguments match `sr
 | `record_email_result(p_id, p_error default null)` | void | Marks a queued email `sent`, or `failed` with the reason. Only the person who queued it, or an owner or admin |
 | `price_checks(p_header_id)` | rows | For a purchase invoice, each line that came from an order line with both unit prices after discount, the percentage difference and whether it is over the tolerance. Nothing when no tolerance is set |
 | `set_system_role(p_organisation_id, p_role, p_gl_code_id)` | void | Gives a GL code a system role (`debtors_control`, `creditors_control`, `vat_output`, `vat_input`, `retained_earnings`, `fx_difference`, `rounding` or `suspense`) and takes it from the code that held it. Owners and admins. Refuses a code of the wrong account type, one with another role, an inactive one and, for a control role, one used on lines or products |
+| `ledger_backfill(p_organisation_id)` | text | Posts every posted or void document, payment and allocation that has no ledger entry yet, in date order, and marks what earlier journal batches exported. Owners and admins. Posts nothing twice. Says how many entries and reversals it made |
+| `ledger_reconciliation(p_organisation_id)` | rows of `check_name`, `ledger_amount`, `subledger_amount`, `difference` | Debtors, Creditors, each bank account and Balance, ledger against subledger. Owners and admins. Every difference should be 0 |
+| `ledger_suspense_lines(p_organisation_id)` | rows | The ledger lines on the suspense account, for review. Owners and admins |
 | `save_payment(p_payment jsonb)` | uuid | Inserts or replaces a draft payment and its planned allocations. Security invoker. |
 | `post_payment(p_payment_id)` | void | Posts a draft payment and makes its allocations effective. Fails with the documents that no longer have enough open. |
 | `void_payment(p_payment_id, p_reason)` | void | Owners and admins. Removes every effective allocation, then voids. |
@@ -540,7 +543,7 @@ Posting an imported draft is refused when its nett, VAT, or total differs from `
 
 ### General ledger tables
 
-`journal_entries` and `journal_lines` hold the ledger: one balanced posting and its debits and credits. `ledger_counters` holds the last entry number of each organisation and is written only by `private.next_entry_number`. None of them can be written through the API, and posted rows are immutable. Nothing posts to them yet. Owners and admins read them. `gl_codes` also has `system_role`, `active`, `external_code`, `external_name` and `report_group`. `organisation_defaults` also has `ledger_mode`, `ledger_start_date`, `lock_exported` and `exported_through`. The rules are in CORE.md, "General ledger foundation".
+`journal_entries` and `journal_lines` hold the ledger: one balanced posting and its debits and credits. `ledger_counters` holds the last entry number of each organisation and is written only by `private.next_entry_number`. None of them can be written through the API, and posted rows are immutable. The posting triggers `zz_ledger_post` on `transaction_headers`, `payments` and `allocations` write them. `journal_exports.entry_id` links an earlier journal export row to its entry. Owners and admins read them. `gl_codes` also has `system_role`, `active`, `external_code`, `external_name` and `report_group`. `organisation_defaults` also has `ledger_mode`, `ledger_start_date`, `lock_exported` and `exported_through`. The rules are in CORE.md, "General ledger foundation".
 
 ### Audit
 

@@ -240,6 +240,25 @@ export function buildApprovalInsights(items: ApprovalQueueItem[]): Insight[] {
   return insights;
 }
 
+export type LedgerDifference = { check: string; difference: number };
+
+/** Worth a look for the ledger: any check of the reconciliation that is not zero. Only owners and admins get the rows. */
+export function buildLedgerInsights(differences: LedgerDifference[]): Insight[] {
+  const off = differences.filter((row) => Math.abs(row.difference) >= 0.005);
+  if (off.length === 0) return [];
+  const names = off.map((row) => (row.check === "Debtors" ? "customer balances" : row.check === "Creditors" ? "supplier balances" : row.check === "Balance" ? "debits and credits" : row.check.startsWith("Bank ") ? `the ${row.check.slice(5)} bank account` : row.check.toLowerCase()));
+  const first = off[0];
+  return [
+    {
+      id: "ledger-differences",
+      tone: "attention",
+      title: off.some((row) => row.check === "Debtors") ? "The ledger does not agree with customer balances" : `The ledger does not agree with ${names[0]}`,
+      detail: `${off.map((row) => `${row.check} is out by ${euro(Math.abs(row.difference))}`).join(", ")}. Nothing has been changed. The first to look at is ${first.check}.`,
+      href: "/admin",
+    },
+  ];
+}
+
 export type NotReady = { id: string; number: string; direction: "Purchases" | "Sales"; typeCode: string; errors: string[] };
 
 export function buildInsights(
@@ -250,8 +269,9 @@ export function buildInsights(
   watch: OrderWatch = { closedWithLeft: [], holdingDrafts: [] },
   payments: InsightPayment[] = [],
   approvals: ApprovalQueueItem[] = [],
+  ledger: LedgerDifference[] = [],
 ): Insight[] {
-  const insights: Insight[] = buildApprovalInsights(approvals);
+  const insights: Insight[] = [...buildApprovalInsights(approvals), ...buildLedgerInsights(ledger)];
 
   const overdue = findOverdue(docs, today);
   if (overdue.length > 0) {
@@ -468,6 +488,7 @@ export async function getInsights(supabase: SupabaseClient, organisationId: stri
     }),
   );
   const queue = supabase.rpc("approval_queue", { p_organisation_id: organisationId });
+  const reconciliation = supabase.rpc("ledger_reconciliation", { p_organisation_id: organisationId });
   const [closedWithLeft, holdingDrafts, payments] = await Promise.all([
     listClosedOrdersWithQuantityLeft(supabase, organisationId),
     listDraftsHoldingOrders(supabase, organisationId),
@@ -485,7 +506,8 @@ export async function getInsights(supabase: SupabaseClient, organisationId: stri
     decidedBy: String(row.decided_by_name ?? ""),
     kind: row.item_kind === "payment" || row.item_kind === "run" ? row.item_kind : "document",
   }));
-  return buildInsights(docs, checked.filter((item): item is NotReady => item !== null), today, (await openOrders).orders, { closedWithLeft, holdingDrafts }, payments, approvals);
+  const ledger: LedgerDifference[] = ((await reconciliation).data ?? []).map((row: { check_name: string; difference: number }) => ({ check: row.check_name, difference: Number(row.difference) }));
+  return buildInsights(docs, checked.filter((item): item is NotReady => item !== null), today, (await openOrders).orders, { closedWithLeft, holdingDrafts }, payments, approvals, ledger);
 }
 
 /** Posted payments and receipts with something left that is not applied. A void payment has nothing left. */

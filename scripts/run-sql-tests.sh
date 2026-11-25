@@ -63,4 +63,12 @@ else
   sed 's/^/         /' /tmp/journal_batch.log
   failed=1
 fi
+# Two people posting an invoice in one organisation at once. It needs two sessions and commits a small tenant.
+if PSQL="psql $DATABASE_URL" bash supabase/tests/concurrency/ledger_numbers.sh >/tmp/ledger_numbers.log 2>&1; then
+  echo "ok     concurrency/ledger_numbers.sh"
+else
+  echo "FAIL   concurrency/ledger_numbers.sh"
+  sed 's/^/         /' /tmp/ledger_numbers.log
+  failed=1
+fi
 exit $failed
