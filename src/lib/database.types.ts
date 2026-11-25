@@ -1895,6 +1895,7 @@ export type Database = {
           source_ref: string
           stage: string
           tenant_id: string
+          entry_id: string | null
         }
         Insert: {
           batch_id: string
@@ -1904,6 +1905,7 @@ export type Database = {
           source_ref: string
           stage: string
           tenant_id: string
+          entry_id?: string | null
         }
         Update: {
           batch_id?: string
@@ -1913,6 +1915,7 @@ export type Database = {
           source_ref?: string
           stage?: string
           tenant_id?: string
+          entry_id?: string | null
         }
         Relationships: []
       }
@@ -4441,6 +4444,32 @@ export type Database = {
       import_e_document: {
         Args: { p_choices: Json; p_id: string }
         Returns: string
+      }
+      ledger_backfill: {
+        Args: { p_organisation_id: string }
+        Returns: string
+      }
+      ledger_reconciliation: {
+        Args: { p_organisation_id: string }
+        Returns: {
+          check_name: string
+          difference: number
+          ledger_amount: number
+          subledger_amount: number
+        }[]
+      }
+      ledger_suspense_lines: {
+        Args: { p_organisation_id: string }
+        Returns: {
+          credit: number
+          debit: number
+          description: string
+          entry_date: string
+          entry_id: string
+          entry_number: number
+          source_ref: string
+          source_type: string
+        }[]
       }
       organisation_secret_ciphertext: {
         Args: { p_kind: string; p_organisation_id: string }

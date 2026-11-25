@@ -188,6 +188,9 @@ values
   (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, '2101', 'Other creditors', 'Current Liability');
 insert into public.gl_codes (tenant_id, organisation_id, code, description, account_type)
 values (current_setting('test.tenant')::uuid, current_setting('test.org2')::uuid, '9999', 'Other organisation', 'Expense');
+-- The bank accounts get their GL codes before anything posts: the ledger refuses to move a code that has journal lines.
+update public.bank_accounts set gl_code_id = pg_temp.id_of('gl_codes', '1280') where organisation_id = current_setting('test.org')::uuid and code = 'EUR1';
+update public.bank_accounts set gl_code_id = pg_temp.id_of('gl_codes', '1250') where organisation_id = current_setting('test.org')::uuid and code = 'GBP1';
 insert into public.vat_rates (tenant_id, organisation_id, code, description, rate, vat_type, vat_category)
 values
   (current_setting('test.tenant')::uuid, current_setting('test.org')::uuid, 'S23', 'Sales VAT', 23, 'Sales', 'S'),
@@ -277,8 +280,6 @@ select pg_temp.eq('the settings come back', (select count(*) from public.account
 select pg_temp.eq('saving the settings is in the audit log', (select count(*) from public.audit_log where table_name = 'accounting_settings' and action = 'INSERT' and organisation_id = current_setting('test.org')::uuid)::int, 1);
 select pg_temp.eq('a bank account made without a GL code got one of its own',
   (select count(*) from public.bank_accounts where organisation_id = current_setting('test.org')::uuid and gl_code_id is not null)::int, 2);
-update public.bank_accounts set gl_code_id = pg_temp.id_of('gl_codes', '1280') where organisation_id = current_setting('test.org')::uuid and code = 'EUR1';
-update public.bank_accounts set gl_code_id = pg_temp.id_of('gl_codes', '1250') where organisation_id = current_setting('test.org')::uuid and code = 'GBP1';
 select pg_temp.eq('with the accounts set there are no problems', (select count(*) from public.journal_problems(current_setting('test.org')::uuid, '2026-12-31'))::int, 0);
 
 -- A sales invoice of two lines at 100.00 and 50.00 with 23 per cent VAT.
@@ -461,9 +462,7 @@ select public.create_journal_batch(current_setting('test.org')::uuid, current_da
 select set_config('test.revdoc', pg_temp.vdoc('PI', 'VOD', array[55], '2026-11-15')::text, true);
 select set_config('test.revpay', pg_temp.payment('PAY', 'VOD', 20, true, null, '2026-11-15')::text, true);
 select public.create_journal_batch(current_setting('test.org')::uuid, current_date + 1);
-select public.set_system_role(current_setting('test.org')::uuid, 'creditors_control', pg_temp.id_of('gl_codes', '2101'));
-select public.set_system_role(current_setting('test.org')::uuid, 'vat_input', pg_temp.id_of('gl_codes', '1301'));
-update public.bank_accounts set gl_code_id = pg_temp.id_of('gl_codes', '1281') where organisation_id = current_setting('test.org')::uuid and code = 'EUR1';
+-- The ledger refuses to move an account that has journal lines, so the accounts stay and the reversal goes where it was exported.
 select public.void_payment(current_setting('test.revpay')::uuid, 'Paid twice');
 select public.void_document(current_setting('test.revdoc')::uuid, 'Wrong supplier');
 select pg_temp.eq('the invoice reversal goes to the accounts it was exported to',
@@ -477,9 +476,6 @@ select pg_temp.eq('a reversal says it is one',
 select public.create_journal_batch(current_setting('test.org')::uuid, current_date + 1);
 select pg_temp.eq('a stored line knows its source and stage',
   (select count(*) from public.journal_batch_lines where source_id = current_setting('test.revdoc')::uuid and stage in ('post', 'reversal'))::int, 6);
-select public.set_system_role(current_setting('test.org')::uuid, 'creditors_control', pg_temp.id_of('gl_codes', '2100'));
-select public.set_system_role(current_setting('test.org')::uuid, 'vat_input', pg_temp.id_of('gl_codes', '1300'));
-update public.bank_accounts set gl_code_id = pg_temp.id_of('gl_codes', '1280') where organisation_id = current_setting('test.org')::uuid and code = 'EUR1';
 
 -- The start date keeps older history out. A late-posted document dated before the last batch goes in the next one.
 select set_config('test.late', pg_temp.vdoc('SI', 'ACME', array[11], '2026-11-02')::text, true);
