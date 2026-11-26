@@ -35,7 +35,7 @@ export function previousPage(pathname: string): string | null {
   if (pathname === "/payment-runs") return "/transactions";
   if (/^\/reports\/[^/]+$/.test(pathname)) return "/reports";
   // An account enquiry is opened from the trial balance, so Back goes there.
-  if (/^\/ledger\/accounts\/[^/]+$/.test(pathname)) return "/ledger/trial-balance";
+  if (/^\/reports\/trial-balance\/[^/]+$/.test(pathname)) return "/reports/trial-balance";
   if (ADMIN_PAGES.has(pathname)) return "/admin";
   if (HOME_PAGES.has(pathname)) return "/";
   const parent = pathname.replace(/\/[^/]+$/, "");

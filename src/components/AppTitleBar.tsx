@@ -36,7 +36,8 @@ const PAGE_LABELS: Record<string, string> = {
   "/e-documents": "E-documents",
   "/journal-export": "Journal export",
   "/ledger": "Ledger",
-  "/ledger/trial-balance": "Trial balance",
+  "/reports/trial-balance": "Trial balance",
+  "/transactions/journals": "Journals",
 };
 
 export default function AppTitleBar({
@@ -61,7 +62,7 @@ export default function AppTitleBar({
       ? transactionCode.toUpperCase()
       : pathname.startsWith("/e-documents/")
         ? "E-document"
-        : pathname.startsWith("/ledger/accounts/")
+        : pathname.startsWith("/reports/trial-balance/")
           ? "Account enquiry"
           : (PAGE_LABELS[pathname] ?? "Home");
   const back = previousPage(pathname);

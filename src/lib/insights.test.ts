@@ -208,7 +208,7 @@ test("the ledger is only worth a look when a check of the reconciliation is out"
   const [bank] = buildLedgerInsights([{ check: "Bank EUR1", difference: 5 }]);
   assert.equal(bank.title, "The ledger does not agree with the EUR1 bank account");
   assert.equal(buildInsights([], [], today, [], undefined, [], [], [{ check: "Debtors", difference: 2 }]).some((item) => item.id === "ledger-differences"), true);
-  assert.equal(debtors.href, "/ledger/trial-balance");
+  assert.equal(debtors.href, "/reports/trial-balance");
 });
 
 test("postings dated in an exported period are worth a look, and nothing is when there are none", () => {

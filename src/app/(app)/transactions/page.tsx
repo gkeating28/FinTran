@@ -64,6 +64,23 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
           <hr className={dashboardStyles.menuDivider} />
           <TransactionGroup title="Sales transactions" tiles={tiles.filter((tile) => tile.type === "Sales")} />
           <hr className={dashboardStyles.menuDivider} />
+          {canManage(workspace.current.role) ? (
+            <>
+              <section className={dashboardStyles.menuSection}>
+                <h2 className={dashboardStyles.menuHeading}>GL Journals</h2>
+                <div className={dashboardStyles.adminGrid}>
+                  <Link prefetch href="/transactions/journals" className={dashboardStyles.adminTile}>
+                    <span className={dashboardStyles.adminTileIcon}>
+                      <DocumentIcon size={22} />
+                    </span>
+                    <span className={dashboardStyles.adminTileLabel}>Journals</span>
+                    <span className={dashboardStyles.adminTileMeta}>Accruals, adjustments and opening balances</span>
+                  </Link>
+                </div>
+              </section>
+              <hr className={dashboardStyles.menuDivider} />
+            </>
+          ) : null}
           <section className={dashboardStyles.menuSection}>
             <h2 className={dashboardStyles.menuHeading}>Payment runs</h2>
             <div className={dashboardStyles.adminGrid}>
