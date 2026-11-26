@@ -8,6 +8,7 @@ import DataGrid from "@/components/DataGrid";
 import FormModal from "@/components/FormModal";
 import { QuietInput } from "@/components/QuietField";
 import { createReference, deleteReference, updateReference } from "@/lib/reference-actions";
+import { REPORT_SECTIONS } from "@/lib/ledger";
 import {
   ACCOUNT_TYPES,
   SYSTEM_ROLE_LABELS,
@@ -107,6 +108,12 @@ export default function ReferenceManager({
                   label: "System role",
                   sortValue: (row: ReferenceRow) => row.systemRole ?? "",
                   render: (row: ReferenceRow) => (row.systemRole ? (SYSTEM_ROLE_LABELS[row.systemRole] ?? row.systemRole) : ""),
+                },
+                {
+                  key: "active",
+                  label: "Active",
+                  sortValue: (row: ReferenceRow) => (row.active === false ? "b" : "a"),
+                  render: (row: ReferenceRow) => (row.active === false ? "No" : "Yes"),
                 },
               ]
             : []),
@@ -322,23 +329,58 @@ function ReferenceForm({
             </>
           ) : null}
           {kind === "gl_codes" ? (
-            <label className={recordStyles.cell}>
-            Account type
-            <select
-              name="account_type"
-              required
-              autoComplete="off"
-              value={accountType}
-              onChange={(event) => setAccountType(event.target.value)}
-            >
-              <option value="" disabled></option>
-              {ACCOUNT_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-          </label>
+            <>
+              <label className={recordStyles.cell}>
+                Account type
+                <select
+                  name="account_type"
+                  required
+                  autoComplete="off"
+                  value={accountType}
+                  onChange={(event) => setAccountType(event.target.value)}
+                >
+                  <option value="" disabled></option>
+                  {REPORT_SECTIONS.map((section) => (
+                    <optgroup key={section.title} label={section.title}>
+                      {ACCOUNT_TYPES.filter((type) => section.types.includes(type)).map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </label>
+              {row?.systemRole ? (
+                <p className={recordStyles.cell}>
+                  <strong>System role: {SYSTEM_ROLE_LABELS[row.systemRole] ?? row.systemRole}.</strong> The ledger posts to this account, so it
+                  is chosen on the Accounting tab of the organisation and cannot be made inactive.
+                  {row.systemRole === "debtors_control" || row.systemRole === "creditors_control"
+                    ? " It is a control account: only the system posts to it, and it cannot be chosen on a document line, a product or a manual journal."
+                    : ""}
+                </p>
+              ) : null}
+              <label className={recordStyles.cell}>
+                <span>
+                  <input type="checkbox" name="active" defaultChecked={row ? row.active !== false : true} disabled={Boolean(row?.systemRole)} /> Active
+                </span>
+                {row?.systemRole ? <input type="hidden" name="active" value="on" /> : null}
+                <small>An inactive account cannot be chosen on a new line or journal. History keeps it.</small>
+              </label>
+              <label className={recordStyles.cell}>
+                External code
+                <QuietInput name="external_code" maxLength={60} autoComplete="off" defaultValue={row?.externalCode ?? ""} />
+              </label>
+              <label className={recordStyles.cell}>
+                External name
+                <QuietInput name="external_name" maxLength={120} autoComplete="off" defaultValue={row?.externalName ?? ""} />
+                <small>What your other accounting system calls this account. A feed to that system sends it.</small>
+              </label>
+              <label className={recordStyles.cell}>
+                Report group
+                <QuietInput name="report_group" maxLength={60} autoComplete="off" defaultValue={row?.reportGroup ?? ""} />
+              </label>
+            </>
           ) : null}
         </div>
         <div className={styles.modalActions}>

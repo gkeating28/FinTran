@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireCurrentOrganisation } from "@/lib/organisation-guard";
+import { requireCurrentOrganisation, requireOrganisationMember } from "@/lib/organisation-guard";
 import { cents, fromCents, postingProblem, type ManualDraft } from "@/lib/ledger";
 import { createClient } from "@/lib/supabase/server";
 
@@ -90,25 +90,25 @@ export async function postOpeningJournal(draft: ManualDraft): Promise<LedgerResu
 }
 
 /** The go-live date and whether exported periods are locked. Both are ordinary settings of the organisation. */
-export async function saveLedgerSettings(input: { startDate: string; lockExported: boolean }): Promise<LedgerResult> {
-  const current = await requireCurrentOrganisation(["owner", "admin"]);
+export async function saveLedgerSettings(organisationId: string, input: { startDate: string; lockExported: boolean }): Promise<LedgerResult> {
+  await requireOrganisationMember(organisationId, ["owner", "admin"]);
   if (input.startDate && !/^\d{4}-\d{2}-\d{2}$/.test(input.startDate)) return { ok: false, error: "Enter the go-live date as a date." };
   const supabase = await createClient();
   const { error } = await supabase
     .from("organisation_defaults")
     .update({ ledger_start_date: input.startDate || null, lock_exported: input.lockExported })
-    .eq("organisation_id", current.organisationId);
+    .eq("organisation_id", organisationId);
   if (error) return failure(error, "The ledger settings could not be saved.");
   refresh();
   return { ok: true, message: "The ledger settings were saved." };
 }
 
 /** Owners only. The reason goes in the audit log. */
-export async function switchLedgerMode(mode: string, reason: string): Promise<LedgerResult> {
-  const current = await requireCurrentOrganisation(["owner"]);
+export async function switchLedgerMode(organisationId: string, mode: string, reason: string): Promise<LedgerResult> {
+  await requireOrganisationMember(organisationId, ["owner"]);
   if (mode !== "feed" && mode !== "book") return { ok: false, error: "Choose feed or book." };
   const supabase = await createClient();
-  const { error } = await supabase.rpc("set_ledger_mode", { p_organisation_id: current.organisationId, p_mode: mode, p_reason: reason });
+  const { error } = await supabase.rpc("set_ledger_mode", { p_organisation_id: organisationId, p_mode: mode, p_reason: reason });
   if (error) return failure(error, "The mode could not be changed.");
   refresh();
   return { ok: true, message: mode === "book" ? "Qula Plus is now the book of record." : "Qula Plus now feeds your accounting system." };
@@ -198,4 +198,12 @@ export async function ledgerExport(file: "accounts" | "entries"): Promise<{ file
       rows,
     },
   };
+}
+
+/** The entries of one document or payment, for its Ledger tab. Members get none. */
+export async function loadSourceLedger(kind: "document" | "payment", id: string): Promise<{ rows: import("@/lib/ledger").JournalRow[]; error: string | null }> {
+  await requireCurrentOrganisation(["owner", "admin"]);
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return { rows: [], error: null };
+  const { getSourceEntries } = await import("@/lib/ledger-data");
+  return { rows: await getSourceEntries(kind, id), error: null };
 }

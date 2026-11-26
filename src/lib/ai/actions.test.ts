@@ -41,6 +41,7 @@ function fake(options: { header?: Record<string, unknown> | null; lines?: number
         return { data: "id", error: null };
       }
       if (name === "approval_status") return { data: options.approval ?? [], error: null };
+      if (name === "ledger_readiness") return { data: [], error: null };
       return { data: options.readiness ?? [], error: null };
     },
   } as never;

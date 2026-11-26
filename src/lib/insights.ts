@@ -254,7 +254,21 @@ export function buildLedgerInsights(differences: LedgerDifference[]): Insight[] 
       tone: "attention",
       title: off.some((row) => row.check === "Debtors") ? "The ledger does not agree with customer balances" : `The ledger does not agree with ${names[0]}`,
       detail: `${off.map((row) => `${row.check} is out by ${euro(Math.abs(row.difference))}`).join(", ")}. Nothing has been changed. The first to look at is ${first.check}.`,
-      href: "/admin",
+      href: "/ledger/trial-balance",
+    },
+  ];
+}
+
+/** Worth a look for postings dated in a period that has been exported, which is only possible with the lock off. */
+export function buildExportedInsights(count: number): Insight[] {
+  if (count === 0) return [];
+  return [
+    {
+      id: "ledger-exported-postings",
+      tone: "attention",
+      title: `${plural(count, "posting")} dated in a period you have already exported`,
+      detail: "The accounting system you sent that period to does not have them. Send them in the next export, or turn on Lock exported periods on the Organisations screen.",
+      href: "/ledger?source=document",
     },
   ];
 }
@@ -270,8 +284,9 @@ export function buildInsights(
   payments: InsightPayment[] = [],
   approvals: ApprovalQueueItem[] = [],
   ledger: LedgerDifference[] = [],
+  exportedPostings = 0,
 ): Insight[] {
-  const insights: Insight[] = [...buildApprovalInsights(approvals), ...buildLedgerInsights(ledger)];
+  const insights: Insight[] = [...buildApprovalInsights(approvals), ...buildLedgerInsights(ledger), ...buildExportedInsights(exportedPostings)];
 
   const overdue = findOverdue(docs, today);
   if (overdue.length > 0) {
@@ -482,13 +497,17 @@ export async function getInsights(supabase: SupabaseClient, organisationId: stri
   const openOrders = listOpenOrders(supabase, organisationId);
   const checked = await Promise.all(
     drafts.map(async (draft): Promise<NotReady | null> => {
-      const result = await supabase.rpc("en16931_readiness", { p_header_id: draft.id });
-      const errors = ((result.data ?? []) as { severity: string; message: string }[]).filter((item) => item.severity === "error").map((item) => item.message);
+      const [rules, ledger] = await Promise.all([
+        supabase.rpc("en16931_readiness", { p_header_id: draft.id }),
+        supabase.rpc("ledger_readiness", { p_header_id: draft.id }),
+      ]);
+      const errors = ([...(rules.data ?? []), ...(ledger.data ?? [])] as { severity: string; message: string }[]).filter((item) => item.severity === "error").map((item) => item.message);
       return errors.length ? { id: draft.id, number: draft.number, direction: draft.direction, typeCode: draft.typeCode, errors } : null;
     }),
   );
   const queue = supabase.rpc("approval_queue", { p_organisation_id: organisationId });
   const reconciliation = supabase.rpc("ledger_reconciliation", { p_organisation_id: organisationId });
+  const exported = supabase.rpc("ledger_exported_postings", { p_organisation_id: organisationId });
   const [closedWithLeft, holdingDrafts, payments] = await Promise.all([
     listClosedOrdersWithQuantityLeft(supabase, organisationId),
     listDraftsHoldingOrders(supabase, organisationId),
@@ -507,7 +526,7 @@ export async function getInsights(supabase: SupabaseClient, organisationId: stri
     kind: row.item_kind === "payment" || row.item_kind === "run" ? row.item_kind : "document",
   }));
   const ledger: LedgerDifference[] = ((await reconciliation).data ?? []).map((row: { check_name: string; difference: number }) => ({ check: row.check_name, difference: Number(row.difference) }));
-  return buildInsights(docs, checked.filter((item): item is NotReady => item !== null), today, (await openOrders).orders, { closedWithLeft, holdingDrafts }, payments, approvals, ledger);
+  return buildInsights(docs, checked.filter((item): item is NotReady => item !== null), today, (await openOrders).orders, { closedWithLeft, holdingDrafts }, payments, approvals, ledger, ((await exported).data ?? []).length);
 }
 
 /** Posted payments and receipts with something left that is not applied. A void payment has nothing left. */

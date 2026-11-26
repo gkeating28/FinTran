@@ -31,7 +31,12 @@ export async function loadTransactionReadiness(ids: string[]): Promise<Record<st
 
   const entries = await Promise.all(
     (owned.data ?? []).map(async (header) => {
-      const result = await supabase.rpc("en16931_readiness", { p_header_id: header.id });
+      const [rules, ledger] = await Promise.all([
+        supabase.rpc("en16931_readiness", { p_header_id: header.id }),
+        supabase.rpc("ledger_readiness", { p_header_id: header.id }),
+      ]);
+      // The e-invoice rules, then what the ledger needs (a GL code on every line).
+      const result = { error: rules.error ?? ledger.error, data: [...(rules.data ?? []), ...(ledger.data ?? [])] };
       if (result.error) {
         return [
           header.id,

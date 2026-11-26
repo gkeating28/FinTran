@@ -102,6 +102,18 @@ function vatFields(kind: ReferenceKind, formData: FormData): {
   };
 }
 
+/** The fields only a GL code has: whether it is in use, and what the other accounting system calls it. */
+function glFields(kind: ReferenceKind, formData: FormData) {
+  if (kind !== "gl_codes") return {};
+  const clean = (name: string) => text(formData, name).trim() || null;
+  return {
+    active: formData.get("active") === "on",
+    external_code: clean("external_code"),
+    external_name: clean("external_name"),
+    report_group: clean("report_group"),
+  };
+}
+
 export async function createReference(
   kind: ReferenceKind,
   _state: ActionState,
@@ -125,6 +137,7 @@ export async function createReference(
     code,
     description,
     ...(accountType ? { account_type: accountType } : {}),
+    ...glFields(kind, formData),
     ...(vat.rate && vat.vatType
       ? {
           rate: vat.rate,
@@ -175,6 +188,7 @@ export async function updateReference(
     .update({
       description,
       ...(accountType ? { account_type: accountType } : {}),
+      ...glFields(kind, formData),
       ...(vat.rate && vat.vatType
         ? {
             rate: vat.rate,
