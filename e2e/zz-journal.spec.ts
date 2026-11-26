@@ -77,8 +77,7 @@ test("flow 35: an owner sees the accounting accounts and saves, every bank accou
   await expect(page.locator('select[name="vat_purchases_gl_code_id"] option:checked')).toContainText("1200");
   await expect(page.locator('select[name="exchange_gl_code_id"] option:checked')).toContainText("7900");
   await expect(page.locator('select[name="rounding_gl_code_id"] option:checked')).toContainText("7910");
-  // An e-invoice imported by an earlier flow was posted with a line that has no GL code, and a posted line cannot be changed.
-  // The suspense account is how it is exported anyway.
+  // The suspense account only receives history that was posted before a GL code was compulsory on every line.
   await expect(page.locator('select[name="suspense_gl_code_id"] option:checked')).toContainText("9990");
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Saved.");
@@ -142,10 +141,8 @@ test("flow 36: a purchase invoice and a supplier payment are previewed as balanc
   expect(sum(6)).toBe(sum(7));
   expect(lines.every((line) => /^\d+\.\d{2}$/.test(line[6]) && /^\d+\.\d{2}$/.test(line[7]))).toBe(true);
   expect(lines.every((line) => line[0] === "JB-0001" && /^JB-0001-\d{4}$/.test(line[1]))).toBe(true);
-  // The imported e-invoice with a line that has no GL code is exported to the suspense account and marked.
-  const suspense = lines.filter((line) => line[3] === "9990");
-  expect(suspense.length).toBeGreaterThan(0);
-  expect(suspense.every((line) => line[5].endsWith("(no GL code)"))).toBe(true);
+  // No line goes to the suspense account any more: the import and the document both need a GL code on every line.
+  expect(lines.filter((line) => line[3] === "9990")).toHaveLength(0);
   const own = lines.filter((line) => line[5].includes("Flow36 calls"));
   expect(own).toHaveLength(1);
   expect(own[0][5]).toBe("'=Flow36 calls");

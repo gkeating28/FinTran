@@ -88,7 +88,7 @@ export function LineCoding({
         <label className={styles.field}>
           GL code
           <select autoComplete="off" value={line.glCodeId} onChange={(event) => onChange({ ...line, glCodeId: event.target.value })}>
-            <option value="">No GL code</option>
+            <option value="">Choose a GL code</option>
             {glCodes.map((entry) => (
               <option key={entry.id} value={entry.id}>
                 {codeLabel(entry)}
