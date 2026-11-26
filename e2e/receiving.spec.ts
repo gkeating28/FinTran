@@ -44,6 +44,15 @@ test("flow 5: a received e-invoice from a new supplier is uploaded, the supplier
   await expect(dialog.getByLabel("Supplier code")).toHaveValue(/[0-9a-f-]{36}/);
   await expect(dialog.getByLabel("Supplier code").locator("option:checked")).toContainText("Northside Print");
 
+  // Every line needs a GL code before it can be imported, and the import says so.
+  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(dialog.getByRole("alert")).toContainText("Choose a GL code on every line");
+  await dialog.getByRole("button", { name: "View line 1" }).click();
+  const editLine = page.getByRole("dialog", { name: "Edit line 1" });
+  await editLine.getByLabel("GL code").selectOption({ label: "6000 — Purchases" });
+  await editLine.getByRole("button", { name: "Save line" }).click();
+  await expect(editLine).toBeHidden();
+
   // Import makes a draft purchase invoice and opens it.
   await dialog.getByRole("button", { name: "Save", exact: true }).click();
   await page.waitForURL(/\/transactions\/PIN\?open=/);

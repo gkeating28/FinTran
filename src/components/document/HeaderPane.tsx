@@ -12,12 +12,15 @@ import { FlexField } from "./FlexField";
 import type { DocumentFormState } from "./useDocumentForm";
 import { TotalsSummary } from "./TotalsSummary";
 import { PaymentsTab } from "./PaymentsTab";
+import { LedgerTab } from "./LedgerTab";
 
 /** The Document, Notes and Payment tabs, with the totals under them. */
 export function HeaderPane({ form }: { form: DocumentFormState }) {
-  const { header, choices, typeId, transactionDate, setTransactionDate, dueDate, setDueDate, supplierId, termsDays, supplierName, setSupplierName, contactDetails, setContactDetails, notes, setNotes, currencyId, setExchangeRate, orderNumber, setOrderNumber, salesOrderReference, setSalesOrderReference, supplierReference, setSupplierReference, supplyDate, setSupplyDate, roundingAmount, setRoundingAmount, precedingHeaderId, precedingReference, setPrecedingReference, precedingDate, setPrecedingDate, buyerReference, setBuyerReference, contractReference, setContractReference, paymentTerms, setPaymentTerms, invoicePeriodStart, setInvoicePeriodStart, invoicePeriodEnd, setInvoicePeriodEnd, paymentMeansCode, setPaymentMeansCode, flex, setFlex, headerTab, setHeaderTab, ordersOpen, sales, posted, locked, selectedType, sameAsHome, rateValue, flexLabels, grnIndex, otherRefIndex, showFlex, parties, creditNote, orderDocument, canBringIn, paymentMeans, creditChoices, chooseSupplier, chooseCredit, openPanel } = form;
+  const { canDownload, header, choices, typeId, transactionDate, setTransactionDate, dueDate, setDueDate, supplierId, termsDays, supplierName, setSupplierName, contactDetails, setContactDetails, notes, setNotes, currencyId, setExchangeRate, orderNumber, setOrderNumber, salesOrderReference, setSalesOrderReference, supplierReference, setSupplierReference, supplyDate, setSupplyDate, roundingAmount, setRoundingAmount, precedingHeaderId, precedingReference, setPrecedingReference, precedingDate, setPrecedingDate, buyerReference, setBuyerReference, contractReference, setContractReference, paymentTerms, setPaymentTerms, invoicePeriodStart, setInvoicePeriodStart, invoicePeriodEnd, setInvoicePeriodEnd, paymentMeansCode, setPaymentMeansCode, flex, setFlex, headerTab, setHeaderTab, ordersOpen, sales, posted, locked, selectedType, sameAsHome, rateValue, flexLabels, grnIndex, otherRefIndex, showFlex, parties, creditNote, orderDocument, canBringIn, paymentMeans, creditChoices, chooseSupplier, chooseCredit, openPanel } = form;
   // Posted invoices and credit notes list what has settled them. Orders and drafts have nothing to list.
   const showPayments = Boolean(header && posted && !orderDocument);
+  // A posted or voided invoice or credit note shows the entries it made, to owners and admins only.
+  const showLedger = Boolean(header && header.status !== "draft" && canDownload && !orderDocument);
   // What settled it is a receipt on a sales invoice and a payment on a purchase invoice. A credit note is applied.
   const settledLabel = creditNote ? "Applied" : sales ? "Receipts" : "Payments";
   return (
@@ -28,6 +31,7 @@ export function HeaderPane({ form }: { form: DocumentFormState }) {
                 ["notes", "Notes"],
                 ["payment", "Payment terms"],
                 ...(showPayments ? ([["payments", settledLabel]] as const) : []),
+                ...(showLedger ? ([["ledger", "Ledger"]] as const) : []),
               ] as const).map(([id, label]) => (
                 <button
                   key={id}
@@ -364,6 +368,17 @@ export function HeaderPane({ form }: { form: DocumentFormState }) {
                 hidden={headerTab !== "payments"}
               >
                 <PaymentsTab headerId={header.id} active={headerTab === "payments"} />
+              </div>
+            ) : null}
+            {showLedger && header ? (
+              <div
+                className={`${styles.invoiceForm} ${styles.headerFields}`}
+                id="header-panel-ledger"
+                role="tabpanel"
+                aria-labelledby="header-tab-ledger"
+                hidden={headerTab !== "ledger"}
+              >
+                <LedgerTab kind="document" id={header.id} active={headerTab === "ledger"} />
               </div>
             ) : null}
             </div>

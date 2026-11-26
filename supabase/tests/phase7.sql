@@ -1,5 +1,6 @@
 -- Phase 7 acceptance tests. Raises on failure and rolls back.
 begin;
+\ir support/default_gl.sql
 create temp table phase7_users (id uuid primary key);
 insert into phase7_users values ('a7a7a7a7-a7a7-4a7a-8a7a-a7a7a7a7a7a7');
 insert into auth.users (id, email, raw_app_meta_data, raw_user_meta_data)

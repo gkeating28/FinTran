@@ -1,6 +1,7 @@
 -- EN 16931 phase 6. JSON export and readiness. Sales stay blocked except inside this rollback.
 -- The checks below were run against the live database and rolled back.
 begin;
+\ir support/default_gl.sql
 insert into auth.users (id, email, raw_app_meta_data, raw_user_meta_data) values
   ('a6a6a6a6-a6a6-4a6a-8a6a-a6a6a6a6a6a6', 'owner-phase6@fintran.test', '{"provider":"email","providers":["email"]}'::jsonb, '{"display_name":"Owner"}'::jsonb),
   ('b6b6b6b6-b6b6-4b6b-8b6b-b6b6b6b6b6b6', 'other-phase6@fintran.test', '{"provider":"email","providers":["email"]}'::jsonb, '{"display_name":"Other"}'::jsonb);

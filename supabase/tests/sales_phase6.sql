@@ -1,5 +1,6 @@
 -- Sales phase 6. End-to-end EN 16931 exports for sales invoices, a credit note, reverse charge, and a purchase.
 begin;
+\ir support/default_gl.sql
 insert into auth.users (id, email, raw_app_meta_data, raw_user_meta_data) values
   ('c6c6c6c6-c6c6-4c6c-8c6c-c6c6c6c6c6c6', 'owner-sales6@fintran.test', '{"provider":"email","providers":["email"]}'::jsonb, '{"display_name":"Owner"}'::jsonb);
 select set_config('request.jwt.claims', json_build_object('sub', 'c6c6c6c6-c6c6-4c6c-8c6c-c6c6c6c6c6c6', 'role', 'authenticated')::text, true);

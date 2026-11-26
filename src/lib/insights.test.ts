@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildApprovalInsights, buildInsights, buildLedgerInsights, findDuplicates, findDueSoon, findLargeInvoices, findLikelyMatches, findMoneyOnAccount, findOverdue, findPartPaidOverdue, findStaleDrafts, type InsightDoc, type InsightPayment } from "./insights";
+import { buildApprovalInsights, buildExportedInsights, buildInsights, buildLedgerInsights, findDuplicates, findDueSoon, findLargeInvoices, findLikelyMatches, findMoneyOnAccount, findOverdue, findPartPaidOverdue, findStaleDrafts, type InsightDoc, type InsightPayment } from "./insights";
 
 const today = "2026-11-09";
 
@@ -208,4 +208,14 @@ test("the ledger is only worth a look when a check of the reconciliation is out"
   const [bank] = buildLedgerInsights([{ check: "Bank EUR1", difference: 5 }]);
   assert.equal(bank.title, "The ledger does not agree with the EUR1 bank account");
   assert.equal(buildInsights([], [], today, [], undefined, [], [], [{ check: "Debtors", difference: 2 }]).some((item) => item.id === "ledger-differences"), true);
+  assert.equal(debtors.href, "/ledger/trial-balance");
+});
+
+test("postings dated in an exported period are worth a look, and nothing is when there are none", () => {
+  assert.deepEqual(buildExportedInsights(0), []);
+  const [one] = buildExportedInsights(1);
+  assert.equal(one.id, "ledger-exported-postings");
+  assert.equal(one.title, "1 posting dated in a period you have already exported");
+  assert.equal(buildExportedInsights(3)[0].title, "3 postings dated in a period you have already exported");
+  assert.equal(buildInsights([], [], today, [], undefined, [], [], [], 2).some((item) => item.id === "ledger-exported-postings"), true);
 });

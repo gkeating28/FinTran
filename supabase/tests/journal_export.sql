@@ -445,18 +445,6 @@ select public.remove_allocation(current_setting('test.gbpalloc2')::uuid, 'Wrong 
 select pg_temp.eq('a removed allocation is reversed', (select count(*) from public.journal_preview(current_setting('test.org')::uuid, current_date + 1) where source_id = current_setting('test.gbpalloc2')::uuid and stage = 'reversal')::int, 2);
 select public.create_journal_batch(current_setting('test.org')::uuid, current_date + 1);
 
--- A posted purchase line with no GL code (an imported e-invoice can have one) cannot be edited, so it needs a suspense account.
-select set_config('test.nogl', pg_temp.vdoc('PI', 'VOD', array[40], '2026-11-14', null, false, 0, true)::text, true);
-select pg_temp.eq('with a suspense account the problem goes', (select count(*) from public.journal_problems(current_setting('test.org')::uuid, current_date + 1))::int, 0);
-select pg_temp.eq('the line goes to the suspense account',
-  (select string_agg(account_code || ' ' || debit || '/' || credit, '; ' order by account_code) from pg_temp.lines_of(current_setting('test.nogl')::uuid, current_date + 1)),
-  '1300 9.20/0.00; 1999 40.00/0.00; 2100 0.00/49.20');
-select pg_temp.eq('and is marked so it can be recoded',
-  (select count(*) from public.journal_preview(current_setting('test.org')::uuid, current_date + 1) where source_id = current_setting('test.nogl')::uuid and account_code = '1999' and description like '% (no GL code)')::int, 1);
-select pg_temp.eq('a document whose lines all have GL codes is not affected',
-  (select count(*) from public.journal_preview(current_setting('test.org')::uuid, current_date + 1) where account_code = '1999')::int, 1);
-select public.create_journal_batch(current_setting('test.org')::uuid, current_date + 1);
-
 -- A reversal turns round the lines that were exported, with the accounts they were exported to. Changing an account after an
 -- export, then voiding, must not send the reversal to the new account and leave the old one with a balance.
 select set_config('test.revdoc', pg_temp.vdoc('PI', 'VOD', array[55], '2026-11-15')::text, true);

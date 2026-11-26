@@ -262,7 +262,7 @@ Checks:
 
 - **Balance.** A constraint trigger deferred to the end of the transaction refuses any posted entry whose debits differ from its credits. Each posting function also checks the balance itself before it returns, so the message is readable (rule 2 of the agent rules).
 - **Immutability.** Posted entries and their lines cannot be updated or deleted by anyone. Draft manual journals can be edited and deleted by owners and admins.
-- **Lock date.** No entry may be posted with an `entry_date` on or before the lock date, except the backfill, which uses a migration-only setting. A reversal is dated by L6 and so always passes. The opening balance journal and documents dated before `ledger_start_date` are also exempt, because go-live normally follows a closed period and the opening figures belong to it. `set_ledger_mode` to `book` refuses a lock date later than the day before go-live, so the exemption cannot hide a locked period that go-live falls inside.
+- **Lock date.** No entry may be posted with an `entry_date` on or before the lock date, except the backfill, which uses a migration-only setting. A reversal is dated by L6 and so always passes. The opening balance journal is also exempt, and so are documents and payments dated before `ledger_start_date` until the opening balance journal is posted, because go-live normally follows a closed period and the opening figures belong to it. After that the lock date applies to them again. `set_ledger_mode` to `book` refuses a lock date later than the day before go-live, so the exemption cannot hide a locked period that go-live falls inside.
 - **Writes.** No direct insert, update or delete for `authenticated` on either table. All writes go through security definer functions and triggers, which set `fintran.ledger_post`.
 - **Numbers.** `entry_number` comes from a per-organisation counter row, locked with `SELECT ... FOR UPDATE` last in the lock order, inside the posting transaction.
 
@@ -575,7 +575,7 @@ Orders, requisitions, drafts and manual journals are not in it. Manual journals 
 
 ## Build notes, release A
 
-Release A (phases 1 and 2) is built in migrations `20261125100000_ledger_chart_of_accounts` and `20261125101000_ledger_journal_tables`, with tests `supabase/tests/ledger_chart.sql` and `ledger_journal.sql`. What differs from the text above:
+Release A (phases 1 and 2) is built in migrations `20261126120415_ledger_chart_of_accounts` and `20261126120505_ledger_journal_tables`, with tests `supabase/tests/ledger_chart.sql` and `ledger_journal.sql`. What differs from the text above:
 
 - **The Accounting tab columns stay as a mirror.** Section 1.4 says the old role columns are dropped in the same release. The journal export still reads them, so they stay until phase 9 refits the export, and a trigger writes them from `system_role`. A direct write to them is refused. The start date is not renamed until phase 9 either.
 - **A role account is never made inactive,** not only once journal lines use it, and it cannot be deleted by hand. An account the ledger has used cannot change role. Any other account, bank account codes included, can still be made inactive.
@@ -589,7 +589,7 @@ Release A (phases 1 and 2) is built in migrations `20261125100000_ledger_chart_o
 
 ## Build notes, release B
 
-Release B (phases 3 to 5) is built in migrations `20261125110000_ledger_posting` and `20261125111000_ledger_backfill`, with the SQL test `ledger_posting.sql` and the two-session script `concurrency/ledger_numbers.sh`. What differs from the text above, or was decided while building:
+Release B (phases 3 to 5) is built in migrations `20261126120603_ledger_posting` and `20261126120642_ledger_backfill`, with the SQL test `ledger_posting.sql` and the two-session script `concurrency/ledger_numbers.sh`. What differs from the text above, or was decided while building:
 
 - **Shadow mode is `private.ledger_strict()`,** a function that returns false. A line with no usable GL code, or one that was made inactive after the line was entered, posts to suspense. Release C changes the function and adds the refusals.
 - **One rounding line.** The BT-114 rounding amount and any cent of home rounding difference go on a single rounding line that takes whatever balances the entry, instead of two lines.
@@ -602,6 +602,37 @@ Release B (phases 3 to 5) is built in migrations `20261125110000_ledger_posting`
 - **Test changes.** `journal_export.sql` set bank account GL codes and moved role accounts after posting, which the ledger now refuses once journal lines exist. It sets the bank codes before anything posts, and its reversal scenario keeps the accounts where they were.
 - **Flow 35 no longer moves accounts.** It moved the VAT on purchases and rounding roles to other codes, which worked in release A. By the time it runs, earlier flows have posted invoices, so journal lines use those accounts and the ledger refuses to move them. It now checks the accounts are there and saves.
 - **The existing test suite is the regression test for shadow mode.** Every SQL test that posts a document or payment now also posts to the ledger, and all of them still pass.
+
+## Build notes, release C (database)
+
+The database half of release C (phases 6 and 7) is built in migrations `20261126120735_ledger_enforcement` and `20261126120832_ledger_manual_journals`, with the SQL test `ledger_enforcement.sql`. The screens (phase 8) follow. What differs from the text above, or was decided while building:
+
+- **`private.ledger_strict()` is true.** The backfill still passes its own flag and posts history leniently, so a backfilled line with no GL code still goes to suspense.
+- **The GL code requirement** is checked before an invoice or credit note makes its entry, and names every line ("Choose one on line 1, 3"). `public.ledger_readiness` gives the same finding to the readiness panel as an error in both directions, beside the e-invoice rules, which are untouched.
+- **Exported periods.** The refusal covers a document, a payment and an allocation that makes an exchange entry. An allocation without an exchange difference has no ledger effect, so it is not refused. `public.ledger_exported_postings` lists what was posted into an exported period since the last export, for the finding shown when `lock_exported` is off. `exported_through` is still written only by the backfill until the journal export is refitted in release D. The exported lock has the same exception as the lock date: a date before go-live is not refused while the opening balance journal is not posted (migration `20261126122914_ledger_exported_lock_opening`), so an organisation that has already exported can still enter its opening documents.
+- **The lock date and go-live.** Dates before go-live are open until the opening balance journal is posted (see 2.4), through `private.document_period_locked`, so opening documents, payments and the opening journal itself pass. A reviewer pointed out that the first draft of this rule would have blocked the opening figures.
+- **New organisations are `book`** with `lock_exported` off. Existing organisations keep their mode and their setting. The choice at creation is not built: the mode is changed afterwards with `set_ledger_mode`.
+- **`set_ledger_mode`** needs a reason for every switch. To `book` without an opening journal the reason is stored as the waiver (`opening_journal_waived` in the audit entry).
+- **`lock_exported` and the go-live date** are changed by an ordinary update by owners and admins, which the audit log records, so there is no function for them. A trigger refuses a change of go-live date after the opening journal is posted.
+- **Manual journals** number from the same sequence as system entries and take the reference `JNL-n`. `ledger_reverse_entry` takes an optional description so `reverse_journal` can carry the person's text.
+- **Test changes.** Fixtures written before the GL code became compulsory leave it off, so the SQL tests that post documents include `supabase/tests/support/default_gl.sql`, which gives each such line a code of the right kind for the test transaction. The scenarios about a line posting to suspense are replaced by the refusal.
+
+## Build notes, release C (screens)
+
+The screens (phase 8) are built in `src/app/(app)/ledger`, `src/components/JournalList.tsx`, `JournalForm.tsx`, `EntryView.tsx` and `org-settings/LedgerPanel.tsx`, with the reads in migration `20261126120912_ledger_reads` and the end-to-end flows 41 to 45 in `e2e/zzz-ledger.spec.ts`. What differs from the text above, or was decided while building:
+
+- **Ledger is one menu item with three screens:** the journals grid (`/ledger`), the trial balance (`/ledger/trial-balance`) and the account enquiry (`/ledger/accounts/[id]`). The journals grid shows the newest 500 that match the filters and says when there are more.
+- **The reads are SQL functions** (`ledger_journals`, `trial_balance`, `account_enquiry`) so the enquiry's running balance and the trial balance's closing figure come from the same sums. Balances are debits less credits and are shown as Dr or Cr. The trial balance groups the account types into five report sections (assets, liabilities, equity, income, cost of sales and expenses) and opens on this year so far.
+- **The manual journal form** keeps its lines in the grid as editable rows instead of a line editor dialog, because a journal has many short lines. Save keeps a draft. Save and post is disabled until the journal balances, and the database checks it again. The opening balance journal is the same form with its date fixed at the day before go-live and a Post opening balances button.
+- **The Ledger panel** is on the Accounting tab of the organisation edit, because the tab is already for the organisation being edited and owners and admins only. The go-live date and Lock exported periods are saved there, and the opening balance journal is posted from the Ledger screen, so the link shows only for the organisation the person is working in.
+- **The Ledger tab** on an invoice or credit note is shown to owners and admins once the document is posted or voided. A payment shows a Ledger box instead of a tab, because the payment form has no tabs.
+- **The e-invoice import** now needs a GL code on every line, and offers only active codes that are not control accounts, as the spec asked in 3.2.
+- **Ledger export** is two downloads in the Ledger screen (the chart of accounts, and every posted entry line), both CSV through the shared helper, read in pages of 1,000.
+- **Not built:** the choice of mode when an organisation is created (the mode is changed afterwards with the switch), and Ask Qula's own explanation of the ledger readiness finding.
+
+## Applied to the hosted project
+
+The ledger migrations were applied to the hosted project on 26 November 2026 and the files renamed to the versions it recorded (`20261126120415` to `20261126120912`, and `20261126122914` for the exported lock exception added after review). Before them, the VAT on purchases and Suspense settings of the one organisation were cleared, because that organisation had one account (3200) chosen for both VAT roles and one (9000) for both Rounding and Suspense, which the pre-check refuses. The migration then created 1200 VAT on purchases and 9990 Suspense. The backfill posted 2 documents and 1 payment (3 entries, €12,300.00 each side, nothing on suspense), and debtors control agrees with the sales documents. That organisation stays in feed mode with exported periods locked. The function bodies on the project were compared by hash with a database built from these files, and all 58 are identical.
 
 ## Out of scope
 

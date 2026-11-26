@@ -39,6 +39,7 @@ export default function DataGrid<T extends { id: string }>({
   rowOpens,
   exportFields,
   footer,
+  initialSort,
 }: {
   rows: T[];
   columns: GridColumn<T>[];
@@ -56,10 +57,12 @@ export default function DataGrid<T extends { id: string }>({
   exportFields?: ExportField<T>[];
   /** A totals row under the rows. It is given every row that matches the search, not only the page shown. */
   footer?: (rows: T[]) => ReactNode;
+  /** The column and direction the grid opens sorted by. Defaults to the first column, ascending. */
+  initialSort?: { key: string; direction: "asc" | "desc" };
 }) {
   const [query, setQuery] = useState("");
-  const [sortKey, setSortKey] = useState(columns[0]?.key ?? "");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [sortKey, setSortKey] = useState(initialSort?.key ?? columns[0]?.key ?? "");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">(initialSort?.direction ?? "asc");
   const [pageSize, setPageSize] = useGridPageSize(form);
   const [pageIndex, setPageIndex] = useState(0);
   const gridLines = useGridLines(form);

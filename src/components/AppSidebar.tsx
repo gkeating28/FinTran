@@ -4,11 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { AdminIcon, CustomerIcon, DocumentIcon, EDocumentIcon, HomeIcon, ReportIcon, SupplierIcon } from "@/components/icons";
+import { AdminIcon, CustomerIcon, DocumentIcon, EDocumentIcon, HomeIcon, LedgerIcon, ReportIcon, SupplierIcon } from "@/components/icons";
 import { useNav } from "@/components/NavState";
 import { selectOrganisation, signOut } from "@/lib/actions";
 import { menuItemFor } from "@/lib/previous-page";
-import type { Membership, Profile } from "@/lib/types";
+import { canManage, type Membership, type Profile } from "@/lib/types";
 import styles from "./AppSidebar.module.css";
 
 type NavItem = {
@@ -16,6 +16,8 @@ type NavItem = {
   label: string;
   icon: ReactNode;
   section: "workspace" | "admin";
+  /** Shown to owners and admins only. */
+  managersOnly?: boolean;
 };
 
 const NAV: NavItem[] = [
@@ -24,6 +26,7 @@ const NAV: NavItem[] = [
   { href: "/customers", label: "Customers", icon: <CustomerIcon />, section: "workspace" },
   { href: "/suppliers", label: "Suppliers", icon: <SupplierIcon />, section: "workspace" },
   { href: "/e-documents", label: "E-documents", icon: <EDocumentIcon />, section: "workspace" },
+  { href: "/ledger", label: "Ledger", icon: <LedgerIcon />, section: "workspace", managersOnly: true },
   { href: "/reports", label: "Reports", icon: <ReportIcon />, section: "workspace" },
   { href: "/admin", label: "Admin", icon: <AdminIcon />, section: "admin" },
 ];
@@ -90,7 +93,7 @@ export default function AppSidebar({
         {current ? (
           <nav className={styles.nav} aria-label="Qula Plus">
             <div className={styles.sectionLabel}>WORKSPACE</div>
-            {NAV.filter((item) => item.section === "workspace").map((item) => (
+            {NAV.filter((item) => item.section === "workspace" && (!item.managersOnly || canManage(current.role))).map((item) => (
               <NavLink key={item.href} item={item} pathname={pathname} />
             ))}
             <div className={styles.sectionLabel}>ADMIN</div>

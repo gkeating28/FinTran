@@ -45,6 +45,11 @@ export type ReferenceRow = {
   vatCategory: string | null;
   exemptionCode: string | null;
   exemptionReason: string | null;
+  /** GL codes only. */
+  active?: boolean;
+  externalCode?: string | null;
+  externalName?: string | null;
+  reportGroup?: string | null;
 };
 
 export type VatCategoryChoice = {

@@ -205,12 +205,12 @@ update public.gl_codes set active = false where id = current_setting('test.mainb
 select pg_temp.eq('an ordinary account with journal lines can be made inactive', (select active from public.gl_codes where id = current_setting('test.mainbank')::uuid), false);
 
 -- 9. The mode and the period columns.
-select pg_temp.eq('an organisation starts in feed mode', (select ledger_mode from public.organisation_defaults where organisation_id = current_setting('test.org')::uuid), 'feed');
-select pg_temp.eq('and locks exported periods', (select lock_exported from public.organisation_defaults where organisation_id = current_setting('test.org')::uuid), true);
-select pg_temp.expect_error(format($sql$update public.organisation_defaults set ledger_mode = 'book' where organisation_id = %L$sql$, current_setting('test.org')), 'by the system', 'changing the mode by hand');
+select pg_temp.eq('a new organisation starts as the book of record', (select ledger_mode from public.organisation_defaults where organisation_id = current_setting('test.org')::uuid), 'book');
+select pg_temp.eq('and does not lock exported periods', (select lock_exported from public.organisation_defaults where organisation_id = current_setting('test.org')::uuid), false);
+select pg_temp.expect_error(format($sql$update public.organisation_defaults set ledger_mode = 'feed' where organisation_id = %L$sql$, current_setting('test.org')), 'by the system', 'changing the mode by hand');
 select pg_temp.expect_error(format($sql$update public.organisation_defaults set exported_through = '2026-12-31' where organisation_id = %L$sql$, current_setting('test.org')), 'by the system', 'setting exported-through by hand');
-update public.organisation_defaults set lock_exported = false, ledger_start_date = '2026-12-01' where organisation_id = current_setting('test.org')::uuid;
-select pg_temp.eq('an owner sets the lock switch and the go-live date', (select lock_exported::text || ledger_start_date::text from public.organisation_defaults where organisation_id = current_setting('test.org')::uuid), 'false2026-12-01');
+update public.organisation_defaults set lock_exported = true, ledger_start_date = '2026-12-01' where organisation_id = current_setting('test.org')::uuid;
+select pg_temp.eq('an owner sets the lock switch and the go-live date', (select lock_exported::text || ledger_start_date::text from public.organisation_defaults where organisation_id = current_setting('test.org')::uuid), 'true2026-12-01');
 select pg_temp.expect_error(format($sql$update public.organisation_defaults set ledger_mode = 'sideways' where organisation_id = %L$sql$, current_setting('test.org')), 'by the system', 'an unknown mode');
 reset role;
 select set_config('fintran.ledger_admin', 'on', true);

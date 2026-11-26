@@ -35,6 +35,8 @@ const PAGE_LABELS: Record<string, string> = {
   "/history": "Change history",
   "/e-documents": "E-documents",
   "/journal-export": "Journal export",
+  "/ledger": "Ledger",
+  "/ledger/trial-balance": "Trial balance",
 };
 
 export default function AppTitleBar({
@@ -59,7 +61,9 @@ export default function AppTitleBar({
       ? transactionCode.toUpperCase()
       : pathname.startsWith("/e-documents/")
         ? "E-document"
-        : (PAGE_LABELS[pathname] ?? "Home");
+        : pathname.startsWith("/ledger/accounts/")
+          ? "Account enquiry"
+          : (PAGE_LABELS[pathname] ?? "Home");
   const back = previousPage(pathname);
 
   // A document that came with the address (a link from a report, say) is not something the person opened here, so Back goes

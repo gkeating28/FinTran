@@ -1,5 +1,6 @@
 "use client";
 
+import { LedgerTab } from "@/components/document/LedgerTab";
 import { approvalBanner, needsApproval, type ApprovalInfo } from "@/lib/approvals";
 import { approvePayment, loadPaymentApprovalStatus, requestPaymentApproval } from "@/lib/payment-approval-actions";
 import Link from "next/link";
@@ -560,6 +561,13 @@ export default function PaymentForm({
                       </table>
                       {totals.over && !voided ? <p className={styles.alert}>The allocations are more than the amount.</p> : null}
                     </fieldset>
+                    {/* A posted or voided payment shows the entries it made, to owners and admins. */}
+                    {(posted || voided) && current && choices.canVoid ? (
+                      <fieldset className={documentStyles.amountBox}>
+                        <legend>Ledger</legend>
+                        <LedgerTab kind="payment" id={current.id} active />
+                      </fieldset>
+                    ) : null}
                   </div>
                 </div>
               </div>

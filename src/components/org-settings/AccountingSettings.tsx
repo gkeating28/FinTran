@@ -1,6 +1,8 @@
 import styles from "@/components/OpsPage.module.css";
 import { saveAccountingSettings } from "@/lib/journal-actions";
 import { getAccountingSettings } from "@/lib/journal-data";
+import { getLedgerSettings } from "@/lib/ledger-data";
+import LedgerPanel from "@/components/org-settings/LedgerPanel";
 import { ACCOUNTING_ACCOUNTS } from "@/lib/journal";
 
 /** The accounts the ledger and the journal export use, each a system role on a GL code. It is the Accounting tab of the organisation edit. */
@@ -9,15 +11,19 @@ export default async function AccountingSettings({
   organisationName,
   status,
   failed,
+  role,
+  isCurrent,
 }: {
   organisationId: string;
   organisationName: string;
   status: string | null;
   failed: boolean;
+  role: string;
+  isCurrent: boolean;
 }) {
-  const { settings, glCodes, error } = await getAccountingSettings(organisationId);
-  const message = failed ? status : (error ?? status);
-  const bad = failed || Boolean(error);
+  const [{ settings, glCodes, error }, ledger] = await Promise.all([getAccountingSettings(organisationId), getLedgerSettings(organisationId)]);
+  const message = failed ? status : (error ?? ledger.error ?? status);
+  const bad = failed || Boolean(error ?? ledger.error);
 
   return (
     <div className={styles.stack}>
@@ -59,6 +65,7 @@ export default async function AccountingSettings({
           </div>
         </form>
       </div>
+      {ledger.settings ? <LedgerPanel organisationId={organisationId} settings={ledger.settings} role={role} isCurrent={isCurrent} /> : null}
     </div>
   );
 }

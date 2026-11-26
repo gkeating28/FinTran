@@ -1,5 +1,6 @@
 -- Phase 5 acceptance tests. Raises on failure and rolls back.
 begin;
+\ir support/default_gl.sql
 
 create temp table phase5_users (who text primary key, id uuid not null);
 insert into phase5_users (who, id) values ('owner', 'a5a5a5a5-a5a5-4a5a-8a5a-a5a5a5a5a5a5');

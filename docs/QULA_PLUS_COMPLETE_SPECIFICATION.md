@@ -181,7 +181,7 @@ Built and applied to the hosted project on 19 and 20 November. Seven mapped acco
 
 A multi-company accounts payable and receivable tool for businesses in Ireland and the EU. It records purchase and sales documents, applies payments to them, produces and checks EN 16931 e-invoices (Peppol BIS Billing 3.0), exports journals to a customer's own accounting system and answers questions through an assistant called Ask Qula.
 
-It keeps no ledger and moves no money. It does not send e-invoices over the Peppol network. The app is Next.js, React and TypeScript. It talks to Supabase as the signed-in person and never uses a service-role key, so row level security decides what anyone can see. Postgres holds the business rules, so a rule holds however a row is changed.
+It keeps a general ledger from the ledger spec (built after this document was first written) and moves no money. It does not send e-invoices over the Peppol network. The app is Next.js, React and TypeScript. It talks to Supabase as the signed-in person and never uses a service-role key, so row level security decides what anyone can see. Postgres holds the business rules, so a rule holds however a row is changed.
 
 The live database is the Supabase project `hxueqzgdwlaschcvwdke`. The repository, package and project keep the old name FinTran.
 
@@ -371,7 +371,7 @@ A screen for provider, environment, secret storage, test connection, participant
 3. **Immutable once real.** Codes after creation. Posted documents and their snapshots. Stored e-documents. Journal batches. Effective allocations. Audit rows. Each is protected by a trigger, a constraint or a missing privilege.
 4. **One source for each derived number.** Paid and due amounts come from `refresh_settlement`. Order usage comes from `order_line_used`. Totals come from triggers. The app never computes what the database stores.
 5. **Fail closed.** AI actions off by default. Approvals off until configured. Members read setup, not edit it. Unknown email and forbidden grant give one message.
-6. **No ledger.** Accounting stays in the customer's system. Journal export is the route in.
+6. **A ledger, added later.** The first design kept no ledger and left accounting in the customer's system. The ledger spec (`specs/QULAPLUS_LEDGER_SPEC.md`) changed that: Qula Plus is the book of record or a feed, per organisation. Journal export is the route in for a feed.
 
 ## D2. Notable design choices and their reasons
 

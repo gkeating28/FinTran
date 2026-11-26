@@ -207,11 +207,17 @@ select pg_temp.eq('the lines add up to the header home nett',
   (select home_nett_amount from public.transaction_headers where id = current_setting('test.gbp3')::uuid));
 select pg_temp.eq('the cents go to the first lines', (select string_agg(l.credit::text, ' ' order by l.line_number) from public.journal_lines l join public.gl_codes g on g.id = l.gl_code_id where l.entry_id = pg_temp.entry_of('document', current_setting('test.gbp3')::uuid) and g.code = '4000'), '0.12 0.12 0.11');
 
--- 6. A line with no GL code goes to suspense, and is listed.
-select set_config('test.nogl', pg_temp.doc('PI', 'VOD', jsonb_build_array(pg_temp.line(40, 'PZ')))::text, true);
-select pg_temp.eq('no GL code posts to suspense', pg_temp.lines_of(pg_temp.entry_of('document', current_setting('test.nogl')::uuid)), '2100 0.00/40.00; 9990 40.00/0.00');
-select pg_temp.eq('and says so', (select l.description from public.journal_lines l join public.gl_codes g on g.id = l.gl_code_id where l.entry_id = pg_temp.entry_of('document', current_setting('test.nogl')::uuid) and g.code = '9990'), 'Goods (no GL code)');
-select pg_temp.eq('and is on the review list', (select count(*) from public.ledger_suspense_lines(current_setting('test.org')::uuid))::int, 1);
+-- 6. A line with no GL code cannot be posted. The readiness panel says which, and nothing is made.
+select set_config('test.nogl', pg_temp.doc('PI', 'VOD', jsonb_build_array(pg_temp.line(40, 'PZ'), pg_temp.line(10, 'PZ', '6000'), pg_temp.line(5, 'PZ')), '2026-11-12', false)::text, true);
+select pg_temp.eq('readiness names the lines', (select message from public.ledger_readiness(current_setting('test.nogl')::uuid)), 'Every line needs a GL code that is in use. Choose one on line 1, 3.');
+select pg_temp.eq('as an error', (select severity from public.ledger_readiness(current_setting('test.nogl')::uuid)), 'error');
+select pg_temp.expect_error(format($sql$select public.post_document(%L, null)$sql$, current_setting('test.nogl')), 'on line 1, 3', 'posting with lines that have no GL code');
+select pg_temp.eq('the refusal made no entry and used no number', (select count(*) from public.journal_entries where source_header_id = current_setting('test.nogl')::uuid)::int
+  + (select count(*) from public.transaction_headers where id = current_setting('test.nogl')::uuid and status = 'posted')::int, 0);
+update public.transaction_lines set gl_code_id = pg_temp.id_of('gl_codes', '6000') where header_id = current_setting('test.nogl')::uuid and gl_code_id is null;
+select pg_temp.eq('once they have codes readiness is clear', (select count(*) from public.ledger_readiness(current_setting('test.nogl')::uuid))::int, 0);
+select public.post_document(current_setting('test.nogl')::uuid, null);
+select pg_temp.eq('and it posts', (select count(*) from public.journal_entries where source_header_id = current_setting('test.nogl')::uuid)::int, 1);
 
 -- 7. A document worth nothing makes no entry. Orders and drafts make none either.
 select set_config('test.free', pg_temp.doc('SI', 'ACME', jsonb_build_array(pg_temp.line(0, 'Z0', '4000')))::text, true);
@@ -372,7 +378,7 @@ select pg_temp.eq('the numbers follow the dates', (select bool_and(entry_date >=
   from public.journal_entries where backfilled) as e where previous is not null), true);
 select pg_temp.eq('and continue the sequence', (select min(entry_number) from public.journal_entries where backfilled), (:last_number + 1)::bigint);
 select pg_temp.eq('a reversal of a void takes the day it was voided', (select entry_date from public.journal_entries where id = pg_temp.entry_of('document', current_setting('test.l2')::uuid, true)), current_date);
-select pg_temp.eq('lines with no GL code are on suspense and listed', (select count(*) from public.ledger_suspense_lines(current_setting('test.org')::uuid))::int, 2);
+select pg_temp.eq('a backfilled line with no GL code is on suspense and listed', (select count(*) from public.ledger_suspense_lines(current_setting('test.org')::uuid))::int, 1);
 select pg_temp.eq('the exported rows know their entries', (select count(*) from public.journal_exports where organisation_id = current_setting('test.org')::uuid and entry_id is null)::int, 0);
 select pg_temp.eq('exported through is the batch date', (select exported_through from public.organisation_defaults where organisation_id = current_setting('test.org')::uuid), '2026-12-31'::date);
 select pg_temp.eq('running it again makes nothing', public.ledger_backfill(current_setting('test.org')::uuid), '0 entries posted and 0 reversals');

@@ -45,7 +45,7 @@ export default async function OrganisationsPage({
     ) : target && tab === "access-point" ? (
       <AccessPointSettings organisationId={target.organisationId} organisationName={target.organisationName} status={status} failed={failed} />
     ) : target && tab === "accounting" ? (
-      <AccountingSettings organisationId={target.organisationId} organisationName={target.organisationName} status={status} failed={failed} />
+      <AccountingSettings organisationId={target.organisationId} organisationName={target.organisationName} status={status} failed={failed} role={target.role} isCurrent={target.organisationId === current.organisationId} />
     ) : null;
 
   return (

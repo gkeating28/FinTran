@@ -96,7 +96,7 @@ export function useImportForm({ id, semantic, organisationId, documentNumber, cr
     void Promise.all([
       supabase.from("suppliers").select("id, name, code, vat_number, peppol_scheme, peppol_id, currency_id").eq("organisation_id", organisationId),
       supabase.from("vat_rates").select("id, code, description, vat_category, rate, vat_type").eq("organisation_id", organisationId).eq("vat_type", "Expense"),
-      supabase.from("gl_codes").select("id, code, description").eq("organisation_id", organisationId).order("code"),
+      supabase.from("gl_codes").select("id, code, description, system_role").eq("organisation_id", organisationId).eq("active", true).order("code"),
       supabase.from("departments").select("id, code, description").eq("organisation_id", organisationId).order("code"),
       supabase.from("cost_centres").select("id, code, description").eq("organisation_id", organisationId).order("code"),
       supabase.from("currencies").select("id, code, iso_code, rate").eq("organisation_id", organisationId),
@@ -106,7 +106,8 @@ export function useImportForm({ id, semantic, organisationId, documentNumber, cr
     ]).then(([supplierResult, vatResult, glResult, departmentResult, costResult, currencyResult, meansResult, unitResult, typeResult]) => {
       setSuppliers((supplierResult.data ?? []) as Supplier[]);
       setRates((vatResult.data ?? []) as Vat[]);
-      setGlCodes((glResult.data ?? []) as Named[]);
+      // A control account is only posted to by the system, so a line cannot use one.
+      setGlCodes(((glResult.data ?? []) as (Named & { system_role: string | null })[]).filter((code) => code.system_role !== "debtors_control" && code.system_role !== "creditors_control"));
       setDepartments((departmentResult.data ?? []) as Named[]);
       setCostCentres((costResult.data ?? []) as Named[]);
       setCurrencies((currencyResult.data ?? []) as Currency[]);
@@ -344,6 +345,11 @@ export function useImportForm({ id, semantic, organisationId, documentNumber, cr
     const missingVat = lines.some((line) => !choiceFor(line).vatRateId);
     if (missingVat) {
       setError("Choose a VAT code on every line.");
+      return;
+    }
+    const missingGl = lines.some((line) => !choiceFor(line).glCodeId);
+    if (missingGl) {
+      setError("Choose a GL code on every line.");
       return;
     }
     setSaving(true);

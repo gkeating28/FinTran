@@ -26,3 +26,14 @@ test("a moment is shown in the region's time zone", () => {
 test("an unknown locale falls back to the default", () => {
   assert.equal(formatDate("2026-10-18", { locale: "not a locale", timeZone: "UTC" }), "18 Oct 2026");
 });
+
+test("today is the calendar date in the zone, not on the server's clock", async () => {
+  const { todayInZone } = await import("./dates");
+  // 23:30 UTC on 30 June is half past midnight on 1 July in Dublin (IST, UTC+1), and still 30 June in UTC.
+  const now = new Date("2026-06-30T23:30:00Z");
+  assert.equal(todayInZone("Europe/Dublin", now), "2026-07-01");
+  assert.equal(todayInZone("UTC", now), "2026-06-30");
+  // In winter Dublin is on UTC.
+  assert.equal(todayInZone("Europe/Dublin", new Date("2026-12-31T23:30:00Z")), "2026-12-31");
+  assert.equal(todayInZone("Not/AZone", now), "2026-06-30");
+});

@@ -26,7 +26,7 @@ export async function listReference(kind: ReferenceKind): Promise<{
   if (kind === "gl_codes") {
     const { data, error } = await supabase
       .from("gl_codes")
-      .select("id, code, description, account_type, system_role")
+      .select("id, code, description, account_type, system_role, active, external_code, external_name, report_group")
       .eq("organisation_id", organisationId)
       .order("code");
 
@@ -39,6 +39,10 @@ export async function listReference(kind: ReferenceKind): Promise<{
         description: row.description,
         accountType: parseAccountType(row.account_type),
         systemRole: row.system_role,
+        active: row.active,
+        externalCode: row.external_code,
+        externalName: row.external_name,
+        reportGroup: row.report_group,
         rate: null,
         vatType: null,
         vatCategory: null,
