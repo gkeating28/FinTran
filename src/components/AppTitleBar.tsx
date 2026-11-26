@@ -54,7 +54,8 @@ export default function AppTitleBar({
   const history = useNavHistory();
   const formTitle = useFormChrome();
   const registeredLabel = usePageLabel();
-  const transactionCode = pathname.match(/^\/transactions\/([A-Za-z0-9]+)$/)?.[1];
+  // The journals are a screen of their own under Transactions, not a transaction type, so they are not read as a code.
+  const transactionCode = pathname === "/transactions/journals" ? undefined : pathname.match(/^\/transactions\/([A-Za-z0-9]+)$/)?.[1];
   const formCode = pathname.match(/^\/forms\/([A-Za-z0-9]+)$/)?.[1];
   const pageLabel = setup
     ? "Set up"

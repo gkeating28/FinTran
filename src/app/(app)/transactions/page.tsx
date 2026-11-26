@@ -55,9 +55,16 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
         </form>
       ) : null}
       {tiles.length === 0 ? (
-        <p className={styles.empty}>
-          No transaction types yet. Add them under Admin, then they will appear here.
-        </p>
+        <>
+          <p className={styles.empty}>
+            No transaction types yet. Add them under Admin, then they will appear here.
+          </p>
+          {canManage(workspace.current.role) ? (
+            <div className={dashboardStyles.menuGroups}>
+              <JournalsGroup />
+            </div>
+          ) : null}
+        </>
       ) : (
         <div className={dashboardStyles.menuGroups}>
           <TransactionGroup title="Purchase transactions" tiles={tiles.filter((tile) => tile.type === "Purchases")} />
@@ -66,18 +73,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
           <hr className={dashboardStyles.menuDivider} />
           {canManage(workspace.current.role) ? (
             <>
-              <section className={dashboardStyles.menuSection}>
-                <h2 className={dashboardStyles.menuHeading}>GL Journals</h2>
-                <div className={dashboardStyles.adminGrid}>
-                  <Link prefetch href="/transactions/journals" className={dashboardStyles.adminTile}>
-                    <span className={dashboardStyles.adminTileIcon}>
-                      <DocumentIcon size={22} />
-                    </span>
-                    <span className={dashboardStyles.adminTileLabel}>Journals</span>
-                    <span className={dashboardStyles.adminTileMeta}>Accruals, adjustments and opening balances</span>
-                  </Link>
-                </div>
-              </section>
+              <JournalsGroup />
               <hr className={dashboardStyles.menuDivider} />
             </>
           ) : null}
@@ -95,6 +91,24 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
           </section>
         </div>
       )}
+    </section>
+  );
+}
+
+/** The manual journals. They do not depend on a transaction type, so the tile is there even before any type is added. */
+function JournalsGroup() {
+  return (
+    <section className={dashboardStyles.menuSection}>
+      <h2 className={dashboardStyles.menuHeading}>GL Journals</h2>
+      <div className={dashboardStyles.adminGrid}>
+        <Link prefetch href="/transactions/journals" className={dashboardStyles.adminTile}>
+          <span className={dashboardStyles.adminTileIcon}>
+            <DocumentIcon size={22} />
+          </span>
+          <span className={dashboardStyles.adminTileLabel}>Journals</span>
+          <span className={dashboardStyles.adminTileMeta}>Accruals, adjustments and opening balances</span>
+        </Link>
+      </div>
     </section>
   );
 }
