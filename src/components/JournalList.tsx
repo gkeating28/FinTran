@@ -45,6 +45,7 @@ export default function JournalList({
         searchPlaceholder="Search journals"
         searchText={(row) => `${row.number ?? "draft"} ${row.date} ${SOURCE_LABELS[row.sourceType] ?? ""} ${row.sourceRef} ${row.description}`}
         emptyLabel="No journals match."
+        initialSort={{ key: "number", direction: "desc" }}
         onOpen={(row) => go(`${row.status === "draft" ? "edit" : "open"}=${row.id}`)}
         toolbar={
           <>
@@ -57,7 +58,8 @@ export default function JournalList({
           </>
         }
         columns={[
-          { key: "number", label: "No.", mono: true, sortValue: (row) => String(row.number ?? 0).padStart(10, "0"), render: (row) => (row.number ? String(row.number) : "Draft"), exportValue: (row) => row.number },
+          { key: "number", label: "No.", mono: true, // A draft has no number yet and is work in hand, so it sorts with the newest.
+          sortValue: (row) => String(row.number ?? 9_999_999_999).padStart(10, "0"), render: (row) => (row.number ? String(row.number) : "Draft"), exportValue: (row) => row.number },
           { key: "date", label: "Date", mono: true, sortValue: (row) => row.date, render: (row) => row.date },
           { key: "source", label: "Source", sortValue: (row) => SOURCE_LABELS[row.sourceType] ?? row.sourceType, render: (row) => (row.isOpening ? "Opening balances" : (SOURCE_LABELS[row.sourceType] ?? row.sourceType)) },
           { key: "ref", label: "Reference", mono: true, sortValue: (row) => row.sourceRef, render: (row) => row.sourceRef },
