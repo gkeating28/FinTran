@@ -107,7 +107,8 @@ test("flow 42: an owner posts a manual journal, reverses it, and saves and delet
   await entry.getByRole("button", { name: "Reverse journal", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("The journal was reversed.");
   await expect(page.locator("tbody tr").filter({ hasText: "Flow42 accrual" })).toHaveCount(2);
-  await expect(page.locator("tbody tr").filter({ hasText: "Reversed" })).toHaveCount(1);
+  // Earlier flows voided documents, so other rows say Reversed too. This journal has one row that does.
+  await expect(page.locator("tbody tr").filter({ hasText: "Flow42 accrual" }).filter({ hasText: "Reversed" })).toHaveCount(1);
 
   // A draft is saved, comes back for editing and is deleted.
   await page.getByRole("button", { name: "New journal", exact: true }).click();
