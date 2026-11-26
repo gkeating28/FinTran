@@ -37,7 +37,6 @@ export default async function AccountEnquiryPage({
   const enquiry = await getAccountEnquiry(id, { from, to, departmentId, costCentreId });
   if (!enquiry.error && !enquiry.account) notFound();
   const closing = enquiry.lines.length > 0 ? enquiry.lines[enquiry.lines.length - 1].balance : enquiry.opening;
-  const back = new URLSearchParams({ from, to, ...(departmentId ? { dept: departmentId } : {}), ...(costCentreId ? { cc: costCentreId } : {}) }).toString();
 
   return (
     <section className={styles.stack}>
@@ -46,7 +45,7 @@ export default async function AccountEnquiryPage({
           {enquiry.account ? `${enquiry.account.code} ${enquiry.account.description}` : "Account enquiry"}
         </h1>
         <p className={styles.lede}>
-          {from} to {to}. <Link href={`/ledger/trial-balance?${back}`}>Back to the trial balance</Link>
+          {from} to {to}.
         </p>
       </div>
       {enquiry.error ? (

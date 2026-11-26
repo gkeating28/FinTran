@@ -113,7 +113,7 @@ export default function EntryView({
                 <tr key={line.id}>
                   <td className={styles.mono}>{line.lineNumber}</td>
                   <td>
-                    <Link href={`/ledger/accounts/${line.glCodeId}`}>
+                    <Link href={`/reports/trial-balance/${line.glCodeId}`}>
                       {line.code} {line.codeDescription}
                     </Link>
                   </td>

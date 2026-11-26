@@ -11,7 +11,7 @@ import { canManage } from "@/lib/types";
 
 export const metadata = { title: "Ledger" };
 
-type Params = { from?: string; to?: string; source?: string; gl?: string; open?: string; edit?: string; new?: string; opening?: string; message?: string; error?: string };
+type Params = { from?: string; to?: string; source?: string; gl?: string; open?: string; edit?: string; opening?: string; message?: string; error?: string };
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -56,8 +56,7 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
         <h1 className={styles.heading}>Ledger</h1>
         <p className={styles.lede}>
           Every posting in {workspace.current.organisationName}.{" "}
-          {settings.settings?.mode === "book" ? "Qula Plus is the book of record." : "Qula Plus feeds your accounting system."}{" "}
-          <Link href="/organisations">Change this</Link>
+          {settings.settings?.mode === "book" ? "Qula Plus is the book of record." : "Qula Plus feeds your accounting system."}
         </p>
       </div>
       {error || openingProblem || params.message ? (
@@ -114,10 +113,12 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
       ) : null}
       <JournalList
         rows={journals.rows}
+        basePath="/ledger"
+        allowNew={false}
         query={query}
         entry={entry?.entry ?? null}
         draft={draft?.draft ?? null}
-        newJournal={params.new === "1"}
+        newJournal={false}
         opening={wantsOpening && !openingProblem}
         openingDate={openingDate}
         choices={{ glCodes: choices.glCodes, departments: choices.departments, costCentres: choices.costCentres }}

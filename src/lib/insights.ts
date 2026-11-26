@@ -254,7 +254,7 @@ export function buildLedgerInsights(differences: LedgerDifference[]): Insight[] 
       tone: "attention",
       title: off.some((row) => row.check === "Debtors") ? "The ledger does not agree with customer balances" : `The ledger does not agree with ${names[0]}`,
       detail: `${off.map((row) => `${row.check} is out by ${euro(Math.abs(row.difference))}`).join(", ")}. Nothing has been changed. The first to look at is ${first.check}.`,
-      href: "/ledger/trial-balance",
+      href: "/reports/trial-balance",
     },
   ];
 }

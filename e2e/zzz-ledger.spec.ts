@@ -70,7 +70,14 @@ test("flow 41: an owner sees the postings of the earlier flows in the Ledger and
     await expect(member.getByRole("link", { name: "Ledger", exact: true })).toHaveCount(0);
     await member.goto("/ledger");
     await expect(member).toHaveURL(/\/$/);
-    await member.goto("/ledger/trial-balance");
+    // Nor do they get the Journals tile under Transactions or the Trial balance tile under Reports, and their addresses go back.
+    await member.goto("/transactions");
+    await expect(member.getByRole("heading", { name: "GL Journals" })).toHaveCount(0);
+    await member.goto("/transactions/journals");
+    await expect(member).toHaveURL(/\/transactions$/);
+    await member.goto("/reports");
+    await expect(member.getByRole("link", { name: /Trial balance/ })).toHaveCount(0);
+    await member.goto("/reports/trial-balance");
     await expect(member).toHaveURL(/\/$/);
   });
 });
@@ -78,8 +85,12 @@ test("flow 41: an owner sees the postings of the earlier flows in the Ledger and
 test("flow 42: an owner posts a manual journal, reverses it, and saves and deletes a draft", async ({ page }) => {
   test.setTimeout(180_000);
   await signIn(page, "owner");
-  await page.goto("/ledger");
-  await page.getByRole("button", { name: "New journal", exact: true }).click();
+  // The journals are under Transactions, in their own group.
+  await page.goto("/transactions");
+  await expect(page.getByRole("heading", { name: "GL Journals" })).toBeVisible();
+  await page.getByRole("link", { name: /^Journals/ }).click();
+  await expect(page.getByRole("heading", { name: "Journals", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Add", exact: true }).click();
   const form = ledgerDialog(page);
   await expect(form.locator("form#manual-journal")).toBeVisible();
   await typeInto(form.locator('input[name="journal_description"]'), "Flow42 accrual");
@@ -106,12 +117,15 @@ test("flow 42: an owner posts a manual journal, reverses it, and saves and delet
   await entry.getByRole("button", { name: "Reverse", exact: true }).click();
   await entry.getByRole("button", { name: "Reverse journal", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("The journal was reversed.");
+  // This list is the manual journals, so it shows the journal as Reversed. The reversal itself is in the Ledger.
+  await expect(page.locator("tbody tr").filter({ hasText: "Flow42 accrual" })).toHaveCount(1);
+  await expect(page.locator("tbody tr").filter({ hasText: "Flow42 accrual" })).toContainText("Reversed");
+  await page.goto("/ledger");
   await expect(page.locator("tbody tr").filter({ hasText: "Flow42 accrual" })).toHaveCount(2);
-  // Earlier flows voided documents, so other rows say Reversed too. This journal has one row that does.
-  await expect(page.locator("tbody tr").filter({ hasText: "Flow42 accrual" }).filter({ hasText: "Reversed" })).toHaveCount(1);
+  await page.goto("/transactions/journals");
 
   // A draft is saved, comes back for editing and is deleted.
-  await page.getByRole("button", { name: "New journal", exact: true }).click();
+  await page.getByRole("button", { name: "Add", exact: true }).click();
   const draft = ledgerDialog(page);
   await typeInto(draft.locator('input[name="journal_description"]'), "Flow42 draft");
   await chooseByCode(draft.getByRole("combobox", { name: "GL code, line 1" }), "6000");
@@ -134,7 +148,9 @@ test("flow 42: an owner posts a manual journal, reverses it, and saves and delet
 test("flow 43: the trial balance agrees, says the ledger reconciles, and an account's enquiry ends on its closing balance", async ({ page }) => {
   test.setTimeout(120_000);
   await signIn(page, "owner");
-  await page.goto("/ledger/trial-balance");
+  // The trial balance is a report.
+  await page.goto("/reports");
+  await page.getByRole("link", { name: /^Trial balance/ }).click();
   await expect(page.getByRole("heading", { name: "Trial balance", exact: true })).toBeVisible();
   await expect(page.getByText("The ledger agrees with debtors, creditors and every bank account.")).toBeVisible();
   await expect(page.getByTestId("tb-debit")).toHaveText((await page.getByTestId("tb-credit").innerText()).trim());

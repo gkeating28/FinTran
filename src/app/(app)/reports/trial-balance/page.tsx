@@ -69,7 +69,7 @@ export default async function TrialBalancePage({ searchParams }: { searchParams:
           </div>
         )}
       </div>
-      <form className={styles.partyFields} method="get" action="/ledger/trial-balance">
+      <form className={styles.partyFields} method="get" action="/reports/trial-balance">
         <label className={styles.field}>
           From
           <input type="date" name="from" defaultValue={from} required />
@@ -139,7 +139,7 @@ export default async function TrialBalancePage({ searchParams }: { searchParams:
                   <tr key={row.glCodeId}>
                     <td className={styles.mono}>{row.code}</td>
                     <td>
-                      <Link href={`/ledger/accounts/${row.glCodeId}?${filters}`}>{row.description}</Link>
+                      <Link href={`/reports/trial-balance/${row.glCodeId}?${filters}`}>{row.description}</Link>
                     </td>
                     <td className={`${styles.mono} ${styles.numeric}`}>{drCr(Math.round(row.opening * 100))}</td>
                     <td className={`${styles.mono} ${styles.numeric}`}>{formatMoney(row.debit)}</td>

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import DataGrid from "@/components/DataGrid";
 import EntryView from "@/components/EntryView";
@@ -13,6 +12,8 @@ import styles from "@/components/OpsPage.module.css";
 /** The journals grid, and the dialogs that open over it: an entry, a manual journal and the opening balance journal. */
 export default function JournalList({
   rows,
+  basePath,
+  allowNew,
   query,
   entry,
   draft,
@@ -23,6 +24,10 @@ export default function JournalList({
   today,
 }: {
   rows: JournalRow[];
+  /** The screen the list is on, so a dialog opens and closes over it. */
+  basePath: string;
+  /** Whether the list has an Add button. The journals under Transactions do, the Ledger does not. */
+  allowNew: boolean;
   /** The filters as a query string, kept when a dialog opens or closes. */
   query: string;
   entry: EntryDetail | null;
@@ -34,8 +39,8 @@ export default function JournalList({
   today: string;
 }) {
   const router = useRouter();
-  const go = (extra = "") => router.push(`/ledger?${[query, extra].filter(Boolean).join("&")}`);
-  const done = (message: string) => router.push(`/ledger?${[query, `message=${encodeURIComponent(message)}`].filter(Boolean).join("&")}`);
+  const go = (extra = "") => router.push(`${basePath}?${[query, extra].filter(Boolean).join("&")}`);
+  const done = (message: string) => router.push(`${basePath}?${[query, `message=${encodeURIComponent(message)}`].filter(Boolean).join("&")}`);
 
   return (
     <>
@@ -48,14 +53,11 @@ export default function JournalList({
         initialSort={{ key: "number", direction: "desc" }}
         onOpen={(row) => go(`${row.status === "draft" ? "edit" : "open"}=${row.id}`)}
         toolbar={
-          <>
-            <Link className={styles.quiet} href="/ledger/trial-balance">
-              Trial balance
-            </Link>
+          allowNew ? (
             <button className={styles.primary} type="button" onClick={() => go("new=1")}>
-              New journal
+              Add
             </button>
-          </>
+          ) : null
         }
         columns={[
           { key: "number", label: "No.", mono: true, // A draft has no number yet and is work in hand, so it sorts with the newest.

@@ -655,9 +655,9 @@ The flows run one at a time, in file order, on one database, and each signs in t
 | 38 | A member sees neither the Accounting nor the Journal export tile, is sent back to Admin, and is refused when calling the database directly. |
 | 39 | Back returns to where the person came from (Suppliers back to Customers, a report back to Reports in one step however the filter was changed), and goes to the screen's parent when it was opened by its address. |
 | 40 | Ask Qula, Access Point and Accounting are tabs of the organisation edit. A save is for the organisation being edited, not only the one the person works in, and a member gets no tabs. |
-| 41 | An owner sees the earlier postings in the Ledger, filters them to documents and opens one whose debits equal its credits. A member has no Ledger menu item, and the addresses send them home. |
-| 42 | An owner posts a manual journal (it cannot be posted while out of balance), reverses it, and saves a draft, opens it again and deletes it. |
-| 43 | The trial balance agrees and says the ledger reconciles, and an account's enquiry ends on the closing balance the trial balance shows. |
+| 41 | An owner sees the earlier postings in the Ledger, filters them to documents and opens one whose debits equal its credits. A member has no Ledger menu item, no Journals tile under Transactions and no Trial balance tile under Reports, and the addresses send them back. |
+| 42 | An owner finds Journals under the GL Journals heading of Transactions, posts a manual journal (it cannot be posted while out of balance), reverses it, and saves a draft, opens it again and deletes it. The reversal is in the Ledger. |
+| 43 | The trial balance, opened from Reports, agrees and says the ledger reconciles, and an account's enquiry ends on the closing balance the trial balance shows. |
 | 44 | A posted document has a Ledger tab for an owner listing its entry, and a member does not get the tab. |
 | 45 | The GL code screen shows the system role, the control account note, Active and the external fields. The organisation shows its ledger mode, only an owner can switch it, and the switch waits for a reason. |
 
