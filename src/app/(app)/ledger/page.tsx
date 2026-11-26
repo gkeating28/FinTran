@@ -56,8 +56,7 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
         <h1 className={styles.heading}>Ledger</h1>
         <p className={styles.lede}>
           Every posting in {workspace.current.organisationName}.{" "}
-          {settings.settings?.mode === "book" ? "Qula Plus is the book of record." : "Qula Plus feeds your accounting system."}{" "}
-          <Link href="/organisations">Change this</Link>
+          {settings.settings?.mode === "book" ? "Qula Plus is the book of record." : "Qula Plus feeds your accounting system."}
         </p>
       </div>
       {error || openingProblem || params.message ? (
