@@ -35,7 +35,7 @@ const PAGE_LABELS: Record<string, string> = {
   "/history": "Change history",
   "/e-documents": "E-documents",
   "/journal-export": "Journal export",
-  "/ledger": "Ledger",
+  "/reports/general-ledger": "General ledger",
   "/reports/trial-balance": "Trial balance",
   "/transactions/journals": "Journals",
 };

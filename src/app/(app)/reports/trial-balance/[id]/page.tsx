@@ -74,7 +74,7 @@ export default async function AccountEnquiryPage({
             {enquiry.lines.map((line) => (
               <tr key={line.id}>
                 <td className={styles.mono}>
-                  <Link href={`/ledger?open=${line.entryId}`}>{line.number}</Link>
+                  <Link href={`/reports/general-ledger?open=${line.entryId}`}>{line.number}</Link>
                 </td>
                 <td className={styles.mono}>{line.date}</td>
                 <td className={styles.mono}>{line.sourceRef}</td>

@@ -16,7 +16,7 @@ const PARENTS: [string, string | null][] = [
   ["/reports", "/"],
   ["/reports/aged-debtors", "/reports"],
   ["/reports/aged-creditors", "/reports"],
-  ["/ledger", "/"],
+  ["/reports/general-ledger", "/reports"],
   ["/reports/trial-balance", "/reports"],
   ["/reports/trial-balance/abc", "/reports/trial-balance"],
   ["/transactions/journals", "/transactions"],

@@ -15,7 +15,7 @@ const ADMIN_PAGES = new Set([
   "/journal-export",
 ]);
 
-const HOME_PAGES = new Set(["/transactions", "/customers", "/suppliers", "/admin", "/e-documents", "/reports", "/ledger"]);
+const HOME_PAGES = new Set(["/transactions", "/customers", "/suppliers", "/admin", "/e-documents", "/reports"]);
 
 /**
  * The main menu item a screen sits under, so the menu shows where the person is. Every Admin screen is under Admin, including

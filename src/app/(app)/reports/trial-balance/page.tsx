@@ -102,8 +102,8 @@ export default async function TrialBalancePage({ searchParams }: { searchParams:
         </label>
         <div className={`${styles.modalActions} ${styles.wide}`}>
           <span className={styles.actionStart} />
-          <Link className={styles.quiet} href="/ledger">
-            Journals
+          <Link className={styles.quiet} href="/reports/general-ledger">
+            General ledger
           </Link>
           <TrialBalanceExport rows={trial.rows} from={from} to={to} />
           <button className={styles.primary} type="submit">

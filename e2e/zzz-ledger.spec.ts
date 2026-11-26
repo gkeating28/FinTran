@@ -38,11 +38,12 @@ function ledgerDialog(page: Page): Locator {
   return page.getByRole("dialog").last();
 }
 
-test("flow 41: an owner sees the postings of the earlier flows in the Ledger and opens one, and a member sees no Ledger", async ({ browser, page }) => {
+test("flow 41: an owner sees the postings of the earlier flows in the General Ledger report and opens one, and a member does not", async ({ browser, page }) => {
   test.setTimeout(120_000);
   await signIn(page, "owner");
-  await page.getByRole("link", { name: "Ledger", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Ledger", exact: true })).toBeVisible();
+  await page.goto("/reports");
+  await page.getByRole("link", { name: /General Ledger/ }).click();
+  await expect(page.getByRole("heading", { name: "General ledger", exact: true })).toBeVisible();
   const rows = page.locator("tbody tr");
   await expect(rows.first()).toBeVisible();
   expect(await rows.count()).toBeGreaterThan(2);
@@ -60,7 +61,7 @@ test("flow 41: an owner sees the postings of the earlier flows in the Ledger and
   const entry = ledgerDialog(page);
   await expect(entry.getByRole("table")).toBeVisible();
   const totals = entry.locator("tfoot td");
-  await expect(totals.nth(1)).toHaveText((await totals.nth(2).innerText()).trim());
+  await expect(totals.nth(0)).toHaveText((await totals.nth(1).innerText()).trim());
   // The corner X and the footer button are both called Close. The footer one is the one with text.
   await entry.getByText("Close", { exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -68,6 +69,8 @@ test("flow 41: an owner sees the postings of the earlier flows in the Ledger and
   // A member has no menu item, and the address sends them home.
   await as(browser, "member", async (member) => {
     await expect(member.getByRole("link", { name: "Ledger", exact: true })).toHaveCount(0);
+    await member.goto("/reports/general-ledger");
+    await expect(member).toHaveURL(/\/$/);
     await member.goto("/ledger");
     await expect(member).toHaveURL(/\/$/);
     // Nor do they get the Journals tile under Transactions or the Trial balance tile under Reports, and their addresses go back.
@@ -77,6 +80,7 @@ test("flow 41: an owner sees the postings of the earlier flows in the Ledger and
     await expect(member).toHaveURL(/\/transactions$/);
     await member.goto("/reports");
     await expect(member.getByRole("link", { name: /Trial balance/ })).toHaveCount(0);
+    await expect(member.getByRole("link", { name: /General Ledger/ })).toHaveCount(0);
     await member.goto("/reports/trial-balance");
     await expect(member).toHaveURL(/\/$/);
   });
@@ -120,7 +124,7 @@ test("flow 42: an owner posts a manual journal, reverses it, and saves and delet
   // This list is the manual journals, so it shows the journal as Reversed. The reversal itself is in the Ledger.
   await expect(page.locator("tbody tr").filter({ hasText: "Flow42 accrual" })).toHaveCount(1);
   await expect(page.locator("tbody tr").filter({ hasText: "Flow42 accrual" })).toContainText("Reversed");
-  await page.goto("/ledger");
+  await page.goto("/reports/general-ledger");
   await expect(page.locator("tbody tr").filter({ hasText: "Flow42 accrual" })).toHaveCount(2);
   await page.goto("/transactions/journals");
 

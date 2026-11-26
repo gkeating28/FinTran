@@ -21,7 +21,7 @@ export function modeBlockers(settings: LedgerSettings, to: "feed" | "book", orga
     else if (settings.lockDate && settings.lockDate > dayBefore(settings.startDate)) blockers.push({ text: `The lock date (${settings.lockDate}) is after the day before go-live. Move the lock date back first.`, href: lockHref, label: "Open the lock date" });
   } else {
     if (!settings.lockDate) blockers.push({ text: "Set a lock date, so the books you hand over cannot change.", href: lockHref, label: "Open the lock date" });
-    if (settings.drafts > 0) blockers.push({ text: `Post or delete the ${settings.drafts} draft manual journal${settings.drafts === 1 ? "" : "s"}.`, href: "/ledger", label: "Open the journals" });
+    if (settings.drafts > 0) blockers.push({ text: `Post or delete the ${settings.drafts} draft manual journal${settings.drafts === 1 ? "" : "s"}.`, href: "/transactions/journals", label: "Open the journals" });
   }
   return blockers;
 }
@@ -113,7 +113,7 @@ export default function LedgerPanel({
               : isCurrent
                 ? "Not posted yet."
                 : "Open this organisation from the menu to post it."}{" "}
-          {!settings.openingPosted && settings.startDate && isCurrent ? <Link href="/ledger?opening=1">Post the opening balances</Link> : null}
+          {!settings.openingPosted && settings.startDate && isCurrent ? <Link href="/reports/general-ledger?opening=1">Post the opening balances</Link> : null}
         </p>
         {role === "owner" ? (
           <>

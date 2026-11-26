@@ -12,7 +12,7 @@ function failure(error: { message: string } | null, fallback: string): LedgerRes
 }
 
 function refresh() {
-  revalidatePath("/ledger");
+  revalidatePath("/reports/general-ledger");
   revalidatePath("/reports/trial-balance");
   revalidatePath("/transactions/journals");
   revalidatePath("/organisations");

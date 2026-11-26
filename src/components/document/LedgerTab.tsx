@@ -52,7 +52,7 @@ export function LedgerTab({ kind, id, active }: { kind: "document" | "payment"; 
         {rows.map((row) => (
           <tr key={row.id}>
             <td className={styles.mono}>
-              <Link href={`/ledger?open=${row.id}`}>{row.number}</Link>
+              <Link href={`/reports/general-ledger?open=${row.id}`}>{row.number}</Link>
             </td>
             <td className={styles.mono}>{row.date}</td>
             <td>

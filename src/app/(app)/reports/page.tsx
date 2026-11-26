@@ -13,8 +13,9 @@ const REPORTS = [
   { href: "/reports/aged-creditors", label: "Aged creditors", meta: "What is owed to suppliers, by how late it is" },
 ];
 
-// The trial balance reads the ledger, which is for owners and admins.
+// The general ledger and trial balance read the ledger, which is for owners and admins.
 const MANAGER_REPORTS = [
+  { href: "/reports/general-ledger", label: "General Ledger", meta: "Every posting, with its source and the accounts it touched" },
   { href: "/reports/trial-balance", label: "Trial balance", meta: "Every account's balance, and whether the ledger agrees" },
 ];
 
