@@ -617,6 +617,19 @@ The database half of release C (phases 6 and 7) is built in migrations `20261126
 - **Manual journals** number from the same sequence as system entries and take the reference `JNL-n`. `ledger_reverse_entry` takes an optional description so `reverse_journal` can carry the person's text.
 - **Test changes.** Fixtures written before the GL code became compulsory leave it off, so the SQL tests that post documents include `supabase/tests/support/default_gl.sql`, which gives each such line a code of the right kind for the test transaction. The scenarios about a line posting to suspense are replaced by the refusal.
 
+## Build notes, release C (screens)
+
+The screens (phase 8) are built in `src/app/(app)/ledger`, `src/components/JournalList.tsx`, `JournalForm.tsx`, `EntryView.tsx` and `org-settings/LedgerPanel.tsx`, with the reads in migration `20261126102000_ledger_reads` and the end-to-end flows 41 to 45 in `e2e/zzz-ledger.spec.ts`. What differs from the text above, or was decided while building:
+
+- **Ledger is one menu item with three screens:** the journals grid (`/ledger`), the trial balance (`/ledger/trial-balance`) and the account enquiry (`/ledger/accounts/[id]`). The journals grid shows the newest 500 that match the filters and says when there are more.
+- **The reads are SQL functions** (`ledger_journals`, `trial_balance`, `account_enquiry`) so the enquiry's running balance and the trial balance's closing figure come from the same sums. Balances are debits less credits and are shown as Dr or Cr. The trial balance groups the account types into five report sections (assets, liabilities, equity, income, cost of sales and expenses) and opens on this year so far.
+- **The manual journal form** keeps its lines in the grid as editable rows instead of a line editor dialog, because a journal has many short lines. Save keeps a draft. Save and post is disabled until the journal balances, and the database checks it again. The opening balance journal is the same form with its date fixed at the day before go-live and a Post opening balances button.
+- **The Ledger panel** is on the Accounting tab of the organisation edit, because the tab is already for the organisation being edited and owners and admins only. The go-live date and Lock exported periods are saved there, and the opening balance journal is posted from the Ledger screen, so the link shows only for the organisation the person is working in.
+- **The Ledger tab** on an invoice or credit note is shown to owners and admins once the document is posted or voided. A payment shows a Ledger box instead of a tab, because the payment form has no tabs.
+- **The e-invoice import** now needs a GL code on every line, and offers only active codes that are not control accounts, as the spec asked in 3.2.
+- **Ledger export** is two downloads in the Ledger screen (the chart of accounts, and every posted entry line), both CSV through the shared helper, read in pages of 1,000.
+- **Not built:** the choice of mode when an organisation is created (the mode is changed afterwards with the switch), and Ask Qula's own explanation of the ledger readiness finding.
+
 ## Out of scope
 
 - Periods and year-end close (spec 10), including a dedicated route for opening debtors and creditors
