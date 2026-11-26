@@ -260,7 +260,10 @@ select pg_temp.eq('the books are clean after manual journals', pg_temp.reconcile
 -- 3. The opening balance journal, and the lock date that must not stop it.
 select pg_temp.expect_error(format($sql$select public.post_opening_journal(%L::jsonb)$sql$, pg_temp.mj(null, jsonb_build_array(pg_temp.jl('1200', 500), pg_temp.jl('3200', 0, 500)))), 'go-live date', 'an opening journal with no go-live date');
 update public.organisation_defaults set ledger_start_date = '2026-10-01', lock_date = '2026-09-30' where organisation_id = current_setting('test.org')::uuid;
+-- The exported lock is on and the period before go-live has been exported, which must not stop the opening documents either.
+update public.organisation_defaults set lock_exported = true where organisation_id = current_setting('test.org')::uuid;
 select set_config('test.pre', pg_temp.doc('SI', 'ACME', jsonb_build_array(pg_temp.line(300, 'S23', '4000')), '2026-09-20')::text, true);
+select pg_temp.eq('and under the exported lock', (select lock_exported and exported_through >= '2026-09-20' from public.organisation_defaults where organisation_id = current_setting('test.org')::uuid), true);
 select pg_temp.eq('a document before go-live posts under the lock date', (select count(*) from public.journal_entries where source_header_id = current_setting('test.pre')::uuid)::int, 1);
 select pg_temp.expect_error(format($sql$select public.post_opening_journal(%L::jsonb)$sql$, pg_temp.mj(null, jsonb_build_array(pg_temp.jl('1100', 500), pg_temp.jl('3200', 0, 500)))), 'control account', 'an opening journal touching debtors control');
 select pg_temp.eq('that left nothing behind', (select count(*) from public.journal_entries where is_opening)::int, 0);

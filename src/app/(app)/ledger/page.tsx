@@ -4,6 +4,7 @@ import JournalList from "@/components/JournalList";
 import LedgerDownloads from "@/components/LedgerDownloads";
 import styles from "@/components/OpsPage.module.css";
 import { getWorkspace } from "@/lib/data";
+import { todayInZone } from "@/lib/dates";
 import { SOURCE_LABELS, SOURCE_TYPES } from "@/lib/ledger";
 import { getDraft, getEntry, getJournals, getLedgerChoices, getLedgerSettings } from "@/lib/ledger-data";
 import { canManage } from "@/lib/types";
@@ -28,7 +29,7 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
   const source = (SOURCE_TYPES as readonly string[]).includes(params.source ?? "") ? params.source : "";
   const gl = UUID.test(params.gl ?? "") ? params.gl : "";
   const query = new URLSearchParams(Object.entries({ from, to, source, gl }).filter(([, value]) => value) as [string, string][]).toString();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInZone();
 
   const [journals, choices, settings, entry, draft] = await Promise.all([
     getJournals({ from, to, source, glCodeId: gl }),

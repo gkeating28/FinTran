@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import TrialBalanceExport from "@/components/TrialBalanceExport";
 import styles from "@/components/OpsPage.module.css";
 import { getWorkspace } from "@/lib/data";
+import { todayInZone } from "@/lib/dates";
 import { formatMoney } from "@/lib/documents";
 import { drCr, fromCents, groupTrialBalance, trialBalanceAgrees, yearToDate } from "@/lib/ledger";
 import { getLedgerChoices, getReconciliation, getTrialBalance } from "@/lib/ledger-data";
@@ -20,7 +21,7 @@ export default async function TrialBalancePage({ searchParams }: { searchParams:
   if (!canManage(workspace.current.role)) redirect("/");
 
   const params = await searchParams;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInZone();
   const range = yearToDate(today);
   const from = DATE.test(params.from ?? "") ? (params.from as string) : range.from;
   const to = DATE.test(params.to ?? "") ? (params.to as string) : range.to;

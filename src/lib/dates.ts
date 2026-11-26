@@ -4,6 +4,19 @@ export type Region = { locale: string; timeZone: string };
 /** Used on the server and until the browser has said what it prefers. */
 export const DEFAULT_REGION: Region = { locale: "en-IE", timeZone: "Europe/Dublin" };
 
+/**
+ * Today's calendar date, such as 2026-11-26, in a time zone (Dublin by default). The server runs on UTC, which is still
+ * yesterday in Dublin for the first hour after midnight in summer, so a date taken from the server clock is not the date a person
+ * sees on theirs.
+ */
+export function todayInZone(timeZone: string = DEFAULT_REGION.timeZone, now: Date = new Date()) {
+  try {
+    return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+  } catch {
+    return now.toISOString().slice(0, 10);
+  }
+}
+
 function formatter(locale: string, options: Intl.DateTimeFormatOptions) {
   try {
     return new Intl.DateTimeFormat(locale, options);

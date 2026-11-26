@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import styles from "@/components/OpsPage.module.css";
 import { getWorkspace } from "@/lib/data";
+import { todayInZone } from "@/lib/dates";
 import { formatMoney } from "@/lib/documents";
 import { drCr, yearToDate } from "@/lib/ledger";
 import { getAccountEnquiry } from "@/lib/ledger-data";
@@ -27,7 +28,7 @@ export default async function AccountEnquiryPage({
   const { id } = await params;
   if (!UUID.test(id)) notFound();
   const query = await searchParams;
-  const range = yearToDate(new Date().toISOString().slice(0, 10));
+  const range = yearToDate(todayInZone());
   const from = DATE.test(query.from ?? "") ? (query.from as string) : range.from;
   const to = DATE.test(query.to ?? "") ? (query.to as string) : range.to;
   const departmentId = UUID.test(query.dept ?? "") ? (query.dept as string) : "";
