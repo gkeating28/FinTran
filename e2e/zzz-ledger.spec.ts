@@ -1,6 +1,6 @@
 import type { Browser, Locator, Page } from "@playwright/test";
 import { apiAs } from "./api";
-import { backOnList, documentDialog, expectNoError, listRows, openList, openRow, startDocument, typeInto } from "./documents";
+import { backOnList, documentDialog, expectNoError, openList, openRow, startDocument, typeInto } from "./documents";
 import { expect, test } from "./fixtures";
 import type { Role } from "./people";
 import { signIn } from "./sign-in";
@@ -179,7 +179,8 @@ test("flow 45: the GL code screen shows the role, Active and the external fields
   test.setTimeout(120_000);
   await signIn(page, "owner");
   await page.goto("/gl-codes");
-  await listRows(page).filter({ hasText: /^\s*1100/ }).first().locator("td").nth(1).click();
+  // The GL code grid is not a document list, so its rows are plain table rows.
+  await page.locator("tbody tr").filter({ hasText: /^\s*1100/ }).first().locator("td").nth(1).click();
   const gl = page.getByRole("dialog").last();
   await expect(gl).toContainText("System role: Debtors control");
   await expect(gl).toContainText("control account");
