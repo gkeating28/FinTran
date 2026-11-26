@@ -4459,6 +4459,45 @@ export type Database = {
           source_ref: string
         }[]
       }
+      trial_balance: {
+        Args: {
+          p_cost_centre_id?: string
+          p_department_id?: string
+          p_from: string
+          p_organisation_id: string
+          p_to: string
+        }
+        Returns: {
+          account_type: string
+          closing: number
+          code: string
+          credit: number
+          debit: number
+          description: string
+          gl_code_id: string
+          opening: number
+        }[]
+      }
+      account_enquiry: {
+        Args: {
+          p_cost_centre_id?: string
+          p_department_id?: string
+          p_from: string
+          p_gl_code_id: string
+          p_organisation_id: string
+          p_to: string
+        }
+        Returns: {
+          balance: number
+          credit: number
+          debit: number
+          description: string
+          entry_date: string
+          entry_id: string
+          entry_number: number
+          source_ref: string
+        }[]
+      }
       ledger_readiness: {
         Args: { p_header_id: string }
         Returns: {
@@ -4466,6 +4505,33 @@ export type Database = {
           message: string
           rule_id: string
           severity: string
+        }[]
+      }
+      ledger_journals: {
+        Args: {
+          p_from?: string
+          p_gl_code_id?: string
+          p_limit?: number
+          p_offset?: number
+          p_organisation_id: string
+          p_source?: string
+          p_to?: string
+        }
+        Returns: {
+          description: string
+          entry_date: string
+          entry_id: string
+          entry_number: number
+          is_opening: boolean
+          open_id: string
+          reversed: boolean
+          reverses_entry_id: string
+          source_ref: string
+          source_type: string
+          status: string
+          total: number
+          total_count: number
+          type_code: string
         }[]
       }
       ledger_reconciliation: {

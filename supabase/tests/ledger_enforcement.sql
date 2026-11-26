@@ -272,6 +272,27 @@ select pg_temp.expect_error(format($sql$select public.reverse_journal(%L, '2026-
 select pg_temp.expect_error(format($sql$update public.organisation_defaults set ledger_start_date = '2026-10-02' where organisation_id = %L$sql$, current_setting('test.org')), 'cannot change', 'moving go-live after the opening journal');
 select pg_temp.expect_error(format($sql$select pg_temp.doc('SI', 'ACME', jsonb_build_array(pg_temp.line(10, 'S23', '4000')), '2026-09-21')$sql$), 'locked', 'a document before go-live once the opening journal is posted');
 
+-- 3b. What the Ledger screens read.
+select pg_temp.eq('the journals grid has every entry', (select max(total_count) from public.ledger_journals(current_setting('test.org')::uuid, null, null, null, null, 500, 0)),
+  (select count(*) from public.journal_entries where organisation_id = current_setting('test.org')::uuid));
+select pg_temp.eq('a page is a page of the whole', (select count(*) from public.ledger_journals(current_setting('test.org')::uuid, null, null, null, null, 2, 0))::int, 2);
+select pg_temp.eq('the source filter works', (select count(*) from public.ledger_journals(current_setting('test.org')::uuid, null, null, 'manual', null, 500, 0)),
+  (select count(*) from public.journal_entries where organisation_id = current_setting('test.org')::uuid and source_type = 'manual'));
+select pg_temp.eq('so does the GL code filter', (select count(*) from public.ledger_journals(current_setting('test.org')::uuid, null, null, null, pg_temp.id_of('gl_codes', '3200'), 500, 0))::int, 1);
+select pg_temp.eq('a reversed journal says so', (select reversed from public.ledger_journals(current_setting('test.org')::uuid, null, null, null, null, 500, 0) where entry_id = current_setting('test.mj1')::uuid), true);
+select pg_temp.eq('a document entry knows its type and what to open', (select type_code || ' ' || (open_id = current_setting('test.ok')::uuid)::text from public.ledger_journals(current_setting('test.org')::uuid, null, null, 'document', null, 500, 0) where source_ref = (select document_number from public.transaction_headers where id = current_setting('test.ok')::uuid)), 'SI true');
+select pg_temp.eq('the trial balance agrees', (select sum(debit) = sum(credit) and sum(closing) = 0 from public.trial_balance(current_setting('test.org')::uuid, '2000-01-01', '2099-12-31')), true);
+select pg_temp.eq('debtors control is its balance', (select closing from public.trial_balance(current_setting('test.org')::uuid, '2000-01-01', '2099-12-31') where code = '1100'), pg_temp.balance_of('1100'));
+select pg_temp.eq('opening plus movement is closing', (select bool_and(opening + debit - credit = closing) from public.trial_balance(current_setting('test.org')::uuid, '2026-11-01', '2026-12-31')), true);
+select pg_temp.eq('the opening journal is in the opening balance', (select opening from public.trial_balance(current_setting('test.org')::uuid, '2026-10-01', '2026-12-31') where code = '3200'), -500.00);
+select pg_temp.eq('a department narrows every figure', (select debit from public.trial_balance(current_setting('test.org')::uuid, '2026-10-01', '2026-12-31', pg_temp.id_of('departments', 'OPS')) where code = '6000'), 80.00);
+select pg_temp.eq('the enquiry ends on the closing balance', (select balance from public.account_enquiry(current_setting('test.org')::uuid, pg_temp.id_of('gl_codes', '6000'), '2026-10-01', '2026-12-31') order by entry_date desc, entry_number desc limit 1),
+  (select closing from public.trial_balance(current_setting('test.org')::uuid, '2026-10-01', '2026-12-31') where code = '6000'));
+select pg_temp.expect_error(format($sql$select * from public.trial_balance(%L, '2026-12-31', '2026-01-01')$sql$, current_setting('test.org')), 'starts on or before', 'a range that ends before it starts');
+select pg_temp.act_as('member');
+select pg_temp.eq('a member reads nothing', (select count(*) from public.ledger_journals(current_setting('test.org')::uuid))::int + (select count(*) from public.trial_balance(current_setting('test.org')::uuid, '2000-01-01', '2099-12-31'))::int, 0);
+select pg_temp.act_as('owner');
+
 -- 4. The mode switch.
 select pg_temp.act_as('member');
 select pg_temp.expect_error(format($sql$select public.set_ledger_mode(%L, 'feed', 'x')$sql$, current_setting('test.org')), 'Only an owner', 'a member switching the mode');

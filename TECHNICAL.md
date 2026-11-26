@@ -366,6 +366,9 @@ These are the `public` functions the app is allowed to call. Arguments match `sr
 | `delete_manual_journal(p_entry_id)` | void | Deletes a draft manual journal |
 | `reverse_journal(p_entry_id, p_date, p_description default null)` | uuid | Reverses a posted manual journal on a date on or after its own. Once only. Not the opening journal |
 | `post_opening_journal(p_journal jsonb)` | uuid | Posts the opening balance journal once, dated the day before go-live. No control account |
+| `ledger_journals(p_organisation_id, p_from, p_to, p_source, p_gl_code_id, p_limit, p_offset)` | rows | A page of journal entries for the Journals grid, newest first, with the total, whether each is reversed, the type code and id to open its source, and the count of all that match. Owners and admins |
+| `trial_balance(p_organisation_id, p_from, p_to, p_department_id, p_cost_centre_id)` | rows | Each GL code with its opening balance, debits, credits and closing balance for the range, debits less credits. Owners and admins |
+| `account_enquiry(p_organisation_id, p_gl_code_id, p_from, p_to, p_department_id, p_cost_centre_id)` | rows | One account's lines in the range with a running balance that starts from its opening balance, so the last one is the trial balance closing figure. Owners and admins |
 | `ledger_suspense_lines(p_organisation_id)` | rows | The ledger lines on the suspense account, for review. Owners and admins |
 | `save_payment(p_payment jsonb)` | uuid | Inserts or replaces a draft payment and its planned allocations. Security invoker. |
 | `post_payment(p_payment_id)` | void | Posts a draft payment and makes its allocations effective. Fails with the documents that no longer have enough open. |
