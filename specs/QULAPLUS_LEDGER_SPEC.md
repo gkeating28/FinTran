@@ -575,7 +575,7 @@ Orders, requisitions, drafts and manual journals are not in it. Manual journals 
 
 ## Build notes, release A
 
-Release A (phases 1 and 2) is built in migrations `20261125100000_ledger_chart_of_accounts` and `20261125101000_ledger_journal_tables`, with tests `supabase/tests/ledger_chart.sql` and `ledger_journal.sql`. What differs from the text above:
+Release A (phases 1 and 2) is built in migrations `20261126120415_ledger_chart_of_accounts` and `20261126120505_ledger_journal_tables`, with tests `supabase/tests/ledger_chart.sql` and `ledger_journal.sql`. What differs from the text above:
 
 - **The Accounting tab columns stay as a mirror.** Section 1.4 says the old role columns are dropped in the same release. The journal export still reads them, so they stay until phase 9 refits the export, and a trigger writes them from `system_role`. A direct write to them is refused. The start date is not renamed until phase 9 either.
 - **A role account is never made inactive,** not only once journal lines use it, and it cannot be deleted by hand. An account the ledger has used cannot change role. Any other account, bank account codes included, can still be made inactive.
@@ -589,7 +589,7 @@ Release A (phases 1 and 2) is built in migrations `20261125100000_ledger_chart_o
 
 ## Build notes, release B
 
-Release B (phases 3 to 5) is built in migrations `20261125110000_ledger_posting` and `20261125111000_ledger_backfill`, with the SQL test `ledger_posting.sql` and the two-session script `concurrency/ledger_numbers.sh`. What differs from the text above, or was decided while building:
+Release B (phases 3 to 5) is built in migrations `20261126120603_ledger_posting` and `20261126120642_ledger_backfill`, with the SQL test `ledger_posting.sql` and the two-session script `concurrency/ledger_numbers.sh`. What differs from the text above, or was decided while building:
 
 - **Shadow mode is `private.ledger_strict()`,** a function that returns false. A line with no usable GL code, or one that was made inactive after the line was entered, posts to suspense. Release C changes the function and adds the refusals.
 - **One rounding line.** The BT-114 rounding amount and any cent of home rounding difference go on a single rounding line that takes whatever balances the entry, instead of two lines.
@@ -605,7 +605,7 @@ Release B (phases 3 to 5) is built in migrations `20261125110000_ledger_posting`
 
 ## Build notes, release C (database)
 
-The database half of release C (phases 6 and 7) is built in migrations `20261126100000_ledger_enforcement` and `20261126101000_ledger_manual_journals`, with the SQL test `ledger_enforcement.sql`. The screens (phase 8) follow. What differs from the text above, or was decided while building:
+The database half of release C (phases 6 and 7) is built in migrations `20261126120735_ledger_enforcement` and `20261126120832_ledger_manual_journals`, with the SQL test `ledger_enforcement.sql`. The screens (phase 8) follow. What differs from the text above, or was decided while building:
 
 - **`private.ledger_strict()` is true.** The backfill still passes its own flag and posts history leniently, so a backfilled line with no GL code still goes to suspense.
 - **The GL code requirement** is checked before an invoice or credit note makes its entry, and names every line ("Choose one on line 1, 3"). `public.ledger_readiness` gives the same finding to the readiness panel as an error in both directions, beside the e-invoice rules, which are untouched.
@@ -619,7 +619,7 @@ The database half of release C (phases 6 and 7) is built in migrations `20261126
 
 ## Build notes, release C (screens)
 
-The screens (phase 8) are built in `src/app/(app)/ledger`, `src/components/JournalList.tsx`, `JournalForm.tsx`, `EntryView.tsx` and `org-settings/LedgerPanel.tsx`, with the reads in migration `20261126102000_ledger_reads` and the end-to-end flows 41 to 45 in `e2e/zzz-ledger.spec.ts`. What differs from the text above, or was decided while building:
+The screens (phase 8) are built in `src/app/(app)/ledger`, `src/components/JournalList.tsx`, `JournalForm.tsx`, `EntryView.tsx` and `org-settings/LedgerPanel.tsx`, with the reads in migration `20261126120912_ledger_reads` and the end-to-end flows 41 to 45 in `e2e/zzz-ledger.spec.ts`. What differs from the text above, or was decided while building:
 
 - **Ledger is one menu item with three screens:** the journals grid (`/ledger`), the trial balance (`/ledger/trial-balance`) and the account enquiry (`/ledger/accounts/[id]`). The journals grid shows the newest 500 that match the filters and says when there are more.
 - **The reads are SQL functions** (`ledger_journals`, `trial_balance`, `account_enquiry`) so the enquiry's running balance and the trial balance's closing figure come from the same sums. Balances are debits less credits and are shown as Dr or Cr. The trial balance groups the account types into five report sections (assets, liabilities, equity, income, cost of sales and expenses) and opens on this year so far.
@@ -629,6 +629,10 @@ The screens (phase 8) are built in `src/app/(app)/ledger`, `src/components/Journ
 - **The e-invoice import** now needs a GL code on every line, and offers only active codes that are not control accounts, as the spec asked in 3.2.
 - **Ledger export** is two downloads in the Ledger screen (the chart of accounts, and every posted entry line), both CSV through the shared helper, read in pages of 1,000.
 - **Not built:** the choice of mode when an organisation is created (the mode is changed afterwards with the switch), and Ask Qula's own explanation of the ledger readiness finding.
+
+## Applied to the hosted project
+
+The seven ledger migrations were applied to the hosted project on 26 November 2026 and the files renamed to the versions it recorded (`20261126120415` to `20261126120912`). Before them, the VAT on purchases and Suspense settings of the one organisation were cleared, because that organisation had one account (3200) chosen for both VAT roles and one (9000) for both Rounding and Suspense, which the pre-check refuses. The migration then created 1200 VAT on purchases and 9990 Suspense. The backfill posted 2 documents and 1 payment (3 entries, €12,300.00 each side, nothing on suspense), and debtors control agrees with the sales documents. That organisation stays in feed mode with exported periods locked. The function bodies on the project were compared by hash with a database built from these files, and all 58 are identical.
 
 ## Out of scope
 
