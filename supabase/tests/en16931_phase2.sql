@@ -1,5 +1,6 @@
 -- EN 16931 phase 2. Structured addresses, VAT, Peppol, bank details, and ISO currency codes.
 begin;
+\ir support/default_gl.sql
 
 do $$
 declare

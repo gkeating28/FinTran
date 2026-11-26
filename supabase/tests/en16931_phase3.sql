@@ -1,5 +1,6 @@
 -- EN 16931 phase 3. VAT breakdown is per category and rate. Posted totals stay put.
 begin;
+\ir support/default_gl.sql
 create temp table phase3_users (id uuid primary key);
 insert into phase3_users values ('a3a3a3a3-a3a3-4a3a-8a3a-a3a3a3a3a3a3');
 insert into auth.users (id, email, raw_app_meta_data, raw_user_meta_data)

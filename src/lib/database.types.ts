@@ -4449,6 +4449,25 @@ export type Database = {
         Args: { p_organisation_id: string }
         Returns: string
       }
+      ledger_exported_postings: {
+        Args: { p_organisation_id: string }
+        Returns: {
+          description: string
+          entry_date: string
+          entry_id: string
+          entry_number: number
+          source_ref: string
+        }[]
+      }
+      ledger_readiness: {
+        Args: { p_header_id: string }
+        Returns: {
+          business_term: string
+          message: string
+          rule_id: string
+          severity: string
+        }[]
+      }
       ledger_reconciliation: {
         Args: { p_organisation_id: string }
         Returns: {
@@ -4484,10 +4503,13 @@ export type Database = {
           updated_by: string
         }[]
       }
+      delete_manual_journal: { Args: { p_entry_id: string }; Returns: undefined }
       post_document: {
         Args: { p_header_id: string; p_logo_path?: string }
         Returns: undefined
       }
+      post_manual_journal: { Args: { p_entry_id: string }; Returns: undefined }
+      post_opening_journal: { Args: { p_journal: Json }; Returns: string }
       post_payment: {
         Args: { p_payment_id: string }
         Returns: undefined
@@ -4678,6 +4700,15 @@ export type Database = {
       }
       revoke_organisation_access: {
         Args: { p_organisation_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      reverse_journal: {
+        Args: { p_date: string; p_description?: string; p_entry_id: string }
+        Returns: string
+      }
+      save_manual_journal: { Args: { p_journal: Json }; Returns: string }
+      set_ledger_mode: {
+        Args: { p_mode: string; p_organisation_id: string; p_reason: string }
         Returns: undefined
       }
       save_document: { Args: { p_document: Json }; Returns: string }

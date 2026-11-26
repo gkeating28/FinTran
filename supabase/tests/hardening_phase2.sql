@@ -1,6 +1,7 @@
 -- Hardening phase 2. Ask Qula actions: the switch, single-use tokens, expiry and the changed-document check.
 -- Builds its own tenant and rolls back.
 begin;
+\ir support/default_gl.sql
 insert into auth.users (id, email, raw_app_meta_data, raw_user_meta_data) values
   ('d2d2d2d2-d2d2-4d2d-8d2d-d2d2d2d2d201', 'owner-harden2@fintran.test', '{"provider":"email","providers":["email"]}'::jsonb, '{"display_name":"Owner"}'::jsonb),
   ('d2d2d2d2-d2d2-4d2d-8d2d-d2d2d2d2d202', 'member-harden2@fintran.test', '{"provider":"email","providers":["email"]}'::jsonb, '{"display_name":"Member"}'::jsonb),

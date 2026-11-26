@@ -1,5 +1,6 @@
 -- Sales phase 3. Voiding, credit limits, posting checks, and gapless numbering.
 begin;
+\ir support/default_gl.sql
 insert into auth.users (id, email, raw_app_meta_data, raw_user_meta_data) values
   ('c3c3c3c3-c3c3-4c3c-8c3c-c3c3c3c3c3c3', 'owner-sales3@fintran.test', '{"provider":"email","providers":["email"]}'::jsonb, '{"display_name":"Owner"}'::jsonb);
 select set_config('request.jwt.claims', json_build_object('sub', 'c3c3c3c3-c3c3-4c3c-8c3c-c3c3c3c3c3c3', 'role', 'authenticated')::text, true);
@@ -230,6 +231,7 @@ begin
       end if;
   end;
 
+  perform set_config('fintran.test_no_default_gl', 'on', true);
   v_draft := public.save_document(jsonb_build_object(
     'transactionTypeId', current_setting('test.si'),
     'customerId', current_setting('test.acme'),
@@ -241,6 +243,7 @@ begin
       'vatRateId', current_setting('test.vat')
     ))
   ));
+  perform set_config('fintran.test_no_default_gl', 'off', true);
   begin
     perform public.post_document(v_draft, null);
     raise exception 'phase 3: a sales line without a GL code was posted';

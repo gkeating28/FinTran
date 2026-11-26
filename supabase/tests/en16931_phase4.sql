@@ -1,5 +1,6 @@
 -- EN 16931 phase 4. Credit notes point at a posted invoice. Units default to C62.
 begin;
+\ir support/default_gl.sql
 create temp table phase4_users (id uuid primary key);
 insert into phase4_users values ('a4a4a4a4-a4a4-4a4a-8a4a-a4a4a4a4a4a4');
 insert into auth.users (id, email, raw_app_meta_data, raw_user_meta_data)

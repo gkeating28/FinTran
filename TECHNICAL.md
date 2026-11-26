@@ -358,6 +358,14 @@ These are the `public` functions the app is allowed to call. Arguments match `sr
 | `set_system_roles(p_organisation_id, p_roles)` | void | Several roles at once, from an object of role to GL code id. One call is one transaction, so a refusal on one role leaves all of them as they were. The Accounting tab saves through it |
 | `ledger_backfill(p_organisation_id)` | text | Posts every posted or void document, payment and allocation that has no ledger entry yet, in date order, and marks what earlier journal batches exported. Owners and admins. Posts nothing twice. Says how many entries and reversals it made |
 | `ledger_reconciliation(p_organisation_id)` | rows of `check_name`, `ledger_amount`, `subledger_amount`, `difference` | Debtors, Creditors, each bank account and Balance, ledger against subledger. Owners and admins. Every difference should be 0 |
+| `ledger_readiness(p_header_id)` | rows of `rule_id`, `severity`, `business_term`, `message` | The finding that an invoice or credit note has lines with no GL code in use, for the readiness panel. An error in both directions. Organisation members |
+| `ledger_exported_postings(p_organisation_id)` | rows | Documents, payments and allocation entries posted dated in an exported period since the last export. Owners and admins |
+| `set_ledger_mode(p_organisation_id, p_mode, p_reason)` | void | Owners only. Switches between `feed` and `book`, checks what each needs (go-live date, lock date, drafts) and records the reason in the audit log |
+| `save_manual_journal(p_journal jsonb)` | uuid | Inserts or replaces a draft manual journal and its lines. Owners and admins |
+| `post_manual_journal(p_entry_id)` | void | Posts a draft: balanced, two lines or more, no control account, codes in use, open date. Issues the entry number |
+| `delete_manual_journal(p_entry_id)` | void | Deletes a draft manual journal |
+| `reverse_journal(p_entry_id, p_date, p_description default null)` | uuid | Reverses a posted manual journal on a date on or after its own. Once only. Not the opening journal |
+| `post_opening_journal(p_journal jsonb)` | uuid | Posts the opening balance journal once, dated the day before go-live. No control account |
 | `ledger_suspense_lines(p_organisation_id)` | rows | The ledger lines on the suspense account, for review. Owners and admins |
 | `save_payment(p_payment jsonb)` | uuid | Inserts or replaces a draft payment and its planned allocations. Security invoker. |
 | `post_payment(p_payment_id)` | void | Posts a draft payment and makes its allocations effective. Fails with the documents that no longer have enough open. |

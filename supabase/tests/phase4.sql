@@ -1,5 +1,6 @@
 -- Phase 4 acceptance tests. Raises on failure and rolls back.
 begin;
+\ir support/default_gl.sql
 
 create temp table phase4_users (who text primary key, id uuid not null);
 insert into phase4_users (who, id) values

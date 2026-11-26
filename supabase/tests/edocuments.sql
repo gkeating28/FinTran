@@ -1,5 +1,6 @@
 -- E-document repository. Rolls back, including the test signing key.
 begin;
+\ir support/default_gl.sql
 
 insert into auth.users (id, email, raw_app_meta_data, raw_user_meta_data) values
   ('e1e1e1e1-e1e1-4e1e-8e1e-e1e1e1e1e1e1', 'owner-edoc@fintran.test', '{"provider":"email","providers":["email"]}'::jsonb, '{"display_name":"E-doc owner"}'::jsonb),

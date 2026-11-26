@@ -1,6 +1,7 @@
 -- EN 16931 phase 5. Business terms, sales defaults, payment means, and form fields.
 -- Sales documents stay blocked. This test lifts that guard only inside the rollback.
 begin;
+\ir support/default_gl.sql
 create temp table phase5_users (id uuid primary key);
 insert into phase5_users values ('a5a5a5a5-a5a5-4a5a-8a5a-a5a5a5a5a5a5');
 insert into auth.users (id, email, raw_app_meta_data, raw_user_meta_data)
