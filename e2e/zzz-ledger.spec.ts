@@ -61,7 +61,8 @@ test("flow 41: an owner sees the postings of the earlier flows in the Ledger and
   await expect(entry.getByRole("table")).toBeVisible();
   const totals = entry.locator("tfoot td");
   await expect(totals.nth(1)).toHaveText((await totals.nth(2).innerText()).trim());
-  await entry.getByRole("button", { name: "Close", exact: true }).click();
+  // The corner X and the footer button are both called Close. The footer one is the one with text.
+  await entry.getByText("Close", { exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
 
   // A member has no menu item, and the address sends them home.
