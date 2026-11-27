@@ -12,7 +12,7 @@ import { canManage } from "@/lib/types";
 
 export const metadata = { title: "General ledger" };
 
-type Params = { from?: string; to?: string; source?: string; gl?: string; open?: string; edit?: string; opening?: string; message?: string; error?: string };
+type Params = { from?: string; to?: string; source?: string; gl?: string; open?: string; view?: string; edit?: string; opening?: string; message?: string; error?: string };
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -31,12 +31,14 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
   const gl = UUID.test(params.gl ?? "") ? params.gl : "";
   const query = new URLSearchParams(Object.entries({ from, to, source, gl }).filter(([, value]) => value) as [string, string][]).toString();
   const today = todayInZone();
+  // `open` comes from a link elsewhere. `view` is a row opened on this screen, which is not an arrival, so Back and Close stay here.
+  const openId = params.open ?? params.view ?? "";
 
   const [journals, choices, settings, entry, draft] = await Promise.all([
     getJournals({ from, to, source, glCodeId: gl }),
     getLedgerChoices(),
     getLedgerSettings(workspace.current.organisationId),
-    UUID.test(params.open ?? "") ? getEntry(params.open as string) : null,
+    UUID.test(openId) ? getEntry(openId) : null,
     UUID.test(params.edit ?? "") ? getDraft(params.edit as string) : null,
   ]);
   const error = params.error ?? journals.error ?? choices.error ?? settings.error ?? entry?.error ?? draft?.error ?? null;

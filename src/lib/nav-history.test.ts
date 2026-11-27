@@ -108,3 +108,9 @@ test("the opening balance link is a one-off signal like open: it is not kept, an
   assert.equal(arrivedOpen(stack), true);
   assert.equal(backTarget(stack), "/organisations");
 });
+
+test("a journal opened from its own list (view) is not an arrival, so Back and Close stay on the list", () => {
+  assert.equal(cleanUrl("/reports/general-ledger?from=2026-01-01&view=abc"), "/reports/general-ledger?from=2026-01-01");
+  const stack = walk("/reports", "/reports/general-ledger", "/reports/general-ledger?view=abc");
+  assert.equal(arrivedOpen(stack), false);
+});

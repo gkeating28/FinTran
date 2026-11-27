@@ -42,7 +42,7 @@ export default function JournalList({
   const router = useRouter();
   const { arrivedOpen, goBack } = useNavHistory();
   const go = (extra = "") => router.push(`${basePath}?${[query, extra].filter(Boolean).join("&")}`);
-  // A journal that a link opened (from an account enquiry, a document's Ledger tab or the organisation) goes back to where the link was.
+  // A journal opened from this list is `view`, which is not an arrival. A journal that a link opened (`open`) (an account enquiry, a document's Ledger tab or the organisation) goes back to where the link was.
   const close = () => (arrivedOpen ? goBack(basePath) : go());
   const done = (message: string) => router.push(`${basePath}?${[query, `message=${encodeURIComponent(message)}`].filter(Boolean).join("&")}`);
 
@@ -55,7 +55,7 @@ export default function JournalList({
         searchText={(row) => `${row.number ?? "draft"} ${row.date} ${SOURCE_LABELS[row.sourceType] ?? ""} ${row.sourceRef} ${row.description}`}
         emptyLabel="No journals match."
         initialSort={{ key: "number", direction: "desc" }}
-        onOpen={(row) => go(`${row.status === "draft" ? "edit" : "open"}=${row.id}`)}
+        onOpen={(row) => go(`${row.status === "draft" ? "edit" : "view"}=${row.id}`)}
         toolbar={
           allowNew ? (
             <button className={styles.primary} type="button" onClick={() => go("new=1")}>
@@ -82,7 +82,7 @@ export default function JournalList({
           onClose={close}
           onEdit={() => go(`edit=${entry.id}`)}
           onDone={done}
-          onOpenEntry={(id) => go(`open=${id}`)}
+          onOpenEntry={(id) => go(`view=${id}`)}
         />
       ) : null}
       {draft || newJournal || opening ? (
