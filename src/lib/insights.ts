@@ -268,7 +268,7 @@ export function buildExportedInsights(count: number): Insight[] {
       tone: "attention",
       title: `${plural(count, "posting")} dated in a period you have already exported`,
       detail: "The accounting system you sent that period to does not have them. Send them in the next export, or turn on Lock exported periods on the Organisations screen.",
-      href: "/ledger",
+      href: "/reports/general-ledger",
     },
   ];
 }
