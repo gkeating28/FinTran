@@ -631,7 +631,7 @@ The Back button in the title bar, and the Back link on a printed document or an 
 
 - **A screen is one step however many times it changes.** Changing a filter, saving something that reloads the same screen, or seeing a message does not add a step. Back from a report whose filter was changed twice goes to the screen before the report.
 - **Coming back brings back the filters** the screen had, but never reopens a document that was closed or repeats a message.
-- **A link that opens a document** (from a report, a customer's history or a payment) sends Back straight to where the link was while that document is open. Once the document is closed, or when someone opens a form themselves, Back closes the form first.
+- **A link that opens a document** (from a report, a customer's history or a payment) sends Back straight to where the link was while that document is open. A journal opened from an account enquiry or a document's Ledger tab, and the opening balance journal opened from the organisation, work the same way, and closing one with its own Close or Cancel button also returns to where the link was. Once the document is closed, or when someone opens a form themselves, Back closes the form first.
 - **Opened by its address, or in a new tab,** there is nowhere to go back to, so Back goes to the screen that leads to it: a transaction list to Transactions, an Admin screen (including Journal export) to Admin, a report to Reports, an e-document to the e-document list, and the main menu screens to Home.
 - The browser's own back and forward buttons work as the browser does, and Back follows them.
 - Signing in or out starts the record again.

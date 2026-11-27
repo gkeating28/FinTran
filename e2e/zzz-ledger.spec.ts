@@ -168,6 +168,15 @@ test("flow 43: the trial balance agrees, says the ledger reconciles, and an acco
   await expect(page.getByRole("heading", { name: /^6000/ })).toBeVisible();
   await expect(page.getByTestId("enquiry-closing")).toHaveText(closing);
   await expect(page.getByRole("table", { name: "Account enquiry" }).locator("tbody tr").nth(1)).toBeVisible();
+
+  // A journal opened from the enquiry returns to the enquiry when it is closed, and Back from the enquiry returns to the trial balance.
+  const enquiryPath = new URL(page.url()).pathname;
+  await page.getByRole("table", { name: "Account enquiry" }).locator("tbody a[href*='general-ledger']").first().click();
+  await expect(page).toHaveURL(/\/reports\/general-ledger\?open=/);
+  await ledgerDialog(page).getByText("Close", { exact: true }).click();
+  await page.waitForURL((url) => url.pathname === enquiryPath);
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await page.waitForURL((url) => url.pathname === "/reports/trial-balance");
 });
 
 test("flow 44: a posted document has a Ledger tab for an owner, listing the entry it made", async ({ browser, page }) => {

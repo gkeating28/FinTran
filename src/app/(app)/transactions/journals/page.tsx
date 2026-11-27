@@ -8,7 +8,7 @@ import { canManage } from "@/lib/types";
 
 export const metadata = { title: "Journals" };
 
-type Params = { open?: string; edit?: string; new?: string; message?: string };
+type Params = { open?: string; view?: string; edit?: string; new?: string; message?: string };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -21,10 +21,11 @@ export default async function JournalsPage({ searchParams }: { searchParams: Pro
   if (!canManage(workspace.current.role)) redirect("/transactions");
 
   const params = await searchParams;
+  const openId = params.open ?? params.view ?? "";
   const [journals, choices, entry, draft] = await Promise.all([
     getJournals({ source: "manual" }),
     getLedgerChoices(),
-    UUID.test(params.open ?? "") ? getEntry(params.open as string) : null,
+    UUID.test(openId) ? getEntry(openId) : null,
     UUID.test(params.edit ?? "") ? getDraft(params.edit as string) : null,
   ]);
   const error = journals.error ?? choices.error ?? entry?.error ?? draft?.error ?? null;
