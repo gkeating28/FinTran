@@ -5,7 +5,7 @@
  * to it brings back its filters. Moving between addresses of the same screen (a filter, a save that reloads the page, an error
  * message) changes the top entry and adds nothing. Back takes the top entry off and goes to the one below it.
  *
- * `open`, `error`, `message`, `ask`, `edit` and `tab` in an address are one-off signals (open this document or organisation, show
+ * `open`, `opening`, `error`, `message`, `ask`, `edit` and `tab` in an address are one-off signals (open this document or organisation, show
  * this message), not part of where a screen was, so they are never kept: coming back to a list does not open a document or an
  * organisation the person had closed.
  */
@@ -17,7 +17,7 @@ export type NavEntry = {
 
 export const NAV_LIMIT = 40;
 
-const TRANSIENT = ["open", "error", "message", "ask", "edit", "tab"];
+const TRANSIENT = ["open", "opening", "error", "message", "ask", "edit", "tab"];
 
 /** Addresses that are not part of the signed-in app. Visiting one starts the record again. */
 const UNTRACKED = /^\/(login|signup|auth|forbidden)(\/|$)/;
@@ -31,7 +31,8 @@ function queryOf(url: string) {
 }
 
 export function hasOpenSignal(url: string) {
-  return queryOf(url).has("open");
+  const params = queryOf(url);
+  return params.has("open") || params.has("opening");
 }
 
 /** The address without its one-off signals. */

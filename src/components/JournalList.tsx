@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import DataGrid from "@/components/DataGrid";
 import EntryView from "@/components/EntryView";
 import JournalForm from "@/components/JournalForm";
+import { useNavHistory } from "@/components/useNavHistory";
 import { formatMoney } from "@/lib/documents";
 import { emptyDraft, SOURCE_LABELS, type EntryDetail, type JournalRow, type ManualDraft } from "@/lib/ledger";
 import type { LedgerChoice, Named } from "@/lib/ledger-data";
@@ -39,7 +40,10 @@ export default function JournalList({
   today: string;
 }) {
   const router = useRouter();
+  const { arrivedOpen, goBack } = useNavHistory();
   const go = (extra = "") => router.push(`${basePath}?${[query, extra].filter(Boolean).join("&")}`);
+  // A journal that a link opened (from an account enquiry, a document's Ledger tab or the organisation) goes back to where the link was.
+  const close = () => (arrivedOpen ? goBack(basePath) : go());
   const done = (message: string) => router.push(`${basePath}?${[query, `message=${encodeURIComponent(message)}`].filter(Boolean).join("&")}`);
 
   return (
@@ -75,7 +79,7 @@ export default function JournalList({
           key={entry.id}
           entry={entry}
           today={today}
-          onClose={() => go()}
+          onClose={close}
           onEdit={() => go(`edit=${entry.id}`)}
           onDone={done}
           onOpenEntry={(id) => go(`open=${id}`)}
@@ -90,7 +94,7 @@ export default function JournalList({
           costCentres={choices.costCentres}
           opening={opening}
           openingDate={openingDate}
-          onClose={() => go()}
+          onClose={close}
           onDone={done}
         />
       ) : null}
