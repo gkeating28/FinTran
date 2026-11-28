@@ -6,7 +6,10 @@ import { useState } from "react";
 import { QuietInput } from "@/components/QuietField";
 import { saveLedgerSettings, switchLedgerMode } from "@/lib/ledger-actions";
 import type { LedgerSettings } from "@/lib/ledger-data";
+import tab from "@/components/org-settings/SettingsTab.module.css";
 import styles from "@/components/OpsPage.module.css";
+import recordStyles from "@/components/RecordForm.module.css";
+import { exact, slot } from "@/components/recordForm";
 
 function dayBefore(date: string) {
   return new Date(new Date(`${date}T00:00:00Z`).getTime() - 86_400_000).toISOString().slice(0, 10);
@@ -70,41 +73,30 @@ export default function LedgerPanel({
   }
 
   return (
-    <div className={styles.panel}>
-      <div className={styles.panelHead}>Ledger</div>
-      <div className={styles.partyFields}>
-        {message ? (
-          <p className={`${message.tone === "alert" ? styles.alert : styles.notice} ${styles.wide}`} role={message.tone === "alert" ? "alert" : "status"}>
-            {message.text}
-          </p>
-        ) : null}
-        <p className={`${styles.panelMeta} ${styles.wide}`}>
-          <strong data-testid="ledger-mode">{settings.mode === "book" ? "Book of record" : "Feed"}.</strong>{" "}
-          {settings.mode === "book"
-            ? "Qula Plus is where your accounts are kept. Journals, the trial balance and the account enquiry are the record."
-            : "Qula Plus sends documents and payments to your accounting system. It keeps the same entries, so you can switch to the book of record when you are ready."}{" "}
-          Both modes post the same entries. The mode changes the controls, the screens and the export.
+    <div className={`${recordStyles.layout} ${tab.section}`}>
+      <p className={`${recordStyles.sectionHeading} ${slot("left", 1)}`}>Ledger</p>
+      <p className={`${recordStyles.sectionHeading} ${slot("right", 1)}`}>Mode</p>
+      {message ? (
+        <p className={`${message.tone === "alert" ? styles.alert : styles.notice} ${tab.messageRow}`} role={message.tone === "alert" ? "alert" : "status"}>
+          {message.text}
         </p>
-        <label className={styles.field}>
-          Go-live date
-          <input type="date" name="ledger_start_date" value={startDate} disabled={settings.openingPosted} onChange={(event) => setStartDate(event.target.value)} />
-          <small>{settings.openingPosted ? "Fixed, because the opening balance journal is posted." : "The opening balance journal is dated the day before."}</small>
-        </label>
-        <label className={styles.field}>
-          <span>
-            <input type="checkbox" name="lock_exported" checked={lockExported} onChange={(event) => setLockExported(event.target.checked)} /> Lock exported periods
-          </span>
+      ) : null}
+      <div className={`${tab.column} ${message ? tab.columnLeftBelow : tab.columnLeft}`}>
+        <div className={tab.dateRow}>
+          <label className={recordStyles.fixed} style={exact("11rem")}>
+            Go-live date
+            <QuietInput type="date" name="ledger_start_date" value={startDate} disabled={settings.openingPosted} onChange={(event) => setStartDate(event.target.value)} />
+          </label>
+          <p className={tab.help}>{settings.openingPosted ? "Fixed, because the opening balance journal is posted." : "The opening balance journal is dated the day before."}</p>
+        </div>
+        <label className={tab.tick}>
+          <input type="checkbox" name="lock_exported" checked={lockExported} onChange={(event) => setLockExported(event.target.checked)} />
+          Lock exported periods
           <small>
             Refuses a new posting dated on or before the last export{settings.exportedThrough ? ` (${settings.exportedThrough})` : ""}. A void is never refused.
           </small>
         </label>
-        <div className={`${styles.modalActions} ${styles.wide}`}>
-          <span className={styles.actionStart} />
-          <button className={styles.primary} type="button" disabled={pending} onClick={() => void save()}>
-            Save ledger settings
-          </button>
-        </div>
-        <p className={`${styles.panelMeta} ${styles.wide}`}>
+        <p className={tab.note}>
           <strong>Opening balance journal.</strong>{" "}
           {settings.openingPosted
             ? "Posted."
@@ -115,13 +107,27 @@ export default function LedgerPanel({
                 : "Open this organisation from the menu to post it."}{" "}
           {!settings.openingPosted && settings.startDate && isCurrent ? <Link href="/reports/general-ledger?opening=1">Post the opening balances</Link> : null}
         </p>
+        <div className={tab.footer}>
+          <button className={styles.primary} type="button" disabled={pending} onClick={() => void save()}>
+            Save ledger settings
+          </button>
+        </div>
+      </div>
+      <div className={`${tab.column} ${message ? tab.columnRightBelow : tab.columnRight}`}>
+        <p className={tab.note}>
+          <strong data-testid="ledger-mode">{settings.mode === "book" ? "Book of record" : "Feed"}.</strong>{" "}
+          {settings.mode === "book"
+            ? "Qula Plus is where your accounts are kept. Journals, the trial balance and the account enquiry are the record."
+            : "Qula Plus sends documents and payments to your accounting system. It keeps the same entries, so you can switch to the book of record when you are ready."}{" "}
+          Both modes post the same entries. The mode changes the controls, the screens and the export.
+        </p>
         {role === "owner" ? (
           <>
-            <p className={`${styles.panelMeta} ${styles.wide}`}>
+            <p className={tab.note}>
               <strong>Switch to {target === "book" ? "the book of record" : "feed"}.</strong>
             </p>
             {blockers.length > 0 ? (
-              <ul className={styles.wide}>
+              <ul className={tab.blockers}>
                 {blockers.map((blocker) => (
                   <li key={blocker.text}>
                     {blocker.text} {blocker.href ? <Link href={blocker.href}>{blocker.label}</Link> : null}
@@ -130,22 +136,21 @@ export default function LedgerPanel({
               </ul>
             ) : null}
             {target === "book" && !settings.openingPosted ? (
-              <p className={`${styles.panelMeta} ${styles.wide}`}>No opening balance journal is posted. Your reason is kept as the reason it was waived.</p>
+              <p className={tab.note}>No opening balance journal is posted. Your reason is kept as the reason it was waived.</p>
             ) : null}
-            <label className={`${styles.field} ${styles.wide}`}>
+            <label className={recordStyles.cell}>
               Reason
               <QuietInput name="ledger_reason" maxLength={300} value={reason} onChange={(event) => setReason(event.target.value)} />
-              <small>Kept in the change history.</small>
+              <small className={tab.help}>Kept in the change history.</small>
             </label>
-            <div className={`${styles.modalActions} ${styles.wide}`}>
-              <span className={styles.actionStart} />
+            <div className={tab.footer}>
               <button className={styles.quiet} type="button" disabled={pending || blockers.length > 0 || !reason.trim()} onClick={() => void switchMode()}>
                 Switch to {target === "book" ? "book of record" : "feed"}
               </button>
             </div>
           </>
         ) : (
-          <p className={`${styles.panelMeta} ${styles.wide}`}>Only an owner can switch the mode.</p>
+          <p className={tab.note}>Only an owner can switch the mode.</p>
         )}
       </div>
     </div>

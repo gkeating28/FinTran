@@ -71,14 +71,14 @@ test("flow 35: an owner sees the accounting accounts and saves, every bank accou
   await page.goto("/accounting");
   // Each account is a system role on a GL code. Every organisation has all of them from the start, and the ledger refuses to move
   // an account once journal lines use it, which earlier flows have caused. So this checks the accounts are there and saves.
-  await expect(page.locator('select[name="receivables_gl_code_id"] option:checked')).toContainText("1100");
-  await expect(page.locator('select[name="payables_gl_code_id"] option:checked')).toContainText("2100");
-  await expect(page.locator('select[name="vat_sales_gl_code_id"] option:checked')).toContainText("2200");
-  await expect(page.locator('select[name="vat_purchases_gl_code_id"] option:checked')).toContainText("1200");
-  await expect(page.locator('select[name="exchange_gl_code_id"] option:checked')).toContainText("7900");
-  await expect(page.locator('select[name="rounding_gl_code_id"] option:checked')).toContainText("7910");
+  await expect(page.locator('[data-lookup="receivables_gl_code_id"] button')).toContainText("1100");
+  await expect(page.locator('[data-lookup="payables_gl_code_id"] button')).toContainText("2100");
+  await expect(page.locator('[data-lookup="vat_sales_gl_code_id"] button')).toContainText("2200");
+  await expect(page.locator('[data-lookup="vat_purchases_gl_code_id"] button')).toContainText("1200");
+  await expect(page.locator('[data-lookup="exchange_gl_code_id"] button')).toContainText("7900");
+  await expect(page.locator('[data-lookup="rounding_gl_code_id"] button')).toContainText("7910");
   // The suspense account only receives history that was posted before a GL code was compulsory on every line.
-  await expect(page.locator('select[name="suspense_gl_code_id"] option:checked')).toContainText("9990");
+  await expect(page.locator('[data-lookup="suspense_gl_code_id"] button')).toContainText("9990");
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Saved.");
 

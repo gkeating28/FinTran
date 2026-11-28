@@ -137,6 +137,10 @@ These apply to the customer, supplier and organisation page forms and to the pro
 7. Every single line control is 36px high (`--control-height`).
 8. Verify by measuring the edit boxes with `getBoundingClientRect`, not the labels.
 
+#### Settings tabs
+
+The Ask Qula, Access Point and Accounting tabs of the organisation edit follow the same principles. Each is `tab` (a scroll area) holding sections, and a section is one form on `recordStyles.layout` with `slot()` rows, as in Details. The styles that belong only to the tabs (the section gap and divider, the footer of buttons, the help text under a field, the tick box with its words, and the tables below the forms) are in `src/components/org-settings/SettingsTab.module.css`. A pick list that is too long for a select, a GL code or a Peppol scheme, is `OptionLookup` (`SchemeLookup` is the scheme version of it). It posts its choice under `name`, and `data-lookup` carries the name so a test can find it.
+
 ### Loading data for a page
 
 Every page that lists rows starts its data read at the same time as the workspace load, not after it. The workspace (profile and access) and the page data are each a database round trip, and chaining them made every grid wait twice.

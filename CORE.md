@@ -666,6 +666,8 @@ Purchase and sales pages share one entry form. The transaction type is fixed on 
 
 Ask Qula, the Access Point and the Accounting accounts are settings of one organisation, so they are tabs of the organisation edit (Admin, Organisations, Edit): Details, Ask Qula, Access Point and Accounting. They have no tiles of their own on Admin. Journal export is something you do, not a setting, so it keeps its tile.
 
+The three settings tabs (Ask Qula, Access Point and Accounting) use the same layout as Details: two columns on shared rows, a light heading over each column, fields as wide as the value they take, 36px controls, no placeholder text, and the buttons of each form along the bottom to the right. A message is shown in one status row at the top of the tab. A date is the same date box as Lock date on Details. An account on the Accounting tab, and the Peppol scheme, is chosen from a pick list with a search box (`OptionLookup`), so a long chart of accounts can be searched by code or name. The tables under Ask Qula (This month, Feedback, Actions) sit below the form.
+
 - **The tab is in the address.** `/organisations?edit={organisation}&tab={ask-qula|access-point|accounting}` opens that organisation on that tab. A save comes back to the same tab with its message.
 - **A save is for the organisation being edited,** which may not be the one the person is working in. Each settings form names its organisation, and the role is checked for that organisation: only an owner or admin of it can save.
 - **Only owners and admins see the tabs.** A member who opens an organisation sees Details, read only.
