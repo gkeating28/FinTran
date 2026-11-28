@@ -189,7 +189,7 @@ export function AskQulaView({
             <small className={tab.help}>Questions for the organisation in a month. Blank is no limit.</small>
           </label>
         </div>
-        <div className={`${tab.column} ${slot("right", 3)}`} style={{ gridRow: "3 / span 3" }}>
+        <div className={`${tab.column} ${slot("right", 3)} ${tab.spanRows}`}>
           <label className={tab.tick}>
             <input type="checkbox" name="notice" defaultChecked={Boolean(row.data_notice_accepted_at)} />
             Questions, and the organisation&apos;s data needed to answer them, will be sent to {providerName}. Check this meets your data protection obligations.

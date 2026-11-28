@@ -77,11 +77,11 @@ export default function LedgerPanel({
       <p className={`${recordStyles.sectionHeading} ${slot("left", 1)}`}>Ledger</p>
       <p className={`${recordStyles.sectionHeading} ${slot("right", 1)}`}>Mode</p>
       {message ? (
-        <p className={`${message.tone === "alert" ? styles.alert : styles.notice} ${recordStyles.wideCell}`} role={message.tone === "alert" ? "alert" : "status"}>
+        <p className={`${message.tone === "alert" ? styles.alert : styles.notice} ${tab.messageRow}`} role={message.tone === "alert" ? "alert" : "status"}>
           {message.text}
         </p>
       ) : null}
-      <div className={`${tab.column} ${tab.columnLeft}`}>
+      <div className={`${tab.column} ${message ? tab.columnLeftBelow : tab.columnLeft}`}>
         <div className={tab.dateRow}>
           <label className={recordStyles.fixed} style={exact("11rem")}>
             Go-live date
@@ -113,7 +113,7 @@ export default function LedgerPanel({
           </button>
         </div>
       </div>
-      <div className={`${tab.column} ${tab.columnRight}`}>
+      <div className={`${tab.column} ${message ? tab.columnRightBelow : tab.columnRight}`}>
         <p className={tab.note}>
           <strong data-testid="ledger-mode">{settings.mode === "book" ? "Book of record" : "Feed"}.</strong>{" "}
           {settings.mode === "book"

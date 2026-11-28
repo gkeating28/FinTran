@@ -47,9 +47,36 @@
   grid-row: 2;
 }
 
+/* The same two columns when a message sits above them, on row 2. */
+.columnLeftBelow {
+  grid-column: 1;
+  grid-row: 3;
+}
+
+.columnRightBelow {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+/* A message that goes across the whole section, under the headings. */
+.messageRow {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+/* A column that runs down rows 3 to 5, beside the fields on those rows. */
+.tab .spanRows {
+  grid-row: 3 / span 3;
+}
+
+/* Below 1200px the section is one column in document order, so no item keeps a row of its own. The class is repeated to win over the rows above. */
 @media (max-width: 1200px) {
-  .columnLeft,
-  .columnRight {
+  .tab .columnLeft,
+  .tab .columnRight,
+  .tab .columnLeftBelow,
+  .tab .columnRightBelow,
+  .tab .messageRow,
+  .tab .spanRows {
     grid-column: 1;
     grid-row: auto;
   }
