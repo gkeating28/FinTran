@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import styles from "@/components/OpsPage.module.css";
+import { QuietInput } from "@/components/QuietField";
+import tab from "@/components/org-settings/SettingsTab.module.css";
+import recordStyles from "@/components/RecordForm.module.css";
+import { exact } from "@/components/recordForm";
 
 /**
  * The fields for keeping questions and answers with a rating. Keeping them needs its own notice, which names the number
@@ -16,16 +19,18 @@ export default function AskQulaLogFields({ logAnswers, retentionDays }: { logAns
 
   return (
     <>
-      <label className={`${styles.checkLine} ${styles.wide}`}>
+      <label className={tab.tick}>
         <input type="checkbox" name="logAnswers" checked={keep} onChange={(event) => setKeep(event.target.checked)} />
         When someone rates an answer, keep the question and the answer with the rating so you can review it. Off by default. With it off only the thumb and any comment are kept.
       </label>
-      <label className={styles.field}>
-        Keep the text for (days, 1 to 365)
-        <input name="retentionDays" value={days} onChange={(event) => setDays(event.target.value)} inputMode="numeric" maxLength={3} title="After this many days the question, answer and comment are deleted automatically. The rating is kept." />
-      </label>
+      <div className={recordStyles.row}>
+        <label className={recordStyles.fixed} style={exact("6ch")}>
+          Keep the text for (days, 1 to 365)
+          <QuietInput name="retentionDays" value={days} onChange={(event) => setDays(event.target.value)} inputMode="numeric" maxLength={3} title="After this many days the question, answer and comment are deleted automatically. The rating is kept." />
+        </label>
+      </div>
       {needsNotice ? (
-        <label className={`${styles.checkLine} ${styles.wide}`}>
+        <label className={tab.tick}>
           <input type="checkbox" name="logNotice" required />
           Questions and answers will be stored for {valid ? number : "the chosen number of"} days and visible to owners and admins.
         </label>

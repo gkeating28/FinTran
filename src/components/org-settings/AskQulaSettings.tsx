@@ -1,7 +1,11 @@
 import { clearSecret, saveAiSettings, testAiConnection } from "@/lib/settings-actions";
 import { createClient } from "@/lib/supabase/server";
 import AskQulaLogFields from "@/components/AskQulaLogFields";
+import { QuietInput } from "@/components/QuietField";
+import tab from "@/components/org-settings/SettingsTab.module.css";
 import styles from "@/components/OpsPage.module.css";
+import recordStyles from "@/components/RecordForm.module.css";
+import { slot } from "@/components/recordForm";
 
 const PROVIDERS = [
   { code: "anthropic", name: "Anthropic" },
@@ -70,21 +74,74 @@ export default async function AskQulaSettings({
     for (const profile of (profiles.data ?? []) as { id: string; display_name: string | null; email: string }[]) names.set(profile.id, profile.display_name || profile.email);
   }
   const when = (value: string) => new Date(value).toLocaleString("en-IE", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Dublin" });
-  const providerName = PROVIDERS.find((provider) => provider.code === row.provider_code)?.name ?? "Anthropic";
   const statusText = status ?? (row.enabled ? "Ask Qula is enabled for this organisation." : "Ask Qula answers the fixed questions until you enable a provider.");
 
   return (
-    <div className={styles.stack}>
+    <AskQulaView
+      organisationId={organisationId}
+      row={row}
+      hint={hint ?? null}
+      statusText={statusText}
+      failed={failed}
+      usage={[...byUser.entries()].map(([user, totals]) => ({ user, ...totals }))}
+      ratings={{ up: thumbsUp, down: thumbsDown, total: ratings.length, low: lowRated.map((item) => ({ at: item.at, when: when(item.at), comment: item.comment ?? "", question: item.question ?? "", answer: item.answer ?? "" })) }}
+      actions={done.map((item) => ({
+        at: item.at,
+        when: when(item.at),
+        person: item.user_id ? (names.get(item.user_id) ?? "Unknown") : "System",
+        summary: item.summary,
+        result: `${ACTION_STATUS[item.status] ?? item.status}${item.status === "failed" && item.detail ? `: ${item.detail}` : ""}`,
+      }))}
+    />
+  );
+}
+
+export type AskQulaRow = {
+  enabled?: boolean;
+  provider_code?: string;
+  model?: string;
+  config?: { baseUrl?: string; deployment?: string; apiVersion?: string };
+  user_hourly_limit?: number;
+  organisation_monthly_limit?: number | null;
+  data_notice_accepted_at?: string | null;
+  log_answers?: boolean;
+  actions_enabled?: boolean;
+  answer_retention_days?: number;
+};
+
+export function AskQulaView({
+  organisationId,
+  row,
+  hint,
+  statusText,
+  failed,
+  usage,
+  ratings,
+  actions,
+}: {
+  organisationId: string;
+  row: AskQulaRow;
+  hint: string | null;
+  statusText: string;
+  failed: boolean;
+  usage: { user: string; questions: number; tokens: number; errors: number }[];
+  ratings: { up: number; down: number; total: number; low: { at: string; when: string; comment: string; question: string; answer: string }[] };
+  actions: { at: string; when: string; person: string; summary: string; result: string }[];
+}) {
+  const providerName = PROVIDERS.find((provider) => provider.code === row.provider_code)?.name ?? "Anthropic";
+  return (
+    <div className={tab.tab}>
       <div className={styles.statusRow}>
-        <p className={failed ? styles.alert : styles.notice} role={failed ? "alert" : "status"}>
+        <p className={failed ? styles.alert : styles.notice} role={failed ? "alert" : "status"} title={statusText}>
           {statusText}
         </p>
       </div>
-      <div className={styles.panel}>
-        <div className={styles.panelHead}>Provider</div>
-        <form id="ask-qula-settings" className={styles.partyFields} action={saveAiSettings} autoComplete="off">
-          <input type="hidden" name="organisation_id" value={organisationId} />
-          <label className={styles.field}>
+      <form id="ask-qula-settings" className={`${recordStyles.layout} ${tab.section}`} action={saveAiSettings} autoComplete="off">
+        <input type="hidden" name="organisation_id" value={organisationId} />
+        <p className={`${recordStyles.sectionHeading} ${slot("left", 1)}`}>Provider</p>
+        <p className={`${recordStyles.sectionHeading} ${slot("right", 1)}`}>Limits and privacy</p>
+        <div className={`${recordStyles.pair} ${slot("left", 2)}`}>
+          <label className={recordStyles.cell}>
             Provider
             <select name="provider" defaultValue={row.provider_code ?? "anthropic"}>
               {PROVIDERS.map((provider) => (
@@ -92,54 +149,76 @@ export default async function AskQulaSettings({
               ))}
             </select>
           </label>
-          <label className={styles.field}>
+          <label className={recordStyles.cell}>
             Model
-            <input name="model" defaultValue={row.model ?? "claude-haiku-5-5"} maxLength={100} />
+            <QuietInput name="model" defaultValue={row.model ?? "claude-haiku-5-5"} maxLength={100} />
           </label>
-          <label className={styles.field}>
+        </div>
+        <div className={`${recordStyles.row} ${slot("left", 3)}`}>
+          <label className={recordStyles.grow}>
             Base URL
-            <input name="baseUrl" defaultValue={row.config?.baseUrl ?? ""} placeholder="https://" />
+            <QuietInput name="baseUrl" defaultValue={row.config?.baseUrl ?? ""} />
           </label>
-          <label className={styles.field}>
+        </div>
+        <div className={`${recordStyles.row} ${slot("left", 4)}`}>
+          <label className={recordStyles.grow}>
             API key
-            <input name="apiKey" type="password" autoComplete="off" placeholder={hint ? `Set, ending ${hint}` : "Write-only"} />
+            <QuietInput name="apiKey" type="password" />
+            <small className={tab.help}>{hint ? `Set, ending ${hint}. Leave it blank to keep it.` : "Write-only. It is kept encrypted and never shown again."}</small>
           </label>
-          <label className={styles.field}>
+        </div>
+        <div className={`${recordStyles.pair} ${slot("left", 5)}`}>
+          <label className={recordStyles.cell}>
             Azure deployment
-            <input name="deployment" defaultValue={row.config?.deployment ?? ""} />
+            <QuietInput name="deployment" defaultValue={row.config?.deployment ?? ""} />
           </label>
-          <label className={styles.field}>
+          <label className={recordStyles.cell}>
             API version
-            <input name="apiVersion" defaultValue={row.config?.apiVersion ?? ""} />
+            <QuietInput name="apiVersion" defaultValue={row.config?.apiVersion ?? ""} />
           </label>
-          <label className={styles.field}>
+        </div>
+        <div className={`${recordStyles.pair} ${slot("right", 2)}`}>
+          <label className={recordStyles.cell}>
             Hourly limit
-            <input name="hourly" defaultValue={String(row.user_hourly_limit ?? 30)} inputMode="numeric" />
+            <QuietInput name="hourly" defaultValue={String(row.user_hourly_limit ?? 30)} inputMode="numeric" />
+            <small className={tab.help}>Questions each person can ask in an hour.</small>
           </label>
-          <label className={styles.field}>
+          <label className={recordStyles.cell}>
             Monthly limit
-            <input name="monthly" defaultValue={row.organisation_monthly_limit ? String(row.organisation_monthly_limit) : ""} inputMode="numeric" placeholder="No limit" />
+            <QuietInput name="monthly" defaultValue={row.organisation_monthly_limit ? String(row.organisation_monthly_limit) : ""} inputMode="numeric" />
+            <small className={tab.help}>Questions for the organisation in a month. Blank is no limit.</small>
           </label>
-          <label className={`${styles.checkLine} ${styles.wide}`}>
+        </div>
+        <div className={`${tab.column} ${slot("right", 3)}`} style={{ gridRow: "3 / span 3" }}>
+          <label className={tab.tick}>
             <input type="checkbox" name="notice" defaultChecked={Boolean(row.data_notice_accepted_at)} />
             Questions, and the organisation&apos;s data needed to answer them, will be sent to {providerName}. Check this meets your data protection obligations.
           </label>
           <AskQulaLogFields logAnswers={Boolean(row.log_answers)} retentionDays={row.answer_retention_days ?? 30} />
-          <label className={`${styles.checkLine} ${styles.wide}`}>
+          <label className={tab.tick}>
             <input type="checkbox" name="enabled" defaultChecked={row.enabled} />
             Enable
           </label>
-          <label className={`${styles.checkLine} ${styles.wide}`}>
+          <label className={tab.tick}>
             <input type="checkbox" name="actionsEnabled" defaultChecked={Boolean(row.actions_enabled)} />
-            Allow actions. Ask Qula may propose posting drafts and adding customers or suppliers. Nothing happens until a person confirms. Off by default, and only available while Ask Qula is enabled.
+            Allow actions
+            <small>Ask Qula may propose posting drafts and adding customers or suppliers. Nothing happens until a person confirms. Off by default, and only available while Ask Qula is enabled.</small>
           </label>
-          <div className={`${styles.modalActions} ${styles.wide}`}>
-            {hint ? <button className={`${styles.quiet} ${styles.actionStart}`} type="submit" form="clear-ai-key">Remove key</button> : <span className={styles.actionStart} />}
-            <button className={styles.quiet} type="submit" formAction={testAiConnection}>Test connection</button>
-            <button className={styles.primary} type="submit">Save</button>
-          </div>
-        </form>
-      </div>
+        </div>
+        <div className={tab.footer}>
+          {hint ? (
+            <button className={`${styles.quiet} ${tab.footerStart}`} type="submit" form="clear-ai-key">
+              Remove key
+            </button>
+          ) : null}
+          <button className={styles.quiet} type="submit" formAction={testAiConnection}>
+            Test connection
+          </button>
+          <button className={styles.primary} type="submit">
+            Save
+          </button>
+        </div>
+      </form>
       {hint ? (
         <form id="clear-ai-key" action={clearSecret}>
           <input type="hidden" name="kind" value="ai_api_key" />
@@ -147,11 +226,11 @@ export default async function AskQulaSettings({
           <input type="hidden" name="tab" value="ask-qula" />
         </form>
       ) : null}
-      <div className={styles.panel}>
-        <div className={styles.panelHead}>
+      <div className={tab.table}>
+        <p className={tab.tableHead}>
           This month
-          <span className={styles.panelMeta}>{byUser.size === 0 ? "No questions yet" : `${byUser.size} ${byUser.size === 1 ? "person" : "people"}`}</span>
-        </div>
+          <span>{usage.length === 0 ? "No questions yet" : `${usage.length} ${usage.length === 1 ? "person" : "people"}`}</span>
+        </p>
         <table className={styles.lineTable}>
           <thead>
             <tr>
@@ -162,28 +241,28 @@ export default async function AskQulaSettings({
             </tr>
           </thead>
           <tbody>
-            {byUser.size === 0 ? (
+            {usage.length === 0 ? (
               <tr>
                 <td colSpan={4}>No questions yet.</td>
               </tr>
-            ) : [...byUser.entries()].map(([user, totals]) => (
-              <tr key={user}>
-                <td>{user}</td>
-                <td className={styles.num}>{totals.questions}</td>
-                <td className={styles.num}>{totals.tokens}</td>
-                <td className={styles.num}>{totals.errors}</td>
+            ) : usage.map((item) => (
+              <tr key={item.user}>
+                <td>{item.user}</td>
+                <td className={styles.num}>{item.questions}</td>
+                <td className={styles.num}>{item.tokens}</td>
+                <td className={styles.num}>{item.errors}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <div className={styles.panel}>
-        <div className={styles.panelHead}>
+      <div className={tab.table}>
+        <p className={tab.tableHead}>
           Feedback
-          <span className={styles.panelMeta}>{ratings.length === 0 ? "No ratings yet" : `${thumbsUp} helpful, ${thumbsDown} not helpful (latest ${ratings.length})`}</span>
-        </div>
-        {lowRated.length === 0 ? (
-          <p className={styles.empty}>Answers rated not helpful will show here. {row.log_answers ? `The question and answer are kept with each rating for ${row.answer_retention_days ?? 30} days, then deleted. The rating is kept.` : "Only the rating and any comment are kept, because keeping the question and answer is switched off above."}</p>
+          <span>{ratings.total === 0 ? "No ratings yet" : `${ratings.up} helpful, ${ratings.down} not helpful (latest ${ratings.total})`}</span>
+        </p>
+        {ratings.low.length === 0 ? (
+          <p className={tab.help}>Answers rated not helpful will show here. {row.log_answers ? `The question and answer are kept with each rating for ${row.answer_retention_days ?? 30} days, then deleted. The rating is kept.` : "Only the rating and any comment are kept, because keeping the question and answer is switched off above."}</p>
         ) : (
           <table className={styles.lineTable}>
             <thead>
@@ -195,25 +274,25 @@ export default async function AskQulaSettings({
               </tr>
             </thead>
             <tbody>
-              {lowRated.map((item) => (
+              {ratings.low.map((item) => (
                 <tr key={item.at}>
-                  <td>{when(item.at)}</td>
-                  <td>{item.comment ?? ""}</td>
-                  <td>{item.question ?? ""}</td>
-                  <td>{item.answer ?? ""}</td>
+                  <td>{item.when}</td>
+                  <td>{item.comment}</td>
+                  <td>{item.question}</td>
+                  <td>{item.answer}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
       </div>
-      <div className={styles.panel}>
-        <div className={styles.panelHead}>
+      <div className={tab.table}>
+        <p className={tab.tableHead}>
           Actions Ask Qula proposed
-          <span className={styles.panelMeta}>{done.length === 0 ? "None yet" : `Latest ${done.length}`}</span>
-        </div>
-        {done.length === 0 ? (
-          <p className={styles.empty}>When someone confirms an action Ask Qula proposed, such as posting a draft, it is recorded here.</p>
+          <span>{actions.length === 0 ? "None yet" : `Latest ${actions.length}`}</span>
+        </p>
+        {actions.length === 0 ? (
+          <p className={tab.help}>When someone confirms an action Ask Qula proposed, such as posting a draft, it is recorded here.</p>
         ) : (
           <table className={styles.lineTable}>
             <thead>
@@ -225,12 +304,12 @@ export default async function AskQulaSettings({
               </tr>
             </thead>
             <tbody>
-              {done.map((item) => (
+              {actions.map((item) => (
                 <tr key={`${item.at}-${item.summary}`}>
-                  <td>{when(item.at)}</td>
-                  <td>{item.user_id ? (names.get(item.user_id) ?? "Unknown") : "System"}</td>
+                  <td>{item.when}</td>
+                  <td>{item.person}</td>
                   <td>{item.summary}</td>
-                  <td>{ACTION_STATUS[item.status] ?? item.status}{item.status === "failed" && item.detail ? `: ${item.detail}` : ""}</td>
+                  <td>{item.result}</td>
                 </tr>
               ))}
             </tbody>

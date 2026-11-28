@@ -62,7 +62,7 @@ test("flow 40: the Ask Qula, Access Point and Accounting settings are tabs of th
   await tabs.getByRole("tab", { name: "Ask Qula" }).click();
   await expect(page.getByRole("button", { name: "Test connection" })).toBeVisible();
   await tabs.getByRole("tab", { name: "Accounting" }).click();
-  await expect(page.locator('select[name="receivables_gl_code_id"]')).toBeVisible();
+  await expect(page.locator('[data-lookup="receivables_gl_code_id"] button')).toBeVisible();
 
   // A save on the Access Point tab is for the organisation being edited, and the person stays on that tab.
   await tabs.getByRole("tab", { name: "Access Point" }).click();
