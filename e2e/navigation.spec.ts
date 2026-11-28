@@ -1,5 +1,6 @@
 import { expect, test } from "./fixtures";
 import { apiAs } from "./api";
+import { typeInto } from "./documents";
 import { signIn } from "./sign-in";
 
 // Back returns to where the person came from (src/lib/nav-history.ts). When there is nowhere to go back to, as when a page is
@@ -66,7 +67,7 @@ test("flow 40: the Ask Qula, Access Point and Accounting settings are tabs of th
 
   // A save on the Access Point tab is for the organisation being edited, and the person stays on that tab.
   await tabs.getByRole("tab", { name: "Access Point" }).click();
-  await page.locator('input[name="accountId"]').fill("FLOW40-ACCOUNT");
+  await typeInto(page.locator('input[name="accountId"]'), "FLOW40-ACCOUNT");
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Access Point", selected: true })).toBeVisible();
